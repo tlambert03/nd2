@@ -24,8 +24,18 @@ nd2file = Extension(
     define_macros=[("LX_STATIC_LINKING", None)],
 )
 
+EXTENSIONS = [nd2file]
+if SYSTEM == "Darwin":
+    nd2file_legacy = Extension(
+        name="pynd2._nd2file_legacy",
+        sources=["pynd2/_nd2file_legacy.pyx", "pynd2/nd2Reader_helper.c"],
+        include_dirs=["sdk_legacy/Darwin/", get_include()],
+        extra_link_args=["-F", "sdk_legacy/Darwin", "-framework", "nd2sdk"],
+    )
+    EXTENSIONS.append(nd2file_legacy)
+
 
 setup(
     use_scm_version={"write_to": "nd2/_version.py"},
-    ext_modules=cythonize([nd2file], language_level="3"),
+    ext_modules=cythonize(EXTENSIONS, language_level="3"),
 )

@@ -103,3 +103,9 @@ ENV/
 
 # IDE settings
 .vscode/
+
+_nd2file.c
+sdk
+sdk_legacy/*
+tests/data
+nd2/_version.py

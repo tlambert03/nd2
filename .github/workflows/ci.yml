@@ -53,7 +53,7 @@ jobs:
         run: pip install .[testing]
 
       - name: Test
-        run: pytest -v --color --cov=nd2 --cov-report=xml
+        run: pytest -v --cov=nd2 --cov-report=xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2

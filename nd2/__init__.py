@@ -7,7 +7,7 @@ __email__ = "talley.lambert@gmail.com"
 
 from typing import TYPE_CHECKING
 
-from ._nd2file import ND2File as ND2File
+from .nd2file import ND2File as ND2File
 
 if TYPE_CHECKING:
     import numpy as np

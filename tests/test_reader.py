@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List
 
 import numpy as np
+from numpy.lib.arraysetops import isin
 import pytest
 
 from nd2 import ND2File, imread, structures
@@ -46,6 +47,14 @@ def test_metadata_extraction(fname):
 
     assert not nd.is_open()
     assert not nd.path
+
+
+@pytest.mark.parametrize("fname", NEW_FORMATS)
+def test_get_data(fname):
+    if 'divisionByZero' in str(fname):
+        pytest.skip()
+    with ND2File(fname) as nd:
+        assert isinstance(nd.data(), np.ndarray)
 
 
 def test_data():

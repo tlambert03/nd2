@@ -7,6 +7,14 @@ from typing import List, NamedTuple, Optional, Tuple, Union
 from typing_extensions import Literal
 
 
+def _parse_text_info(value: str) -> Union[dict, str]:
+    return value
+
+
+def text_info(info: dict) -> dict:
+    return {k: _parse_text_info(v) for k, v in info.items()}
+
+
 class Attributes(NamedTuple):
     bitsPerComponentInMemory: int
     bitsPerComponentSignificant: int

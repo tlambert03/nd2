@@ -50,9 +50,9 @@ def fetch(dbx: Dropbox, remote_path: str, local_dest: str):
         dbx.files_download_to_file(
             Path(local_dest) / Path(remote_path).name, remote_path
         )
-        print(f"✅ {remote_path}")
+        print(f"success: {remote_path}")
     except Exception as e:
-        print(f"❌ {remote_path} ({e})")
+        print(f"ERROR: {remote_path} ({e})")
 
 
 def download_folder(dbx: Dropbox, remote_folder: str, local_dest: str):

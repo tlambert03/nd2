@@ -3,8 +3,8 @@ requires = ["setuptools", "wheel", "cython", "numpy"]
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
-# Skip 32-bit builds & PyPy wheels on all platforms
-skip = ["*-win32", "*-manylinux_i686", "pp*"]
+# Skip 32-bit builds & PyPy wheels on mac
+skip = ["*-win32", "*-manylinux_i686", "pp*-macosx"]
 test-requires = "pytest"
 test-command = "pytest {project}/tests"
 test-extras = ["testing"]

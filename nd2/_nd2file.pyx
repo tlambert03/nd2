@@ -162,29 +162,30 @@ cdef class CND2File:
     cdef public path
 
     def __cinit__(self, path):
-        self.path = ""
         self.hFile = <void*> 0
-        self.open(path)
+        self.path = path
+        self.open()
 
     def __dealloc__(self):
         self.close()
 
-    cpdef open(CND2File self, str path):
-        self.hFile = Lim_FileOpenForReadUtf8(path)
-        if <uintptr_t> self.hFile == 0:
-           raise OSError("Could not open file: %s" % path)
-        self.path = path
+    cpdef open(CND2File self):
+        if not self.is_open():
+            self.hFile = Lim_FileOpenForReadUtf8(self.path)
+            if <uintptr_t> self.hFile == 0:
+                raise OSError("Could not open file: %s" % self.path)
+            self._is_open = 1
 
     cpdef void close(CND2File self):
         if self.is_open():
             Lim_FileClose(self.hFile)
             self.hFile = <void*> 0
-            self.path = ""
 
     cpdef bool is_open(CND2File self):
-        return self.path != ""
+        return bool(<uintptr_t> self.hFile != 0)
 
     cpdef CND2File __enter__(CND2File self):
+        self.open()
         return self
 
     cpdef void __exit__(CND2File self, exc_type, exc_val, exc_tb):
@@ -261,6 +262,8 @@ cdef class CND2File:
 
     cpdef int seq_index_from_coords(CND2File self, coords):
         """Convert experiment coords to sequence index.
+
+        Returns -1 if coord_size == 0.
 
         e.g.
          T, Z     Seq

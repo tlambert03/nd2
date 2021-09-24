@@ -47,7 +47,6 @@ def test_metadata_extraction(fname):
             assert len(zcoord) == n_coords
 
     assert not nd.is_open()
-    assert not nd.path
 
 
 @pytest.mark.parametrize("fname", NEW_FORMATS)
@@ -56,8 +55,13 @@ def test_get_data(fname):
         pytest.skip()
     with ND2File(fname) as nd:
         assert isinstance(nd.data(), np.ndarray)
-        assert isinstance(nd.to_xarray(), xr.DataArray)
         assert isinstance(nd.to_dask(), da.Array)
+        xarr = nd.to_xarray()
+        assert isinstance(xarr, xr.DataArray)
+        assert isinstance(xarr.data, da.Array)
+        result = xarr[nd.coords_from_seq_index(0)].compute()
+        assert isinstance(result, xr.DataArray)
+        assert isinstance(result.data, np.ndarray)
 
 
 def test_data():

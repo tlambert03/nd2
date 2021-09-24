@@ -62,17 +62,23 @@ class ND2File(_nd2file.CND2File):
         from dask.array import map_blocks
 
         *rest, nc, ny, nx = self.shape
-        return map_blocks(
+        darr = map_blocks(
             self._get_chunk,
             chunks=[(1,) * i for i in rest] + [(nc,), (ny,), (nx,)],
             dtype=self.dtype,
         )
+        darr._ctx = self  # XXX: ok?  or will we leak refs
+        return darr
 
     def _get_chunk(self, block_id):
         # primarily for to_dask
-        if not block_id:
+        if isinstance(block_id, np.ndarray):
             return
         idx = self.seq_index_from_coords(block_id[:-3])
+        if idx == -1:
+            if any(block_id):
+                raise ValueError(f"Cannot get chunk {block_id} for single frame image.")
+            idx = 0
         return self.data(idx)[(np.newaxis,) * self.coord_size()]
 
     def to_xarray(self, delayed: bool = True) -> "xr.DataArray":
@@ -116,12 +122,12 @@ class ND2File(_nd2file.CND2File):
         return coords
 
     def __repr__(self):
-        path = Path(self.path).name
-        return f"<ND2File at {hex(id(self))}: {path!r} {self.dtype}: {self.shape!r}>"
+        details = f" {self.dtype}: {self.shape!r}" if self.is_open() else " (closed)"
+        return f"<ND2File at {hex(id(self))}: {Path(self.path).name!r}{details}>"
 
     def __enter__(self) -> "ND2File":
         # just for the type hint
-        return self
+        return super().__enter__()  # type: ignore
 
 
 def imread(file: str = None) -> np.ndarray:

@@ -5,14 +5,6 @@ except ImportError:
 __author__ = "Talley Lambert"
 __email__ = "talley.lambert@gmail.com"
 
-from typing import TYPE_CHECKING
+from .nd2file import ND2File, imread
 
-from .nd2file import ND2File as ND2File
-
-if TYPE_CHECKING:
-    import numpy as np
-
-
-def imread(file: str = None, sequence: int = 0) -> "np.ndarray":
-    with ND2File(str(file)) as nd2:
-        return nd2.data(sequence)
+__all__ = ["ND2File", "imread"]

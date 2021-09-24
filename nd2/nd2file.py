@@ -32,7 +32,7 @@ class ND2File(_nd2file.CND2File):
         attr = self.attributes()
         _shape = [c.size for c in self.coord_info()]
         # TODO: widthPx may be None?
-        _shape += [attr.componentCount, attr.heightPx, attr.widthPx]
+        _shape += [attr.componentCount, attr.heightPx, attr.widthPx or -1]
         return tuple(_shape)
 
     @property
@@ -122,3 +122,9 @@ class ND2File(_nd2file.CND2File):
     def __enter__(self) -> "ND2File":
         # just for the type hint
         return self
+
+
+def imread(file: str = None) -> np.ndarray:
+    with ND2File(str(file)) as nd2:
+        arr = nd2.asarray()
+    return arr

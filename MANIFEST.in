@@ -1,8 +1,11 @@
-include LICENSE
-include README.md
+include nd2/py.typed
+recursive-include nd2 *.py[ix]
 
-recursive-include tests *
+graft sdk/*/static/lib
+graft sdk/*/static/include
+
+exclude .pre-commit-config.yaml
+recursive-exclude tests *
+recursive-exclude scripts *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
-
-recursive-include docs *.md conf.py Makefile make.bat *.jpg *.png *.gif

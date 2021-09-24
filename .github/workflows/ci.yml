@@ -58,34 +58,34 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
 
-  # deploy:
-  #   name: Deploy
-  #   needs: test
-  #   if: "success() && startsWith(github.ref, 'refs/tags/')"
-  #   runs-on: ubuntu-latest
+  deploy:
+    name: Deploy
+    needs: test
+    if: "success() && startsWith(github.ref, 'refs/tags/')"
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - uses: actions/checkout@v2
+    steps:
+      - uses: actions/checkout@v2
 
-  #     - name: Set up Python
-  #       uses: actions/setup-python@v2
-  #       with:
-  #         python-version: "3.x"
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
 
-  #     - name: install
-  #       run: |
-  #         git tag
-  #         pip install --upgrade pip
-  #         pip install -U setuptools setuptools_scm wheel twine
-  #         python setup.py sdist bdist_wheel
+      - name: install
+        run: |
+          git tag
+          pip install --upgrade pip
+          pip install build
+          python -m build
 
-  #     - name: twine check
-  #       run: |
-  #         twine check dist/*
-  #         ls -lh dist
+      - name: twine check
+        run: |
+          twine check dist/*
+          ls -lh dist
 
-  #     - name: Build and publish
-  #       run: twine upload dist/*
-  #       env:
-  #         TWINE_USERNAME: __token__
-  #         TWINE_PASSWORD: ${{ secrets.TWINE_API_KEY }}
+      # - name: Build and publish
+      #   run: twine upload dist/*
+      #   env:
+      #     TWINE_USERNAME: __token__
+      #     TWINE_PASSWORD: ${{ secrets.TWINE_API_KEY }}

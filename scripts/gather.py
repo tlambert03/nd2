@@ -103,9 +103,9 @@ def get_pims_stats(file) -> dict:
 if __name__ == "__main__":
 
     D = {}
-    for f in Path("tests/data").glob("*.nd2"):
+    for _f in Path("tests/data").glob("*.nd2"):
+        f = str(_f)
         print(f)
-        f = str(f)
         D[f] = {"bioformats": get_bf_stats(f)}
         D[f]["nd2"] = get_nd2_stats(f)
         D[f]["nd2reader"] = get_nd2reader_stats(f)

@@ -1,4 +1,3 @@
-import os
 import platform
 from pathlib import Path
 
@@ -12,7 +11,7 @@ SDK = Path("sdk") / SYSTEM / LINK
 LIB = SDK / "lib"
 INCLUDE = SDK / "include"
 
-os.environ["MACOSX_DEPLOYMENT_TARGET"] = "11.0"
+# os.environ["MACOSX_DEPLOYMENT_TARGET"] = "11.0"
 
 nd2file = Extension(
     name="nd2._nd2file",

@@ -2,8 +2,8 @@ name: Deploy
 
 on:
   push:
-    tags:
-      - "v*"
+    # tags:
+      # - "v*"
 
 jobs:
   build:
@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, macos-10.15]
+        os: [ubuntu-20.04, windows-2019, macos-10.15]
 
     steps:
       - uses: actions/checkout@v2
@@ -42,24 +42,24 @@ jobs:
           path: ./wheelhouse/*.whl
 
       - name: Build sdist
-        if: matrix.os == 'macos-10.15'
+        if: matrix.os == 'ubuntu-20.04'
         run: python -m build --sdist
 
       - uses: actions/upload-artifact@v2
-        if: matrix.os == 'macos-10.15'
+        if: matrix.os == 'ubuntu-20.04'
         with:
           path: dist/*.tar.gz
 
-  upload_pypi:
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: artifact
-          path: dist
+  # upload_pypi:
+  #   needs: [build]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/download-artifact@v2
+  #       with:
+  #         name: artifact
+  #         path: dist
 
-      - uses: pypa/gh-action-pypi-publish@v1.4.2
-        with:
-          user: __token__
-          password: ${{ secrets.TWINE_API_KEY }}
+  #     - uses: pypa/gh-action-pypi-publish@v1.4.2
+  #       with:
+  #         user: __token__
+  #         password: ${{ secrets.TWINE_API_KEY }}

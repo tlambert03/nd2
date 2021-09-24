@@ -6,5 +6,12 @@ build-backend = "setuptools.build_meta"
 # Skip 32-bit builds & PyPy wheels on all platforms
 skip = ["*-win32", "*-manylinux_i686", "pp*"]
 test-requires = "pytest"
-test-command = "pytest {project}/tests"
+test-command = "pytest {project}/tests -v"
 test-extras = ["testing"]
+manylinux-x86_64-image = "manylinux_2_24"
+
+[tool.cibuildwheel.linux]
+before-all = [
+    "apt-get update && apt-get install -y libtiff5-dev",
+    "cp {project}/sdk/Linux/shared/lib/* /lib",
+]

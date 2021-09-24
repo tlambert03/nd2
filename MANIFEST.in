@@ -1,8 +1,12 @@
 include nd2/py.typed
 recursive-include nd2 *.pyi
 
-graft sdk/*/static/lib
-graft sdk/*/static/include
+graft sdk/Darwin/static/lib
+graft sdk/Darwin/static/include
+graft sdk/Windows/static/lib
+graft sdk/Windows/static/include
+graft sdk/Linux/shared/lib
+graft sdk/Linux/shared/include
 
 exclude .pre-commit-config.yaml
 recursive-exclude tests *

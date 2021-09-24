@@ -17,6 +17,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     env:
       DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+      CYTHON_TRACE: "1"
     strategy:
       fail-fast: false
       matrix:

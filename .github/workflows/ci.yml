@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.9]
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: [macos-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v2
@@ -36,14 +36,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install dropbox
 
-      - uses: actions/cache@v2
-        id: cache
-        with:
-          path: /tests/data
-          key: ${{ hashFiles('scripts/download_samples.py') }}
+      # - uses: actions/cache@v2
+      #   id: cache
+      #   with:
+      #     path: /tests/data
+      #     key: ${{ hashFiles('scripts/download_samples.py') }}
 
       - name: Download Samples
-        if: steps.cache.outputs.cache-hit != 'true'
+        # if: steps.cache.outputs.cache-hit != 'true'
         run: python scripts/download_samples.py
 
       - name: Download SDK

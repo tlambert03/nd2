@@ -12,7 +12,7 @@ This reader provides a Cython wrapper for the official Nikon SDK (currently vers
 
 Features good metadata retrieval, and direct `to_dask` and `to_xarray` options for lazy and/or annotated arrays.
 
-It does not currently support legacy format nd2 files ([magic_number](https://en.wikipedia.org/wiki/File_format#Magic_number)=201326592)
+It does not currently support legacy format nd2 files ([JPEG_XL](https://en.wikipedia.org/wiki/JPEG_XL) files starting with bytes `0x0000000c`)
 
 ## install
 

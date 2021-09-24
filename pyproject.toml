@@ -4,3 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
 skip = "*-win32"
+test-requires = "pytest"
+test-command = "pytest {project}/tests"
+test-extras = ["testing"]

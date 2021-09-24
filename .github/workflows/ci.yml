@@ -78,6 +78,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Download SDK
+        run: python scripts/download_sdk.py
+        env:
+          DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
+
       - name: set up python
         uses: actions/setup-python@v2
         with:

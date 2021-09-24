@@ -1,14 +1,12 @@
-# cython: language_level=3, c_string_type=unicode, c_string_encoding=utf-8
-from libc.stdint cimport uintptr_t
-
-import numpy as np  # Python-level symbols of numpy
-
-cimport numpy as np  # C-level symbols of numpy
-from cpython cimport Py_INCREF, PyObject, bool
-
 import json
 
+from cpython cimport Py_INCREF, PyObject, bool
+from libc.stdint cimport uintptr_t
 from libc.stdlib cimport free, malloc
+
+import numpy as np
+
+cimport numpy as np
 
 from .structures import (
     Attributes,
@@ -18,9 +16,6 @@ from .structures import (
     Metadata,
     parse_experiment,
 )
-
-from libc.stddef cimport wchar_t
-from libc.stdint cimport uint8_t, uint16_t
 
 # Numpy must be initialized. When using numpy from C or Cython you must
 # _always_ do that, or you will have segfaults
@@ -71,6 +66,8 @@ cdef extern from "Nd2ReadSdk.h":
     void      Lim_FileFreeString(LIMSTR str)
 
     # LIMFILEHANDLE Lim_FileOpenForRead(LIMCWSTR wszFileName)
+
+# from libc.stddef cimport wchar_t
 
 # cdef extern from "Python.h":
     # wchar_t* PyUnicode_AsWideCharString(object, Py_ssize_t *)

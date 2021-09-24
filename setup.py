@@ -11,6 +11,8 @@ LINK = "static"
 SDK = Path("sdk") / SYSTEM / LINK
 LIB = SDK / "lib"
 INCLUDE = SDK / "include"
+
+# set env CYTHON_TRACE=1 to enable coverage on .pyx files
 CYTHON_TRACE = bool(os.getenv("CYTHON_TRACE", "0") not in ("0", "False"))
 
 # os.environ["MACOSX_DEPLOYMENT_TARGET"] = "11.0"
@@ -31,6 +33,10 @@ setup(
     ext_modules=cythonize(
         [nd2file],
         language_level="3",
-        compiler_directives={"linetrace": CYTHON_TRACE, "c_string_encoding": "utf-8"},
+        compiler_directives={
+            "linetrace": CYTHON_TRACE,
+            "c_string_type": "unicode",
+            "c_string_encoding": "utf-8",
+        },
     ),
 )

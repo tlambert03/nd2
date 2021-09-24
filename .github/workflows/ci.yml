@@ -58,7 +58,6 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
 
-
   build:
     name: build py3.${{ matrix.python-version }} on ${{ matrix.platform || matrix.os }}
     # needs: [test]
@@ -70,7 +69,7 @@ jobs:
         python-version: ["7", "8", "9"]
         include:
           # - os: ubuntu
-            # platform: linux
+          # platform: linux
           - os: windows
             ls: dir
 
@@ -78,18 +77,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Download SDK
-        run: python scripts/download_sdk.py
-        env:
-          DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
-
       - name: set up python
         uses: actions/setup-python@v2
         with:
           python-version: "3.9"
 
       - name: install
-        run: pip install -U twine setuptools wheel cibuildwheel
+        run: pip install -U twine setuptools wheel cibuildwheel dropbox
+
+      - name: Download SDK
+        run: python scripts/download_sdk.py
+        env:
+          DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
 
       - name: build sdist
         if: matrix.os == 'macos' && matrix.python-version == '9'
@@ -148,7 +147,6 @@ jobs:
         run: |
           twine check dist/*
           ls -lh dist
-
       # - name: Build and publish
       #   run: twine upload dist/*
       #   env:

@@ -6,13 +6,15 @@ from typing import List, NamedTuple, Optional, Tuple, Union
 
 from typing_extensions import Literal
 
-
-def _parse_text_info(value: str) -> Union[dict, str]:
-    return value
+# enums
 
 
-def text_info(info: dict) -> dict:
-    return {k: _parse_text_info(v) for k, v in info.items()}
+class AxisInterpretation(str, Enum):
+    distance = "distance"
+    time = "time"
+
+
+# tuples
 
 
 class Attributes(NamedTuple):
@@ -44,17 +46,20 @@ def parse_experiment(exp: List[dict]) -> List[ExpLoop]:
     return [_Loop.create(i) for i in exp]
 
 
+LoopTypeString = Union[
+    Literal["TimeLoop"],
+    Literal["NETimeLoop"],
+    Literal["XYPosLoop"],
+    Literal["ZStackLoop"],
+]
+
+
 @dataclass
 class _Loop:
     count: int
     nestingLevel: int
     parameters: LoopParams
-    type: Union[
-        Literal["TimeLoop"],
-        Literal["NETimeLoop"],
-        Literal["XYPosLoop"],
-        Literal["ZStackLoop"],
-    ]
+    type: LoopTypeString
 
     @classmethod
     def create(cls, obj: dict) -> ExpLoop:
@@ -239,11 +244,6 @@ class Microscope:
     projectiveMagnification: Optional[float] = None
     pinholeDiameterUm: Optional[float] = None
     modalityFlags: List[str] = field(default_factory=list)
-
-
-class AxisInterpretation(str, Enum):
-    distance = "distance"
-    time = "time"
 
 
 @dataclass

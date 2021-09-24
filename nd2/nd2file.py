@@ -1,14 +1,13 @@
-from typing import TYPE_CHECKING, Tuple, Union
-from dask.array.rechunk import rechunk
-from dask.delayed import delayed
-import numpy as np
-from numpy.core.shape_base import block
-from . import _nd2file
 from pathlib import Path
+from typing import TYPE_CHECKING, Tuple, Union
 
+import numpy as np
+
+from . import _nd2file
 
 if TYPE_CHECKING:
     import dask.array as da
+    import xarray as xr
 
 Index = Union[int, slice]
 _AXMAP = {
@@ -49,8 +48,11 @@ class ND2File(_nd2file.CND2File):
 
     @property
     def axes(self) -> str:
-        a = [_AXMAP[c.type] for c in self.coord_info()] + list("CYZ")
+        a = [_AXMAP[c.type] for c in self.coord_info()] + list("CYX")
         return "".join(a)
+
+    def pixel_size(self, channel=0) -> Tuple[float, float, float]:
+        return self.metadata().channels[channel].volume.axesCalibration
 
     def asarray(self) -> np.ndarray:
         arr = np.stack([self.data(i) for i in range(self.seq_count())])
@@ -73,9 +75,50 @@ class ND2File(_nd2file.CND2File):
         idx = self.seq_index_from_coords(block_id[:-3])
         return self.data(idx)[(np.newaxis,) * self.coord_size()]
 
+    def to_xarray(self, delayed: bool = True) -> "xr.DataArray":
+        import xarray as xr
+
+        return xr.DataArray(
+            self.to_dask() if delayed else self.asarray(),
+            dims=list(self.axes),
+            coords=self._expand_coords(),
+            attrs={
+                "metadata": {
+                    "metadata": self.metadata(),
+                    "experiment": self.experiment(),
+                    "attributes": self.attributes(),
+                    "text_info": self.text_info(),
+                }
+            },
+        )
+
+    def _expand_coords(self) -> dict:
+        attrs = self.attributes()
+        dx, dy, dz = self.metadata().channels[0].volume.axesCalibration
+        coords = {
+            "C": [c.channel.name for c in self.metadata().channels],
+            "Y": np.arange(attrs.heightPx) * dy,
+            "X": np.arange(attrs.widthPx) * dx,
+        }
+        for c in self.experiment():
+            if c.type == "ZStackLoop":
+                coords[_AXMAP["ZStackLoop"]] = np.arange(c.count) * c.parameters.stepUm
+            elif c.type == "TimeLoop":
+                coords[_AXMAP["TimeLoop"]] = np.arange(c.count) * c.parameters.periodMs
+            elif c.type == "NETimeLoop":
+                pers = [np.arange(p.count) * p.periodMs for p in c.parameters.periods]
+                coords[_AXMAP["NETimeLoop"]] = np.hstack(pers)
+            elif c.type == "XYPosLoop":
+                coords[_AXMAP["XYPosLoop"]] = [
+                    p.name or repr(tuple(p.stagePositionUm))
+                    for p in c.parameters.points
+                ]
+        return coords
+
     def __repr__(self):
         path = Path(self.path).name
         return f"<ND2File at {hex(id(self))}: {path!r} {self.dtype}: {self.shape!r}>"
 
-    def __enter__(self) -> 'ND2File':
-        return super().__enter__()
+    def __enter__(self) -> "ND2File":
+        # just for the type hint
+        return self

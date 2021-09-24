@@ -1,9 +1,9 @@
-from typing import List, Sequence, Tuple, Any, overload
+from typing import Any, List, Sequence, Tuple, overload
 
 import numpy as np
 from typing_extensions import Literal
 
-from .structures import Attributes, Metadata, FrameMetadata, ExpLoop, Coordinate
+from .structures import Attributes, Coordinate, ExpLoop, FrameMetadata, Metadata
 
 class CND2File:
     path: str

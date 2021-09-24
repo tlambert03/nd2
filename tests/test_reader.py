@@ -1,9 +1,10 @@
 from pathlib import Path
 from typing import List
 
+import dask.array as da
 import numpy as np
-from numpy.lib.arraysetops import isin
 import pytest
+import xarray as xr
 
 from nd2 import ND2File, imread, structures
 from nd2._util import is_new_format
@@ -51,10 +52,12 @@ def test_metadata_extraction(fname):
 
 @pytest.mark.parametrize("fname", NEW_FORMATS)
 def test_get_data(fname):
-    if 'divisionByZero' in str(fname):
+    if "divisionByZero" in str(fname):
         pytest.skip()
     with ND2File(fname) as nd:
         assert isinstance(nd.data(), np.ndarray)
+        assert isinstance(nd.to_xarray(), xr.DataArray)
+        assert isinstance(nd.to_dask(), da.Array)
 
 
 def test_data():

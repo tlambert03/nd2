@@ -1,0 +1,816 @@
+
+
+{
+  "jonas_jonas_nd2Test_Exception61.nd2": {
+    "shape": {
+      "bioformats": { "T": 11, "C": 1, "Z": 13, "Y": 520, "X": 696 },
+      "nd2": { "T": 11, "Z": 13, "C": 1, "Y": 520, "X": 696 },
+      "nd2reader": null,
+      "pims_nd2": { "x": 696, "y": 520, "t": 11, "z": 13 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_512c_cag_p5_simgc_2511_70ms22s_crop.nd2": {
+    "shape": {
+      "bioformats": { "T": 8, "C": 2, "Z": 31, "Y": 1040, "X": 1392 },
+      "nd2": { "T": 8, "S": 2, "C": 2, "Y": 1040, "X": 1392 },
+      "nd2reader": null,
+      "pims_nd2": { "x": 1392, "y": 1040, "c": 2, "t": 8, "m": 2, "z": 31 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "210601_IVMTR114_Inj1_ASA_exp3.nd2": {
+    "shape": {
+      "bioformats": { "T": 194, "C": 4, "Z": 33, "Y": 512, "X": 512 },
+      "nd2": { "T": 194, "Z": 33, "C": 4, "Y": 512, "X": 512 },
+      "nd2reader": { "x": 512, "y": 512, "c": 4, "t": 194, "z": 33 },
+      "pims_nd2": { "x": 512, "y": 512, "c": 4, "t": 194, "z": 33 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_multipoint.nd2": {
+    "shape": {
+      "bioformats": { "T": 11, "C": 1, "Z": 5, "Y": 1040, "X": 1392 },
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": { "x": 1392, "y": 1040, "t": 11, "m": 4, "z": 5 }
+    },
+    "dtype": {
+      "bioformats": ">u2",
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_b16_pdtB+y50__crop.nd2": {
+    "shape": {
+      "bioformats": { "T": 56, "C": 1, "Z": 1, "Y": 1200, "X": 1600 },
+      "nd2": { "T": 57, "S": 12, "C": 1, "Y": 1200, "X": 1600 },
+      "nd2reader": null,
+      "pims_nd2": null
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": null,
+      "pims_nd2": null
+    }
+  },
+  "accPB_specUNMX.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 4, "Z": 1, "Y": 256, "X": 256 },
+      "nd2": { "C": 4, "Y": 256, "X": 256 },
+      "nd2reader": { "x": 256, "y": 256, "c": 4, "t": 1 },
+      "pims_nd2": { "x": 256, "y": 256, "c": 4 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "train_TR67_Inj7_fr50.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 4, "Z": 33, "Y": 512, "X": 512 },
+      "nd2": { "T": 1, "Z": 33, "C": 4, "Y": 512, "X": 512 },
+      "nd2reader": { "x": 512, "y": 512, "c": 4, "t": 193, "z": 33 },
+      "pims_nd2": { "x": 512, "y": 512, "c": 4, "t": 1, "z": 33 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_por003.nd2": {
+    "shape": {
+      "bioformats": { "T": 66, "C": 2, "Z": 1, "Y": 520, "X": 696 },
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": { "x": 696, "y": 520, "c": 2, "t": 66, "m": 3 }
+    },
+    "dtype": {
+      "bioformats": ">u2",
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "10audrosophila.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 1, "Z": 1, "Y": 512, "X": 512 },
+      "nd2": { "C": 1, "Y": 512, "X": 512 },
+      "nd2reader": { "x": 512, "y": 512, "t": 1 },
+      "pims_nd2": { "x": 512, "y": 512 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "gain6p2.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 1, "Z": 1, "Y": 2400, "X": 2400 },
+      "nd2": { "C": 1, "Y": 2400, "X": 2400 },
+      "nd2reader": { "x": 2400, "y": 2400, "t": 1 },
+      "pims_nd2": { "x": 2400, "y": 2400 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_512c_nikonTest_1.nd2": {
+    "shape": {
+      "bioformats": { "T": 16, "C": 1, "Z": 11, "Y": 1040, "X": 1392 },
+      "nd2": { "T": 16, "Z": 11, "C": 1, "Y": 1040, "X": 1392 },
+      "nd2reader": { "z": 176 },
+      "pims_nd2": { "x": 1392, "y": 1040, "t": 16, "z": 11 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "10ms_2xbin_100xmag.nd2": {
+    "shape": {
+      "bioformats": { "T": 20, "C": 1, "Z": 1, "Y": 512, "X": 672 },
+      "nd2": { "T": 20, "C": 1, "Y": 512, "X": 672 },
+      "nd2reader": { "x": 672, "y": 512, "t": 20 },
+      "pims_nd2": { "x": 672, "y": 512, "t": 20 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_weekend002.nd2": {
+    "shape": {
+      "bioformats": { "T": 116, "C": 1, "Z": 1, "Y": 520, "X": 696 },
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": { "x": 696, "y": 520, "t": 116, "m": 3 }
+    },
+    "dtype": {
+      "bioformats": ">u2",
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "rylie_SIM_A6L2m67_Reconstructed.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 3, "Z": 11, "Y": 1004, "X": 1004 },
+      "nd2": { "Z": 11, "C": 3, "Y": 1004, "X": 1004 },
+      "nd2reader": { "x": 1004, "y": 1004, "c": 3, "t": 1, "z": 11 },
+      "pims_nd2": { "x": 1004, "y": 1004, "c": 3, "z": 11 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "gain1.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 1, "Z": 1, "Y": 2400, "X": 2400 },
+      "nd2": { "C": 1, "Y": 2400, "X": 2400 },
+      "nd2reader": { "x": 2400, "y": 2400, "t": 1 },
+      "pims_nd2": { "x": 2400, "y": 2400 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "cluster.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 2, "Z": 1, "Y": 31, "X": 38 },
+      "nd2": { "T": 3, "Z": 10, "C": 2, "Y": 31, "X": 38 },
+      "nd2reader": { "x": 38, "y": 31, "c": 2, "t": 3, "z": 10 },
+      "pims_nd2": { "x": 38, "y": 31, "c": 2, "t": 3, "z": 10 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_512c_wtf_alignment.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 2, "Z": 31, "Y": 1040, "X": 1392 },
+      "nd2": { "T": 1, "S": 2, "C": 2, "Y": 1040, "X": 1392 },
+      "nd2reader": { "z": 62 },
+      "pims_nd2": { "x": 1392, "y": 1040, "c": 2, "t": 1, "m": 2, "z": 31 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_header_test2.nd2": {
+    "shape": {
+      "bioformats": { "T": 4, "C": 1, "Z": 5, "Y": 520, "X": 696 },
+      "nd2": { "T": 4, "Z": 5, "C": 1, "Y": 520, "X": 696 },
+      "nd2reader": { "z": 20 },
+      "pims_nd2": { "x": 696, "y": 520, "t": 4, "z": 5 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_movieSize_JJ_RNAi_hmr-1_001_CropCyan.nd2": {
+    "shape": {
+      "bioformats": { "T": 57, "C": 1, "Z": 19, "Y": 66, "X": 164 },
+      "nd2": { "T": 57, "Z": 19, "C": 1, "Y": 66, "X": 164 },
+      "nd2reader": null,
+      "pims_nd2": { "x": 164, "y": 66, "t": 57, "z": 19 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_4_con_2_1_cot002.nd2": {
+    "shape": {
+      "bioformats": { "T": 262, "C": 2, "Z": 1, "Y": 520, "X": 696 },
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": { "x": 696, "y": 520, "c": 2, "t": 262, "m": 5 }
+    },
+    "dtype": {
+      "bioformats": ">u2",
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_header_test1.nd2": {
+    "shape": {
+      "bioformats": { "T": 7, "C": 2, "Z": 3, "Y": 520, "X": 696 },
+      "nd2": { "T": 7, "Z": 3, "C": 2, "Y": 520, "X": 696 },
+      "nd2reader": { "z": 21 },
+      "pims_nd2": { "x": 696, "y": 520, "c": 2, "t": 7, "z": 3 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_movieSize_JJ_RNAi_hmr-1_001.nd2": {
+    "shape": {
+      "bioformats": { "T": 57, "C": 1, "Z": 19, "Y": 260, "X": 348 },
+      "nd2": { "T": 57, "Z": 19, "C": 1, "Y": 260, "X": 348 },
+      "nd2reader": null,
+      "pims_nd2": { "x": 348, "y": 260, "t": 57, "z": 19 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "5ms_2xbin_40xmag.nd2": {
+    "shape": {
+      "bioformats": { "T": 20, "C": 1, "Z": 1, "Y": 512, "X": 672 },
+      "nd2": { "T": 20, "C": 1, "Y": 512, "X": 672 },
+      "nd2reader": { "x": 672, "y": 512, "t": 20 },
+      "pims_nd2": { "x": 672, "y": 512, "t": 20 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_qa-7534_130606_JCC719_003.nd2": {
+    "shape": {
+      "bioformats": { "T": 20, "C": 1, "Z": 8, "Y": 232, "X": 304 },
+      "nd2": { "T": 20, "Z": 8, "C": 1, "Y": 232, "X": 304 },
+      "nd2reader": { "x": 304, "y": 232, "t": 20, "z": 8 },
+      "pims_nd2": { "x": 304, "y": 232, "t": 20, "z": 8 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "high_OA_1.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 2, "Z": 1, "Y": 1300, "X": 1236 },
+      "nd2": { "C": 2, "Y": 1300, "X": 1236 },
+      "nd2reader": { "x": 1236, "y": 1300, "c": 2, "t": 1 },
+      "pims_nd2": { "x": 1236, "y": 1300, "c": 2 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_2112-2265.nd2": {
+    "shape": {
+      "bioformats": { "T": 49, "C": 1, "Z": 27, "Y": 512, "X": 512 },
+      "nd2": { "T": 49, "S": 8, "C": 1, "Y": 512, "X": 512 },
+      "nd2reader": null,
+      "pims_nd2": { "x": 512, "y": 512, "t": 49, "m": 8, "z": 27 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_512c_nikonTest_two.nd2": {
+    "shape": {
+      "bioformats": { "T": 16, "C": 2, "Z": 11, "Y": 520, "X": 696 },
+      "nd2": { "T": 16, "C": 2, "Y": 520, "X": 696 },
+      "nd2reader": { "z": 176 },
+      "pims_nd2": { "x": 696, "y": 520, "c": 2, "t": 16, "z": 11 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_Time_sequence_24.nd2": {
+    "shape": {
+      "bioformats": { "T": 60, "C": 1, "Z": 1, "Y": 1024, "X": 1280 },
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": null
+    },
+    "dtype": {
+      "bioformats": "uint8",
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": null
+    }
+  },
+  "aryeh_MeOh_high_fluo_003.nd2": {
+    "shape": {
+      "bioformats": { "T": 13, "C": 1, "Z": 1, "Y": 600, "X": 800 },
+      "nd2": { "T": 13, "C": 1, "Y": 600, "X": 800 },
+      "nd2reader": { "x": 800, "y": 600, "t": 13 },
+      "pims_nd2": { "x": 800, "y": 600, "t": 13 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_512c_wtf_DIC.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 2, "Z": 31, "Y": 1040, "X": 1392 },
+      "nd2": { "T": 1, "S": 2, "C": 2, "Y": 1040, "X": 1392 },
+      "nd2reader": { "z": 62 },
+      "pims_nd2": { "x": 1392, "y": 1040, "c": 2, "t": 1, "m": 2, "z": 31 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_but3_cont2002.nd2": {
+    "shape": {
+      "bioformats": { "T": 280, "C": 2, "Z": 1, "Y": 1040, "X": 1392 },
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": { "x": 1392, "y": 1040, "c": 2, "t": 280, "m": 5 }
+    },
+    "dtype": {
+      "bioformats": ">u2",
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_2.nd2": {
+    "shape": {
+      "bioformats": { "T": 126, "C": 1, "Z": 51, "Y": 260, "X": 348 },
+      "nd2": { "T": 126, "Z": 51, "C": 1, "Y": 260, "X": 348 },
+      "nd2reader": null,
+      "pims_nd2": { "x": 348, "y": 260, "t": 126, "z": 51 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_but3_cont200-1.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 2, "Z": 1, "Y": 1040, "X": 1392 },
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": { "x": 1392, "y": 1040, "c": 2, "t": 1, "m": 5 }
+    },
+    "dtype": {
+      "bioformats": ">u2",
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_qa-9507_control003.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 3, "Z": 17, "Y": 1200, "X": 1600 },
+      "nd2": { "S": 10, "Z": 17, "C": 3, "Y": 1200, "X": 1600 },
+      "nd2reader": { "x": 1600, "y": 1200, "c": 3, "t": 1, "z": 17, "v": 10 },
+      "pims_nd2": { "x": 1600, "y": 1200, "c": 3, "m": 10, "z": 17 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_3.nd2": {
+    "shape": {
+      "bioformats": { "T": 945, "C": 1, "Z": 1, "Y": 260, "X": 348 },
+      "nd2": { "T": 26, "Z": 35, "C": 1, "Y": 260, "X": 348 },
+      "nd2reader": null,
+      "pims_nd2": null
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": null,
+      "pims_nd2": null
+    }
+  },
+  "aryeh_rfp_h2a_cells_02.nd2": {
+    "shape": {
+      "bioformats": { "T": 116, "C": 2, "Z": 5, "Y": 464, "X": 624 },
+      "nd2": { "T": 115, "S": 5, "Z": 5, "C": 2, "Y": 464, "X": 624 },
+      "nd2reader": { "z": 2900 },
+      "pims_nd2": null
+    },
+    "dtype": {
+      "bioformats": "uint8",
+      "nd2": "uint8",
+      "nd2reader": "float64",
+      "pims_nd2": null
+    }
+  },
+  "jonas_jonas_nd2Test_Exception_2.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 1, "Z": 31, "Y": 520, "X": 696 },
+      "nd2": { "C": 1, "Y": 520, "X": 696 },
+      "nd2reader": null,
+      "pims_nd2": { "x": 696, "y": 520, "z": 31 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  },
+  "rylie_SIM_A6L2m67.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 3, "Z": 11, "Y": 1536, "X": 2560 },
+      "nd2": { "Z": 11, "C": 3, "Y": 1536, "X": 2560 },
+      "nd2reader": { "x": 2560, "y": 1536, "c": 3, "t": 1, "z": 11 },
+      "pims_nd2": { "x": 2560, "y": 1536, "c": 3, "z": 11 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_MeOh_high_fluo_011.nd2": {
+    "shape": {
+      "bioformats": { "T": 13, "C": 1, "Z": 1, "Y": 600, "X": 800 },
+      "nd2": { "T": 13, "C": 1, "Y": 600, "X": 800 },
+      "nd2reader": { "x": 800, "y": 600, "t": 13 },
+      "pims_nd2": { "x": 800, "y": 600, "t": 13 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "gain64.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 1, "Z": 1, "Y": 2400, "X": 2400 },
+      "nd2": { "C": 1, "Y": 2400, "X": 2400 },
+      "nd2reader": { "x": 2400, "y": 2400, "t": 1 },
+      "pims_nd2": { "x": 2400, "y": 2400 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "maxime_BF007.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 1, "Z": 1, "Y": 156, "X": 164 },
+      "nd2": { "C": 1, "Y": 156, "X": 164 },
+      "nd2reader": { "x": 164, "y": 156, "t": 1 },
+      "pims_nd2": { "x": 164, "y": 156 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_multicolorTest.nd2": {
+    "shape": {
+      "bioformats": { "T": 13, "C": 2, "Z": 15, "Y": 520, "X": 696 },
+      "nd2": { "T": 13, "Z": 15, "C": 2, "Y": 520, "X": 696 },
+      "nd2reader": { "z": 210 },
+      "pims_nd2": null
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": null
+    }
+  },
+  "jonas_jonas_nd2Test_Exception9_e3.nd2": {
+    "shape": {
+      "bioformats": { "T": 9, "C": 1, "Z": 16, "Y": 372, "X": 82 },
+      "nd2": { "T": 9, "Z": 16, "C": 1, "Y": 372, "X": 82 },
+      "nd2reader": null,
+      "pims_nd2": null
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": null,
+      "pims_nd2": null
+    }
+  },
+  "aryeh_MeOh_high_fluo_007.nd2": {
+    "shape": {
+      "bioformats": { "T": 13, "C": 1, "Z": 1, "Y": 600, "X": 800 },
+      "nd2": { "T": 13, "C": 1, "Y": 600, "X": 800 },
+      "nd2reader": { "x": 800, "y": 600, "t": 13 },
+      "pims_nd2": { "x": 800, "y": 600, "t": 13 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "1.2audrosophila.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 1, "Z": 1, "Y": 512, "X": 512 },
+      "nd2": { "C": 1, "Y": 512, "X": 512 },
+      "nd2reader": { "x": 512, "y": 512, "t": 1 },
+      "pims_nd2": { "x": 512, "y": 512 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_divisionByZero_290110.tranMgc005cr.nd2": {
+    "shape": {
+      "bioformats": { "T": 195, "C": 1, "Z": 1, "Y": 117, "X": 1392 },
+      "nd2": { "T": 3, "Z": 61, "C": 33955496, "Y": 618099016, "X": null },
+      "nd2reader": null,
+      "pims_nd2": null
+    },
+    "dtype": {
+      "bioformats": "uint8",
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": null
+    }
+  },
+  "210601_IVMTR114_Inj2_ASA_exp3.nd2": {
+    "shape": {
+      "bioformats": { "T": 194, "C": 4, "Z": 33, "Y": 512, "X": 512 },
+      "nd2": { "T": 194, "Z": 33, "C": 4, "Y": 512, "X": 512 },
+      "nd2reader": { "x": 512, "y": 512, "c": 4, "t": 194, "z": 33 },
+      "pims_nd2": { "x": 512, "y": 512, "c": 4, "t": 194, "z": 33 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "5audrosophila.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 1, "Z": 1, "Y": 512, "X": 512 },
+      "nd2": { "C": 1, "Y": 512, "X": 512 },
+      "nd2reader": { "x": 512, "y": 512, "t": 1 },
+      "pims_nd2": { "x": 512, "y": 512 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_JJ1473_control_24h_JJ1473_conrol_24h_02.nd2": {
+    "shape": {
+      "bioformats": { "T": 51, "C": 1, "Z": 29, "Y": 216, "X": 290 },
+      "nd2": { "T": 51, "Z": 29, "C": 1, "Y": 216, "X": 290 },
+      "nd2reader": null,
+      "pims_nd2": null
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": null,
+      "pims_nd2": null
+    }
+  },
+  "jonas_JJ1473_control_24h_JJ1473_control_24h_03.nd2": {
+    "shape": {
+      "bioformats": { "T": 44, "C": 1, "Z": 29, "Y": 288, "X": 235 },
+      "nd2": { "T": 44, "Z": 29, "C": 1, "Y": 288, "X": 235 },
+      "nd2reader": null,
+      "pims_nd2": null
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": null,
+      "pims_nd2": null
+    }
+  },
+  "jonas_control002.nd2": {
+    "shape": {
+      "bioformats": { "T": 65, "C": 1, "Z": 9, "Y": 152, "X": 247 },
+      "nd2": { "T": 65, "Z": 9, "C": 1, "Y": 152, "X": 247 },
+      "nd2reader": { "z": 585 },
+      "pims_nd2": null
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": null
+    }
+  },
+  "FRETposUNMX.nd2": {
+    "shape": {
+      "bioformats": { "T": 47, "C": 4, "Z": 1, "Y": 256, "X": 256 },
+      "nd2": { "T": 47, "C": 4, "Y": 256, "X": 256 },
+      "nd2reader": { "x": 256, "y": 256, "c": 4, "t": 47 },
+      "pims_nd2": { "x": 256, "y": 256, "c": 4, "t": 47 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_b16_14_12.nd2": {
+    "shape": {
+      "bioformats": { "T": 50, "C": 2, "Z": 1, "Y": 1024, "X": 1280 },
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": null
+    },
+    "dtype": {
+      "bioformats": "uint8",
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": null
+    }
+  },
+  "20180427 JenlinkerCompounds002.nd2": {
+    "shape": {
+      "bioformats": { "T": 49, "C": 4, "Z": 1, "Y": 1200, "X": 1600 },
+      "nd2": { "T": 49, "S": 52, "C": 4, "Y": 1200, "X": 1600 },
+      "nd2reader": { "x": 1600, "y": 1200, "c": 4, "t": 49, "v": 52 },
+      "pims_nd2": { "x": 1600, "y": 1200, "c": 4, "t": 49, "m": 52 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "jonas_100217_OD122_001.nd2": {
+    "shape": {
+      "bioformats": { "T": 25, "C": 2, "Z": 29, "Y": 311, "X": 277 },
+      "nd2": { "T": 25, "C": 2, "Y": 311, "X": 277 },
+      "nd2reader": { "z": 725 },
+      "pims_nd2": { "x": 277, "y": 311, "c": 2, "t": 25, "z": 29 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_old_cells_02.nd2": {
+    "shape": {
+      "bioformats": { "T": 42, "C": 1, "Z": 7, "Y": 464, "X": 624 },
+      "nd2": { "T": 41, "S": 4, "Z": 7, "C": 1, "Y": 464, "X": 624 },
+      "nd2reader": { "z": 1148 },
+      "pims_nd2": null
+    },
+    "dtype": {
+      "bioformats": "uint8",
+      "nd2": "uint8",
+      "nd2reader": "float64",
+      "pims_nd2": null
+    }
+  },
+  "karl_sample_image.nd2": {
+    "shape": {
+      "bioformats": { "T": 1, "C": 5, "Z": 21, "Y": 1019, "X": 1019 },
+      "nd2": { "S": 1, "Z": 21, "C": 5, "Y": 1019, "X": 1019 },
+      "nd2reader": { "x": 1019, "y": 1019, "c": 5, "t": 1, "z": 21 },
+      "pims_nd2": { "x": 1019, "y": 1019, "c": 5, "m": 1, "z": 21 }
+    },
+    "dtype": {
+      "bioformats": "uint16",
+      "nd2": "uint16",
+      "nd2reader": "float64",
+      "pims_nd2": "uint16"
+    }
+  },
+  "aryeh_4_2_1_cont_NoMR001.nd2": {
+    "shape": {
+      "bioformats": { "T": 81, "C": 2, "Z": 1, "Y": 520, "X": 696 },
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": { "x": 696, "y": 520, "c": 2, "t": 81, "m": 5 }
+    },
+    "dtype": {
+      "bioformats": ">u2",
+      "nd2": null,
+      "nd2reader": null,
+      "pims_nd2": "uint16"
+    }
+  }
+}

@@ -6,7 +6,7 @@ import numpy as np  # Python-level symbols of numpy
 cimport numpy as np  # C-level symbols of numpy
 from cpython cimport Py_INCREF, PyObject, bool
 
-import ujson
+import json
 
 from libc.stdlib cimport free, malloc
 
@@ -153,7 +153,7 @@ cdef dict _todict(LIMSTR string):
     if not string:
         return {}
     try:
-        return ujson.loads(string)
+        return json.loads(string)
     finally:
         Lim_FileFreeString(string)
 
@@ -233,7 +233,7 @@ cdef class CND2File:
         if not s:
             out = []
         else:
-            out = ujson.loads(s)
+            out = json.loads(s)
             Lim_FileFreeString(s)
             if format:
                 out = parse_experiment(out)

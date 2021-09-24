@@ -84,4 +84,4 @@ def test_missing():
 def test_imread():
     d = imread(str(DATA / "jonas_header_test2.nd2"))
     assert isinstance(d, np.ndarray)
-    assert d.shape == (1, 520, 696)
+    assert d.shape == (4, 5, 1, 520, 696)

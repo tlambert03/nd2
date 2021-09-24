@@ -1,5 +1,5 @@
 include nd2/py.typed
-recursive-include nd2 *.py[ix]
+recursive-include nd2 *.pyi
 
 graft sdk/*/static/lib
 graft sdk/*/static/include
@@ -9,3 +9,4 @@ recursive-exclude tests *
 recursive-exclude scripts *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
+recursive-exclude * *.c

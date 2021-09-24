@@ -83,7 +83,7 @@ jobs:
           python-version: "3.9"
 
       - name: install
-        run: pip install -U twine setuptools wheel cibuildwheel dropbox
+        run: pip install -U twine setuptools wheel cibuildwheel dropbox cython numpy
 
       - name: Download SDK
         run: python scripts/download_sdk.py

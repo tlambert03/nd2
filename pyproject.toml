@@ -22,5 +22,5 @@ repair-wheel-command = [
 before-all = [
     "apt-get update && apt-get install -y libtiff5-dev",
     "cp {project}/sdk/Linux/shared/lib/* /lib",
-    "cp {project}/sdk/Linux/shared/lib/* /lib",
+    "cp {project}/sdk_legacy/Linux/shared/lib/* /lib",
 ]

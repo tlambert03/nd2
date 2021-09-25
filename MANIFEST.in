@@ -3,6 +3,8 @@ recursive-include nd2 *.pyi
 
 graft sdk/Darwin/static/lib
 graft sdk/Darwin/static/include
+graft sdk_legacy/Darwin/shared/lib
+graft sdk_legacy/Darwin/shared/include
 graft sdk/Windows/static/lib
 graft sdk/Windows/static/include
 graft sdk/Linux/shared/lib

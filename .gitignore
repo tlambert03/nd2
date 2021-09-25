@@ -104,9 +104,10 @@ ENV/
 # IDE settings
 .vscode/
 
-_nd2file.c
+nd2/_nd2file.c
+nd2/_nd2file_legacy.c
+nd2/_version.py
 sdk
 sdk_legacy/*
 tests/data
-nd2/_version.py
 wheelhouse

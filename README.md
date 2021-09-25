@@ -65,6 +65,8 @@ This is a work in progress (though working pretty well for most files!). If you 
 
 ## alternatives
 
-- [pims_nd2](https://github.com/soft-matter/pims_nd2) - *pims-based reader. also uses the SDK, (but uses version v9 from Apr 2016)*
+- [pims_nd2](https://github.com/soft-matter/pims_nd2) - *pims-based reader. ctypes wrapper around the v9.00 (2015) SDK*
 - [nd2reader](https://github.com/rbnvrw/nd2reader) - *pims-based reader, using reverse-engineered file headers. mostly tested on NIS Elements 4.30.02*
-- [nd2file](https://github.com/csachs/nd2file) - *another pure-python, chunk map reader, developed 2017*
+- [nd2file](https://github.com/csachs/nd2file) - *another pure-python, chunk map reader, unmaintained?*
+- [pyND2SDK](https://github.com/aarpon/pyND2SDK) - *windows-only cython wrapper around the v9.00 (2015) SDK. not on PyPI*
+

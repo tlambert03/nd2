@@ -15,7 +15,6 @@ INCLUDE = SDK / "include"
 # set env CYTHON_TRACE=1 to enable coverage on .pyx files
 CYTHON_TRACE = bool(os.getenv("CYTHON_TRACE", "0") not in ("0", "False"))
 
-# os.environ["MACOSX_DEPLOYMENT_TARGET"] = "11.0"
 
 nd2file = Extension(
     name="nd2._nd2file",

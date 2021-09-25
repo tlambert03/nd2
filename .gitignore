@@ -109,3 +109,4 @@ sdk
 sdk_legacy/*
 tests/data
 nd2/_version.py
+wheelhouse

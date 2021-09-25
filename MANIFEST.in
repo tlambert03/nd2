@@ -1,8 +1,17 @@
-include LICENSE
-include README.md
+include nd2/py.typed
+recursive-include nd2 *.pyi
 
-recursive-include tests *
+graft sdk/Darwin/static/lib
+graft sdk/Darwin/static/include
+graft sdk/Windows/static/lib
+graft sdk/Windows/static/include
+graft sdk/Linux/shared/lib
+graft sdk/Linux/shared/include
+
+exclude .pre-commit-config.yaml .coveragerc
+recursive-exclude tests *
+recursive-exclude .github *
+recursive-exclude scripts *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
-
-recursive-include docs *.md conf.py Makefile make.bat *.jpg *.png *.gif
+recursive-exclude * *.c

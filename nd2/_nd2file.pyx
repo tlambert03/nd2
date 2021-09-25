@@ -1,14 +1,12 @@
-# cython: language_level=3, c_string_type=unicode, c_string_encoding=utf-8
-from libc.stdint cimport uintptr_t
+import json
 
-import numpy as np  # Python-level symbols of numpy
-
-cimport numpy as np  # C-level symbols of numpy
 from cpython cimport Py_INCREF, PyObject, bool
-
-import ujson
-
+from libc.stdint cimport uintptr_t
 from libc.stdlib cimport free, malloc
+
+import numpy as np
+
+cimport numpy as np
 
 from .structures import (
     Attributes,
@@ -18,9 +16,6 @@ from .structures import (
     Metadata,
     parse_experiment,
 )
-
-from libc.stddef cimport wchar_t
-from libc.stdint cimport uint8_t, uint16_t
 
 # Numpy must be initialized. When using numpy from C or Cython you must
 # _always_ do that, or you will have segfaults
@@ -71,6 +66,8 @@ cdef extern from "Nd2ReadSdk.h":
     void      Lim_FileFreeString(LIMSTR str)
 
     # LIMFILEHANDLE Lim_FileOpenForRead(LIMCWSTR wszFileName)
+
+# from libc.stddef cimport wchar_t
 
 # cdef extern from "Python.h":
     # wchar_t* PyUnicode_AsWideCharString(object, Py_ssize_t *)
@@ -127,11 +124,11 @@ cdef class PicWrapper:
 
     cdef set_pic(self, LIMPICTURE pic):
         if pic.uiBitsPerComp == 8:
-            self.dtype = np.NPY_UINT16
+            self.dtype = np.NPY_UINT8
         elif 8 < pic.uiBitsPerComp <= 16:
             self.dtype = np.NPY_UINT16
         elif pic.uiBitsPerComp == 32:
-            self.dtype = np.NPY_UINT16
+            self.dtype = np.NPY_UINT32
         else:
             raise ValueError("Unexpected bits per component: %d" % pic.uiBitsPerComp)
 
@@ -153,52 +150,53 @@ cdef dict _todict(LIMSTR string):
     if not string:
         return {}
     try:
-        return ujson.loads(string)
+        return json.loads(string)
     finally:
         Lim_FileFreeString(string)
 
 
 
-cdef class ND2File:
+cdef class CND2File:
 
     cdef LIMFILEHANDLE hFile
     cdef public path
 
     def __cinit__(self, path):
-        self.path = ""
         self.hFile = <void*> 0
-        self.open(path)
+        self.path = path
+        self.open()
 
     def __dealloc__(self):
         self.close()
 
-    cpdef bool is_open(ND2File self):
-        return self.path != ""
+    cpdef open(CND2File self):
+        if not self.is_open():
+            self.hFile = Lim_FileOpenForReadUtf8(self.path)
+            if <uintptr_t> self.hFile == 0:
+                raise OSError("Could not open file: %s" % self.path)
+            self._is_open = 1
 
-    cpdef open(ND2File self, str path):
-        self.hFile = Lim_FileOpenForReadUtf8(path)
-        if <uintptr_t> self.hFile == 0:
-           raise OSError("Could not open file: %s" % path)
-        self.path = path
-
-    cpdef void close(ND2File self):
+    cpdef void close(CND2File self):
         if self.is_open():
             Lim_FileClose(self.hFile)
             self.hFile = <void*> 0
-            self.path = ""
 
-    cpdef ND2File __enter__(ND2File self):
+    cpdef bool is_open(CND2File self):
+        return bool(<uintptr_t> self.hFile != 0)
+
+    cpdef CND2File __enter__(CND2File self):
+        self.open()
         return self
 
-    cpdef void __exit__(ND2File self, exc_type, exc_val, exc_tb):
+    cpdef void __exit__(CND2File self, exc_type, exc_val, exc_tb):
         self.close()
 
-    cpdef attributes(ND2File self):
+    cpdef attributes(CND2File self):
         d = _todict(Lim_FileGetAttributes(self.hFile))
         return Attributes(**d)
 
     # TODO: decide on "frame" vs "seq_index"
-    cpdef metadata(ND2File self, int frame=-1, int format=1):
+    cpdef metadata(CND2File self, int frame=-1, int format=1):
         if frame >=0:
             return self._frame_metadata(frame, format)
         d = _todict(Lim_FileGetMetadata(self.hFile))
@@ -208,7 +206,7 @@ cdef class ND2File:
             return Metadata(**d)
         return d
 
-    cdef _frame_metadata(ND2File self, LIMUINT frame, int format=1):
+    cdef _frame_metadata(CND2File self, LIMUINT frame, int format=1):
         self._validate_seq(frame)
         d = _todict(Lim_FileGetFrameMetadata(self.hFile, frame))
         if not d:
@@ -217,7 +215,7 @@ cdef class ND2File:
             return FrameMetadata(**d)
         return d
 
-    # cpdef image_info(ND2File self, LIMUINT seq_index=0):
+    # cpdef image_info(CND2File self, LIMUINT seq_index=0):
     #     """named tuple with (width, heigh, components, bits)
     #     e.g. ImageInfo(width=696, height=520, components=1, bits_per_pixel=14)
     #     """
@@ -228,26 +226,26 @@ cdef class ND2File:
     #     Lim_DestroyPicture(&pic)
     #     return out
 
-    cpdef list experiment(ND2File self, int format=1):
+    cpdef list experiment(CND2File self, int format=1):
         cdef LIMSTR s = Lim_FileGetExperiment(self.hFile)
         if not s:
             out = []
         else:
-            out = ujson.loads(s)
+            out = json.loads(s)
             Lim_FileFreeString(s)
             if format:
                 out = parse_experiment(out)
         return out
 
-    cpdef dict text_info(ND2File self):
+    cpdef dict text_info(CND2File self):
         return _todict(Lim_FileGetTextinfo(self.hFile))
 
-    cdef _validate_seq(ND2File self, LIMUINT seq_index):
+    cdef _validate_seq(CND2File self, LIMUINT seq_index):
         if seq_index >= self.seq_count():
             raise IndexError("Sequence %d out of range (sequence count: %d)"
                              % (seq_index, self.seq_count()))
 
-    cpdef LIMUINT seq_count(ND2File self):
+    cpdef LIMUINT seq_count(CND2File self):
         return Lim_FileGetSeqCount(self.hFile)
 
     # coords
@@ -262,8 +260,10 @@ cdef class ND2File:
         """
         return Lim_FileGetCoordSize(self.hFile)
 
-    cpdef int seq_index_from_coords(ND2File self, coords):
+    cpdef int seq_index_from_coords(CND2File self, coords):
         """Convert experiment coords to sequence index.
+
+        Returns -1 if coord_size == 0.
 
         e.g.
          T, Z     Seq
@@ -314,7 +314,7 @@ cdef class ND2File:
         finally:
             free(output)
 
-    cpdef list coord_info(ND2File self):
+    cpdef list coord_info(CND2File self):
         """can be used to get information about the experiment loop.
 
         list of tuple of (coord_index, dim_type, dim_size)
@@ -330,7 +330,7 @@ cdef class ND2File:
             out.append(Coordinate(i, buffer, count))
         return out
 
-    cpdef np.ndarray data(ND2File self, LIMUINT seq_index=0):
+    cpdef np.ndarray data(CND2File self, LIMUINT seq_index=0):
         # Load the data into the LIMPicture structure
         self._validate_seq(seq_index)
 

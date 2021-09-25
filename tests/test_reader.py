@@ -1,8 +1,10 @@
 from pathlib import Path
 from typing import List
 
+import dask.array as da
 import numpy as np
 import pytest
+import xarray as xr
 
 from nd2 import ND2File, imread, structures
 from nd2._util import is_new_format
@@ -45,7 +47,21 @@ def test_metadata_extraction(fname):
             assert len(zcoord) == n_coords
 
     assert not nd.is_open()
-    assert not nd.path
+
+
+@pytest.mark.parametrize("fname", NEW_FORMATS)
+def test_get_data(fname):
+    if "divisionByZero" in str(fname):
+        pytest.skip()
+    with ND2File(fname) as nd:
+        assert isinstance(nd.data(), np.ndarray)
+        assert isinstance(nd.to_dask(), da.Array)
+        xarr = nd.to_xarray()
+        assert isinstance(xarr, xr.DataArray)
+        assert isinstance(xarr.data, da.Array)
+        result = xarr[nd.coords_from_seq_index(0)].compute()
+        assert isinstance(result, xr.DataArray)
+        assert isinstance(result.data, np.ndarray)
 
 
 def test_data():
@@ -72,4 +88,4 @@ def test_missing():
 def test_imread():
     d = imread(str(DATA / "jonas_header_test2.nd2"))
     assert isinstance(d, np.ndarray)
-    assert d.shape == (1, 520, 696)
+    assert d.shape == (4, 5, 1, 520, 696)

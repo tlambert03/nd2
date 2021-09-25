@@ -20,8 +20,6 @@ It does not currently support legacy format nd2 files ([JPEG_XL](https://en.wiki
 pip install nd2
 ```
 
-*(linux support coming but not yet ready)*
-
 ## usage
 
 ```python

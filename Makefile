@@ -1,4 +1,4 @@
-.PHONY: rebuild clean build
+.PHONY: build rebuild clean clobber
 
 UNAME_S := $(shell uname -s)
 
@@ -14,6 +14,11 @@ clean:
 	rm -rf htmlcov .coverage .hypothesis
 	rm -f nd2/*.so
 	rm -f nd2/_*.c
+
+clobber:
+	make clean
+	rm -rf sdk .mypy_cache
+
 
 rebuild:
 	make clean

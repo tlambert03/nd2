@@ -7,7 +7,6 @@ import dropbox
 
 TOKEN = os.getenv("DROPBOX_TOKEN")
 assert TOKEN, "must set DROPBOX_TOKEN to download files"
-DEST = "nd2sdk"
 
 with dropbox.Dropbox(TOKEN) as dbx:
     # Check that the access token is valid
@@ -20,8 +19,9 @@ with dropbox.Dropbox(TOKEN) as dbx:
     with ZipFile("_sdk.zip", "r") as zipObj:
         # Extract all the contents of zip file in current directory
         zipObj.extractall()
-    if os.path.exists(DEST):
-        shutil.rmtree(DEST)
+    if os.path.exists("sdk"):
+        shutil.rmtree("sdk")
+    os.rename("nd2sdk", "sdk")
     os.unlink("_sdk.zip")
     if os.path.exists("__MACOSX"):
         shutil.rmtree("__MACOSX")

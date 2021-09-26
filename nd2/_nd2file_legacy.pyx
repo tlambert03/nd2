@@ -1,1156 +1,474 @@
-# ND2Reader
-#
-# Uses the Nikon SDK for accessing data and metadata from ND2 files.
-import numpy as np
 cimport numpy as np
+from cpython cimport Py_INCREF, PyObject, bool
+from libc.stddef cimport wchar_t
+from libc.stdlib cimport free, malloc
+
+import numpy as np
+
+# Numpy must be initialized. When using numpy from C or Cython you must
+# _always_ do that, or you will have segfaults
 np.import_array()
 
-# from libc.stdlib cimport free
-from libc.stddef cimport wchar_t
+from ._nd2sdk_v9 cimport *
 
-DEF DEBUG = False
+from .structures import Attributes, Coordinate
 
-# Binary class
-cdef class Binary:
-    cdef LIMPICTURE picture
-    cdef unsigned int seq_index
-    cdef unsigned int bin_index
-    cdef unsigned int width
-    cdef unsigned int height
 
-    def __cinit__(self, LIMFILEHANDLE hFile, unsigned int seq_index, unsigned int bin_index):
-        """
-        Constructor of the Binary picture class.
+cdef class CLegacyND2File:
 
-        :param hFile: handle of the open file.
-        :type hFile: LIMFILEHANDLE
-        :param seq_index: index of the sequence for which a binary map is
-                          to be load.
-        :type seq_index: unsigned int
-        :param bin_index: index of the binary map for the selected sequence
-                          to load.
-        :type bin_index: unsigned int
-        """
-        cdef LIMATTRIBUTES attr
-        cdef LIMPICTURE temp_pic
+    cdef LIMFILEHANDLE hFile
+    cdef public path
 
-        self.seq_index = seq_index
-        self.bin_index = bin_index
-
-        # Initialize the LIMPicture
-        if _Lim_FileGetAttributes(hFile, &attr) != LIM_OK:
-            raise Exception("Could not retrieve file attributes!")
-
-        # Get attributes into a python dictionary
-        attrib = c_LIMATTRIBUTES_to_dict(&attr)
-
-        self.width = attrib['uiWidth']
-        self.height = attrib['uiHeight']
-
-        if _Lim_InitPicture(&temp_pic, self.width,
-                            self.height, 8, 1) == 0:
-            raise Exception("Could not initialize picture!")
-
-        # Load the binary data
-        _Lim_FileGetBinary(hFile, seq_index, bin_index, &temp_pic);
-
-        # Store the loaded binary data
-        self.picture = temp_pic
+    def __cinit__(self, path):
+        self.hFile = 0
+        self.path = path
+        self.open()
 
     def __dealloc__(self):
-        """
-        Destructor.
+        self.close()
 
-        When the Picture object is destroyed, we make sure
-        to destroy also the LIM picture it refers to.
-        """
-        if DEBUG:
-            print("Deleting binary picture %d for sequence %d" %
-                  (self.bin_index, self.seq_index))
-
-        _Lim_DestroyPicture(&self.picture)
-
-    def __getitem__(self, comp):
-        """
-        Return binary image as 2D numpy array (memoryview).
-
-        Same as Binary.image()
-
-        @see image()
-
-        :param comp: can only be 0.
-        :type comp: int
-        :return: image
-        :rtype: np.array (memoryview)
-        """
-        if comp != 0:
-            raise ValueError("comp can ony be 0!")
-
-        return self.image()
-
-    def __repr__(self):
-        """
-        Summary of the Binary map.
-
-        :return: summary of the Binary map.
-        :rtype: string
-        """
-        return self.__str__()
-
-    def __str__(self):
-        """
-        Summary of the Binary map.
-
-        :return: summary of the Binary map.
-        :rtype: string
-        """
-        str = "Binary:\n" \
-              "   XY = (%dx%d), sequence index = %d, binary index = %d\n" % \
-              (self.width, self.height, self.seq_index, self.bin_index)
-
-        return str
-
-    def image(self):
-        """
-        Return binary image as 2D numpy array (memoryview).
-
-        :return: image
-        :rtype: numpy.ndarray (memoryview)
-        """
-        cdef np.ndarray np_arr
-
-        # Create a memory view to the data
-        np_arr = to_uint8_numpy_array(&self.picture, self.height,
-                                      self.width, 1, 0)
-
-        return np_arr
-
-
-# Picture class
-cdef class Picture:
-    cdef LIMPICTURE picture
-    cdef LIMLOCALMETADATA metadata
-    cdef unsigned int width
-    cdef unsigned int height
-    cdef unsigned int bpc
-    cdef unsigned int n_components
-    cdef unsigned int seq_index
-    cdef int stretch_mode
-
-    def __cinit__(self, unsigned int width, unsigned int height,
-                  unsigned int bpc, unsigned int n_components,
-                 LIMFILEHANDLE hFile, unsigned int seq_index):
-        """
-        Constructor of the Picture class.
-
-        :param width: width of the picture in pixels
-        :type width: unsigned int
-        :param height: height of the picture in pixels
-        :type height: unsigned int
-        :param bpc: bit per component
-        :type bpc: unsigned int
-        :param n_components: number of components in the sequence. 
-        :type n_components: unsigned int
-        :param hFile: handle of the open file. 
-        :type hFile: LIMFILEHANDLE
-        :param seq_index: index of the sequence to load
-        :type seq_index: LIMUINT
-        """
-        if width == 0 or height == 0:
-            raise ValueError("The Picture cannot have 0 size!")
-
-        # Initialize stretch mode to default
-        self.stretch_mode = LIMSTRETCH_LINEAR
-
-        # Store some arguments for easier access
-        self.width = width
-        self.height = height
-        self.bpc = bpc
-        self.n_components = n_components
-        self.seq_index = seq_index
-
-        # Load the data into the LIMPicture structure
-        cdef LIMPICTURE temp_pic
-        if _Lim_InitPicture(&temp_pic, width, height, bpc, n_components) == 0:
-            raise Exception("Could not initialize picture!")
-
-        # Load the image and store it
-        cdef LIMLOCALMETADATA temp_metadata
-        c_load_image_data(hFile, &temp_pic, &temp_metadata, seq_index,
-                        self.stretch_mode)
-        self.picture = temp_pic
-        self.metadata = temp_metadata
-
-    def __dealloc__(self):
-        """
-        Destructor.
-
-        When the Picture object is destroyed, we make sure
-        to destroy also the LIM picture it refers to.
-        """
-        if DEBUG:
-            print("Deleting picture for sequence " + str(self.seq_index) + ".\n")
-
-        _Lim_DestroyPicture(&self.picture)
-
-    def __getitem__(self, comp):
-        """
-        Return image at given component number as 2D numpy array (memoryview).
-
-        Same as Picture.image(comp)
-
-        @see image()
-
-        :param comp: component number
-        :type comp: int
-        :return: image
-        :rtype: numpy.ndarray (memoryview)
-        """
-        return self.image(comp)
-
-    def __repr__(self):
-        """
-        Return a summary string of the Picture.
-
-        :return: summary of the Picture.
-        :rtype: string
-        """
-        return self.__str__()
-
-    def __str__(self):
-        """
-        Return a summary string of the Picture.
-
-        :return: summary of the Picture.
-        :rtype: string
-        """
-        # Get the geometry
-        metadata = c_LIMLOCALMETADATA_to_dict(&self.metadata)
-
-        str = "Picture:\n" \
-              "   XY = (%dx%d), sequence index = %d, components = %d\n" \
-              "   Metadata:\n" \
-              "      X pos    : %f\n" \
-              "      Y pos    : %f\n" \
-              "      Z pos    : %f\n" \
-              "      Time (ms): %f\n" % \
-              (self.width, self.height, self.seq_index, self.n_components,
-               metadata['dXPos'], metadata['dYPos'], metadata['dZPos'],
-               metadata['dTimeMSec'])
-
-        return str
-
-    @property
-    def n_components(self):
-        """
-        Number of components in the Picture.
-
-        :return: number of components
-        :rtype: int
-        """
-        return self.n_components
-
-    @property
-    def metadata(self):
-        """
-        Picture (local) metadata.
-
-        :return: Picture (local) metadata.
-        :rtype: dict
-        """
-        return c_LIMLOCALMETADATA_to_dict(&self.metadata)
-
-    def image(self, comp):
-        """
-        Return image at given component number as 2D numpy array (memoryview).
-
-        :param comp: component number
-        :type comp: int
-        :return: image
-        :rtype: numpy.ndarray (memoryview)
-        """
-        cdef np.ndarray np_arr
-
-        if comp >= self.n_components:
-            raise Exception("The Picture only has " +
-                            str(self.n_components) + " components!")
-
-        # Create a memory view to the data
-        if self.bpc == 8:
-            np_arr = to_uint8_numpy_array(&self.picture, self.height,
-                                          self.width, self.n_components, comp)
-        elif 8 < self.bpc <= 16:
-            np_arr = to_uint16_numpy_array(&self.picture, self.height,
-                                           self.width, self.n_components, comp)
-        elif self.bpc == 32:
-            np_arr = to_float_numpy_array(&self.picture, self.height,
-                                          self.width, self.n_components, comp)
-        else:
-            raise ValueError("Unexpected value for bpc!")
-
-        return np_arr
-
-
-cdef class nd2Reader:
-    """
-    ND2 Reader class.
-    """
-
-    cdef LIMFILEHANDLE file_handle
-    cdef LIMEXPERIMENT exp
-    cdef LIMATTRIBUTES attr
-    cdef LIMMETADATA_DESC meta
-    cdef LIMTEXTINFO info
-
-    cdef public file_name
-    cdef dict Pictures
-
-    def __cinit__(self):
-        """
-        Constructor.
-        """
-        self.file_name = ""
-        self.file_handle = 0
-        self.Pictures = {}
-
-    def __dealloc__(self):
-        """
-        Destructor.
-        """
-        # Close the file, if open
+    cpdef open(CLegacyND2File self):
         if self.is_open():
-            self.close()
+            return
 
-
-    def __repr__(self):
-        """
-        Display summary of the reader state.
-        :return: summary of the reader state
-        :rtype: string
-        """
-        return self.__str__()
-
-    def __str__(self):
-        """
-        Display summary of the reader state.
-        :return: summary of the reader state
-        :rtype: string
-        """
-        if not self.is_open():
-            return "nd2Reader: no file opened"
-        else:
-
-            # Get the geometry
-            geometry = self.get_geometry()
-
-            str = "File opened: %s\n" \
-                  "   XYZ = (%dx%dx%d), C = %d, T = %d\n" \
-                  "   Number of positions = %d (other = %d)\n" \
-                  "   %d bits (%d significant)\n" % \
-                  (self.file_name,
-                   geometry[0], geometry[1], geometry[2],
-                   geometry[3], geometry[4], geometry[5],
-                   geometry[6], geometry[8], geometry[9])
-
-            return str
-
-    def clear_cache(self):
-        """
-        Clears all loaded Pictures from the cache.
-        """
-        self.Pictures.clear()
-
-    def close(self):
-        """
-        Closes the file.
-        """
-
-        # Clear the cache and close the file
-        if self.is_open():
-
-            # Clear cache
-            self.clear_cache()
-
-            # Close file
-            if DEBUG:
-                print("Closing file " + self.file_name + ".\n")
-
-            self.file_handle = _Lim_FileClose(self.file_handle)
-
-        return self.file_handle
-
-    def get_alignment_points(self):
-        """
-        Get the alignment points.
-
-        :return: Alignment points.
-        :rtype: dict
-        """
-
-        if not self.is_open():
-            return {}
-
-        return c_get_alignment_points(self.file_handle)
-
-    def get_attributes(self):
-        """
-        Retrieves the file attributes.
-
-        The attributes are the LIMATTRIBUTES C structure mapped to a
-        python dictionary.
-
-        :return: File attributes.
-        :rtype: dict
-        """
-        if not self.is_open():
-            return {}
-
-        # Convert the attribute structure to dict
-        return c_LIMATTRIBUTES_to_dict(&self.attr)
-
-    def get_binary_descriptors(self):
-        """
-        Retrieves the file binary descriptors.
-
-        The attributes are the LIMBINARIES and LIMBINARYDESCRIPTOR C structures
-        mapped to a python dictionary.
-
-        :return: File binary descriptors.
-        :rtype: dict
-        """
-        if not self.is_open():
-            return {}
-
-        # Read the binary descriptors and return them in a dictionary
-        return c_get_binary_descr(self.file_handle)
-
-    def get_custom_data(self):
-        """
-        Return the file custom data entities.
-
-        All custom data entities are stored in a python dictionary.
-
-        @TODO Investigate how to use Lim_GetCustomDataDouble()
-
-        :return: File custom data.
-        :rtype: dict
-        """
-        if not self.is_open():
-            return {}
-
-        return c_get_custom_data(self.file_handle)
-
-    def get_custom_data_count(self):
-        """
-        Return the number of file custom data entities.
-        :return: number of custom data entities.
-        :rtype: int
-        """
-        if not self.is_open():
-            return 0
-
-        return _Lim_GetCustomDataCount(self.file_handle)
-
-    def get_experiment(self):
-        """
-        Retrieves the experiment info.
-
-        The experiment is the LIMEXPERIMENT C structure mapped to a
-        python dictionary.
-
-        :return: File experiment info.
-        :rtype: dict
-        """
-        if not self.is_open():
-            return {}
-
-        # Convert the experiment structure to dict
-        return c_LIMEXPERIMENT_to_dict(&self.exp)
-
-    def get_geometry(self):
-        """
-        Returns the geometry of the dataset.
-
-            geometry = [x, y, z, c, t, m, o, g, b, s]
-
-            x: width
-            y: height
-            z: number of planes
-            c: number of channels
-            t: number of time points
-            m: number of positions
-            o: other
-            g: total number of sequences
-            b: bit depth
-            s: significant bits
-
-        :return: Geometry vector.
-        :rtype: list
-        """
-        if not self.is_open():
-            return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-
-        # Get data in pythonic form
-        exp = self.get_experiment()
-        attr = self.get_attributes()
-
-        x = 0 # Width
-        y = 0 # Height
-        z = 1 # Number of planes
-        c = 1 # Number of channels
-        t = 1 # Number of timepoints
-        m = 1 # Number of positions
-        o = 0 # Other (?)
-        g = 0 # Total number of sequences
-        b = 0 # Bit depth
-        s = 0 # Significant bits
-
-        cdef int n_levels = exp['uiLevelCount']
-        for i in range(n_levels):
-            if exp['pAllocatedLevels'][i]['uiExpType'] == LIMLOOP_TIME:
-                t = exp['pAllocatedLevels'][i]['uiLoopSize']
-            elif exp['pAllocatedLevels'][i]['uiExpType'] == LIMLOOP_MULTIPOINT:
-                m = exp['pAllocatedLevels'][i]['uiLoopSize']
-            elif exp['pAllocatedLevels'][i]['uiExpType'] == LIMLOOP_Z:
-                z = exp['pAllocatedLevels'][i]['uiLoopSize']
-            elif exp['pAllocatedLevels'][i]['uiExpType'] == LIMLOOP_OTHER:
-                o = exp['pAllocatedLevels'][i]['uiLoopSize']
-            else:
-                raise Exception("Unexpected experiment level!")
-
-        g = attr['uiSequenceCount']
-        x = attr['uiWidth']
-        y = attr['uiHeight']
-        c = attr['uiComp']
-        b = attr['uiBpcInMemory']
-        s = attr['uiBpcSignificant']
-
-        return [x, y, z, c, t, m, o, g, b, s]
-
-    def get_metadata(self):
-        """
-        Retrieves the file metadata.
-
-        The metadata is the LIMMETADATA_DESC C structure mapped to a
-        python dictionary.
-
-        :return: File metadata
-        :rtype: dict
-        """
-        if not self.is_open():
-            return {}
-
-        # Convert metadata structure to dict
-        return c_LIMMETADATA_DESC_to_dict(&self.meta)
-
-    def get_user_events(self):
-        """
-        Return user events stored in file.
-
-        The LIMFILEUSEREVENTs are converted into python dictionaries
-        and stored in a list.
-
-        :return: User events.
-        :rtype: list
-        """
-        if not self.is_open():
-            return []
-
-        return c_get_user_events(self.file_handle)
-
-    def get_num_binaries(self):
-        """
-        Retrieves the number of file binary masks.
-
-        :return: Number of binary masks in the file.
-        :rtype: int
-        """
-        if not self.is_open():
-            return 0
-
-        return c_get_num_binary_descriptors(self.file_handle)
-
-    def get_large_image_dimensions(self):
-        """
-        Get large image dimensions.
-
-        :return: dimensions (X and Y) and overlap.
-        :rtype: dict
-        """
-        if not self.is_open():
-            return 0
-
-        # Retrieve the dimensions and overlap
-        return c_get_large_image_dimensions(self.file_handle)
-
-    def get_position_names(self):
-        """
-        Return the names of the positions.
-
-        :return: List of position names.
-        :rtype: list
-        """
-        if not self.is_open():
-            return []
-
-        return c_get_multi_point_names(self.file_handle, self.positions)
-
-    def get_recorded_data(self):
-        """
-        Get the recorded data and return it in a python dictionary.
-
-        @TODO Sort out how to use Lim_GetRecordedData{Int|String}
-
-        :return: Recorded data
-        :rtype: dict
-        """
-        if not self.is_open():
-            return {}
-
-        # Initialize the dictionary
-        d = {}
-
-        # Retrieve the data
-        double_data = c_get_recorded_data_double(self.file_handle,
-                                               self.attr)
-
-        int_data = c_get_recorded_data_int(self.file_handle,
-                                         self.attr)
-
-        string_data = c_get_recorded_data_string(self.file_handle,
-                                               self.attr)
-
-        # Store it
-        d['double_data'] = double_data
-        d['integer_data'] = int_data
-        d['string_data'] = string_data
-
-        # Return it
-        return d
-
-    def get_stage_coordinates(self, use_alignment=False):
-        """
-        Get stage coordinates.
-
-        :param use_alignment: use manual alignment
-        :type use_alignment: bool
-        :return: stage coordinates (per position)
-        :rtype: list ([x y z]_n)
-        """
-        # Make sure the file is open
-        if not self.is_open():
-            return []
-
-        # Make sure the attributes have ben read
-        self.get_attributes()
-
-        # The c code takes an integer as use_alignment flag
-        if use_alignment:
-            align = 1
-        else:
-            align = 0
-        stage_coords = c_parse_stage_coords(self.file_handle,
-                                          self.attr,
-                                          align)
-
-        return stage_coords
-
-    def get_text_info(self):
-        """
-        Retrieves the File text info.
-
-        The text info is the LIMTEXTINFO C structure mapped to a
-        python dictionary.
-
-        :return: File text info
-        :rtype: dict
-        """
-
-        if not self.is_open():
-            return {}
-
-        if _Lim_FileGetTextinfo(self.file_handle, &self.info) != LIM_OK:
-            raise Exception("Could not retrieve the text info!")
-
-        # Convert to dict
-        return c_LIMTEXTINFO_to_dict(&self.info)
-
-    def get_z_stack_home(self):
-        """
-        Return the Z stack home.
-
-        :return: Z stack home
-        :rtype: int
-        """
-        cdef LIMINT home = 0
-
-        if not self.is_open():
-            return None
-
-        # Get the experiment as a python dictionary
-        exp = self.get_experiment()
-
-        # Retrieve the home value if we have a z stack only
-        for i in range(exp['uiLevelCount']):
-            if exp['pAllocatedLevels'][i]['uiExpType'] == LIMLOOP_Z:
-                home = _Lim_GetZStackHome(self.file_handle)
-                if home < 0:
-                    home = 0
-
-        return home
-
-    def is_open(self):
-        """
-        Checks if the file is open.
-
-        :return: True if the file is open, False otherwise.
-        :rtype: bool
-        """
-        return self.file_handle != 0
-
-    def load(self, LIMUINT time, LIMUINT position, LIMUINT plane,
-             LIMUINT other = 0, LIMUINT width=-1, LIMUINT height=-1):
-        """
-        Load, optionally store and return the picture.
-
-        SYNOPSIS 1:
-
-            r.load(time, position, plane, other)
-
-        SYNOPSIS 2:
-
-            r.load(time, position, plane, other, width, height)
-
-        If width and height are specified, the image is resampled on loading
-        from the original size in the file to the specified (width x height).
-
-        When using SYNOPSIS 1, the loaded Picture is cached. When using
-        SYNOPSIS 2, it is not.
-
-        :param time: time point
-        :type time: unsigned int
-        :param position: position index
-        :type position: unsigned int
-        :param plane: plane index (z level)
-        :type plane: unsigned int
-        :param other: ? (optional, default = 0)
-        :type other: unsigned int
-        :param width: width of the image (optional, if not set the value is
-                      read from the file)
-        :type width: unsigned int
-        :param height: height of the image (optional, if not set the value is
-                       read from the file)
-        :type height: unsigned int
-        :return: Picture object
-        :rtype: PyND2SDK.nd2Reader.Picture
-        """
-        if not self.is_open():
-            return None
-
-        # Map the subs to a linear index
-        index = self.map_subscripts_to_index(time, position, plane, other)
-
-        # Load the Picture
-        p = self.load_by_index(index, width, height)
-
-        # Return the Picture
-        return p
-
-    def load_binary_by_index(self, LIMUINT seq_index, LIMUINT bin_index):
-        """
-        Loads and returns the binary image at given sequence and binary indices.
-
-        :param seq_index: sequence index
-        :type seq_index: unsigned int
-        :param bin_index: binary sequence
-        :type bin_index: unsigned int
-        :return: Binay object
-        :rtype: PyND2SDK.nd2Reader.Binary
-        """
-        if not self.is_open():
-            return None
-
-        cdef unsigned int num_binaries = self.get_num_binaries()
-
-        if num_binaries == 0:
-            return None
-
-        # Load the binary picture
-        b = Binary(self.file_handle, seq_index, bin_index)
-
-        # Return the binary
-        return b
-
-    def load_by_index(self, LIMUINT index, LIMUINT width=-1, LIMUINT height=-1):
-        """
-        Load, optionally store and return the picture.
-
-        SYNOPSIS 1:
-
-            r.load(index)
-
-        SYNOPSIS 2:
-
-            r.load(index, width, height)
-
-        If width and height are specified, the image is resampled on loading
-        from the original size in the file to the specified (width x height).
-
-        When using SYNOPSIS 1, the loaded Picture is cached. When using
-        SYNOPSIS 2, it is not.
-
-        :param index: linear index of the sequence in the file.
-        :type index: unsigned int
-        :return: Picture object
-        :rtype: PyND2SDK.nd2Reader.Picture
-        """
-        if not self.is_open():
-            return None
-
-        # If the image was loaded already, return it from the cache
-        if index in self.Pictures and width == -1 and height == -1:
-            if DEBUG:
-                print("Returning picture from cache.")
-            return self.Pictures[index]
-
-        # Get the attributes
-        attr = self.get_attributes()
-
-        if index >= attr['uiSequenceCount']:
-            raise Exception("The requested sequence does not exist in the file!")
-
-        # Create a new Picture objects that loads the requested image
-        store = False
-        if width == -1:
-            width = attr['uiWidth']
-            store = True
-        if height == -1:
-            height = attr['uiHeight']
-            store = True
-
-        p = Picture(width,
-                    height,
-                    attr['uiBpcSignificant'],
-                    attr['uiComp'],
-                    self.file_handle,
-                    index)
-
-        # Store the picture if full size
-        if store:
-            if DEBUG:
-                print("Adding Picture to the cache.")
-            self.Pictures[index] = p
-        else:
-            if DEBUG:
-                print("The Picture is resized and is NOT being added to the cache.")
-
-        # Return the Picture
-        return p
-
-    def map_index_to_subscripts(self, seq_index):
-        """
-        Map linear index to subscripts.
-
-        :param seq_index: linear sequence index
-        :type seq_index: unsigmed int
-        :return: subscripts [time, position, plane, other]
-        :rtype: list
-        """
-        if not self.is_open():
-            return None
-
-        cdef LIMUINT[LIMMAXEXPERIMENTLEVEL] pExpCoords;
-        return c_index_to_subscripts(seq_index, &self.exp, pExpCoords)
-
-    def map_subscripts_to_index(self, time, position, plane, other = 0):
-        """
-        Map subscripts to linear sequence index.
-
-        :param time: time index
-        :type time: unsigned int
-        :param position: position index
-        :type position: unsigned int
-        :param plane: plane (z lavel)
-        :type plane: unsigned int
-        :param other: ?
-        :type other: unsigned int
-        :return: linear sequence
-        :rtype: int
-        """
-        if not self.is_open():
-            return {}
-
-        cdef LIMUINT[LIMMAXEXPERIMENTLEVEL] pExpCoords;
-        pExpCoords[0] = time
-        pExpCoords[1] = position
-        pExpCoords[2] = plane
-        pExpCoords[3] = other
-
-        return c_subscripts_to_index(&self.exp, pExpCoords)
-
-    def open(self, filename):
-        """
-        Opens the file with given filename and returns the file handle.
-        :param filename: file name with full path
-        :type filename: string
-        :return: file handle
-        :rtype: int
-        """
-        # Make sure the string is unicode
-        self.file_name = unicode(filename)
         cdef Py_ssize_t length
-        cdef wchar_t *w_filename = PyUnicode_AsWideCharString(self.file_name, &length)
+        cdef wchar_t *w_filename = PyUnicode_AsWideCharString(self.path, &length)
+        self.hFile = Lim_FileOpenForRead(w_filename)
+        if not self.hFile:
+            raise OSError("Could not open file: %s" % self.path)
 
-        # Open the file and return the handle
-        self.file_handle = _Lim_FileOpenForRead(w_filename)
-        if self.file_handle == 0:
-            raise Exception("Could not open file " + filename + "!")
+    cpdef void close(CLegacyND2File self):
+        if not self.is_open():
+            return
+        _rescheck(Lim_FileClose(self.hFile))
+        self.hFile = 0
 
-        # Load the experiment
-        if _Lim_FileGetExperiment(self.file_handle, &self.exp) != LIM_OK:
-            raise Exception("Could not retrieve the experiment info!")
+    cpdef bool is_open(CLegacyND2File self):
+        return bool(self.hFile)
 
-        # Load the attributes
-        if _Lim_FileGetAttributes(self.file_handle, &self.attr) != LIM_OK:
-            raise Exception("Could not retrieve the file attributes!")
+    cpdef CLegacyND2File __enter__(CLegacyND2File self):
+        self.open()
+        return self
 
-        # Load the metadata
-        if _Lim_FileGetMetadata(self.file_handle, &self.meta) != LIM_OK:
-            raise Exception("Could not retrieve the file metadata!")
+    cpdef void __exit__(CLegacyND2File self, exc_type, exc_val, exc_tb):
+        self.close()
 
-        return self.file_handle
+    cpdef attributes(CLegacyND2File self):
+        cdef LIMATTRIBUTES attrs
+        _rescheck(Lim_FileGetAttributes(self.hFile, &attrs))
+        if attrs.uiCompression == 0:
+            ctype = 'lossless'
+            clevel = attrs.uiQuality
+        elif attrs.uiCompression == 1:
+            ctype = 'lossy'
+            clevel = attrs.uiQuality
+        else:
+            ctype = None
+            clevel = None
 
-    @property
-    def file_handle(self):
-        """
-        :return: File handle (0 if no file is open).
-        :rtype: int
-        """
-        return self.file_handle
+        # converting to new API
+        return Attributes(
+            bitsPerComponentInMemory = attrs.uiBpcInMemory,
+            bitsPerComponentSignificant = attrs.uiBpcSignificant,
+            componentCount = attrs.uiComp,
+            heightPx = attrs.uiHeight,
+            pixelDataType = "unsigned",
+            sequenceCount = attrs.uiSequenceCount,
+            widthBytes = attrs.uiWidthBytes,
+            widthPx = attrs.uiWidth,
+            compressionLevel = clevel,
+            compressionType = ctype,
+            tileHeightPx = attrs.uiTileHeight,
+            tileWidthPx = attrs.uiTileWidth,
+        )
 
-    @property
-    def width(self):
-        """
-        :return: Image width in pixels.
-        :rtype: int
-        """
-        return self.get_geometry()[0]
+    cpdef dict metadata(CLegacyND2File self):
+        cdef LIMMETADATA_DESC meta
+        _rescheck(Lim_FileGetMetadata(self.hFile, &meta))
+        out = dict(meta)
+        # TODO: remove all the type prefixes
+        out['wszObjectiveName'] = _wchar2uni(meta.wszObjectiveName)
+        out['pPlanes'] = []
+        for desc in meta.pPlanes:
+            if not desc.uiCompCount:
+                break
+            plane = dict(desc)
+            plane['wszName'] = _wchar2uni(desc.wszName)
+            plane['wszOCName'] = _wchar2uni(desc.wszOCName)
+            out['pPlanes'].append(plane)
 
-    @property
-    def height(self):
-        """
-        :return: Image height in pixels.
-        :rtype: int
-        """
-        return self.get_geometry()[1]
+        return out
 
-    @property
-    def planes(self):
-        """
-        :return: Number of planes (z levels).
-        :rtype: int
-        """
-        return self.get_geometry()[2]
+    cpdef list experiment(CLegacyND2File self):
+        cdef LIMEXPERIMENT exp
+        _rescheck(Lim_FileGetExperiment(self.hFile, &exp))
+        d = dict(levelCount=exp.uiLevelCount)
+        out = []
+        for i in range(exp.uiLevelCount):
+            e = exp.pAllocatedLevels[i]
+            out.append({
+                'type': _EXP_TYPE[e.uiExpType],
+                'count': e.uiLoopSize,
+                'interval': e.dInterval,
+            })
+        return out
 
-    @property
-    def channels(self):
+    cpdef LIMSIZE coord_size(self):
         """
-        :return: Number of channels.
-        :rtype: int
-        """
-        return self.get_geometry()[3]
+        Returns the dimension of the frame coordinate vector.
 
-    @property
-    def timepoints(self):
-        """
-        :return: Number of timepoints.
-        :rtype: int
-        """
-        return self.get_geometry()[4]
+        The dimension of the coordinate vector is equal to the number of experiment
+        loop in the experiment.
 
-    @property
-    def positions(self):
+        Zero means the file contains only one frame (not an ND document).
         """
-        :return: Number of positions.
-        :rtype: int
-        """
-        return self.get_geometry()[5]
+        cdef LIMEXPERIMENT exp
+        _rescheck(Lim_FileGetExperiment(self.hFile, &exp))
+        return exp.uiLevelCount
 
-    @property
-    def other(self):
-        """
-        :return: ?
-        :rtype: int
-        """
-        return self.get_geometry()[6]
+    cpdef list coord_info(CLegacyND2File self):
+        """can be used to get information about the experiment loop.
 
-    @property
-    def sequences(self):
+        list of tuple of (coord_index, dim_type, dim_size)
+        e.g. [(0, 'NETimeLoop', 4), (1, 'ZStackLoop', 5)]
         """
-        :return: Total number of sequences.
-        :rtype: int
-        """
-        return self.get_geometry()[7]
 
-    @property
-    def bits(self):
-        """
-        :return: Image bit depth.
-        :rtype: int
-        """
-        return self.get_geometry()[8]
+        cdef LIMEXPERIMENT exp
+        _rescheck(Lim_FileGetExperiment(self.hFile, &exp))
+        d = dict(levelCount=exp.uiLevelCount)
+        out = []
+        for i in range(exp.uiLevelCount):
+            e = exp.pAllocatedLevels[i]
+            out.append(Coordinate(i, _EXP_TYPE[e.uiExpType], e.uiLoopSize))
+        return out
 
-    @property
-    def significant_bits(self):
-        """
-        :return: Image significant bit depth.
-        :rtype: int
-        """
-        return self.get_geometry()[9]
+    cpdef LIMUINT seq_count(CLegacyND2File self):
+        cdef LIMATTRIBUTES attrs
+        _rescheck(Lim_FileGetAttributes(self.hFile, &attrs))
+        return attrs.uiSequenceCount
+
+    cdef _validate_seq(CLegacyND2File self, LIMUINT seq_index):
+        if seq_index >= self.seq_count():
+            raise IndexError("Sequence %d out of range (sequence count: %d)"
+                             % (seq_index, self.seq_count()))
+
+    cpdef np.ndarray data(CLegacyND2File self, LIMUINT seq_index=0):
+        cdef LIMATTRIBUTES attrs
+        _rescheck(Lim_FileGetAttributes(self.hFile, &attrs))
+
+        if seq_index >= attrs.uiSequenceCount:
+            raise IndexError("Sequence %d out of range (sequence count: %d)"
+                             % (seq_index, attrs.uiSequenceCount))
+
+        cdef LIMPICTURE pic = nullpic()
+        cdef LIMSIZE size
+        cdef LIMLOCALMETADATA pImgInfo
+
+        size = Lim_InitPicture(&pic, attrs.uiWidth, attrs.uiHeight, attrs.uiBpcInMemory, attrs.uiComp)
+        _rescheck(Lim_FileGetImageData(self.hFile, seq_index, &pic, &pImgInfo))
+
+        array_wrapper = PicWrapper()
+        array_wrapper.set_pic(pic)
+        return array_wrapper.to_ndarray()
+
+    cpdef int seq_index_from_coords(CLegacyND2File self, coords) except -99:
+        """Convert experiment coords to sequence index."""
+        cdef LIMSIZE n = len(coords)
+        cdef LIMEXPERIMENT exp
+        _rescheck(Lim_FileGetExperiment(self.hFile, &exp))
+        if n != exp.uiLevelCount:
+            raise ValueError("Coords must have length %s" % exp.uiLevelCount)
+
+        cdef LIMUINT *_coords
+        _coords = <LIMUINT *>malloc(n * sizeof(LIMUINT))
+        try:
+            for i in range(n):
+                _coords[i] = coords[i]
+
+            return Lim_GetSeqIndexFromCoords(&exp, _coords)
+        finally:
+            free(_coords)
 
 
-# Clean (own) memory when finalizing the array
-cdef class _finalizer:
-    """
-    Finalizer.
-    """
-    cdef void *_data
+    cpdef tuple coords_from_seq_index(self, LIMUINT seq_index):
+        """Convert sequence index to experiment coords."""
+
+        cdef LIMEXPERIMENT exp
+        _rescheck(Lim_FileGetExperiment(self.hFile, &exp))
+        if exp.uiLevelCount == 0:
+            return ()
+
+        cdef LIMUINT *output = <LIMUINT *> malloc(exp.uiLevelCount * sizeof(LIMUINT))
+        if not output:
+            raise MemoryError()
+        try:
+            Lim_GetCoordsFromSeqIndex(&exp, seq_index, output)
+            return tuple([x for x in output[:exp.uiLevelCount]])
+        finally:
+            free(output)
+
+    cpdef text_info(CLegacyND2File self):
+        cdef LIMTEXTINFO info
+        _rescheck(Lim_FileGetTextinfo(self.hFile, &info))
+        out = dict(
+            imageID=_wchar2uni(info.wszImageID),
+            type=_wchar2uni(info.wszType),
+            group=_wchar2uni(info.wszGroup),
+            sampleID=_wchar2uni(info.wszSampleID),
+            author=_wchar2uni(info.wszAuthor),
+            description=_wchar2uni(info.wszDescription),
+            capturing=_wchar2uni(info.wszCapturing),
+            sampling=_wchar2uni(info.wszSampling),
+            location=_wchar2uni(info.wszLocation),
+            date=_wchar2uni(info.wszDate),
+            conclusion=_wchar2uni(info.wszConclusion),
+            info1=_wchar2uni(info.wszInfo1),
+            info2=_wchar2uni(info.wszInfo2),
+            optics=_wchar2uni(info.wszOptics)
+        )
+        return out
+
+    cpdef get_stage_coords(self):
+        cdef int n = 0
+        cdef LIMEXPERIMENT exp
+        _rescheck(Lim_FileGetExperiment(self.hFile, &exp))
+        for i in range(exp.uiLevelCount):
+            e = exp.pAllocatedLevels[i]
+            if e.uiExpType == 1:  # XY loop
+                n = e.uiLoopSize
+                break
+        if n == 0:
+            return ()
+
+        cdef LIMUINT *puiSeqIdx = <LIMUINT *> malloc(n * sizeof(LIMUINT))
+        cdef LIMUINT *puiXPos = <LIMUINT *> malloc(n * sizeof(LIMUINT))
+        cdef LIMUINT *puiYPos = <LIMUINT *> malloc(n * sizeof(LIMUINT))
+        cdef double *pdXPos = <double *> malloc(n * sizeof(double))
+        cdef double *pdYPos = <double *> malloc(n * sizeof(double))
+        cdef double *pdZPos = <double *> malloc(n * sizeof(double))
+        if not puiSeqIdx and puiXPos and puiYPos and pdXPos and pdYPos and pdZPos:
+            raise MemoryError()
+
+        for i in range(n):
+            puiSeqIdx[i] = i
+            puiXPos[i] = 0
+            puiYPos[i] = 0
+            pdXPos[i] = 0
+            pdYPos[i] = 0
+            pdZPos[i] = 0
+
+        try:
+            _rescheck(Lim_GetStageCoordinates(
+                self.hFile, n,
+                puiSeqIdx, puiXPos, puiYPos,
+                pdXPos, pdYPos, pdZPos, 0
+            ))
+
+            out = []
+            for i in range(n):
+                # TODO: make StagePosition object
+                out.append((pdXPos[i], pdYPos[i], pdZPos[i]))
+            return tuple(out)
+
+        finally:
+            free(puiSeqIdx)
+            free(puiXPos)
+            free(puiYPos)
+            free(pdXPos)
+            free(pdYPos)
+            free(pdZPos)
+
+    # LIMRESULT Lim_GetMultipointName(LIMFILEHANDLE hFile,
+    #                                         LIMUINT uiPointIdx,
+    #                                         LIMWSTR wstrPointName)
+
+    cpdef tuple _voxel_size(self):
+        cdef LIMMETADATA_DESC meta
+        cdef LIMEXPERIMENT exp
+
+        if not Lim_FileGetMetadata(self.hFile, &meta):
+            xy = meta.dCalibration
+        else:
+            xy = 1.0
+
+        z = 1.0
+        if Lim_FileGetExperiment(self.hFile, &exp):
+            for e in exp.pAllocatedLevels:
+                if e.uiExpType == 2:  # Z stack loop
+                    z = e.uiLoopSize
+                    break
+        return (xy, xy, z)
+
+
+    cpdef LIMINT _zstack_home(self):
+        return Lim_GetZStackHome(self.hFile)
+
+    cpdef LIMINT _custom_data_count(self):
+        return Lim_GetCustomDataCount(self.hFile)
+
+
+    # LIMRESULT Lim_GetRecordedDataInt(LIMFILEHANDLE hFile,
+    #                                          LIMCWSTR wszName,
+    #                                          LIMINT uiSeqIndex,
+    #                                          LIMINT *piData)
+
+    # LIMRESULT Lim_GetRecordedDataDouble(LIMFILEHANDLE hFile,
+    #                                             LIMCWSTR wszName,
+    #                                             LIMINT uiSeqIndex,
+    #                                             double* pdData)
+
+    # LIMRESULT Lim_GetRecordedDataString(LIMFILEHANDLE hFile,
+    #                                             LIMCWSTR wszName,
+    #                                             LIMINT uiSeqIndex,
+    #                                             LIMWSTR wszData)
+
+
+
+    # LIMRESULT Lim_GetCustomDataInfo(LIMFILEHANDLE hFile,
+    #                                         LIMINT uiCustomDataIndex,
+    #                                         LIMWSTR wszName,
+    #                                         LIMWSTR wszDescription,
+    #                                         LIMINT *piType,
+    #                                         LIMINT *piFlags)
+
+    # LIMRESULT Lim_GetCustomDataDouble(LIMFILEHANDLE hFile,
+    #                                           LIMINT uiCustomDataIndex, # index of the Custom Metadata field
+    #                                           double* pdData)           # will be filled by a double value
+
+    # LIMRESULT Lim_GetCustomDataString(LIMFILEHANDLE hFile,
+    #                                           LIMINT uiCustomDataIndex,
+    #                                           LIMWSTR wszData,
+    #                                           LIMINT *piLength)
+
+
+
+    # LIMRESULT Lim_FileGetBinaryDescriptors(LIMFILEHANDLE hFile,
+    #                                                LIMBINARIES* pBinaries)
+
+    # LIMRESULT Lim_FileGetBinary(LIMFILEHANDLE hFile,
+    #                                     LIMUINT uiSequenceIndex,
+    #                                     LIMUINT uiBinaryIndex,
+    #                                     LIMPICTURE* pPicture)
+
+    # LIMRESULT Lim_GetLargeImageDimensions(LIMFILEHANDLE hFile,
+    #                                               LIMUINT* puiXFields,
+    #                                               LIMUINT* puiYFields,
+    #                                               double* pdOverlap)
+
+    # LIMRESULT Lim_GetAlignmentPoints(LIMFILEHANDLE hFile,
+    #                                  LIMUINT* puiPosCount,
+    #                                  LIMUINT* puiSeqIdx,
+    #                                  LIMUINT* puiXPos,
+    #                                  LIMUINT* puiYPos,
+    #                                  double *pdXPos,
+    #                                  double *pdYPos)
+
+    # LIMRESULT Lim_GetNextUserEvent(LIMFILEHANDLE hFile,
+    #                                        LIMUINT *puiNextID,
+    #                                        LIMFILEUSEREVENT* pEventInfo)
+
+    # LIMRESULT Lim_SetStageAlignment(LIMFILEHANDLE hFile,
+    #                                         LIMUINT uiPosCount,
+    #                                         double* pdXSrc,
+    #                                         double* pdYSrc,
+    #                                         double* pdXDst,
+    #                                         double *pdYDst)
+
+    # LIMRESULT Lim_FileGetImageRectData(LIMFILEHANDLE hFile,
+    #                                    LIMUINT uiSeqIndex,
+    #                                    LIMUINT uiDstTotalW,
+    #                                    LIMUINT uiDstTotalH,
+    #                                    LIMUINT uiDstX,
+    #                                    LIMUINT uiDstY,
+    #                                    LIMUINT uiDstW,
+    #                                    LIMUINT uiDstH,
+    #                                    void* pBuffer,
+    #                                    LIMUINT uiDstLineSize,
+    #                                    LIMINT iStretchMode,
+    #                                    LIMLOCALMETADATA* pImgInfo)
+
+
+
+
+
+_EXP_TYPE = {
+    0: 'TimeLoop',
+    1: 'XYPosLoop',
+    2: 'ZStackLoop',
+    3: 'Unknown',
+}
+
+
+_LIM_ERR_CODE = {
+    0: 'LIM_OK',
+    -1: 'LIM_ERR_UNEXPECTED',
+    -2: 'LIM_ERR_NOTIMPL',  # NotImplementedError
+    -3: 'LIM_ERR_OUTOFMEMORY',  # MemoryError
+    -4: 'LIM_ERR_INVALIDARG',
+    -5: 'LIM_ERR_NOINTERFACE',
+    -6: 'LIM_ERR_POINTER',
+    -7: 'LIM_ERR_HANDLE',
+    -8: 'LIM_ERR_ABORT',
+    -9: 'LIM_ERR_FAIL',
+    -10: 'LIM_ERR_ACCESSDENIED',
+    -11: 'LIM_ERR_OS_FAIL',  # OSError
+    -12: 'LIM_ERR_NOTINITIALIZED',
+    -13: 'LIM_ERR_NOTFOUND',
+    -14: 'LIM_ERR_IMPL_FAILED',
+    -15: 'LIM_ERR_DLG_CANCELED',
+    -16: 'LIM_ERR_DB_PROC_FAILED',
+    -17: 'LIM_ERR_OUTOFRANGE',  # IndexError
+    -18: 'LIM_ERR_PRIVILEGES',
+    -19: 'LIM_ERR_VERSION',
+}
+
+cdef void _rescheck(LIMRESULT result):
+    if result != 0:
+        # TODO: make error message editable
+        msg = 'An error occured.'
+        code = _LIM_ERR_CODE.get(result, str(result))
+        raise RuntimeError('%s %s' % (msg, code))
+
+####################################################
+# (Duplicated from nd2file ... but de-dupping seemed to require mixing the sdks... which was confusing)
+
+# based on https://gist.github.com/GaelVaroquaux/1249305
+# from Gael Varoquaux License: BSD 3 clause
+cdef class PicWrapper:
+    cdef int dtype
+    cdef LIMPICTURE pic
+
+    cdef void set_pic(self, LIMPICTURE pic):
+        if pic.uiBitsPerComp == 8:
+            self.dtype = np.NPY_UINT8
+        elif 8 < pic.uiBitsPerComp <= 16:
+            self.dtype = np.NPY_UINT16
+        elif pic.uiBitsPerComp == 32:
+            self.dtype = np.NPY_UINT32
+        else:
+            raise ValueError("Unexpected bits per component: %d" % pic.uiBitsPerComp)
+
+        self.pic = pic
+
+    def __array__(self):
+        cdef np.npy_intp shape[3]
+        shape[0] = <np.npy_intp> self.pic.uiHeight
+        shape[1] = <np.npy_intp> self.pic.uiWidth
+        shape[2] = <np.npy_intp> self.pic.uiComponents
+        array = np.PyArray_SimpleNewFromData(3, shape, self.dtype, self.pic.pImageData)
+        return array.transpose((2, 0, 1))
 
     def __dealloc__(self):
-        """
-        Destructor.
-        """
-        # The data is deleted by Lim_DestroyPicture in the
-        # pLIMPICTURE destructor.
-        #if self._data is not NULL:
-        #    free(self._data)
-        pass
+        # free(<void*>self.data_ptr)
+        Lim_DestroyPicture(&self.pic)
 
-# Convenience function to create a _finalizer
-cdef void set_base(np.ndarray arr, void *carr):
-    cdef _finalizer f = _finalizer()
-    f._data = <void*>carr
-    np.set_array_base(arr, f)
+    cdef np.ndarray to_ndarray(self):
+        cdef np.ndarray ndarray = np.array(self, copy=False)
 
-cdef to_uint8_numpy_array(LIMPICTURE * pPicture, int n_rows, int n_cols,
-                          int n_components, int component):
-    """
-    Create a memoryview for the requested component from the picture data
-    stored in the LIMPICTURE structure (no copies are made of the data).
-    The view is returned and can be used an numpy array with type np.uint8.
-    
-    Please notice that if the LIMPICTURE object that owns the data is
-    destroyed, the memoryview will be invalid!!
-        
-    :param pPicture: Pointer to a LIMPICTURE structure. 
-    :type pPicture: LIMPICTURE *
-    :param n_rows: number of rows
-    :type n_rows: int
-    :param n_cols: number of columns
-    :type n_cols: int
-    :param n_components: number of components (channels) 
-    :type n_components: int
-    :param component: target component (channel)  
-    :type component: int
-    :return: memoryview on the underlying C array as 2D numpy array 
-    :rtype: numpy.ndarray
-    """
-    # Get a uint8_t pointer to the picture data
-    cdef uint8_t *mat = c_get_uint8_pointer_to_picture_data(pPicture)
+        # Assign our object to the 'base' of the ndarray object
+        ndarray.base = <PyObject*> self
 
-    # Create a contiguous 1D memory view over the whole array
-    n_elements = n_rows * n_cols * n_components
-    cdef uint8_t[:] mv = <uint8_t[:n_elements]>mat
-
-    # Now skip over the number of components
-    mv = mv[component::n_components]
-
-    # Now reshape the view as a 2D numpy array
-    cdef np.ndarray arr = np.asarray(mv).reshape(n_rows, n_cols).view(np.uint8)
-
-    # Set the base of the array to the picture data location
-    set_base(arr, mat)
-
-    return arr
-
-cdef to_uint16_numpy_array(LIMPICTURE * pPicture, int n_rows, int n_cols,
-                           int n_components, int component):
-    """
-    Create a memoryview for the requested component from the picture data
-    stored in the LIMPICTURE structure (no copies are made of the data).
-    The view is returned and can be used an numpy array with type np.uint16.
-    
-    Please notice that if the LIMPICTURE object that owns the data is
-    destroyed, the memoryview will be invalid!!
-        
-    :param pPicture: Pointer to a LIMPICTURE structure. 
-    :type pPicture: LIMPICTURE *
-    :param n_rows: number of rows
-    :type n_rows: int
-    :param n_cols: number of columns
-    :type n_cols: int
-    :param n_components: number of components (channels) 
-    :type n_components: int
-    :param component: target component (channel)  
-    :type component: int
-    :return: memoryview on the underlying C array as 2D numpy array 
-    :rtype: numpy.ndarray
-    """
-    # Get a uint16_t pointer to the picture data
-    cdef uint16_t *mat = c_get_uint16_pointer_to_picture_data(pPicture)
-
-    # Create a contiguous 1D memory view over the whole array
-    n_elements = n_rows * n_cols * n_components
-    cdef uint16_t[:] mv = <uint16_t[:n_elements]>mat
-
-    # Now skip over the number of components
-    mv = mv[component::n_components]
-
-    # Now reshape the view as a 2D numpy array
-    cdef np.ndarray arr = np.asarray(mv).reshape(n_rows, n_cols).view(np.uint16)
-
-    # Set the base of the array to the picture data location
-    set_base(arr, mat)
-
-    return arr
-
-cdef to_float_numpy_array(LIMPICTURE * pPicture, int n_rows, int n_cols,
-                          int n_components, int component):
-    """
-    Create a memoryview for the requested component from the picture data
-    stored in the LIMPICTURE structure (no copies are made of the data).
-    The view is returned and can be used an numpy array with type np.float32.
-    
-    Please notice that if the LIMPICTURE object that owns the data is
-    destroyed, the memoryview will be invalid!!
-        
-    :param pPicture: Pointer to a LIMPICTURE structure. 
-    :type pPicture: LIMPICTURE *
-    :param n_rows: number of rows
-    :type n_rows: int
-    :param n_cols: number of columns
-    :type n_cols: int
-    :param n_components: number of components (channels) 
-    :type n_components: int
-    :param component: target component (channel)  
-    :type component: int
-    :return: memoryview on the underlying C array as 2D numpy array 
-    :rtype: numpy.ndarray
-    """
-    # Get a float pointer to the picture data
-    cdef float *mat = c_get_float_pointer_to_picture_data(pPicture)
-
-    # Create a contiguous 1D memory view over the whole array
-    n_elements = n_rows * n_cols * n_components
-    cdef float[:] mv = <float[:n_elements]>mat
-
-    # Now skip over the number of components
-    mv = mv[component::n_components]
-
-    # Now reshape the view as a 2D numpy array
-    cdef np.ndarray arr = np.asarray(mv).reshape(n_rows, n_cols).view(np.float32)
-
-    # Set the base of the array to the picture data location
-    set_base(arr, mat)
-
-    return arr
+        # Increment the reference count, as the above assignement was done in
+        # C, and Python does not know that there is this additional reference
+        Py_INCREF(self)
+        return ndarray

@@ -1,12 +1,16 @@
 import json
 
+cimport numpy as np
 from cpython cimport Py_INCREF, PyObject, bool
-from libc.stdint cimport uintptr_t
 from libc.stdlib cimport free, malloc
 
 import numpy as np
 
-cimport numpy as np
+# Numpy must be initialized. When using numpy from C or Cython you must
+# _always_ do that, or you will have segfaults
+np.import_array()
+
+from ._nd2sdk cimport *
 
 from .structures import (
     Attributes,
@@ -17,144 +21,6 @@ from .structures import (
     parse_experiment,
 )
 
-# Numpy must be initialized. When using numpy from C or Cython you must
-# _always_ do that, or you will have segfaults
-np.import_array()
-
-# ########### Externs ################
-
-cdef extern from "Nd2ReadSdk.h":
-    ctypedef void*          LIMFILEHANDLE
-    ctypedef char           LIMCHAR
-    ctypedef char*          LIMSTR
-    ctypedef unsigned int   LIMUINT
-    ctypedef int            LIMRESULT
-    ctypedef size_t         LIMSIZE
-    ctypedef int            LIMBOOL
-    ctypedef char*          LIMCSTR
-
-    ctypedef struct LIMPICTURE:
-        LIMUINT     uiWidth;             # !< Width (in pixels) of the picture
-        LIMUINT     uiHeight;            # !< Height (in pixels) of the picture
-        LIMUINT     uiBitsPerComp;       # !< Number of bits for each component
-        LIMUINT     uiComponents;        # !< Number of components in each pixel
-        LIMSIZE     uiWidthBytes;        # !< Number of bytes for each pixel line (stride); aligned to 4bytes
-        LIMSIZE     uiSize;              # !< Number of bytes the image occupies
-        void*       pImageData;          # !< Image data
-
-    LIMFILEHANDLE Lim_FileOpenForReadUtf8(LIMCSTR wszFileName)
-
-    void      Lim_FileClose(LIMFILEHANDLE hFile)
-
-    LIMSTR    Lim_FileGetAttributes(LIMFILEHANDLE hFile)
-    LIMSTR    Lim_FileGetMetadata(LIMFILEHANDLE hFile)
-    LIMSTR    Lim_FileGetFrameMetadata(LIMFILEHANDLE hFile, LIMUINT uiSeqIndex)
-    LIMSTR    Lim_FileGetTextinfo(LIMFILEHANDLE hFile)
-    LIMSTR    Lim_FileGetExperiment(LIMFILEHANDLE hFile)
-    LIMUINT   Lim_FileGetSeqCount(LIMFILEHANDLE hFile)
-
-    LIMSIZE   Lim_FileGetCoordSize(LIMFILEHANDLE hFile)
-    LIMBOOL   Lim_FileGetSeqIndexFromCoords(LIMFILEHANDLE hFile, const LIMUINT * coords, LIMSIZE coordCount, LIMUINT* seqIdx)
-    LIMSIZE   Lim_FileGetCoordsFromSeqIndex(LIMFILEHANDLE hFile, LIMUINT seqIdx, LIMUINT* coords, LIMSIZE maxCoordCount)
-    LIMUINT   Lim_FileGetCoordInfo(LIMFILEHANDLE hFile, LIMUINT coord, LIMSTR type, LIMSIZE maxTypeSize)
-
-    LIMRESULT Lim_FileGetImageData(LIMFILEHANDLE hFile, LIMUINT uiSeqIndex, LIMPICTURE* pPicture)
-
-    LIMSIZE   Lim_InitPicture(LIMPICTURE* pPicture, LIMUINT width, LIMUINT height, LIMUINT bpc, LIMUINT components)
-    void      Lim_DestroyPicture(LIMPICTURE* pPicture)
-
-    void      Lim_FileFreeString(LIMSTR str)
-
-    # LIMFILEHANDLE Lim_FileOpenForRead(LIMCWSTR wszFileName)
-
-# from libc.stddef cimport wchar_t
-
-# cdef extern from "Python.h":
-    # wchar_t* PyUnicode_AsWideCharString(object, Py_ssize_t *)
-
-# cdef _open(str path):
-#     cdef Py_ssize_t length
-#     cdef wchar_t *w_filename = PyUnicode_AsWideCharString(path, &length)
-#     return Lim_FileOpenForRead(w_filename)
-
-# ########### structures ################
-
-cdef LIMPICTURE nullpic():
-    cdef LIMPICTURE p
-    p.uiWidth = 0
-    p.uiHeight = 0
-    p.uiBitsPerComp = 0
-    p.uiComponents = 0
-    p.uiWidthBytes = 0
-    p.uiSize = 0
-    p.pImageData = <void*> 0
-    return p
-
-ERR_CODE ={
-    0: 'LIM_OK',
-    -1: 'LIM_ERR_UNEXPECTED',
-    -2: 'LIM_ERR_NOTIMPL',  # NotImplementedError
-    -3: 'LIM_ERR_OUTOFMEMORY',  # MemoryError
-    -4: 'LIM_ERR_INVALIDARG',
-    -5: 'LIM_ERR_NOINTERFACE',
-    -6: 'LIM_ERR_POINTER',
-    -7: 'LIM_ERR_HANDLE',
-    -8: 'LIM_ERR_ABORT',
-    -9: 'LIM_ERR_FAIL',
-    -10: 'LIM_ERR_ACCESSDENIED',
-    -11: 'LIM_ERR_OS_FAIL',  # OSError
-    -12: 'LIM_ERR_NOTINITIALIZED',
-    -13: 'LIM_ERR_NOTFOUND',
-    -14: 'LIM_ERR_IMPL_FAILED',
-    -15: 'LIM_ERR_DLG_CANCELED',
-    -16: 'LIM_ERR_DB_PROC_FAILED',
-    -17: 'LIM_ERR_OUTOFRANGE',  # IndexError
-    -18: 'LIM_ERR_PRIVILEGES',
-    -19: 'LIM_ERR_VERSION',
-}
-
-# ########### classes ################
-
-# based on https://gist.github.com/GaelVaroquaux/1249305
-# from Gael Varoquaux License: BSD 3 clause
-cdef class PicWrapper:
-
-    cdef int dtype
-    cdef LIMPICTURE pic
-
-    cdef set_pic(self, LIMPICTURE pic):
-        if pic.uiBitsPerComp == 8:
-            self.dtype = np.NPY_UINT8
-        elif 8 < pic.uiBitsPerComp <= 16:
-            self.dtype = np.NPY_UINT16
-        elif pic.uiBitsPerComp == 32:
-            self.dtype = np.NPY_UINT32
-        else:
-            raise ValueError("Unexpected bits per component: %d" % pic.uiBitsPerComp)
-
-        self.pic = pic
-
-    def __array__(self):
-        cdef np.npy_intp shape[3]
-        shape[0] = <np.npy_intp> self.pic.uiHeight
-        shape[1] = <np.npy_intp> self.pic.uiWidth
-        shape[2] = <np.npy_intp> self.pic.uiComponents
-        array = np.PyArray_SimpleNewFromData(3, shape, self.dtype, self.pic.pImageData)
-        return array.transpose((2, 0, 1))
-
-    def __dealloc__(self):
-        # free(<void*>self.data_ptr)
-        Lim_DestroyPicture(&self.pic)
-
-cdef dict _todict(LIMSTR string):
-    if not string:
-        return {}
-    try:
-        return json.loads(string)
-    finally:
-        Lim_FileFreeString(string)
-
-
 
 cdef class CND2File:
 
@@ -162,7 +28,7 @@ cdef class CND2File:
     cdef public path
 
     def __cinit__(self, path):
-        self.hFile = <void*> 0
+        self.hFile = NULL
         self.path = path
         self.open()
 
@@ -172,17 +38,16 @@ cdef class CND2File:
     cpdef open(CND2File self):
         if not self.is_open():
             self.hFile = Lim_FileOpenForReadUtf8(self.path)
-            if <uintptr_t> self.hFile == 0:
+            if not self.hFile:
                 raise OSError("Could not open file: %s" % self.path)
-            self._is_open = 1
 
     cpdef void close(CND2File self):
         if self.is_open():
             Lim_FileClose(self.hFile)
-            self.hFile = <void*> 0
+            self.hFile = NULL
 
     cpdef bool is_open(CND2File self):
-        return bool(<uintptr_t> self.hFile != 0)
+        return bool(<int> self.hFile)
 
     cpdef CND2File __enter__(CND2File self):
         self.open()
@@ -192,14 +57,14 @@ cdef class CND2File:
         self.close()
 
     cpdef attributes(CND2File self):
-        d = _todict(Lim_FileGetAttributes(self.hFile))
+        d = _loads(Lim_FileGetAttributes(self.hFile))
         return Attributes(**d)
 
     # TODO: decide on "frame" vs "seq_index"
     cpdef metadata(CND2File self, int frame=-1, int format=1):
         if frame >=0:
             return self._frame_metadata(frame, format)
-        d = _todict(Lim_FileGetMetadata(self.hFile))
+        d = _loads(Lim_FileGetMetadata(self.hFile))
         if not d:
             return {}
         if format:
@@ -208,7 +73,7 @@ cdef class CND2File:
 
     cdef _frame_metadata(CND2File self, LIMUINT frame, int format=1):
         self._validate_seq(frame)
-        d = _todict(Lim_FileGetFrameMetadata(self.hFile, frame))
+        d = _loads(Lim_FileGetFrameMetadata(self.hFile, frame))
         if not d:
             return {}
         if format:
@@ -225,6 +90,15 @@ cdef class CND2File:
     #     out = ImageInfo(pic.uiWidth, pic.uiHeight, pic.uiComponents, pic.uiBitsPerComp)
     #     Lim_DestroyPicture(&pic)
     #     return out
+    cpdef tuple _voxel_size(self):
+        meta = _loads(Lim_FileGetMetadata(self.hFile))
+        if meta:
+            ch = meta.get("channels")
+            if ch:
+                vol = ch[0].get('volume')
+                if vol and 'axesCalibration' in vol:
+                    return tuple(vol['axesCalibration'])
+        return (None, None, None)
 
     cpdef list experiment(CND2File self, int format=1):
         cdef LIMSTR s = Lim_FileGetExperiment(self.hFile)
@@ -238,7 +112,7 @@ cdef class CND2File:
         return out
 
     cpdef dict text_info(CND2File self):
-        return _todict(Lim_FileGetTextinfo(self.hFile))
+        return _loads(Lim_FileGetTextinfo(self.hFile))
 
     cdef _validate_seq(CND2File self, LIMUINT seq_index):
         if seq_index >= self.seq_count():
@@ -277,16 +151,16 @@ cdef class CND2File:
             return -1
 
         cdef LIMSIZE n = len(coords)
-
         cdef LIMUINT *_coords
-        cdef LIMUINT seq_index
-        _coords = <LIMUINT *>malloc(n * sizeof(unsigned int))
+        cdef LIMUINT seq_index = -1
+        _coords = <LIMUINT *>malloc(n * sizeof(LIMUINT))
         try:
             for i in range(n):
                 _coords[i] = coords[i]
 
             if not Lim_FileGetSeqIndexFromCoords(self.hFile, _coords, n, &seq_index):
                 raise ValueError("Coordinate %r has no sequence index" % coords)
+
             return seq_index
         finally:
             free(_coords)
@@ -338,18 +212,54 @@ cdef class CND2File:
         cdef LIMRESULT result = Lim_FileGetImageData(self.hFile, seq_index, &pic)
 
         if result != 0:
-            error = ERR_CODE[result]
+            error = LIM_ERR_CODE[result]
             raise RuntimeError('Error retrieving image data: %s' % error)
 
         array_wrapper = PicWrapper()
         array_wrapper.set_pic(pic)
+        return array_wrapper.to_ndarray()
 
-        cdef np.ndarray ndarray = np.array(array_wrapper, copy=False)
+
+####################################################
+
+
+# based on https://gist.github.com/GaelVaroquaux/1249305
+# from Gael Varoquaux License: BSD 3 clause
+cdef class PicWrapper:
+    cdef int dtype
+    cdef LIMPICTURE pic
+
+    cdef void set_pic(self, LIMPICTURE pic):
+        if pic.uiBitsPerComp == 8:
+            self.dtype = np.NPY_UINT8
+        elif 8 < pic.uiBitsPerComp <= 16:
+            self.dtype = np.NPY_UINT16
+        elif pic.uiBitsPerComp == 32:
+            self.dtype = np.NPY_UINT32
+        else:
+            raise ValueError("Unexpected bits per component: %d" % pic.uiBitsPerComp)
+
+        self.pic = pic
+
+    def __array__(self):
+        cdef np.npy_intp shape[3]
+        shape[0] = <np.npy_intp> self.pic.uiHeight
+        shape[1] = <np.npy_intp> self.pic.uiWidth
+        shape[2] = <np.npy_intp> self.pic.uiComponents
+        array = np.PyArray_SimpleNewFromData(3, shape, self.dtype, self.pic.pImageData)
+        return array.transpose((2, 0, 1))
+
+    def __dealloc__(self):
+        # free(<void*>self.data_ptr)
+        Lim_DestroyPicture(&self.pic)
+
+    cdef np.ndarray to_ndarray(self):
+        cdef np.ndarray ndarray = np.array(self, copy=False)
 
         # Assign our object to the 'base' of the ndarray object
-        ndarray.base = <PyObject*> array_wrapper
+        ndarray.base = <PyObject*> self
 
         # Increment the reference count, as the above assignement was done in
         # C, and Python does not know that there is this additional reference
-        Py_INCREF(array_wrapper)
+        Py_INCREF(self)
         return ndarray

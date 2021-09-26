@@ -18,6 +18,12 @@ _AXMAP = {
     "NETimeLoop": "T",
 }
 
+# coord_size
+# coord_info
+# attributes
+# metadata -> pixel size
+# data, seq_count -> array
+
 
 class ND2File(_nd2file.CND2File):
     @property
@@ -51,8 +57,8 @@ class ND2File(_nd2file.CND2File):
         a = [_AXMAP[c.type] for c in self.coord_info()] + list("CYX")
         return "".join(a)
 
-    def pixel_size(self, channel=0) -> Tuple[float, float, float]:
-        return self.metadata().channels[channel].volume.axesCalibration
+    def voxel_size(self, channel=0) -> Tuple[float, float, float]:
+        return self._voxel_size()
 
     def asarray(self) -> np.ndarray:
         arr = np.stack([self.data(i) for i in range(self.seq_count())])
@@ -100,9 +106,10 @@ class ND2File(_nd2file.CND2File):
 
     def _expand_coords(self) -> dict:
         attrs = self.attributes()
-        dx, dy, dz = self.metadata().channels[0].volume.axesCalibration
+        _channels = self.metadata().channels
+        dx, dy, dz = self._voxel_size()
         coords = {
-            "C": [c.channel.name for c in self.metadata().channels],
+            "C": [c.channel.name for c in _channels],
             "Y": np.arange(attrs.heightPx) * dy,
             "X": np.arange(attrs.widthPx) * dx,
         }

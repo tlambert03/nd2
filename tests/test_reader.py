@@ -12,7 +12,8 @@ from nd2._util import is_new_format
 DATA = Path(__file__).parent / "data"
 NEW_FORMATS: List[str] = []
 OLD_FORMATS: List[str] = []
-for x in DATA.glob("*.nd2"):
+MAX_FILES = 20
+for x in sorted(DATA.glob("*.nd2"), key=lambda x: x.stat().st_size)[:MAX_FILES]:
     lst = NEW_FORMATS if is_new_format(str(x)) else OLD_FORMATS
     lst.append(str(x))
 

@@ -12,15 +12,6 @@ np.import_array()
 
 from ._sdk.latest cimport *
 
-from .structures import (
-    Attributes,
-    Coordinate,
-    FrameMetadata,
-    ImageInfo,
-    Metadata,
-    parse_experiment,
-)
-
 
 cdef class CND2File:
 

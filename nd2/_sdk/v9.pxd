@@ -9,7 +9,7 @@ cdef inline object _wchar2uni(wchar_t* buffer):
     return PyUnicode_FromWideChar(buffer, -1)
 
 
-cdef extern from "nd2sdk_v9.h":
+cdef extern from "nd2ReadSDK.h":
 
     enum: LIMMAXPICTUREPLANES
     enum: LIMMAXEXPERIMENTLEVEL
@@ -23,15 +23,15 @@ cdef extern from "nd2sdk_v9.h":
     enum: LIMSTRETCH_SPLINES
     enum: LIMSTRETCH_LINEAR
 
-    ctypedef int LIMFILEHANDLE  # int (not pointer) in legacy SDK
-    ctypedef int LIMRESULT # Result of operation
-    ctypedef unsigned int LIMUINT
-    ctypedef int LIMINT
-    ctypedef int LIMBOOL
-    ctypedef wchar_t LIMWCHAR
-    ctypedef wchar_t* LIMWSTR
+    ctypedef int            LIMFILEHANDLE  # int (not pointer) in legacy SDK
+    ctypedef int            LIMRESULT # Result of operation
+    ctypedef unsigned int   LIMUINT
+    ctypedef int            LIMINT
+    ctypedef bint           LIMBOOL
+    ctypedef wchar_t        LIMWCHAR
+    ctypedef wchar_t*       LIMWSTR
     ctypedef const wchar_t* LIMCWSTR
-    ctypedef size_t LIMSIZE
+    ctypedef size_t         LIMSIZE
 
     ctypedef struct LIMATTRIBUTES:
         LIMUINT  uiWidth            # Width of images
@@ -222,7 +222,6 @@ cdef extern from "nd2sdk_v9.h":
 
 
     # Get recorded integer data
-    # @TODO This is currently unused. How to use it?
     LIMRESULT Lim_GetRecordedDataInt(LIMFILEHANDLE hFile,
                                              LIMCWSTR wszName,
                                              LIMINT uiSeqIndex,

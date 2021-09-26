@@ -3,18 +3,14 @@ import json
 from libc.stddef cimport wchar_t
 
 
-cdef extern from "Python.h":
-    wchar_t* PyUnicode_AsWideCharString(object, Py_ssize_t *)
-
-
-cdef extern from "nd2sdk.h":
+cdef extern from "Nd2ReadSdk.h":
     ctypedef void*           LIMFILEHANDLE
     ctypedef char            LIMCHAR
     ctypedef char*           LIMSTR
     ctypedef unsigned int    LIMUINT
     ctypedef int             LIMRESULT
     ctypedef size_t          LIMSIZE
-    ctypedef int             LIMBOOL
+    ctypedef bint            LIMBOOL
     ctypedef char*           LIMCSTR
     ctypedef const wchar_t*  LIMCWSTR
 
@@ -94,9 +90,3 @@ cdef inline dict _loads(LIMSTR string):
         return json.loads(string)
     finally:
         Lim_FileFreeString(string)
-
-
-# cdef _open(str path):
-#     cdef Py_ssize_t length
-#     cdef wchar_t *w_filename = PyUnicode_AsWideCharString(path, &length)
-#     return Lim_FileOpenForRead(w_filename)

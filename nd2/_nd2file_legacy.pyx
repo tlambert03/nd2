@@ -9,7 +9,7 @@ import numpy as np
 # _always_ do that, or you will have segfaults
 np.import_array()
 
-from ._nd2sdk_v9 cimport *
+from ._sdk.v9 cimport *
 
 from .structures import Attributes, Coordinate
 

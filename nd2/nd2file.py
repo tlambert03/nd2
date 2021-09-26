@@ -86,10 +86,10 @@ class ND2File:
 
     def __init__(self, path) -> None:
         try:
-            self._rdr = _nd2file.ND2Reader(path)
+            self._rdr = _nd2file.ND2Reader(str(path))
         except OSError:
             try:
-                self._rdr = _nd2file_legacy.ND2Reader(path)
+                self._rdr = _nd2file_legacy.ND2Reader(str(path))
             except OSError:
                 raise
 

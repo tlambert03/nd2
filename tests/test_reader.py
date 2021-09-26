@@ -10,18 +10,18 @@ from nd2 import ND2File, imread, structures
 from nd2._util import is_new_format
 
 DATA = Path(__file__).parent / "data"
-NEW_FORMATS: List[str] = []
-OLD_FORMATS: List[str] = []
+NEW_FORMATS: List[Path] = []
+OLD_FORMATS: List[Path] = []
 MAX_FILES = None
 for x in sorted(DATA.glob("*.nd2"), key=lambda x: x.stat().st_size)[:MAX_FILES]:
     lst = NEW_FORMATS if is_new_format(str(x)) else OLD_FORMATS
-    lst.append(str(x))
+    lst.append(x)
 
 
-@pytest.mark.parametrize("fname", NEW_FORMATS)
+@pytest.mark.parametrize("fname", NEW_FORMATS, ids=lambda x: x.name)
 def test_metadata_extraction(fname):
     with ND2File(fname) as nd:
-        assert nd.path == fname
+        assert nd.path == str(fname)
         assert nd.is_open()
 
         assert isinstance(nd._rdr.seq_count(), int)
@@ -46,6 +46,37 @@ def test_metadata_extraction(fname):
             zcoord = nd._rdr.coords_from_seq_index(0)
             assert isinstance(zcoord, tuple)
             assert len(zcoord) == n_coords
+
+    assert not nd.is_open()
+
+
+@pytest.mark.parametrize("fname", OLD_FORMATS)
+def test_metadata_extraction_legacy(fname):
+    with ND2File(fname) as nd:
+        assert nd.path == str(fname)
+        assert nd.is_open()
+
+        assert isinstance(nd._rdr.seq_count(), int)
+        assert isinstance(nd.attributes(), structures.Attributes)
+
+        n_coords = nd._rdr.coord_size()
+        assert isinstance(n_coords, int)
+        if n_coords:
+            assert isinstance(nd._rdr.seq_index_from_coords([0] * n_coords), int)
+            # FIXME: currently causing strange intermittent segfault
+            # zcoord = nd._rdr.coords_from_seq_index(0)
+            # assert isinstance(zcoord, tuple)
+            # assert len(zcoord) == n_coords
+
+        # TODO: deal with typing when metadata is completely missing
+        assert isinstance(nd.metadata(), (structures.Metadata, dict))
+        assert isinstance(nd.experiment(), list)
+        assert isinstance(nd.text_info(), dict)
+        assert isinstance(nd._coord_info(), list)
+        assert all(isinstance(x, structures.Coordinate) for x in nd._coord_info())
+        xarr = nd.to_xarray()
+        assert isinstance(xarr, xr.DataArray)
+        assert isinstance(xarr.data, da.Array)
 
     assert not nd.is_open()
 

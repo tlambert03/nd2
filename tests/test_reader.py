@@ -6,14 +6,15 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from nd2 import ND2File, imread, structures
+from nd2 import ND2File, _nd2file, imread, structures
 from nd2._util import is_new_format
 
 DATA = Path(__file__).parent / "data"
 NEW_FORMATS: List[Path] = []
 OLD_FORMATS: List[Path] = []
-MAX_FILES = None
-for x in sorted(DATA.glob("*.nd2"), key=lambda x: x.stat().st_size)[:MAX_FILES]:
+MAX_FILES = 30
+ND2 = sorted(DATA.glob("*.nd2"), key=lambda x: x.stat().st_size)[:MAX_FILES]
+for x in ND2:
     lst = NEW_FORMATS if is_new_format(str(x)) else OLD_FORMATS
     lst.append(x)
 
@@ -50,7 +51,7 @@ def test_metadata_extraction(fname):
     assert not nd.is_open()
 
 
-@pytest.mark.parametrize("fname", OLD_FORMATS)
+@pytest.mark.parametrize("fname", OLD_FORMATS, ids=lambda x: x.name)
 def test_metadata_extraction_legacy(fname):
     with ND2File(fname) as nd:
         assert nd.path == str(fname)
@@ -79,9 +80,12 @@ def test_metadata_extraction_legacy(fname):
         assert isinstance(xarr.data, da.Array)
 
     assert not nd.is_open()
+    # doesn't work with new SDK
+    with pytest.raises(OSError):
+        _nd2file.ND2Reader(str(fname))
 
 
-@pytest.mark.parametrize("fname", NEW_FORMATS)
+@pytest.mark.parametrize("fname", ND2, ids=lambda x: x.name)
 def test_get_data(fname):
     if "divisionByZero" in str(fname):
         pytest.skip()

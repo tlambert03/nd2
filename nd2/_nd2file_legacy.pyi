@@ -5,6 +5,8 @@ from typing_extensions import Literal, Protocol
 
 from .structures import Attributes, Coordinate, ExpLoop, FrameMetadata, Metadata
 
+# file://./_nd2file_legacy.pyx
+
 class ND2Reader:
     path: str
     _is_legacy: bool

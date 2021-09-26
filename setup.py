@@ -15,6 +15,10 @@ LINK = "shared" if SYSTEM == "Linux" else "static"
 # set env CYTHON_TRACE=1 to enable coverage on .pyx files
 CYTHON_TRACE = bool(os.getenv("CYTHON_TRACE", "0") not in ("0", "False"))
 
+
+link_args = [f'-Wl,-rpath,{(SDK_LEGACY / "lib")}'] if SYSTEM == "Darwin" else []
+
+
 nd2file = Extension(
     name="nd2._nd2file",
     sources=["nd2/_nd2file.pyx"],
@@ -31,6 +35,7 @@ nd2file_legacy = Extension(
     libraries=["v6_w32_nd2ReadSDK" if SYSTEM == "Windows" else "nd2ReadSDK"],
     library_dirs=[str(SDK_LEGACY / "lib")],
     include_dirs=[str(SDK_LEGACY / "include"), get_include()],
+    extra_link_args=link_args,
 )
 
 

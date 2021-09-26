@@ -5,9 +5,6 @@ UNAME_S := $(shell uname -s)
 build:
 	@echo $(uname)
 	python setup.py build_ext -j2 --inplace
-ifeq ($(UNAME_S),Darwin)
-	install_name_tool -change libnd2ReadSDK.dylib @loader_path/../sdk/v9/Darwin/lib/libnd2ReadSDK.dylib nd2/_nd2file_legacy.cpython-39-darwin.so
-endif
 
 clean:
 	rm -rf build dist wheelhouse
@@ -18,7 +15,6 @@ clean:
 clobber:
 	make clean
 	rm -rf sdk .mypy_cache
-
 
 rebuild:
 	make clean

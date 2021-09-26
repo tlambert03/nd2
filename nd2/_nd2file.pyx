@@ -2,6 +2,7 @@ import json
 
 cimport numpy as np
 from cpython cimport Py_INCREF, PyObject, bool
+from libc.stdint cimport uintptr_t
 from libc.stdlib cimport free, malloc
 
 import numpy as np
@@ -49,7 +50,7 @@ cdef class ND2Reader:
             self.hFile = NULL
 
     cpdef bool is_open(ND2Reader self):
-        return bool(<int> self.hFile)
+        return bool(<uintptr_t> self.hFile)
 
     # cpdef ND2Reader __enter__(ND2Reader self):
     #     self.open()

@@ -14,46 +14,50 @@ from ._sdk.v9 cimport *
 from .structures import Attributes, Coordinate
 
 
-cdef class CLegacyND2File:
+cdef class ND2Reader:
 
     cdef LIMFILEHANDLE hFile
     cdef public path
+    cdef public bint _is_legacy
 
     def __cinit__(self, path):
+        self._is_legacy = 1
         self.hFile = 0
         self.path = path
         self.open()
 
     def __dealloc__(self):
-        self.close()
+        if self.hFile != 0:
+            self.close()
 
-    cpdef open(CLegacyND2File self):
-        if self.is_open():
-            return
+    cpdef int open(ND2Reader self) except -1:
+        if self.hFile != 0:
+            return 1
 
         cdef Py_ssize_t length
         cdef wchar_t *w_filename = PyUnicode_AsWideCharString(self.path, &length)
         self.hFile = Lim_FileOpenForRead(w_filename)
         if not self.hFile:
             raise OSError("Could not open file: %s" % self.path)
+        return 1
 
-    cpdef void close(CLegacyND2File self):
-        if not self.is_open():
+    cpdef void close(ND2Reader self):
+        if self.hFile == 0:
             return
-        _rescheck(Lim_FileClose(self.hFile))
         self.hFile = 0
+        Lim_FileClose(self.hFile)
 
-    cpdef bool is_open(CLegacyND2File self):
+    def is_open(self) -> bool:
         return bool(self.hFile)
 
-    cpdef CLegacyND2File __enter__(CLegacyND2File self):
+    cpdef ND2Reader __enter__(ND2Reader self):
         self.open()
         return self
 
-    cpdef void __exit__(CLegacyND2File self, exc_type, exc_val, exc_tb):
+    cpdef void __exit__(ND2Reader self, exc_type, exc_val, exc_tb):
         self.close()
 
-    cpdef attributes(CLegacyND2File self):
+    cpdef attributes(ND2Reader self):
         cdef LIMATTRIBUTES attrs
         _rescheck(Lim_FileGetAttributes(self.hFile, &attrs))
         if attrs.uiCompression == 0:
@@ -82,7 +86,7 @@ cdef class CLegacyND2File:
             tileWidthPx = attrs.uiTileWidth,
         )
 
-    cpdef dict metadata(CLegacyND2File self):
+    cpdef dict metadata(ND2Reader self):
         cdef LIMMETADATA_DESC meta
         _rescheck(Lim_FileGetMetadata(self.hFile, &meta))
         out = dict(meta)
@@ -99,7 +103,7 @@ cdef class CLegacyND2File:
 
         return out
 
-    cpdef list experiment(CLegacyND2File self):
+    cpdef list experiment(ND2Reader self):
         cdef LIMEXPERIMENT exp
         _rescheck(Lim_FileGetExperiment(self.hFile, &exp))
         d = dict(levelCount=exp.uiLevelCount)
@@ -112,6 +116,33 @@ cdef class CLegacyND2File:
                 'interval': e.dInterval,
             })
         return out
+
+
+    cpdef text_info(ND2Reader self):
+        cdef LIMTEXTINFO info
+        _rescheck(Lim_FileGetTextinfo(self.hFile, &info))
+        out = dict(
+            imageID=_wchar2uni(info.wszImageID),
+            type=_wchar2uni(info.wszType),
+            group=_wchar2uni(info.wszGroup),
+            sampleID=_wchar2uni(info.wszSampleID),
+            author=_wchar2uni(info.wszAuthor),
+            description=_wchar2uni(info.wszDescription),
+            capturing=_wchar2uni(info.wszCapturing),
+            sampling=_wchar2uni(info.wszSampling),
+            location=_wchar2uni(info.wszLocation),
+            date=_wchar2uni(info.wszDate),
+            conclusion=_wchar2uni(info.wszConclusion),
+            info1=_wchar2uni(info.wszInfo1),
+            info2=_wchar2uni(info.wszInfo2),
+            optics=_wchar2uni(info.wszOptics)
+        )
+        return out
+
+    cpdef LIMUINT seq_count(ND2Reader self):
+        cdef LIMATTRIBUTES attrs
+        _rescheck(Lim_FileGetAttributes(self.hFile, &attrs))
+        return attrs.uiSequenceCount
 
     cpdef LIMSIZE coord_size(self):
         """
@@ -126,7 +157,7 @@ cdef class CLegacyND2File:
         _rescheck(Lim_FileGetExperiment(self.hFile, &exp))
         return exp.uiLevelCount
 
-    cpdef list coord_info(CLegacyND2File self):
+    cpdef list coord_info(ND2Reader self):
         """can be used to get information about the experiment loop.
 
         list of tuple of (coord_index, dim_type, dim_size)
@@ -142,36 +173,7 @@ cdef class CLegacyND2File:
             out.append(Coordinate(i, _EXP_TYPE[e.uiExpType], e.uiLoopSize))
         return out
 
-    cpdef LIMUINT seq_count(CLegacyND2File self):
-        cdef LIMATTRIBUTES attrs
-        _rescheck(Lim_FileGetAttributes(self.hFile, &attrs))
-        return attrs.uiSequenceCount
-
-    cdef _validate_seq(CLegacyND2File self, LIMUINT seq_index):
-        if seq_index >= self.seq_count():
-            raise IndexError("Sequence %d out of range (sequence count: %d)"
-                             % (seq_index, self.seq_count()))
-
-    cpdef np.ndarray data(CLegacyND2File self, LIMUINT seq_index=0):
-        cdef LIMATTRIBUTES attrs
-        _rescheck(Lim_FileGetAttributes(self.hFile, &attrs))
-
-        if seq_index >= attrs.uiSequenceCount:
-            raise IndexError("Sequence %d out of range (sequence count: %d)"
-                             % (seq_index, attrs.uiSequenceCount))
-
-        cdef LIMPICTURE pic = nullpic()
-        cdef LIMSIZE size
-        cdef LIMLOCALMETADATA pImgInfo
-
-        size = Lim_InitPicture(&pic, attrs.uiWidth, attrs.uiHeight, attrs.uiBpcInMemory, attrs.uiComp)
-        _rescheck(Lim_FileGetImageData(self.hFile, seq_index, &pic, &pImgInfo))
-
-        array_wrapper = PicWrapper()
-        array_wrapper.set_pic(pic)
-        return array_wrapper.to_ndarray()
-
-    cpdef int seq_index_from_coords(CLegacyND2File self, coords) except -99:
+    cpdef int seq_index_from_coords(ND2Reader self, coords) except -99:
         """Convert experiment coords to sequence index."""
         cdef LIMSIZE n = len(coords)
         cdef LIMEXPERIMENT exp
@@ -198,38 +200,52 @@ cdef class CLegacyND2File:
         if exp.uiLevelCount == 0:
             return ()
 
-        cdef LIMUINT *output = <LIMUINT *> malloc(exp.uiLevelCount * sizeof(LIMUINT))
-        if not output:
+        cdef LIMUINT *tmp = <LIMUINT *> malloc(exp.uiLevelCount * sizeof(LIMUINT))
+        if not tmp:
             raise MemoryError()
-        try:
-            Lim_GetCoordsFromSeqIndex(&exp, seq_index, output)
-            return tuple([x for x in output[:exp.uiLevelCount]])
-        finally:
-            free(output)
-
-    cpdef text_info(CLegacyND2File self):
-        cdef LIMTEXTINFO info
-        _rescheck(Lim_FileGetTextinfo(self.hFile, &info))
-        out = dict(
-            imageID=_wchar2uni(info.wszImageID),
-            type=_wchar2uni(info.wszType),
-            group=_wchar2uni(info.wszGroup),
-            sampleID=_wchar2uni(info.wszSampleID),
-            author=_wchar2uni(info.wszAuthor),
-            description=_wchar2uni(info.wszDescription),
-            capturing=_wchar2uni(info.wszCapturing),
-            sampling=_wchar2uni(info.wszSampling),
-            location=_wchar2uni(info.wszLocation),
-            date=_wchar2uni(info.wszDate),
-            conclusion=_wchar2uni(info.wszConclusion),
-            info1=_wchar2uni(info.wszInfo1),
-            info2=_wchar2uni(info.wszInfo2),
-            optics=_wchar2uni(info.wszOptics)
-        )
+        Lim_GetCoordsFromSeqIndex(&exp, seq_index, tmp)
+        out = tuple([x for x in tmp[:exp.uiLevelCount]])
+        free(tmp)
         return out
 
+    cpdef np.ndarray data(ND2Reader self, LIMUINT seq_index=0):
+        cdef LIMATTRIBUTES attrs
+        _rescheck(Lim_FileGetAttributes(self.hFile, &attrs))
+
+        if seq_index >= attrs.uiSequenceCount:
+            raise IndexError("Sequence %d out of range (sequence count: %d)"
+                             % (seq_index, attrs.uiSequenceCount))
+
+        cdef LIMPICTURE pic = nullpic()
+        cdef LIMSIZE size
+        cdef LIMLOCALMETADATA pImgInfo
+
+        size = Lim_InitPicture(&pic, attrs.uiWidth, attrs.uiHeight, attrs.uiBpcInMemory, attrs.uiComp)
+        _rescheck(Lim_FileGetImageData(self.hFile, seq_index, &pic, &pImgInfo))
+
+        array_wrapper = PicWrapper()
+        array_wrapper.set_pic(pic)
+        return array_wrapper.to_ndarray()
+
+    cpdef tuple _voxel_size(self):
+        cdef LIMMETADATA_DESC meta
+        cdef LIMEXPERIMENT exp
+
+        if not Lim_FileGetMetadata(self.hFile, &meta):
+            xy = meta.dCalibration
+        else:
+            xy = 1.0
+
+        z = 1.0
+        if Lim_FileGetExperiment(self.hFile, &exp):
+            for e in exp.pAllocatedLevels:
+                if e.uiExpType == 2:  # Z stack loop
+                    z = e.uiLoopSize
+                    break
+        return (xy, xy, z)
+
     cpdef get_stage_coords(self):
-        cdef int n = 0
+        cdef unsigned int n = 0
         cdef LIMEXPERIMENT exp
         _rescheck(Lim_FileGetExperiment(self.hFile, &exp))
         for i in range(exp.uiLevelCount):
@@ -282,22 +298,7 @@ cdef class CLegacyND2File:
     #                                         LIMUINT uiPointIdx,
     #                                         LIMWSTR wstrPointName)
 
-    cpdef tuple _voxel_size(self):
-        cdef LIMMETADATA_DESC meta
-        cdef LIMEXPERIMENT exp
 
-        if not Lim_FileGetMetadata(self.hFile, &meta):
-            xy = meta.dCalibration
-        else:
-            xy = 1.0
-
-        z = 1.0
-        if Lim_FileGetExperiment(self.hFile, &exp):
-            for e in exp.pAllocatedLevels:
-                if e.uiExpType == 2:  # Z stack loop
-                    z = e.uiLoopSize
-                    break
-        return (xy, xy, z)
 
 
     cpdef LIMINT _zstack_home(self):

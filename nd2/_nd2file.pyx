@@ -22,12 +22,14 @@ from .structures import (
 )
 
 
-cdef class CND2File:
+cdef class ND2Reader:
 
     cdef LIMFILEHANDLE hFile
     cdef public path
+    cdef public bint _is_legacy
 
     def __cinit__(self, path):
+        self._is_legacy = 1
         self.hFile = NULL
         self.path = path
         self.open()
@@ -35,33 +37,33 @@ cdef class CND2File:
     def __dealloc__(self):
         self.close()
 
-    cpdef open(CND2File self):
+    cpdef open(ND2Reader self):
         if not self.is_open():
             self.hFile = Lim_FileOpenForReadUtf8(self.path)
             if not self.hFile:
                 raise OSError("Could not open file: %s" % self.path)
 
-    cpdef void close(CND2File self):
+    cpdef void close(ND2Reader self):
         if self.is_open():
             Lim_FileClose(self.hFile)
             self.hFile = NULL
 
-    cpdef bool is_open(CND2File self):
+    cpdef bool is_open(ND2Reader self):
         return bool(<int> self.hFile)
 
-    cpdef CND2File __enter__(CND2File self):
-        self.open()
-        return self
+    # cpdef ND2Reader __enter__(ND2Reader self):
+    #     self.open()
+    #     return self
 
-    cpdef void __exit__(CND2File self, exc_type, exc_val, exc_tb):
-        self.close()
+    # cpdef void __exit__(ND2Reader self, exc_type, exc_val, exc_tb):
+    #     self.close()
 
-    cpdef attributes(CND2File self):
+    cpdef attributes(ND2Reader self):
         d = _loads(Lim_FileGetAttributes(self.hFile))
         return Attributes(**d)
 
     # TODO: decide on "frame" vs "seq_index"
-    cpdef metadata(CND2File self, int frame=-1, int format=1):
+    cpdef metadata(ND2Reader self, int frame=-1, int format=1):
         if frame >=0:
             return self._frame_metadata(frame, format)
         d = _loads(Lim_FileGetMetadata(self.hFile))
@@ -71,7 +73,7 @@ cdef class CND2File:
             return Metadata(**d)
         return d
 
-    cdef _frame_metadata(CND2File self, LIMUINT frame, int format=1):
+    cdef _frame_metadata(ND2Reader self, LIMUINT frame, int format=1):
         self._validate_seq(frame)
         d = _loads(Lim_FileGetFrameMetadata(self.hFile, frame))
         if not d:
@@ -80,7 +82,7 @@ cdef class CND2File:
             return FrameMetadata(**d)
         return d
 
-    # cpdef image_info(CND2File self, LIMUINT seq_index=0):
+    # cpdef image_info(ND2Reader self, LIMUINT seq_index=0):
     #     """named tuple with (width, heigh, components, bits)
     #     e.g. ImageInfo(width=696, height=520, components=1, bits_per_pixel=14)
     #     """
@@ -100,7 +102,7 @@ cdef class CND2File:
                     return tuple(vol['axesCalibration'])
         return (None, None, None)
 
-    cpdef list experiment(CND2File self, int format=1):
+    cpdef list experiment(ND2Reader self, int format=1):
         cdef LIMSTR s = Lim_FileGetExperiment(self.hFile)
         if not s:
             out = []
@@ -111,15 +113,15 @@ cdef class CND2File:
                 out = parse_experiment(out)
         return out
 
-    cpdef dict text_info(CND2File self):
+    cpdef dict text_info(ND2Reader self):
         return _loads(Lim_FileGetTextinfo(self.hFile))
 
-    cdef _validate_seq(CND2File self, LIMUINT seq_index):
+    cdef _validate_seq(ND2Reader self, LIMUINT seq_index):
         if seq_index >= self.seq_count():
             raise IndexError("Sequence %d out of range (sequence count: %d)"
                              % (seq_index, self.seq_count()))
 
-    cpdef LIMUINT seq_count(CND2File self):
+    cpdef LIMUINT seq_count(ND2Reader self):
         return Lim_FileGetSeqCount(self.hFile)
 
     # coords
@@ -134,7 +136,7 @@ cdef class CND2File:
         """
         return Lim_FileGetCoordSize(self.hFile)
 
-    cpdef int seq_index_from_coords(CND2File self, coords):
+    cpdef int seq_index_from_coords(ND2Reader self, coords):
         """Convert experiment coords to sequence index.
 
         Returns -1 if coord_size == 0.
@@ -188,7 +190,7 @@ cdef class CND2File:
         finally:
             free(output)
 
-    cpdef list coord_info(CND2File self):
+    cpdef list coord_info(ND2Reader self):
         """can be used to get information about the experiment loop.
 
         list of tuple of (coord_index, dim_type, dim_size)
@@ -204,7 +206,7 @@ cdef class CND2File:
             out.append(Coordinate(i, buffer, count))
         return out
 
-    cpdef np.ndarray data(CND2File self, LIMUINT seq_index=0):
+    cpdef np.ndarray data(ND2Reader self, LIMUINT seq_index=0):
         # Load the data into the LIMPicture structure
         self._validate_seq(seq_index)
 

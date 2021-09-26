@@ -13,7 +13,7 @@ def get_nd2_stats(file) -> dict:
     except Exception as e:
         return {"err": str(e)}
     d = fh.attributes()._asdict()
-    d["coords"] = [c._asdict() for c in fh.coord_info()]
+    d["coords"] = [c._asdict() for c in fh._coord_info()]
     m = fh.metadata()
     if m and m.channels:
         d["pixel_size"] = m.channels[0].volume.axesCalibration

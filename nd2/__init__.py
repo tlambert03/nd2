@@ -13,7 +13,7 @@ from .nd2file import ND2File, imread
 
 def __getattr__(name: str):
     if name == "LegacyND2File":
-        from ._nd2file_legacy import CLegacyND2File as LegacyND2File
+        from ._nd2file_legacy import ND2Reader as LegacyND2File
 
         return LegacyND2File
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -12,7 +12,7 @@ from nd2._util import is_new_format
 DATA = Path(__file__).parent / "data"
 NEW_FORMATS: List[str] = []
 OLD_FORMATS: List[str] = []
-MAX_FILES = 20
+MAX_FILES = None
 for x in sorted(DATA.glob("*.nd2"), key=lambda x: x.stat().st_size)[:MAX_FILES]:
     lst = NEW_FORMATS if is_new_format(str(x)) else OLD_FORMATS
     lst.append(str(x))
@@ -24,7 +24,7 @@ def test_metadata_extraction(fname):
         assert nd.path == fname
         assert nd.is_open()
 
-        assert isinstance(nd.seq_count(), int)
+        assert isinstance(nd._rdr.seq_count(), int)
         # assert isinstance(nd.image_info(), structures.ImageInfo)
         # assert isinstance(nd.image_info(0), structures.ImageInfo)
         assert isinstance(nd.attributes(), structures.Attributes)
@@ -36,14 +36,14 @@ def test_metadata_extraction(fname):
         assert isinstance(nd.metadata(frame=0, format=False), dict)
         assert isinstance(nd.experiment(), list)
         assert isinstance(nd.text_info(), dict)
-        assert isinstance(nd.coord_info(), list)
-        assert all(isinstance(x, structures.Coordinate) for x in nd.coord_info())
+        assert isinstance(nd._coord_info(), list)
+        assert all(isinstance(x, structures.Coordinate) for x in nd._coord_info())
 
-        n_coords = nd.coord_size()
+        n_coords = nd._rdr.coord_size()
         assert isinstance(n_coords, int)
         if n_coords:
-            assert isinstance(nd.seq_index_from_coords([0] * n_coords), int)
-            zcoord = nd.coords_from_seq_index(0)
+            assert isinstance(nd._rdr.seq_index_from_coords([0] * n_coords), int)
+            zcoord = nd._rdr.coords_from_seq_index(0)
             assert isinstance(zcoord, tuple)
             assert len(zcoord) == n_coords
 
@@ -55,30 +55,30 @@ def test_get_data(fname):
     if "divisionByZero" in str(fname):
         pytest.skip()
     with ND2File(fname) as nd:
-        assert isinstance(nd.data(), np.ndarray)
+        assert isinstance(nd._data(), np.ndarray)
         assert isinstance(nd.to_dask(), da.Array)
         xarr = nd.to_xarray()
         assert isinstance(xarr, xr.DataArray)
         assert isinstance(xarr.data, da.Array)
-        result = xarr[nd.coords_from_seq_index(0)].compute()
+        result = xarr[nd._rdr.coords_from_seq_index(0)].compute()
         assert isinstance(result, xr.DataArray)
         assert isinstance(result.data, np.ndarray)
 
 
 def test_data():
     with ND2File(str(DATA / "jonas_header_test1.nd2")) as nd:
-        assert nd.coord_size() == 2
-        assert nd.seq_index_from_coords([0, 1]) == 1
-        assert nd.coords_from_seq_index(0) == (0, 0)
+        assert nd._rdr.coord_size() == 2
+        assert nd._rdr.seq_index_from_coords([0, 1]) == 1
+        assert nd._rdr.coords_from_seq_index(0) == (0, 0)
 
-        d = nd.data(0)
+        d = nd._data(0)
         assert isinstance(d, np.ndarray)
         assert d.shape == (2, 520, 696)
         np.testing.assert_array_equal(d[0, 0, :3], [200, 199, 213])
         np.testing.assert_array_equal(d[1, 0, :3], [204, 205, 199])
 
         with pytest.raises(IndexError):
-            nd.data(23)
+            nd._data(23)
 
 
 def test_missing():

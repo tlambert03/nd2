@@ -23,3 +23,5 @@ with dropbox.Dropbox(TOKEN) as dbx:
     if os.path.exists(DEST):
         shutil.rmtree(DEST)
     os.unlink("_sdk.zip")
+    if os.path.exists("__MACOSX"):
+        shutil.rmtree("__MACOSX")

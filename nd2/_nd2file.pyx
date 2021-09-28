@@ -52,12 +52,12 @@ cdef class ND2Reader:
     cpdef bool is_open(ND2Reader self):
         return bool(<uintptr_t> self.hFile)
 
-    # cpdef ND2Reader __enter__(ND2Reader self):
-    #     self.open()
-    #     return self
+    cpdef ND2Reader __enter__(ND2Reader self):
+        self.open()
+        return self
 
-    # cpdef void __exit__(ND2Reader self, exc_type, exc_val, exc_tb):
-    #     self.close()
+    cpdef void __exit__(ND2Reader self, exc_type, exc_val, exc_tb):
+        self.close()
 
     cpdef attributes(ND2Reader self):
         d = _loads(Lim_FileGetAttributes(self.hFile))

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Tuple, Union
 
 import numpy as np
 
-from . import _nd2file, _nd2file_legacy
+from . import _nd2file
 
 if TYPE_CHECKING:
     import dask.array as da
@@ -85,10 +85,15 @@ class ND2File:
     _rdr: _ND2Reader
 
     def __init__(self, path) -> None:
+        from ._chunkmap import read_chunkmap
+
+        self._frame_chunks = read_chunkmap(path)[1]
         try:
             self._rdr = _nd2file.ND2Reader(str(path))
         except OSError:
             try:
+                from . import _nd2file_legacy
+
                 self._rdr = _nd2file_legacy.ND2Reader(str(path))
             except OSError:
                 raise
@@ -240,6 +245,37 @@ class ND2File:
     @property
     def path(self) -> str:
         return self._rdr.path
+
+    def _safe_chunk(self, index: int) -> np.ndarray:
+        a = self.attributes()
+        bypc = a.bitsPerComponentInMemory // 8
+        stride = a.widthBytes - (bypc * a.widthPx * a.componentCount)
+
+        with open(self.path, "rb") as handle:
+            import mmap
+
+            mem = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ)
+            from ._chunkmap import CHUNK_MAGIC
+
+            offset = self._frame_chunks[index]
+            magic, shift = np.ndarray((2,), np.uint32, mem, offset=offset)
+            if magic != CHUNK_MAGIC:
+                return np.ndarray((a.componentCount, a.heightPx, a.widthPx), self.dtype)
+
+            kwargs = dict(
+                shape=(a.heightPx, a.widthPx, a.componentCount),
+                dtype=self.dtype,
+                buffer=mem,
+                offset=offset + 24 + int(shift),
+            )
+
+            if stride != 0:
+                kwargs["strides"] = (
+                    stride + a.widthPx * bypc * a.componentCount,
+                    a.componentCount * bypc,
+                    bypc,
+                )
+            return np.ndarray(**kwargs).transpose((2, 0, 1))
 
 
 def imread(file: str = None) -> np.ndarray:

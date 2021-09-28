@@ -85,12 +85,13 @@ class ND2File:
     _rdr: _ND2Reader
 
     def __init__(self, path) -> None:
-        from ._chunkmap import read_chunkmap
+        from ._chunkmap import good_and_bad_frames
 
         try:
-            self._frame_chunks = read_chunkmap(path)[1]
+            self._frame_chunks, self._bad_frames = good_and_bad_frames(path)
         except AssertionError:
             self._frame_chunks = {}
+            self._bad_frames = set()
         try:
             self._rdr = _nd2file.ND2Reader(str(path))
         except OSError:
@@ -139,7 +140,7 @@ class ND2File:
         return self._rdr._voxel_size()
 
     def asarray(self) -> np.ndarray:
-        arr = np.stack([self._rdr.data(i) for i in range(self._rdr.seq_count())])
+        arr = np.stack([self._data(i) for i in range(self._rdr.seq_count())])
         return arr.reshape(self.shape)
 
     def to_dask(self) -> da.Array:
@@ -163,7 +164,7 @@ class ND2File:
             if any(block_id):
                 raise ValueError(f"Cannot get chunk {block_id} for single frame image.")
             idx = 0
-        return self._rdr.data(idx)[(np.newaxis,) * self._rdr.coord_size()]
+        return self._data(idx)[(np.newaxis,) * self._rdr.coord_size()]
 
     def to_xarray(self, delayed: bool = True) -> xr.DataArray:
         import xarray as xr
@@ -222,6 +223,9 @@ class ND2File:
         self._rdr.close()
 
     def _data(self, index: int = 0):
+        if index in self._bad_frames:
+            print("skipping frame", index)
+            return self._empty_frame()
         return self._rdr.data(index)
 
     def open(self):
@@ -252,7 +256,8 @@ class ND2File:
     def path(self) -> str:
         return self._rdr.path
 
-    def _safe_chunk(self, index: int) -> np.ndarray:
+    def _read_chunk(self, index: int) -> np.ndarray:
+        """Read a chunk directly without using SDK"""
         a = self.attributes()
         bypc = a.bitsPerComponentInMemory // 8
         stride = a.widthBytes - (bypc * a.widthPx * a.componentCount)

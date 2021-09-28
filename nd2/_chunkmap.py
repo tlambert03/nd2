@@ -3,7 +3,7 @@ import mmap
 import re
 import struct
 from contextlib import contextmanager
-from typing import Iterator, Union
+from typing import Dict, Iterator, Set, Tuple, Union
 
 import numpy as np
 
@@ -15,7 +15,8 @@ CHUNK_MAP_SIGNATURE = b"ND2 CHUNK MAP SIGNATURE 0000001!"
 
 @contextmanager
 def ensure_handle(obj: Union[str, io.BytesIO], mode="rb") -> Iterator[io.BytesIO]:
-    _handle = obj if isinstance(obj, io.BytesIO) else open(obj, mode)
+    # FIXME: typing is loose/sloppy here
+    _handle = obj if isinstance(obj, io.IOBase) else open(obj, mode)
     try:
         yield _handle
     finally:
@@ -63,18 +64,14 @@ def read_chunk(handle: io.BytesIO, position: int):
     return handle.read(length)
 
 
-def good_and_bad_frames(file):
+def good_and_bad_frames(file) -> Tuple[Dict, Set[int]]:
     with ensure_handle(file) as fh:
         mem = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
         images = read_chunkmap(fh)[1]
-        return (
-            images,
-            tuple(
-                f
-                for f, pos in images.items()
-                if _sfp(pos, np.uint32, mem) != CHUNK_MAGIC
-            ),
-        )
+        bad = {
+            f for f, pos in images.items() if _sfp(pos, np.uint32, mem) != CHUNK_MAGIC
+        }
+        return images, bad
 
 
 def _sfp(offset, dtype, mem):

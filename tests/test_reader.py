@@ -51,6 +51,7 @@ def test_metadata_extraction(fname):
     assert not nd.is_open()
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize("fname", OLD_FORMATS, ids=lambda x: x.name)
 def test_metadata_extraction_legacy(fname):
     with ND2File(fname) as nd:
@@ -85,18 +86,24 @@ def test_metadata_extraction_legacy(fname):
         _nd2file.ND2Reader(str(fname))
 
 
-@pytest.mark.parametrize(
-    "fname", [x for x in ND2 if "aryeh" in x.name], ids=lambda x: x.name
-)
-def test_pims(fname):
-    from pims_nd2 import ND2_Reader
-
-    with ND2_Reader(str(fname)) as p:
-        print(p)
-
-
-@pytest.mark.parametrize("fname", ND2, ids=lambda x: x.name)
+@pytest.mark.parametrize("fname", NEW_FORMATS, ids=lambda x: x.name)
 def test_get_data(fname):
+    if "divisionByZero" in str(fname):
+        pytest.skip()
+    with ND2File(fname) as nd:
+        assert isinstance(nd._data(), np.ndarray)
+        assert isinstance(nd.to_dask(), da.Array)
+        xarr = nd.to_xarray()
+        assert isinstance(xarr, xr.DataArray)
+        assert isinstance(xarr.data, da.Array)
+        result = xarr[nd._rdr.coords_from_seq_index(0)].compute()
+        assert isinstance(result, xr.DataArray)
+        assert isinstance(result.data, np.ndarray)
+
+
+@pytest.mark.skip
+@pytest.mark.parametrize("fname", OLD_FORMATS, ids=lambda x: x.name)
+def test_get_data_legacy(fname):
     if "divisionByZero" in str(fname):
         pytest.skip()
     with ND2File(fname) as nd:

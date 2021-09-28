@@ -93,6 +93,7 @@ cdef class ND2Reader:
     #     out = ImageInfo(pic.uiWidth, pic.uiHeight, pic.uiComponents, pic.uiBitsPerComp)
     #     Lim_DestroyPicture(&pic)
     #     return out
+
     cpdef tuple _voxel_size(self):
         meta = _loads(Lim_FileGetMetadata(self.hFile))
         if meta:

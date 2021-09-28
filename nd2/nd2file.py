@@ -87,10 +87,16 @@ class ND2File:
     def __init__(self, path) -> None:
         from ._chunkmap import read_chunkmap
 
-        self._frame_chunks = read_chunkmap(path)[1]
+        try:
+            self._frame_chunks = read_chunkmap(path)[1]
+        except AssertionError:
+            self._frame_chunks = {}
         try:
             self._rdr = _nd2file.ND2Reader(str(path))
         except OSError:
+            # from ._util import is_old_format
+            # if is_old_format(path):
+            #     raise NotImplementedError
             try:
                 from . import _nd2file_legacy
 
@@ -250,6 +256,9 @@ class ND2File:
         a = self.attributes()
         bypc = a.bitsPerComponentInMemory // 8
         stride = a.widthBytes - (bypc * a.widthPx * a.componentCount)
+        if index not in self._frame_chunks:
+            return self._empty_frame()
+        offset = self._frame_chunks[index]
 
         with open(self.path, "rb") as handle:
             import mmap
@@ -257,10 +266,9 @@ class ND2File:
             mem = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ)
             from ._chunkmap import CHUNK_MAGIC
 
-            offset = self._frame_chunks[index]
             magic, shift = np.ndarray((2,), np.uint32, mem, offset=offset)
             if magic != CHUNK_MAGIC:
-                return np.ndarray((a.componentCount, a.heightPx, a.widthPx), self.dtype)
+                return self._empty_frame()
 
             kwargs = dict(
                 shape=(a.heightPx, a.widthPx, a.componentCount),
@@ -268,7 +276,6 @@ class ND2File:
                 buffer=mem,
                 offset=offset + 24 + int(shift),
             )
-
             if stride != 0:
                 kwargs["strides"] = (
                     stride + a.widthPx * bypc * a.componentCount,
@@ -276,6 +283,10 @@ class ND2File:
                     bypc,
                 )
             return np.ndarray(**kwargs).transpose((2, 0, 1))
+
+    def _empty_frame(self):
+        a = self.attributes()
+        return np.ndarray((a.componentCount, a.heightPx, a.widthPx), self.dtype)
 
 
 def imread(file: str = None) -> np.ndarray:

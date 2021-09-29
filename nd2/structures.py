@@ -221,7 +221,7 @@ class Channel:
 class ChannelMeta:
     name: str
     index: int
-    colorRGB: int
+    colorRGB: int  # probably 0xBBGGRR
     emissionLambdaNm: Optional[float] = None
     excitationLambdaNm: Optional[float] = None
 

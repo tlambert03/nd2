@@ -11,7 +11,7 @@ test-extras = ["testing"]
 manylinux-x86_64-image = "manylinux_2_24"
 
 [tool.cibuildwheel.macos]
-archs = ["x86_64", "universal2"]
+archs = ["x86_64", "arm64"]
 environment = { REPAIR_LIBRARY_PATH = 'sdk/v9/Darwin/lib' }
 repair-wheel-command = [
     "DYLD_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-listdeps {wheel}",

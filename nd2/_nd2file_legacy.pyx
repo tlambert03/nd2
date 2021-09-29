@@ -456,8 +456,7 @@ cdef class PicWrapper:
         shape[0] = <np.npy_intp> self.pic.uiHeight
         shape[1] = <np.npy_intp> self.pic.uiWidth
         shape[2] = <np.npy_intp> self.pic.uiComponents
-        array = np.PyArray_SimpleNewFromData(3, shape, self.dtype, self.pic.pImageData)
-        return array.transpose((2, 0, 1))
+        return np.PyArray_SimpleNewFromData(3, shape, self.dtype, self.pic.pImageData)
 
     def __dealloc__(self):
         # free(<void*>self.data_ptr)

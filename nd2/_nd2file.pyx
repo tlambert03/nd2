@@ -30,7 +30,7 @@ cdef class ND2Reader:
     cdef public bint _is_legacy
 
     def __cinit__(self, path):
-        self._is_legacy = 1
+        self._is_legacy = 0
         self.hFile = NULL
         self.path = path
         self.open()
@@ -83,16 +83,16 @@ cdef class ND2Reader:
             return FrameMetadata(**d)
         return d
 
-    # cpdef image_info(ND2Reader self, LIMUINT seq_index=0):
-    #     """named tuple with (width, heigh, components, bits)
-    #     e.g. ImageInfo(width=696, height=520, components=1, bits_per_pixel=14)
-    #     """
-    #     self._validate_seq(seq_index)
-    #     cdef LIMPICTURE pic = nullpic()
-    #     result = Lim_FileGetImageData(self.hFile, seq_index, &pic)
-    #     out = ImageInfo(pic.uiWidth, pic.uiHeight, pic.uiComponents, pic.uiBitsPerComp)
-    #     Lim_DestroyPicture(&pic)
-    #     return out
+    cpdef image_info(ND2Reader self, LIMUINT seq_index=0):
+        """named tuple with (width, heigh, components, bits)
+        e.g. ImageInfo(width=696, height=520, components=1, bits_per_pixel=14)
+        """
+        self._validate_seq(seq_index)
+        cdef LIMPICTURE pic = nullpic()
+        result = Lim_FileGetImageData(self.hFile, seq_index, &pic)
+        out = ImageInfo(pic.uiWidth, pic.uiHeight, pic.uiComponents, pic.uiBitsPerComp)
+        Lim_DestroyPicture(&pic)
+        return out
 
     cpdef tuple _voxel_size(self):
         meta = _loads(Lim_FileGetMetadata(self.hFile))
@@ -250,8 +250,7 @@ cdef class PicWrapper:
         shape[0] = <np.npy_intp> self.pic.uiHeight
         shape[1] = <np.npy_intp> self.pic.uiWidth
         shape[2] = <np.npy_intp> self.pic.uiComponents
-        array = np.PyArray_SimpleNewFromData(3, shape, self.dtype, self.pic.pImageData)
-        return array.transpose((2, 0, 1))
+        return np.PyArray_SimpleNewFromData(3, shape, self.dtype, self.pic.pImageData)
 
     def __dealloc__(self):
         # free(<void*>self.data_ptr)

@@ -2,7 +2,7 @@ import io
 import re
 import struct
 from contextlib import contextmanager
-from typing import Any, BinaryIO, Dict, Iterator, Optional, Set, Tuple, Union
+from typing import BinaryIO, Dict, Iterator, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -16,8 +16,14 @@ CHUNK_MAP_SIGNATURE = b"ND2 CHUNK MAP SIGNATURE 0000001!"
 # I = unsigned int       (4)
 # Q = unsigned long long (8)
 big_iihi = struct.Struct(">iihi")
-IIQ = struct.Struct("IIQ")
+CHUNK_INFO = struct.Struct("IIQ")
 QQ = struct.Struct("QQ")
+
+# chunk rules:
+# - each data chunk starts with
+#   - 4 bytes: CHUNK_MAGIC -> 0x0ABECEDA (big endian: 0xDACEBE0A)
+#   - 4 bytes: length of the chunk header (this section contains the chunk name...)
+#   - 8 bytes: length of chunk following the header, up to the next CHUNK_MAGIC
 
 
 @contextmanager
@@ -26,11 +32,12 @@ def ensure_handle(obj: Union[str, io.BytesIO]) -> Iterator[BinaryIO]:
     try:
         yield fh
     finally:
+        # close it if we were the one to open it
         if not hasattr(obj, "fileno"):
             fh.close()
 
 
-def read_chunkmap(file, fixup=True) -> dict:
+def read_chunkmap(file, fixup=True) -> Tuple[dict, Dict[str, int]]:
     "read the map of the chunks at the end of the file"
     with ensure_handle(file) as fh:
         # the last 8 bytes contain the location of the beginning
@@ -43,65 +50,73 @@ def read_chunkmap(file, fixup=True) -> dict:
 
         # then we get all of the data in the chunkmap
         # this asserts that the chunkmap begins with CHUNK_MAGIC
-        data = read_chunk(fh, chunk)
+        chunkmap_data = read_chunk(fh, chunk)
 
         # now look for each "!" in the chunkmap
-        # and record the offset associated with each chunkname
+        # and record the position associated with each chunkname
         pos = 0
-        map: Dict[str, Any] = {"images": {}}
+        image_map: dict = {}
+        meta_map: Dict[str, int] = {}
         while True:
-            # find the first "!", starting at p, go to next byte
-            p = data.index(b"!", pos) + 1
-            name = data[pos:p]  # name of the chunk
+            # find the first "!", starting at pos, then go to next byte
+            p = chunkmap_data.index(b"!", pos) + 1
+            name = chunkmap_data[pos:p]  # name of the chunk
             if name == CHUNK_MAP_SIGNATURE:
                 # break when we find the end
                 break
-            # the next 8 bytes contain the position of the chunk magic
-            # corresponding to this key
-            result = QQ.unpack(data[p : p + 16])  # noqa
+            # the next 16 bytes contain...
+            # (8) -> position of this key in the file  (@ the chunk magic)
+            # (8) -> length of this chunk in the file (not including the chunk header)
+            # Note: one still needs to go to `position` to read the CHUNK_INFO to know
+            # the absolute position of the data (excluding the chunk header).  This can
+            # be done using `read_chunk(..., position)``
+            position, _ = QQ.unpack(chunkmap_data[p : p + 16])  # noqa
             if name[:13] == b"ImageDataSeq|":
-                map["images"][int(name[13:-1])] = result
+                image_map[int(name[13:-1])] = position
             else:
-                map[name[:-1].decode("ascii")] = result
+                meta_map[name[:-1].decode("ascii")] = position
             pos = p + 16
         if fixup:
-            bad, fixed, safe = _fix_frames(fh, map["images"])
-            map["bad_frames"] = bad
-            map["fixed_frames"] = fixed
-            map["safe_frames"] = safe
-    return map
+            image_map.update(_fix_frames(fh, image_map))
+    return image_map, meta_map
+
+
+# final mapping of frame number to absolute byte offset starting the chunk
+# or None, if the chunk could not be verified
+SafeDict = Dict[int, Optional[int]]
 
 
 def _fix_frames(
-    fh: BinaryIO, images: Dict[int, Tuple[int, int]]
-) -> Tuple[Set[int], Set[int], Dict[int, Optional[int]]]:
+    fh: BinaryIO, images: Dict[int, int]
+) -> Dict[str, Union[Set[int], SafeDict]]:
     bad: Set[int] = set()
     fixed: Set[int] = set()
-    safe: Dict[int, Optional[int]] = {}
+    safe: SafeDict = {}
     _lengths = set()
-    for fnum, (_p, _) in images.items():
+    for fnum, _p in images.items():
         fh.seek(_p)
-        magic, shift, length = IIQ.unpack(fh.read(16))
+        magic, shift, length = CHUNK_INFO.unpack(fh.read(16))
         _lengths.add(length)
         if magic != CHUNK_MAGIC:
-            correct_pos = _search(fh, b"ImageDataSeq|%a!" % fnum, images[fnum][0])
+            correct_pos = _search(fh, b"ImageDataSeq|%a!" % fnum, images[fnum])
             if correct_pos is not None:
                 fixed.add(fnum)
                 safe[fnum] = correct_pos + 24 + int(shift)
-                images[fnum] = (correct_pos, correct_pos)
+                images[fnum] = correct_pos
             else:
                 safe[fnum] = None
         else:
             safe[fnum] = _p + 24 + int(shift)
-    return bad, fixed, safe
+    return {"bad": bad, "fixed": fixed, "safe": safe}
 
 
 def _search(fh: BinaryIO, string: bytes, guess: int, kbrange=100):
+    """Search for `string`, in the `kbrange` bytes around position `guess`."""
     fh.seek(max(guess - ((1000 * kbrange) // 2), 0))
     try:
         p = fh.tell() + fh.read(1000 * kbrange).index(string) - 16
         fh.seek(p)
-        if IIQ.unpack(fh.read(16))[0] == CHUNK_MAGIC:
+        if CHUNK_INFO.unpack(fh.read(16))[0] == CHUNK_MAGIC:
             return p
     except ValueError:
         return None
@@ -110,14 +125,30 @@ def _search(fh: BinaryIO, string: bytes, guess: int, kbrange=100):
 def read_chunk(handle: BinaryIO, position: int):
     handle.seek(position)
     # confirm chunk magic, seek to shift, read for length
-    magic, shift, length = IIQ.unpack(handle.read(16))
+    magic, shift, length = CHUNK_INFO.unpack(handle.read(16))
     assert magic == CHUNK_MAGIC, "invalid magic %x" % magic
-    handle.seek(position + 16 + shift)
+    handle.seek(shift, 1)
     return handle.read(length)
 
 
+def iter_chunks(handle: BinaryIO, start_at: int, name_length=64):
+    handle.seek(start_at)
+    while True:
+        header = handle.read(16)
+        if len(header) < 16:
+            return
+        magic, shift, length = CHUNK_INFO.unpack(header)
+        if magic != CHUNK_MAGIC:
+            print("not magic")
+            return
+        name = handle.read(name_length).split(b"\x00", 1)[0]
+        handle.seek(shift - name_length, 1)
+        data = handle.read(length)
+        yield (name, data)
+
+
 def jpeg_chunkmap(file):
-    """Retrieve chunk offsets and shape from old jpeg format"""
+    """Retrieve chunk positions and shape from old jpeg format"""
     with ensure_handle(file) as f:
         f.seek(0)
         assert f.read(4) == b"\x00\x00\x00\x0c", "Not a JPEG image!"

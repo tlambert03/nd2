@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import mmap
 from pathlib import Path
-from typing import TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Tuple, Union
 
 import numpy as np
 
@@ -85,25 +86,33 @@ class ND2File:
     _rdr: _ND2Reader
 
     def __init__(self, path) -> None:
-        from ._chunkmap import good_and_bad_frames
+        from ._chunkmap import read_chunkmap
 
         try:
-            self._frame_chunks, self._bad_frames = good_and_bad_frames(path)
+            self._chunkmap = read_chunkmap(path)
+            self._frame_chunks: Dict[int, Tuple[int, int]] = self._chunkmap.get(
+                "images", {}
+            )
+            self._bad_frames = self._chunkmap.get("bad_frames", set())
+            self._safe_frames = self._chunkmap.get("safe_frames", dict())
         except AssertionError:
             self._frame_chunks = {}
             self._bad_frames = set()
         try:
             self._rdr = _nd2file.ND2Reader(str(path))
         except OSError:
-            # from ._util import is_old_format
-            # if is_old_format(path):
-            #     raise NotImplementedError
-            try:
-                from . import _nd2file_legacy
+            from ._util import is_old_format
 
-                self._rdr = _nd2file_legacy.ND2Reader(str(path))
-            except OSError:
-                raise
+            if is_old_format(path):
+                raise NotImplementedError("Legacy file not yet supported")
+            # try:
+            #     from . import _nd2file_legacy
+
+            #     self._rdr = _nd2file_legacy.ND2Reader(str(path))
+            # except OSError:
+            #     raise
+        self._fh = open(path, "rb")
+        self.mem = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
 
     @property
     def ndim(self) -> int:
@@ -220,18 +229,22 @@ class ND2File:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        self._rdr.close()
+        self.close()
 
     def _data(self, index: int = 0):
-        if index in self._bad_frames:
-            print("skipping frame", index)
-            return self._empty_frame()
-        return self._rdr.data(index)
+        # this seems to be much faster than using the SDK to read
+        return self._read_chunk(index)
+        # if index in self._bad_frames:
+        #     return self._empty_frame()
+        # elif index in self._chunkmap.get("fixed_frames", set()):
+        #     return self._read_chunk(index)
+        # return self._rdr.data(index)
 
     def open(self):
         return self._rdr.open()
 
     def close(self):
+        self._fh.close()
         self._rdr.close()
 
     def is_open(self):
@@ -258,36 +271,28 @@ class ND2File:
 
     def _read_chunk(self, index: int) -> np.ndarray:
         """Read a chunk directly without using SDK"""
+        if index not in self._safe_frames:
+            raise IndexError(f"Frame out of range: {index}")
+        offset = self._safe_frames[index]
+        if offset is None:
+            return self._empty_frame()
         a = self.attributes()
+        array_kwargs = dict(
+            shape=(a.heightPx, a.widthPx, a.componentCount),
+            dtype=self.dtype,
+            buffer=self.mem,
+            offset=offset,
+        )
+
         bypc = a.bitsPerComponentInMemory // 8
         stride = a.widthBytes - (bypc * a.widthPx * a.componentCount)
-        if index not in self._frame_chunks:
-            return self._empty_frame()
-        offset = self._frame_chunks[index]
-
-        with open(self.path, "rb") as handle:
-            import mmap
-
-            mem = mmap.mmap(handle.fileno(), 0, access=mmap.ACCESS_READ)
-            from ._chunkmap import CHUNK_MAGIC
-
-            magic, shift = np.ndarray((2,), np.uint32, mem, offset=offset)
-            if magic != CHUNK_MAGIC:
-                return self._empty_frame()
-
-            kwargs = dict(
-                shape=(a.heightPx, a.widthPx, a.componentCount),
-                dtype=self.dtype,
-                buffer=mem,
-                offset=offset + 24 + int(shift),
+        if stride != 0:
+            array_kwargs["strides"] = (
+                stride + a.widthPx * bypc * a.componentCount,
+                a.componentCount * bypc,
+                bypc,
             )
-            if stride != 0:
-                kwargs["strides"] = (
-                    stride + a.widthPx * bypc * a.componentCount,
-                    a.componentCount * bypc,
-                    bypc,
-                )
-            return np.ndarray(**kwargs).transpose((2, 0, 1))
+        return np.ndarray(**array_kwargs).transpose((2, 0, 1))
 
     def _empty_frame(self):
         a = self.attributes()

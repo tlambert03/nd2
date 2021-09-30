@@ -1,5 +1,7 @@
 import re
 from datetime import datetime
+from pathlib import Path
+from typing import Union
 
 NEW_HEADER_MAGIC_NUM = 0x0ABECEDA
 OLD_HEADER_MAGIC_NUM = 0x0C000000
@@ -14,16 +16,16 @@ def is_new_format(path: str) -> bool:
         return False
 
 
-def is_old_format(path: str) -> bool:
+def is_old_format(path: Union[str, Path]) -> bool:
     return magic_num(path) == OLD_HEADER_MAGIC_NUM
 
 
-def magic_num(path: str) -> int:
+def magic_num(path: Union[str, Path]) -> int:
     with open(path, "rb") as fh:
         return int.from_bytes(fh.read(4), "little")
 
 
-def file_chunk_version(file: str) -> str:
+def file_chunk_version(file: Union[str, Path]) -> str:
     try:
         with open(file, "rb") as fh:
             fh.seek(16)

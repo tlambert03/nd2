@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 import lxml.etree
 
 
-def parse_xml_block(bxml: bytes):
+def parse_xml_block(bxml: bytes) -> Dict[str, Any]:
     node = lxml.etree.XML(bxml.split(b"?>", 1)[-1])
     return elem2dict(node)
 

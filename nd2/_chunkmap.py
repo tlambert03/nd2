@@ -1,15 +1,16 @@
+from __future__ import annotations
+
 import io
 import re
 import struct
 from contextlib import contextmanager
-from typing import BinaryIO, Dict, Iterator, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, overload
 
 import numpy as np
+from typing_extensions import TypedDict
 
-ImageSeqPtrn = re.compile(br"ImageDataSeq\|(\d+)!?")
-
-CHUNK_MAGIC = 0x0ABECEDA
-CHUNK_MAP_SIGNATURE = b"ND2 CHUNK MAP SIGNATURE 0000001!"
+if TYPE_CHECKING:
+    from typing import BinaryIO, Dict, Iterator, Literal, Optional, Set, Tuple, Union
 
 # h = short              (2)
 # i = int                (4)
@@ -18,12 +19,9 @@ CHUNK_MAP_SIGNATURE = b"ND2 CHUNK MAP SIGNATURE 0000001!"
 big_iihi = struct.Struct(">iihi")
 CHUNK_INFO = struct.Struct("IIQ")
 QQ = struct.Struct("QQ")
-
-# chunk rules:
-# - each data chunk starts with
-#   - 4 bytes: CHUNK_MAGIC -> 0x0ABECEDA (big endian: 0xDACEBE0A)
-#   - 4 bytes: length of the chunk header (this section contains the chunk name...)
-#   - 8 bytes: length of chunk following the header, up to the next CHUNK_MAGIC
+CHUNK_MAGIC = 0x0ABECEDA
+CHUNK_MAP_SIGNATURE = b"ND2 CHUNK MAP SIGNATURE 0000001!"
+ImageSeqPtrn = re.compile(br"ImageDataSeq\|(\d+)!?")
 
 
 @contextmanager
@@ -37,8 +35,35 @@ def ensure_handle(obj: Union[str, io.BytesIO]) -> Iterator[BinaryIO]:
             fh.close()
 
 
-def read_chunkmap(file, fixup=True) -> Tuple[dict, Dict[str, int]]:
-    "read the map of the chunks at the end of the file"
+class FixedImageMap(TypedDict):
+    bad: Set[int]  # frames that could not be found
+    fixed: Set[int]  # frames that were bad but fixed
+    # final mapping of frame number to absolute byte offset starting the chunk
+    # or None, if the chunk could not be verified
+    safe: Dict[int, Optional[int]]
+
+
+@overload
+def read_chunkmap(
+    file, fixup: Literal[True] = True
+) -> Tuple[FixedImageMap, Dict[str, int]]:
+    ...
+
+
+@overload
+def read_chunkmap(file, fixup: Literal[False]) -> Tuple[Dict[int, int], Dict[str, int]]:
+    ...
+
+
+def read_chunkmap(file, fixup=True):
+    """read the map of the chunks at the end of the file
+
+    chunk rules:
+    - each data chunk starts with
+      - 4 bytes: CHUNK_MAGIC -> 0x0ABECEDA (big endian: 0xDACEBE0A)
+      - 4 bytes: length of the chunk header (this section contains the chunk name...)
+      - 8 bytes: length of chunk following the header, up to the next CHUNK_MAGIC
+    """
     with ensure_handle(file) as fh:
         # the last 8 bytes contain the location of the beginning
         # of the chunkamp (~FILEMAP SIGNATURE NAME)
@@ -76,28 +101,22 @@ def read_chunkmap(file, fixup=True) -> Tuple[dict, Dict[str, int]]:
             else:
                 meta_map[name[:-1].decode("ascii")] = position
             pos = p + 16
-        if fixup:
-            image_map.update(_fix_frames(fh, image_map))
+    if fixup:
+        return _fix_frames(fh, image_map), meta_map
     return image_map, meta_map
 
 
-# final mapping of frame number to absolute byte offset starting the chunk
-# or None, if the chunk could not be verified
-SafeDict = Dict[int, Optional[int]]
-
-
-def _fix_frames(
-    fh: BinaryIO, images: Dict[int, int]
-) -> Dict[str, Union[Set[int], SafeDict]]:
+def _fix_frames(fh: BinaryIO, images: Dict[int, int]) -> FixedImageMap:
+    """Look for corrupt frames, and try to find their actual positions."""
     bad: Set[int] = set()
     fixed: Set[int] = set()
-    safe: SafeDict = {}
+    safe: Dict[int, Optional[int]] = {}
     _lengths = set()
     for fnum, _p in images.items():
         fh.seek(_p)
         magic, shift, length = CHUNK_INFO.unpack(fh.read(16))
         _lengths.add(length)
-        if magic != CHUNK_MAGIC:
+        if magic != CHUNK_MAGIC:  # corrupt frame
             correct_pos = _search(fh, b"ImageDataSeq|%a!" % fnum, images[fnum])
             if correct_pos is not None:
                 fixed.add(fnum)
@@ -129,22 +148,6 @@ def read_chunk(handle: BinaryIO, position: int):
     assert magic == CHUNK_MAGIC, "invalid magic %x" % magic
     handle.seek(shift, 1)
     return handle.read(length)
-
-
-def iter_chunks(handle: BinaryIO, start_at: int, name_length=64):
-    handle.seek(start_at)
-    while True:
-        header = handle.read(16)
-        if len(header) < 16:
-            return
-        magic, shift, length = CHUNK_INFO.unpack(header)
-        if magic != CHUNK_MAGIC:
-            print("not magic")
-            return
-        name = handle.read(name_length).split(b"\x00", 1)[0]
-        handle.seek(shift - name_length, 1)
-        data = handle.read(length)
-        yield (name, data)
 
 
 def jpeg_chunkmap(file):

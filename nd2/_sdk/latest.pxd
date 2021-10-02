@@ -2,6 +2,8 @@ import json
 
 from libc.stddef cimport wchar_t
 
+from .picture cimport LIMPICTURE
+
 
 cdef extern from "Nd2ReadSdk.h":
     ctypedef void*           LIMFILEHANDLE
@@ -13,15 +15,6 @@ cdef extern from "Nd2ReadSdk.h":
     ctypedef bint            LIMBOOL
     ctypedef char*           LIMCSTR
     ctypedef const wchar_t*  LIMCWSTR
-
-    ctypedef struct LIMPICTURE:
-        LIMUINT     uiWidth;             # !< Width (in pixels) of the picture
-        LIMUINT     uiHeight;            # !< Height (in pixels) of the picture
-        LIMUINT     uiBitsPerComp;       # !< Number of bits for each component
-        LIMUINT     uiComponents;        # !< Number of components in each pixel
-        LIMSIZE     uiWidthBytes;        # !< Number of bytes for each pixel line (stride); aligned to 4bytes
-        LIMSIZE     uiSize;              # !< Number of bytes the image occupies
-        void*       pImageData;          # !< Image data
 
     LIMFILEHANDLE Lim_FileOpenForReadUtf8(LIMCSTR wszFileName)
     LIMFILEHANDLE Lim_FileOpenForRead(LIMCWSTR wszFileName)
@@ -71,16 +64,7 @@ LIM_ERR_CODE = {
     -19: 'LIM_ERR_VERSION',
 }
 
-cdef inline LIMPICTURE nullpic():
-    cdef LIMPICTURE p
-    p.uiWidth = 0
-    p.uiHeight = 0
-    p.uiBitsPerComp = 0
-    p.uiComponents = 0
-    p.uiWidthBytes = 0
-    p.uiSize = 0
-    p.pImageData = NULL
-    return p
+
 
 
 cdef inline dict _loads(LIMSTR string):

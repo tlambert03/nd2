@@ -111,3 +111,4 @@ sdk
 sdk_legacy/*
 tests/data
 wheelhouse
+nd2/_sdk/picture.c

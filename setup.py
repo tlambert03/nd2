@@ -19,15 +19,32 @@ CYTHON_TRACE = bool(os.getenv("CYTHON_TRACE", "0") not in ("0", "False"))
 link_args = [f'-Wl,-rpath,{(SDK_LEGACY / "lib")}'] if SYSTEM == "Darwin" else []
 
 
-nd2file = Extension(
-    name="nd2._nd2file",
-    sources=["nd2/_nd2file.pyx"],
+picwrapper = Extension(
+    name="nd2._sdk.picture",
+    sources=["nd2/_sdk/picture.pyx"],
+    include_dirs=[get_include()],
+    define_macros=[("CYTHON_TRACE", int(CYTHON_TRACE))],
+)
+
+latest = Extension(
+    name="nd2._sdk.latest",
+    sources=["nd2/_sdk/latest.pyx"],
     libraries=[f"nd2readsdk-{LINK}"],
     library_dirs=[str(SDK / "lib")],
     include_dirs=[str(SDK / "include"), get_include()],
     extra_objects=[str(x) for x in LIB.glob("*") if not x.name.startswith(".")],
     define_macros=[("LX_STATIC_LINKING", None), ("CYTHON_TRACE", int(CYTHON_TRACE))],
 )
+
+# nd2file = Extension(
+#     name="nd2._nd2file",
+#     sources=["nd2/_nd2file.pyx"],
+#     libraries=[f"nd2readsdk-{LINK}"],
+#     library_dirs=[str(SDK / "lib")],
+#     include_dirs=[str(SDK / "include"), get_include()],
+#     extra_objects=[str(x) for x in LIB.glob("*") if not x.name.startswith(".")],
+#     define_macros=[("LX_STATIC_LINKING", None), ("CYTHON_TRACE", int(CYTHON_TRACE))],
+# )
 
 nd2file_legacy = Extension(
     name="nd2._nd2file_legacy",
@@ -42,7 +59,8 @@ nd2file_legacy = Extension(
 setup(
     use_scm_version={"write_to": "nd2/_version.py"},
     ext_modules=cythonize(
-        [nd2file, nd2file_legacy],
+        # [latest, nd2file, nd2file_legacy],
+        [latest, nd2file_legacy, picwrapper],
         language_level="3",
         compiler_directives={
             "linetrace": CYTHON_TRACE,

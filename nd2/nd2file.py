@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Union
 
 import numpy as np
 
-from . import _nd2file
+# from . import _nd2file
 from ._chunkmap import read_chunkmap
 
 try:

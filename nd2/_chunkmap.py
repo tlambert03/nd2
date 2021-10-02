@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import io
-import re
 import struct
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, overload
 
-import numpy as np
 from typing_extensions import TypedDict
 
 if TYPE_CHECKING:
@@ -16,12 +14,10 @@ if TYPE_CHECKING:
 # i = int                (4)
 # I = unsigned int       (4)
 # Q = unsigned long long (8)
-big_iihi = struct.Struct(">iihi")
 CHUNK_INFO = struct.Struct("IIQ")
 QQ = struct.Struct("QQ")
 CHUNK_MAGIC = 0x0ABECEDA
 CHUNK_MAP_SIGNATURE = b"ND2 CHUNK MAP SIGNATURE 0000001!"
-ImageSeqPtrn = re.compile(br"ImageDataSeq\|(\d+)!?")
 
 
 @contextmanager
@@ -71,7 +67,7 @@ def read_chunkmap(file, fixup=True):
         # string appears before the last 8 bytes.
         fh.seek(-40, 2)
         name, chunk = struct.unpack("32sQ", fh.read(40))
-        assert name == CHUNK_MAP_SIGNATURE
+        assert name == CHUNK_MAP_SIGNATURE, "Not a valid ND2 file"
 
         # then we get all of the data in the chunkmap
         # this asserts that the chunkmap begins with CHUNK_MAGIC
@@ -148,35 +144,3 @@ def read_chunk(handle: BinaryIO, position: int):
     assert magic == CHUNK_MAGIC, "invalid magic %x" % magic
     handle.seek(shift, 1)
     return handle.read(length)
-
-
-def jpeg_chunkmap(file):
-    """Retrieve chunk positions and shape from old jpeg format"""
-    with ensure_handle(file) as f:
-        f.seek(0)
-        assert f.read(4) == b"\x00\x00\x00\x0c", "Not a JPEG image!"
-        size = f.seek(0, 2)
-        f.seek(0)
-
-        vs = []
-        x = y = x = type_ = None
-
-        while True:
-            pos = f.tell()
-            length = int.from_bytes(f.read(4), "big")
-            box = f.read(4)
-            if box == b"jp2c":
-                vs.append(f.tell())
-            elif box == b"jp2h":
-                f.seek(4, 1)
-                if f.read(4) == b"ihdr":
-                    y, x, c, t = big_iihi.unpack(f.read(14))
-                    type_ = np.uint16 if t in (252117248, 252116992) else np.uint8
-                continue
-
-            nextPos = pos + length
-            if nextPos < 0 or nextPos >= size or length < 8:
-                break
-            f.seek(length - 8, 1)  # skip bytes
-
-    return vs, (c, y, x, type_)

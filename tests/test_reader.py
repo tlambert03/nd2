@@ -155,3 +155,30 @@ def test_imread():
     d = imread(str(DATA / "jonas_header_test2.nd2"))
     assert isinstance(d, np.ndarray)
     assert d.shape == (4, 5, 520, 696)
+
+
+import json
+
+with open(DATA / "shapes.json") as f:
+    BFINO = json.load(f)
+
+
+@pytest.mark.parametrize("fname", NEW_FORMATS, ids=lambda x: x.name)
+def test_bioformats_parit(fname: Path):
+    if fname.name in {
+        "dims_rgb_t3p2c2z3x64y64.nd2",
+        "dims_rgb_c2x64y64.nd2",
+        "dims_rgb.nd2",
+    }:
+        pytest.xfail()
+    info = BFINO[fname.name]["shape"]
+    for k, v in list(info.items()):
+        if v == 1:
+            info.pop(k)
+    with ND2File(fname) as nd:
+        d = dict(zip(nd.axes, nd.shape))
+        for k, v in list(d.items()):
+            if v == 1:
+                d.pop(k)
+
+        assert d == info

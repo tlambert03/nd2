@@ -69,6 +69,7 @@ class ND2File:
 
             if is_old_format(path):
                 raise NotImplementedError("Legacy file not yet supported")
+            raise OSError(f"Unable to read file: {path}")
 
         self.open()
         self._frame_map, self._meta_map = read_chunkmap(self._fh, fixup=True)

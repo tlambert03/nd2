@@ -1,18 +1,18 @@
-from libc.stdint cimport uintptr_t
+from libc.stdint cimport intptr_t
 from libc.stdlib cimport free, malloc
 
 from .picture cimport PicWrapper, nullpic
 
 
 def open(file_name: str):
-    return <uintptr_t> Lim_FileOpenForReadUtf8(file_name)
+    return <intptr_t> Lim_FileOpenForReadUtf8(file_name)
 
 
-def close(fh: uintptr_t):
+def close(fh: intptr_t):
     Lim_FileClose(<void *>fh)
 
 
-def get_attributes(fh: uintptr_t):
+def get_attributes(fh: intptr_t):
     out = Lim_FileGetAttributes(<void *>fh)
     if not out:
         return ''
@@ -22,7 +22,7 @@ def get_attributes(fh: uintptr_t):
         Lim_FileFreeString(out)
 
 
-def get_metadata(fh: uintptr_t):
+def get_metadata(fh: intptr_t):
     out = Lim_FileGetMetadata(<void *>fh)
     if not out:
         return ''
@@ -32,7 +32,7 @@ def get_metadata(fh: uintptr_t):
         Lim_FileFreeString(out)
 
 
-def get_frame_metadata(fh: uintptr_t, seq_index: LIMUINT):
+def get_frame_metadata(fh: intptr_t, seq_index: LIMUINT):
     out = Lim_FileGetFrameMetadata(<void *>fh, seq_index)
     if not out:
         return ''
@@ -42,7 +42,7 @@ def get_frame_metadata(fh: uintptr_t, seq_index: LIMUINT):
         Lim_FileFreeString(out)
 
 
-def get_textinfo(fh: uintptr_t):
+def get_textinfo(fh: intptr_t):
     out = Lim_FileGetTextinfo(<void *>fh)
     if not out:
         return ''
@@ -52,7 +52,7 @@ def get_textinfo(fh: uintptr_t):
         Lim_FileFreeString(out)
 
 
-def get_experiment(fh: uintptr_t):
+def get_experiment(fh: intptr_t):
     out = Lim_FileGetExperiment(<void *>fh)
     if not out:
         return ''
@@ -62,15 +62,15 @@ def get_experiment(fh: uintptr_t):
         Lim_FileFreeString(out)
 
 
-def get_seq_count(fh: uintptr_t):
+def get_seq_count(fh: intptr_t):
     return Lim_FileGetSeqCount(<void *>fh)
 
 
-def get_coord_size(fh: uintptr_t):
+def get_coord_size(fh: intptr_t):
     return Lim_FileGetCoordSize(<void *>fh)
 
 
-def get_seq_index_from_coords(fh: uintptr_t, coords: list | tuple):
+def get_seq_index_from_coords(fh: intptr_t, coords: list | tuple):
 
     cdef LIMSIZE size = get_coord_size(fh)
     if size == 0:
@@ -96,7 +96,7 @@ def get_seq_index_from_coords(fh: uintptr_t, coords: list | tuple):
         free(_coords)
 
 
-def get_coords_from_seq_index(fh: uintptr_t, seq_index: LIMUINT):
+def get_coords_from_seq_index(fh: intptr_t, seq_index: LIMUINT):
     cdef LIMSIZE size = get_coord_size(fh)
     if size == 0:
         return ()
@@ -112,7 +112,7 @@ def get_coords_from_seq_index(fh: uintptr_t, seq_index: LIMUINT):
         free(output)
 
 
-def get_coord_info(fh: uintptr_t, coord=-1):
+def get_coord_info(fh: intptr_t, coord=-1):
     cdef LIMCHAR loop_type[256]
     cdef LIMSIZE size = get_coord_size(fh)
     if size == 0:
@@ -133,7 +133,7 @@ def get_coord_info(fh: uintptr_t, coord=-1):
     return (coord, loop_type, loop_size)
 
 
-cdef _validate_seq(fh: uintptr_t, LIMUINT seq_index):
+cdef _validate_seq(fh: intptr_t, LIMUINT seq_index):
     cdef LIMUINT seq_count = get_seq_count(fh)
     if seq_index >= seq_count:
         raise IndexError(
@@ -141,7 +141,7 @@ cdef _validate_seq(fh: uintptr_t, LIMUINT seq_index):
         )
 
 
-def get_image(fh: uintptr_t, LIMUINT seq_index=0):
+def get_image(fh: intptr_t, LIMUINT seq_index=0):
     _validate_seq(fh, seq_index)
 
     cdef LIMPICTURE pic = nullpic()

@@ -1703,13 +1703,13 @@ static void __Pyx_AddTraceback(const char *funcname, int c_line,
 #endif
 
 /* CIntFromPy.proto */
-static CYTHON_INLINE size_t __Pyx_PyInt_As_size_t(PyObject *);
-
-/* CIntFromPy.proto */
 static CYTHON_INLINE LIMUINT __Pyx_PyInt_As_LIMUINT(PyObject *);
 
 /* CIntToPy.proto */
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_LIMUINT(LIMUINT value);
+
+/* CIntFromPy.proto */
+static CYTHON_INLINE size_t __Pyx_PyInt_As_size_t(PyObject *);
 
 /* CIntToPy.proto */
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_LIMRESULT(LIMRESULT value);
@@ -1792,7 +1792,7 @@ static CYTHON_INLINE __pyx_t_3nd2_4_sdk_7picture_LIMPICTURE __pyx_f_3nd2_4_sdk_7
 /* Module declarations from 'libc.stdlib' */
 
 /* Module declarations from 'nd2._sdk.latest' */
-static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(uintptr_t, LIMUINT); /*proto*/
+static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(intptr_t, LIMUINT); /*proto*/
 #define __Pyx_MODULE_NAME "nd2._sdk.latest"
 extern int __pyx_module_is_main_nd2___sdk__latest;
 int __pyx_module_is_main_nd2___sdk__latest = 0;
@@ -1925,18 +1925,18 @@ static PyObject *__pyx_n_s_test;
 static PyObject *__pyx_kp_u_too_large_for_file_with;
 static PyObject *__pyx_n_s_x;
 static PyObject *__pyx_pf_3nd2_4_sdk_6latest_open(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_file_name); /* proto */
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_2close(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh); /* proto */
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh); /* proto */
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh); /* proto */
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index); /* proto */
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh); /* proto */
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh); /* proto */
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_14get_seq_count(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh); /* proto */
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_16get_coord_size(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh); /* proto */
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh, PyObject *__pyx_v_coords); /* proto */
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index); /* proto */
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh, PyObject *__pyx_v_coord); /* proto */
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_24get_image(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index); /* proto */
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_2close(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh); /* proto */
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh); /* proto */
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh); /* proto */
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index); /* proto */
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh); /* proto */
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh); /* proto */
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_14get_seq_count(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh); /* proto */
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_16get_coord_size(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh); /* proto */
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh, PyObject *__pyx_v_coords); /* proto */
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index); /* proto */
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh, PyObject *__pyx_v_coord); /* proto */
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_24get_image(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index); /* proto */
 static PyObject *__pyx_int_0;
 static PyObject *__pyx_int_neg_1;
 static PyObject *__pyx_tuple__3;
@@ -1969,11 +1969,11 @@ static PyObject *__pyx_codeobj__28;
 static PyObject *__pyx_codeobj__30;
 /* Late includes */
 
-/* "nd2/_sdk/latest.pyx":6
+/* "nd2/_sdk/latest.pyx":7
  *
  *
  * def open(file_name: str):             # <<<<<<<<<<<<<<
- *     return <uintptr_t> Lim_FileOpenForReadUtf8(file_name)
+ *     return <intptr_t> Lim_FileOpenForReadUtf8(file_name)
  *
  */
 
@@ -1987,7 +1987,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_1open(PyObject *__pyx_self, PyObjec
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("open (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_file_name), (&PyUnicode_Type), 1, "file_name", 1))) __PYX_ERR(0, 6, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_file_name), (&PyUnicode_Type), 1, "file_name", 1))) __PYX_ERR(0, 7, __pyx_L1_error)
   __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_open(__pyx_self, ((PyObject*)__pyx_v_file_name));
 
   /* function exit code */
@@ -2009,26 +2009,26 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_open(CYTHON_UNUSED PyObject *__pyx_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("open", 0);
 
-  /* "nd2/_sdk/latest.pyx":7
+  /* "nd2/_sdk/latest.pyx":8
  *
  * def open(file_name: str):
- *     return <uintptr_t> Lim_FileOpenForReadUtf8(file_name)             # <<<<<<<<<<<<<<
+ *     return <intptr_t> Lim_FileOpenForReadUtf8(file_name)             # <<<<<<<<<<<<<<
  *
  *
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_file_name); if (unlikely((__pyx_t_1 == ((LIMCSTR)NULL)) && PyErr_Occurred())) __PYX_ERR(0, 7, __pyx_L1_error)
-  __pyx_t_2 = __Pyx_PyInt_FromSize_t(((uintptr_t)Lim_FileOpenForReadUtf8(__pyx_t_1))); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_AsWritableString(__pyx_v_file_name); if (unlikely((__pyx_t_1 == ((LIMCSTR)NULL)) && PyErr_Occurred())) __PYX_ERR(0, 8, __pyx_L1_error)
+  __pyx_t_2 = PyInt_FromSsize_t(((intptr_t)Lim_FileOpenForReadUtf8(__pyx_t_1))); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 8, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;
   goto __pyx_L0;
 
-  /* "nd2/_sdk/latest.pyx":6
+  /* "nd2/_sdk/latest.pyx":7
  *
  *
  * def open(file_name: str):             # <<<<<<<<<<<<<<
- *     return <uintptr_t> Lim_FileOpenForReadUtf8(file_name)
+ *     return <intptr_t> Lim_FileOpenForReadUtf8(file_name)
  *
  */
 
@@ -2043,10 +2043,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_open(CYTHON_UNUSED PyObject *__pyx_
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":10
+/* "nd2/_sdk/latest.pyx":11
  *
  *
- * def close(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def close(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     Lim_FileClose(<void *>fh)
  *
  */
@@ -2055,7 +2055,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_open(CYTHON_UNUSED PyObject *__pyx_
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_3close(PyObject *__pyx_self, PyObject *__pyx_arg_fh); /*proto*/
 static PyMethodDef __pyx_mdef_3nd2_4_sdk_6latest_3close = {"close", (PyCFunction)__pyx_pw_3nd2_4_sdk_6latest_3close, METH_O, 0};
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_3close(PyObject *__pyx_self, PyObject *__pyx_arg_fh) {
-  uintptr_t __pyx_v_fh;
+  intptr_t __pyx_v_fh;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -2063,7 +2063,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_3close(PyObject *__pyx_self, PyObje
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("close (wrapper)", 0);
   assert(__pyx_arg_fh); {
-    __pyx_v_fh = __Pyx_PyInt_As_size_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((uintptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 10, __pyx_L3_error)
+    __pyx_v_fh = PyInt_AsSsize_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((intptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 11, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -2071,31 +2071,31 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_3close(PyObject *__pyx_self, PyObje
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_2close(__pyx_self, ((uintptr_t)__pyx_v_fh));
+  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_2close(__pyx_self, ((intptr_t)__pyx_v_fh));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_2close(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh) {
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_2close(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("close", 0);
 
-  /* "nd2/_sdk/latest.pyx":11
+  /* "nd2/_sdk/latest.pyx":12
  *
- * def close(fh: uintptr_t):
+ * def close(fh: intptr_t):
  *     Lim_FileClose(<void *>fh)             # <<<<<<<<<<<<<<
  *
  *
  */
   Lim_FileClose(((void *)__pyx_v_fh));
 
-  /* "nd2/_sdk/latest.pyx":10
+  /* "nd2/_sdk/latest.pyx":11
  *
  *
- * def close(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def close(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     Lim_FileClose(<void *>fh)
  *
  */
@@ -2107,10 +2107,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_2close(CYTHON_UNUSED PyObject *__py
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":14
+/* "nd2/_sdk/latest.pyx":15
  *
  *
- * def get_attributes(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_attributes(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetAttributes(<void *>fh)
  *     if not out:
  */
@@ -2119,7 +2119,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_2close(CYTHON_UNUSED PyObject *__py
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_5get_attributes(PyObject *__pyx_self, PyObject *__pyx_arg_fh); /*proto*/
 static PyMethodDef __pyx_mdef_3nd2_4_sdk_6latest_5get_attributes = {"get_attributes", (PyCFunction)__pyx_pw_3nd2_4_sdk_6latest_5get_attributes, METH_O, 0};
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_5get_attributes(PyObject *__pyx_self, PyObject *__pyx_arg_fh) {
-  uintptr_t __pyx_v_fh;
+  intptr_t __pyx_v_fh;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -2127,7 +2127,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_5get_attributes(PyObject *__pyx_sel
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("get_attributes (wrapper)", 0);
   assert(__pyx_arg_fh); {
-    __pyx_v_fh = __Pyx_PyInt_As_size_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((uintptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L3_error)
+    __pyx_v_fh = PyInt_AsSsize_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((intptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 15, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -2135,14 +2135,14 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_5get_attributes(PyObject *__pyx_sel
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_4get_attributes(__pyx_self, ((uintptr_t)__pyx_v_fh));
+  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_4get_attributes(__pyx_self, ((intptr_t)__pyx_v_fh));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh) {
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh) {
   LIMSTR __pyx_v_out;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -2162,17 +2162,17 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObj
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_attributes", 0);
 
-  /* "nd2/_sdk/latest.pyx":15
+  /* "nd2/_sdk/latest.pyx":16
  *
- * def get_attributes(fh: uintptr_t):
+ * def get_attributes(fh: intptr_t):
  *     out = Lim_FileGetAttributes(<void *>fh)             # <<<<<<<<<<<<<<
  *     if not out:
  *         return ''
  */
   __pyx_v_out = Lim_FileGetAttributes(((void *)__pyx_v_fh));
 
-  /* "nd2/_sdk/latest.pyx":16
- * def get_attributes(fh: uintptr_t):
+  /* "nd2/_sdk/latest.pyx":17
+ * def get_attributes(fh: intptr_t):
  *     out = Lim_FileGetAttributes(<void *>fh)
  *     if not out:             # <<<<<<<<<<<<<<
  *         return ''
@@ -2181,7 +2181,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObj
   __pyx_t_1 = ((!(__pyx_v_out != 0)) != 0);
   if (__pyx_t_1) {
 
-    /* "nd2/_sdk/latest.pyx":17
+    /* "nd2/_sdk/latest.pyx":18
  *     out = Lim_FileGetAttributes(<void *>fh)
  *     if not out:
  *         return ''             # <<<<<<<<<<<<<<
@@ -2193,8 +2193,8 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObj
     __pyx_r = __pyx_kp_u_;
     goto __pyx_L0;
 
-    /* "nd2/_sdk/latest.pyx":16
- * def get_attributes(fh: uintptr_t):
+    /* "nd2/_sdk/latest.pyx":17
+ * def get_attributes(fh: intptr_t):
  *     out = Lim_FileGetAttributes(<void *>fh)
  *     if not out:             # <<<<<<<<<<<<<<
  *         return ''
@@ -2202,7 +2202,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObj
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":18
+  /* "nd2/_sdk/latest.pyx":19
  *     if not out:
  *         return ''
  *     try:             # <<<<<<<<<<<<<<
@@ -2211,7 +2211,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObj
  */
   /*try:*/ {
 
-    /* "nd2/_sdk/latest.pyx":19
+    /* "nd2/_sdk/latest.pyx":20
  *         return ''
  *     try:
  *         return out             # <<<<<<<<<<<<<<
@@ -2219,14 +2219,14 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObj
  *         Lim_FileFreeString(out)
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_2 = __Pyx_PyUnicode_FromString(__pyx_v_out); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 19, __pyx_L5_error)
+    __pyx_t_2 = __Pyx_PyUnicode_FromString(__pyx_v_out); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 20, __pyx_L5_error)
     __Pyx_GOTREF(__pyx_t_2);
     __pyx_r = __pyx_t_2;
     __pyx_t_2 = 0;
     goto __pyx_L4_return;
   }
 
-  /* "nd2/_sdk/latest.pyx":21
+  /* "nd2/_sdk/latest.pyx":22
  *         return out
  *     finally:
  *         Lim_FileFreeString(out)             # <<<<<<<<<<<<<<
@@ -2276,10 +2276,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObj
     }
   }
 
-  /* "nd2/_sdk/latest.pyx":14
+  /* "nd2/_sdk/latest.pyx":15
  *
  *
- * def get_attributes(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_attributes(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetAttributes(<void *>fh)
  *     if not out:
  */
@@ -2295,10 +2295,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObj
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":24
+/* "nd2/_sdk/latest.pyx":25
  *
  *
- * def get_metadata(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_metadata(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetMetadata(<void *>fh)
  *     if not out:
  */
@@ -2307,7 +2307,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_4get_attributes(CYTHON_UNUSED PyObj
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_7get_metadata(PyObject *__pyx_self, PyObject *__pyx_arg_fh); /*proto*/
 static PyMethodDef __pyx_mdef_3nd2_4_sdk_6latest_7get_metadata = {"get_metadata", (PyCFunction)__pyx_pw_3nd2_4_sdk_6latest_7get_metadata, METH_O, 0};
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_7get_metadata(PyObject *__pyx_self, PyObject *__pyx_arg_fh) {
-  uintptr_t __pyx_v_fh;
+  intptr_t __pyx_v_fh;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -2315,7 +2315,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_7get_metadata(PyObject *__pyx_self,
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("get_metadata (wrapper)", 0);
   assert(__pyx_arg_fh); {
-    __pyx_v_fh = __Pyx_PyInt_As_size_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((uintptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 24, __pyx_L3_error)
+    __pyx_v_fh = PyInt_AsSsize_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((intptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 25, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -2323,14 +2323,14 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_7get_metadata(PyObject *__pyx_self,
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_6get_metadata(__pyx_self, ((uintptr_t)__pyx_v_fh));
+  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_6get_metadata(__pyx_self, ((intptr_t)__pyx_v_fh));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh) {
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh) {
   LIMSTR __pyx_v_out;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -2350,17 +2350,17 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObjec
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_metadata", 0);
 
-  /* "nd2/_sdk/latest.pyx":25
+  /* "nd2/_sdk/latest.pyx":26
  *
- * def get_metadata(fh: uintptr_t):
+ * def get_metadata(fh: intptr_t):
  *     out = Lim_FileGetMetadata(<void *>fh)             # <<<<<<<<<<<<<<
  *     if not out:
  *         return ''
  */
   __pyx_v_out = Lim_FileGetMetadata(((void *)__pyx_v_fh));
 
-  /* "nd2/_sdk/latest.pyx":26
- * def get_metadata(fh: uintptr_t):
+  /* "nd2/_sdk/latest.pyx":27
+ * def get_metadata(fh: intptr_t):
  *     out = Lim_FileGetMetadata(<void *>fh)
  *     if not out:             # <<<<<<<<<<<<<<
  *         return ''
@@ -2369,7 +2369,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObjec
   __pyx_t_1 = ((!(__pyx_v_out != 0)) != 0);
   if (__pyx_t_1) {
 
-    /* "nd2/_sdk/latest.pyx":27
+    /* "nd2/_sdk/latest.pyx":28
  *     out = Lim_FileGetMetadata(<void *>fh)
  *     if not out:
  *         return ''             # <<<<<<<<<<<<<<
@@ -2381,8 +2381,8 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObjec
     __pyx_r = __pyx_kp_u_;
     goto __pyx_L0;
 
-    /* "nd2/_sdk/latest.pyx":26
- * def get_metadata(fh: uintptr_t):
+    /* "nd2/_sdk/latest.pyx":27
+ * def get_metadata(fh: intptr_t):
  *     out = Lim_FileGetMetadata(<void *>fh)
  *     if not out:             # <<<<<<<<<<<<<<
  *         return ''
@@ -2390,7 +2390,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObjec
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":28
+  /* "nd2/_sdk/latest.pyx":29
  *     if not out:
  *         return ''
  *     try:             # <<<<<<<<<<<<<<
@@ -2399,7 +2399,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObjec
  */
   /*try:*/ {
 
-    /* "nd2/_sdk/latest.pyx":29
+    /* "nd2/_sdk/latest.pyx":30
  *         return ''
  *     try:
  *         return out             # <<<<<<<<<<<<<<
@@ -2407,14 +2407,14 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObjec
  *         Lim_FileFreeString(out)
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_2 = __Pyx_PyUnicode_FromString(__pyx_v_out); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 29, __pyx_L5_error)
+    __pyx_t_2 = __Pyx_PyUnicode_FromString(__pyx_v_out); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 30, __pyx_L5_error)
     __Pyx_GOTREF(__pyx_t_2);
     __pyx_r = __pyx_t_2;
     __pyx_t_2 = 0;
     goto __pyx_L4_return;
   }
 
-  /* "nd2/_sdk/latest.pyx":31
+  /* "nd2/_sdk/latest.pyx":32
  *         return out
  *     finally:
  *         Lim_FileFreeString(out)             # <<<<<<<<<<<<<<
@@ -2464,10 +2464,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObjec
     }
   }
 
-  /* "nd2/_sdk/latest.pyx":24
+  /* "nd2/_sdk/latest.pyx":25
  *
  *
- * def get_metadata(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_metadata(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetMetadata(<void *>fh)
  *     if not out:
  */
@@ -2483,10 +2483,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObjec
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":34
+/* "nd2/_sdk/latest.pyx":35
  *
  *
- * def get_frame_metadata(fh: uintptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
+ * def get_frame_metadata(fh: intptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetFrameMetadata(<void *>fh, seq_index)
  *     if not out:
  */
@@ -2495,7 +2495,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_6get_metadata(CYTHON_UNUSED PyObjec
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_9get_frame_metadata(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
 static PyMethodDef __pyx_mdef_3nd2_4_sdk_6latest_9get_frame_metadata = {"get_frame_metadata", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_3nd2_4_sdk_6latest_9get_frame_metadata, METH_VARARGS|METH_KEYWORDS, 0};
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_9get_frame_metadata(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  uintptr_t __pyx_v_fh;
+  intptr_t __pyx_v_fh;
   LIMUINT __pyx_v_seq_index;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -2526,11 +2526,11 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_9get_frame_metadata(PyObject *__pyx
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_seq_index)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("get_frame_metadata", 1, 2, 2, 1); __PYX_ERR(0, 34, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("get_frame_metadata", 1, 2, 2, 1); __PYX_ERR(0, 35, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_frame_metadata") < 0)) __PYX_ERR(0, 34, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_frame_metadata") < 0)) __PYX_ERR(0, 35, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
       goto __pyx_L5_argtuple_error;
@@ -2538,12 +2538,12 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_9get_frame_metadata(PyObject *__pyx
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
     }
-    __pyx_v_fh = __Pyx_PyInt_As_size_t(values[0]); if (unlikely((__pyx_v_fh == ((uintptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 34, __pyx_L3_error)
-    __pyx_v_seq_index = __Pyx_PyInt_As_LIMUINT(values[1]); if (unlikely((__pyx_v_seq_index == ((LIMUINT)-1)) && PyErr_Occurred())) __PYX_ERR(0, 34, __pyx_L3_error)
+    __pyx_v_fh = PyInt_AsSsize_t(values[0]); if (unlikely((__pyx_v_fh == ((intptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 35, __pyx_L3_error)
+    __pyx_v_seq_index = __Pyx_PyInt_As_LIMUINT(values[1]); if (unlikely((__pyx_v_seq_index == ((LIMUINT)-1)) && PyErr_Occurred())) __PYX_ERR(0, 35, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get_frame_metadata", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 34, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("get_frame_metadata", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 35, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("nd2._sdk.latest.get_frame_metadata", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -2556,7 +2556,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_9get_frame_metadata(PyObject *__pyx
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index) {
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index) {
   LIMSTR __pyx_v_out;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -2576,17 +2576,17 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED P
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_frame_metadata", 0);
 
-  /* "nd2/_sdk/latest.pyx":35
+  /* "nd2/_sdk/latest.pyx":36
  *
- * def get_frame_metadata(fh: uintptr_t, seq_index: LIMUINT):
+ * def get_frame_metadata(fh: intptr_t, seq_index: LIMUINT):
  *     out = Lim_FileGetFrameMetadata(<void *>fh, seq_index)             # <<<<<<<<<<<<<<
  *     if not out:
  *         return ''
  */
   __pyx_v_out = Lim_FileGetFrameMetadata(((void *)__pyx_v_fh), __pyx_v_seq_index);
 
-  /* "nd2/_sdk/latest.pyx":36
- * def get_frame_metadata(fh: uintptr_t, seq_index: LIMUINT):
+  /* "nd2/_sdk/latest.pyx":37
+ * def get_frame_metadata(fh: intptr_t, seq_index: LIMUINT):
  *     out = Lim_FileGetFrameMetadata(<void *>fh, seq_index)
  *     if not out:             # <<<<<<<<<<<<<<
  *         return ''
@@ -2595,7 +2595,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED P
   __pyx_t_1 = ((!(__pyx_v_out != 0)) != 0);
   if (__pyx_t_1) {
 
-    /* "nd2/_sdk/latest.pyx":37
+    /* "nd2/_sdk/latest.pyx":38
  *     out = Lim_FileGetFrameMetadata(<void *>fh, seq_index)
  *     if not out:
  *         return ''             # <<<<<<<<<<<<<<
@@ -2607,8 +2607,8 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED P
     __pyx_r = __pyx_kp_u_;
     goto __pyx_L0;
 
-    /* "nd2/_sdk/latest.pyx":36
- * def get_frame_metadata(fh: uintptr_t, seq_index: LIMUINT):
+    /* "nd2/_sdk/latest.pyx":37
+ * def get_frame_metadata(fh: intptr_t, seq_index: LIMUINT):
  *     out = Lim_FileGetFrameMetadata(<void *>fh, seq_index)
  *     if not out:             # <<<<<<<<<<<<<<
  *         return ''
@@ -2616,7 +2616,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED P
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":38
+  /* "nd2/_sdk/latest.pyx":39
  *     if not out:
  *         return ''
  *     try:             # <<<<<<<<<<<<<<
@@ -2625,7 +2625,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED P
  */
   /*try:*/ {
 
-    /* "nd2/_sdk/latest.pyx":39
+    /* "nd2/_sdk/latest.pyx":40
  *         return ''
  *     try:
  *         return out             # <<<<<<<<<<<<<<
@@ -2633,14 +2633,14 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED P
  *         Lim_FileFreeString(out)
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_2 = __Pyx_PyUnicode_FromString(__pyx_v_out); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 39, __pyx_L5_error)
+    __pyx_t_2 = __Pyx_PyUnicode_FromString(__pyx_v_out); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 40, __pyx_L5_error)
     __Pyx_GOTREF(__pyx_t_2);
     __pyx_r = __pyx_t_2;
     __pyx_t_2 = 0;
     goto __pyx_L4_return;
   }
 
-  /* "nd2/_sdk/latest.pyx":41
+  /* "nd2/_sdk/latest.pyx":42
  *         return out
  *     finally:
  *         Lim_FileFreeString(out)             # <<<<<<<<<<<<<<
@@ -2690,10 +2690,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED P
     }
   }
 
-  /* "nd2/_sdk/latest.pyx":34
+  /* "nd2/_sdk/latest.pyx":35
  *
  *
- * def get_frame_metadata(fh: uintptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
+ * def get_frame_metadata(fh: intptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetFrameMetadata(<void *>fh, seq_index)
  *     if not out:
  */
@@ -2709,10 +2709,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED P
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":44
+/* "nd2/_sdk/latest.pyx":45
  *
  *
- * def get_textinfo(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_textinfo(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetTextinfo(<void *>fh)
  *     if not out:
  */
@@ -2721,7 +2721,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_8get_frame_metadata(CYTHON_UNUSED P
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_11get_textinfo(PyObject *__pyx_self, PyObject *__pyx_arg_fh); /*proto*/
 static PyMethodDef __pyx_mdef_3nd2_4_sdk_6latest_11get_textinfo = {"get_textinfo", (PyCFunction)__pyx_pw_3nd2_4_sdk_6latest_11get_textinfo, METH_O, 0};
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_11get_textinfo(PyObject *__pyx_self, PyObject *__pyx_arg_fh) {
-  uintptr_t __pyx_v_fh;
+  intptr_t __pyx_v_fh;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -2729,7 +2729,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_11get_textinfo(PyObject *__pyx_self
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("get_textinfo (wrapper)", 0);
   assert(__pyx_arg_fh); {
-    __pyx_v_fh = __Pyx_PyInt_As_size_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((uintptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 44, __pyx_L3_error)
+    __pyx_v_fh = PyInt_AsSsize_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((intptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 45, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -2737,14 +2737,14 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_11get_textinfo(PyObject *__pyx_self
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(__pyx_self, ((uintptr_t)__pyx_v_fh));
+  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(__pyx_self, ((intptr_t)__pyx_v_fh));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh) {
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh) {
   LIMSTR __pyx_v_out;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -2764,17 +2764,17 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObje
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_textinfo", 0);
 
-  /* "nd2/_sdk/latest.pyx":45
+  /* "nd2/_sdk/latest.pyx":46
  *
- * def get_textinfo(fh: uintptr_t):
+ * def get_textinfo(fh: intptr_t):
  *     out = Lim_FileGetTextinfo(<void *>fh)             # <<<<<<<<<<<<<<
  *     if not out:
  *         return ''
  */
   __pyx_v_out = Lim_FileGetTextinfo(((void *)__pyx_v_fh));
 
-  /* "nd2/_sdk/latest.pyx":46
- * def get_textinfo(fh: uintptr_t):
+  /* "nd2/_sdk/latest.pyx":47
+ * def get_textinfo(fh: intptr_t):
  *     out = Lim_FileGetTextinfo(<void *>fh)
  *     if not out:             # <<<<<<<<<<<<<<
  *         return ''
@@ -2783,7 +2783,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObje
   __pyx_t_1 = ((!(__pyx_v_out != 0)) != 0);
   if (__pyx_t_1) {
 
-    /* "nd2/_sdk/latest.pyx":47
+    /* "nd2/_sdk/latest.pyx":48
  *     out = Lim_FileGetTextinfo(<void *>fh)
  *     if not out:
  *         return ''             # <<<<<<<<<<<<<<
@@ -2795,8 +2795,8 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObje
     __pyx_r = __pyx_kp_u_;
     goto __pyx_L0;
 
-    /* "nd2/_sdk/latest.pyx":46
- * def get_textinfo(fh: uintptr_t):
+    /* "nd2/_sdk/latest.pyx":47
+ * def get_textinfo(fh: intptr_t):
  *     out = Lim_FileGetTextinfo(<void *>fh)
  *     if not out:             # <<<<<<<<<<<<<<
  *         return ''
@@ -2804,7 +2804,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObje
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":48
+  /* "nd2/_sdk/latest.pyx":49
  *     if not out:
  *         return ''
  *     try:             # <<<<<<<<<<<<<<
@@ -2813,7 +2813,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObje
  */
   /*try:*/ {
 
-    /* "nd2/_sdk/latest.pyx":49
+    /* "nd2/_sdk/latest.pyx":50
  *         return ''
  *     try:
  *         return out             # <<<<<<<<<<<<<<
@@ -2821,14 +2821,14 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObje
  *         Lim_FileFreeString(out)
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_2 = __Pyx_PyUnicode_FromString(__pyx_v_out); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 49, __pyx_L5_error)
+    __pyx_t_2 = __Pyx_PyUnicode_FromString(__pyx_v_out); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 50, __pyx_L5_error)
     __Pyx_GOTREF(__pyx_t_2);
     __pyx_r = __pyx_t_2;
     __pyx_t_2 = 0;
     goto __pyx_L4_return;
   }
 
-  /* "nd2/_sdk/latest.pyx":51
+  /* "nd2/_sdk/latest.pyx":52
  *         return out
  *     finally:
  *         Lim_FileFreeString(out)             # <<<<<<<<<<<<<<
@@ -2878,10 +2878,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObje
     }
   }
 
-  /* "nd2/_sdk/latest.pyx":44
+  /* "nd2/_sdk/latest.pyx":45
  *
  *
- * def get_textinfo(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_textinfo(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetTextinfo(<void *>fh)
  *     if not out:
  */
@@ -2897,10 +2897,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObje
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":54
+/* "nd2/_sdk/latest.pyx":55
  *
  *
- * def get_experiment(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_experiment(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetExperiment(<void *>fh)
  *     if not out:
  */
@@ -2909,7 +2909,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_10get_textinfo(CYTHON_UNUSED PyObje
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_13get_experiment(PyObject *__pyx_self, PyObject *__pyx_arg_fh); /*proto*/
 static PyMethodDef __pyx_mdef_3nd2_4_sdk_6latest_13get_experiment = {"get_experiment", (PyCFunction)__pyx_pw_3nd2_4_sdk_6latest_13get_experiment, METH_O, 0};
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_13get_experiment(PyObject *__pyx_self, PyObject *__pyx_arg_fh) {
-  uintptr_t __pyx_v_fh;
+  intptr_t __pyx_v_fh;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -2917,7 +2917,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_13get_experiment(PyObject *__pyx_se
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("get_experiment (wrapper)", 0);
   assert(__pyx_arg_fh); {
-    __pyx_v_fh = __Pyx_PyInt_As_size_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((uintptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 54, __pyx_L3_error)
+    __pyx_v_fh = PyInt_AsSsize_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((intptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 55, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -2925,14 +2925,14 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_13get_experiment(PyObject *__pyx_se
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_12get_experiment(__pyx_self, ((uintptr_t)__pyx_v_fh));
+  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_12get_experiment(__pyx_self, ((intptr_t)__pyx_v_fh));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh) {
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh) {
   LIMSTR __pyx_v_out;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -2952,17 +2952,17 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyOb
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_experiment", 0);
 
-  /* "nd2/_sdk/latest.pyx":55
+  /* "nd2/_sdk/latest.pyx":56
  *
- * def get_experiment(fh: uintptr_t):
+ * def get_experiment(fh: intptr_t):
  *     out = Lim_FileGetExperiment(<void *>fh)             # <<<<<<<<<<<<<<
  *     if not out:
  *         return ''
  */
   __pyx_v_out = Lim_FileGetExperiment(((void *)__pyx_v_fh));
 
-  /* "nd2/_sdk/latest.pyx":56
- * def get_experiment(fh: uintptr_t):
+  /* "nd2/_sdk/latest.pyx":57
+ * def get_experiment(fh: intptr_t):
  *     out = Lim_FileGetExperiment(<void *>fh)
  *     if not out:             # <<<<<<<<<<<<<<
  *         return ''
@@ -2971,7 +2971,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyOb
   __pyx_t_1 = ((!(__pyx_v_out != 0)) != 0);
   if (__pyx_t_1) {
 
-    /* "nd2/_sdk/latest.pyx":57
+    /* "nd2/_sdk/latest.pyx":58
  *     out = Lim_FileGetExperiment(<void *>fh)
  *     if not out:
  *         return ''             # <<<<<<<<<<<<<<
@@ -2983,8 +2983,8 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyOb
     __pyx_r = __pyx_kp_u_;
     goto __pyx_L0;
 
-    /* "nd2/_sdk/latest.pyx":56
- * def get_experiment(fh: uintptr_t):
+    /* "nd2/_sdk/latest.pyx":57
+ * def get_experiment(fh: intptr_t):
  *     out = Lim_FileGetExperiment(<void *>fh)
  *     if not out:             # <<<<<<<<<<<<<<
  *         return ''
@@ -2992,7 +2992,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyOb
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":58
+  /* "nd2/_sdk/latest.pyx":59
  *     if not out:
  *         return ''
  *     try:             # <<<<<<<<<<<<<<
@@ -3001,7 +3001,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyOb
  */
   /*try:*/ {
 
-    /* "nd2/_sdk/latest.pyx":59
+    /* "nd2/_sdk/latest.pyx":60
  *         return ''
  *     try:
  *         return out             # <<<<<<<<<<<<<<
@@ -3009,14 +3009,14 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyOb
  *         Lim_FileFreeString(out)
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_2 = __Pyx_PyUnicode_FromString(__pyx_v_out); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 59, __pyx_L5_error)
+    __pyx_t_2 = __Pyx_PyUnicode_FromString(__pyx_v_out); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 60, __pyx_L5_error)
     __Pyx_GOTREF(__pyx_t_2);
     __pyx_r = __pyx_t_2;
     __pyx_t_2 = 0;
     goto __pyx_L4_return;
   }
 
-  /* "nd2/_sdk/latest.pyx":61
+  /* "nd2/_sdk/latest.pyx":62
  *         return out
  *     finally:
  *         Lim_FileFreeString(out)             # <<<<<<<<<<<<<<
@@ -3066,10 +3066,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyOb
     }
   }
 
-  /* "nd2/_sdk/latest.pyx":54
+  /* "nd2/_sdk/latest.pyx":55
  *
  *
- * def get_experiment(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_experiment(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetExperiment(<void *>fh)
  *     if not out:
  */
@@ -3085,10 +3085,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyOb
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":64
+/* "nd2/_sdk/latest.pyx":65
  *
  *
- * def get_seq_count(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_seq_count(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     return Lim_FileGetSeqCount(<void *>fh)
  *
  */
@@ -3097,7 +3097,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_12get_experiment(CYTHON_UNUSED PyOb
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_15get_seq_count(PyObject *__pyx_self, PyObject *__pyx_arg_fh); /*proto*/
 static PyMethodDef __pyx_mdef_3nd2_4_sdk_6latest_15get_seq_count = {"get_seq_count", (PyCFunction)__pyx_pw_3nd2_4_sdk_6latest_15get_seq_count, METH_O, 0};
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_15get_seq_count(PyObject *__pyx_self, PyObject *__pyx_arg_fh) {
-  uintptr_t __pyx_v_fh;
+  intptr_t __pyx_v_fh;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -3105,7 +3105,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_15get_seq_count(PyObject *__pyx_sel
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("get_seq_count (wrapper)", 0);
   assert(__pyx_arg_fh); {
-    __pyx_v_fh = __Pyx_PyInt_As_size_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((uintptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 64, __pyx_L3_error)
+    __pyx_v_fh = PyInt_AsSsize_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((intptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 65, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -3113,14 +3113,14 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_15get_seq_count(PyObject *__pyx_sel
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_14get_seq_count(__pyx_self, ((uintptr_t)__pyx_v_fh));
+  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_14get_seq_count(__pyx_self, ((intptr_t)__pyx_v_fh));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_14get_seq_count(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh) {
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_14get_seq_count(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -3129,24 +3129,24 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_14get_seq_count(CYTHON_UNUSED PyObj
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_seq_count", 0);
 
-  /* "nd2/_sdk/latest.pyx":65
+  /* "nd2/_sdk/latest.pyx":66
  *
- * def get_seq_count(fh: uintptr_t):
+ * def get_seq_count(fh: intptr_t):
  *     return Lim_FileGetSeqCount(<void *>fh)             # <<<<<<<<<<<<<<
  *
  *
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_From_LIMUINT(Lim_FileGetSeqCount(((void *)__pyx_v_fh))); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_From_LIMUINT(Lim_FileGetSeqCount(((void *)__pyx_v_fh))); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "nd2/_sdk/latest.pyx":64
+  /* "nd2/_sdk/latest.pyx":65
  *
  *
- * def get_seq_count(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_seq_count(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     return Lim_FileGetSeqCount(<void *>fh)
  *
  */
@@ -3162,10 +3162,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_14get_seq_count(CYTHON_UNUSED PyObj
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":68
+/* "nd2/_sdk/latest.pyx":69
  *
  *
- * def get_coord_size(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_coord_size(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     return Lim_FileGetCoordSize(<void *>fh)
  *
  */
@@ -3174,7 +3174,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_14get_seq_count(CYTHON_UNUSED PyObj
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_17get_coord_size(PyObject *__pyx_self, PyObject *__pyx_arg_fh); /*proto*/
 static PyMethodDef __pyx_mdef_3nd2_4_sdk_6latest_17get_coord_size = {"get_coord_size", (PyCFunction)__pyx_pw_3nd2_4_sdk_6latest_17get_coord_size, METH_O, 0};
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_17get_coord_size(PyObject *__pyx_self, PyObject *__pyx_arg_fh) {
-  uintptr_t __pyx_v_fh;
+  intptr_t __pyx_v_fh;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -3182,7 +3182,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_17get_coord_size(PyObject *__pyx_se
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("get_coord_size (wrapper)", 0);
   assert(__pyx_arg_fh); {
-    __pyx_v_fh = __Pyx_PyInt_As_size_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((uintptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 68, __pyx_L3_error)
+    __pyx_v_fh = PyInt_AsSsize_t(__pyx_arg_fh); if (unlikely((__pyx_v_fh == ((intptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 69, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -3190,14 +3190,14 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_17get_coord_size(PyObject *__pyx_se
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_16get_coord_size(__pyx_self, ((uintptr_t)__pyx_v_fh));
+  __pyx_r = __pyx_pf_3nd2_4_sdk_6latest_16get_coord_size(__pyx_self, ((intptr_t)__pyx_v_fh));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_16get_coord_size(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh) {
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_16get_coord_size(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -3206,24 +3206,24 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_16get_coord_size(CYTHON_UNUSED PyOb
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_coord_size", 0);
 
-  /* "nd2/_sdk/latest.pyx":69
+  /* "nd2/_sdk/latest.pyx":70
  *
- * def get_coord_size(fh: uintptr_t):
+ * def get_coord_size(fh: intptr_t):
  *     return Lim_FileGetCoordSize(<void *>fh)             # <<<<<<<<<<<<<<
  *
  *
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_PyInt_FromSize_t(Lim_FileGetCoordSize(((void *)__pyx_v_fh))); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 69, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyInt_FromSize_t(Lim_FileGetCoordSize(((void *)__pyx_v_fh))); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 70, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "nd2/_sdk/latest.pyx":68
+  /* "nd2/_sdk/latest.pyx":69
  *
  *
- * def get_coord_size(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_coord_size(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     return Lim_FileGetCoordSize(<void *>fh)
  *
  */
@@ -3239,10 +3239,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_16get_coord_size(CYTHON_UNUSED PyOb
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":72
+/* "nd2/_sdk/latest.pyx":73
  *
  *
- * def get_seq_index_from_coords(fh: uintptr_t, coords: list | tuple):             # <<<<<<<<<<<<<<
+ * def get_seq_index_from_coords(fh: intptr_t, coords: list | tuple):             # <<<<<<<<<<<<<<
  *
  *     cdef LIMSIZE size = get_coord_size(fh)
  */
@@ -3251,7 +3251,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_16get_coord_size(CYTHON_UNUSED PyOb
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_19get_seq_index_from_coords(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
 static PyMethodDef __pyx_mdef_3nd2_4_sdk_6latest_19get_seq_index_from_coords = {"get_seq_index_from_coords", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_3nd2_4_sdk_6latest_19get_seq_index_from_coords, METH_VARARGS|METH_KEYWORDS, 0};
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_19get_seq_index_from_coords(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  uintptr_t __pyx_v_fh;
+  intptr_t __pyx_v_fh;
   PyObject *__pyx_v_coords = 0;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -3282,11 +3282,11 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_19get_seq_index_from_coords(PyObjec
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_coords)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("get_seq_index_from_coords", 1, 2, 2, 1); __PYX_ERR(0, 72, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("get_seq_index_from_coords", 1, 2, 2, 1); __PYX_ERR(0, 73, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_seq_index_from_coords") < 0)) __PYX_ERR(0, 72, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_seq_index_from_coords") < 0)) __PYX_ERR(0, 73, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
       goto __pyx_L5_argtuple_error;
@@ -3294,12 +3294,12 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_19get_seq_index_from_coords(PyObjec
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
     }
-    __pyx_v_fh = __Pyx_PyInt_As_size_t(values[0]); if (unlikely((__pyx_v_fh == ((uintptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 72, __pyx_L3_error)
+    __pyx_v_fh = PyInt_AsSsize_t(values[0]); if (unlikely((__pyx_v_fh == ((intptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 73, __pyx_L3_error)
     __pyx_v_coords = values[1];
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get_seq_index_from_coords", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 72, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("get_seq_index_from_coords", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 73, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("nd2._sdk.latest.get_seq_index_from_coords", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -3312,7 +3312,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_19get_seq_index_from_coords(PyObjec
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh, PyObject *__pyx_v_coords) {
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh, PyObject *__pyx_v_coords) {
   LIMSIZE __pyx_v_size;
   LIMSIZE __pyx_v_n;
   LIMUINT __pyx_v_seq_index;
@@ -3344,16 +3344,16 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_seq_index_from_coords", 0);
 
-  /* "nd2/_sdk/latest.pyx":74
- * def get_seq_index_from_coords(fh: uintptr_t, coords: list | tuple):
+  /* "nd2/_sdk/latest.pyx":75
+ * def get_seq_index_from_coords(fh: intptr_t, coords: list | tuple):
  *
  *     cdef LIMSIZE size = get_coord_size(fh)             # <<<<<<<<<<<<<<
  *     if size == 0:
  *         return -1
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_get_coord_size); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 74, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_get_coord_size); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 75, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_FromSize_t(__pyx_v_fh); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 74, __pyx_L1_error)
+  __pyx_t_3 = PyInt_FromSsize_t(__pyx_v_fh); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 75, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
@@ -3368,14 +3368,14 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
   __pyx_t_1 = (__pyx_t_4) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 74, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 75, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_5 = __Pyx_PyInt_As_size_t(__pyx_t_1); if (unlikely((__pyx_t_5 == ((LIMSIZE)-1)) && PyErr_Occurred())) __PYX_ERR(0, 74, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyInt_As_size_t(__pyx_t_1); if (unlikely((__pyx_t_5 == ((LIMSIZE)-1)) && PyErr_Occurred())) __PYX_ERR(0, 75, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_size = __pyx_t_5;
 
-  /* "nd2/_sdk/latest.pyx":75
+  /* "nd2/_sdk/latest.pyx":76
  *
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:             # <<<<<<<<<<<<<<
@@ -3385,7 +3385,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
   __pyx_t_6 = ((__pyx_v_size == 0) != 0);
   if (__pyx_t_6) {
 
-    /* "nd2/_sdk/latest.pyx":76
+    /* "nd2/_sdk/latest.pyx":77
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:
  *         return -1             # <<<<<<<<<<<<<<
@@ -3397,7 +3397,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
     __pyx_r = __pyx_int_neg_1;
     goto __pyx_L0;
 
-    /* "nd2/_sdk/latest.pyx":75
+    /* "nd2/_sdk/latest.pyx":76
  *
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:             # <<<<<<<<<<<<<<
@@ -3406,17 +3406,17 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":78
+  /* "nd2/_sdk/latest.pyx":79
  *         return -1
  *
  *     cdef LIMSIZE n = len(coords)             # <<<<<<<<<<<<<<
  *     if n != size:
  *         raise ValueError("Coords must be length: %d" % size)
  */
-  __pyx_t_7 = PyObject_Length(__pyx_v_coords); if (unlikely(__pyx_t_7 == ((Py_ssize_t)-1))) __PYX_ERR(0, 78, __pyx_L1_error)
+  __pyx_t_7 = PyObject_Length(__pyx_v_coords); if (unlikely(__pyx_t_7 == ((Py_ssize_t)-1))) __PYX_ERR(0, 79, __pyx_L1_error)
   __pyx_v_n = __pyx_t_7;
 
-  /* "nd2/_sdk/latest.pyx":79
+  /* "nd2/_sdk/latest.pyx":80
  *
  *     cdef LIMSIZE n = len(coords)
  *     if n != size:             # <<<<<<<<<<<<<<
@@ -3426,26 +3426,26 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
   __pyx_t_6 = ((__pyx_v_n != __pyx_v_size) != 0);
   if (unlikely(__pyx_t_6)) {
 
-    /* "nd2/_sdk/latest.pyx":80
+    /* "nd2/_sdk/latest.pyx":81
  *     cdef LIMSIZE n = len(coords)
  *     if n != size:
  *         raise ValueError("Coords must be length: %d" % size)             # <<<<<<<<<<<<<<
  *
  *     cdef LIMUINT seq_index = -1
  */
-    __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_size); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_size); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 81, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_2 = PyUnicode_Format(__pyx_kp_u_Coords_must_be_length_d, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_2 = PyUnicode_Format(__pyx_kp_u_Coords_must_be_length_d, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 81, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_ValueError, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_ValueError, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 81, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __Pyx_Raise(__pyx_t_1, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __PYX_ERR(0, 80, __pyx_L1_error)
+    __PYX_ERR(0, 81, __pyx_L1_error)
 
-    /* "nd2/_sdk/latest.pyx":79
+    /* "nd2/_sdk/latest.pyx":80
  *
  *     cdef LIMSIZE n = len(coords)
  *     if n != size:             # <<<<<<<<<<<<<<
@@ -3454,7 +3454,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":82
+  /* "nd2/_sdk/latest.pyx":83
  *         raise ValueError("Coords must be length: %d" % size)
  *
  *     cdef LIMUINT seq_index = -1             # <<<<<<<<<<<<<<
@@ -3463,7 +3463,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
  */
   __pyx_v_seq_index = -1;
 
-  /* "nd2/_sdk/latest.pyx":84
+  /* "nd2/_sdk/latest.pyx":85
  *     cdef LIMUINT seq_index = -1
  *     cdef LIMUINT *_coords
  *     _coords = <LIMUINT *>malloc(n * sizeof(LIMUINT))             # <<<<<<<<<<<<<<
@@ -3472,7 +3472,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
  */
   __pyx_v__coords = ((LIMUINT *)malloc((__pyx_v_n * (sizeof(LIMUINT)))));
 
-  /* "nd2/_sdk/latest.pyx":85
+  /* "nd2/_sdk/latest.pyx":86
  *     cdef LIMUINT *_coords
  *     _coords = <LIMUINT *>malloc(n * sizeof(LIMUINT))
  *     if not _coords:             # <<<<<<<<<<<<<<
@@ -3482,16 +3482,16 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
   __pyx_t_6 = ((!(__pyx_v__coords != 0)) != 0);
   if (unlikely(__pyx_t_6)) {
 
-    /* "nd2/_sdk/latest.pyx":86
+    /* "nd2/_sdk/latest.pyx":87
  *     _coords = <LIMUINT *>malloc(n * sizeof(LIMUINT))
  *     if not _coords:
  *         raise MemoryError()             # <<<<<<<<<<<<<<
  *     for i in range(n):
  *         _coords[i] = coords[i]
  */
-    PyErr_NoMemory(); __PYX_ERR(0, 86, __pyx_L1_error)
+    PyErr_NoMemory(); __PYX_ERR(0, 87, __pyx_L1_error)
 
-    /* "nd2/_sdk/latest.pyx":85
+    /* "nd2/_sdk/latest.pyx":86
  *     cdef LIMUINT *_coords
  *     _coords = <LIMUINT *>malloc(n * sizeof(LIMUINT))
  *     if not _coords:             # <<<<<<<<<<<<<<
@@ -3500,7 +3500,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":87
+  /* "nd2/_sdk/latest.pyx":88
  *     if not _coords:
  *         raise MemoryError()
  *     for i in range(n):             # <<<<<<<<<<<<<<
@@ -3512,21 +3512,21 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
   for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
     __pyx_v_i = __pyx_t_9;
 
-    /* "nd2/_sdk/latest.pyx":88
+    /* "nd2/_sdk/latest.pyx":89
  *         raise MemoryError()
  *     for i in range(n):
  *         _coords[i] = coords[i]             # <<<<<<<<<<<<<<
  *
  *     try:
  */
-    __pyx_t_1 = __Pyx_GetItemInt(__pyx_v_coords, __pyx_v_i, LIMSIZE, 0, __Pyx_PyInt_FromSize_t, 0, 0, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 88, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_GetItemInt(__pyx_v_coords, __pyx_v_i, LIMSIZE, 0, __Pyx_PyInt_FromSize_t, 0, 0, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_10 = __Pyx_PyInt_As_LIMUINT(__pyx_t_1); if (unlikely((__pyx_t_10 == ((LIMUINT)-1)) && PyErr_Occurred())) __PYX_ERR(0, 88, __pyx_L1_error)
+    __pyx_t_10 = __Pyx_PyInt_As_LIMUINT(__pyx_t_1); if (unlikely((__pyx_t_10 == ((LIMUINT)-1)) && PyErr_Occurred())) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     (__pyx_v__coords[__pyx_v_i]) = __pyx_t_10;
   }
 
-  /* "nd2/_sdk/latest.pyx":90
+  /* "nd2/_sdk/latest.pyx":91
  *         _coords[i] = coords[i]
  *
  *     try:             # <<<<<<<<<<<<<<
@@ -3535,7 +3535,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
  */
   /*try:*/ {
 
-    /* "nd2/_sdk/latest.pyx":91
+    /* "nd2/_sdk/latest.pyx":92
  *
  *     try:
  *         if not Lim_FileGetSeqIndexFromCoords(<void *>fh, &_coords[0], n, &seq_index):             # <<<<<<<<<<<<<<
@@ -3545,23 +3545,23 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
     __pyx_t_6 = ((!(Lim_FileGetSeqIndexFromCoords(((void *)__pyx_v_fh), (&(__pyx_v__coords[0])), __pyx_v_n, (&__pyx_v_seq_index)) != 0)) != 0);
     if (unlikely(__pyx_t_6)) {
 
-      /* "nd2/_sdk/latest.pyx":92
+      /* "nd2/_sdk/latest.pyx":93
  *     try:
  *         if not Lim_FileGetSeqIndexFromCoords(<void *>fh, &_coords[0], n, &seq_index):
  *             raise ValueError("Coordinate %r has no sequence index" % coords)             # <<<<<<<<<<<<<<
  *         return seq_index
  *     finally:
  */
-      __pyx_t_1 = __Pyx_PyUnicode_FormatSafe(__pyx_kp_u_Coordinate_r_has_no_sequence_ind, __pyx_v_coords); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 92, __pyx_L9_error)
+      __pyx_t_1 = __Pyx_PyUnicode_FormatSafe(__pyx_kp_u_Coordinate_r_has_no_sequence_ind, __pyx_v_coords); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 93, __pyx_L9_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_builtin_ValueError, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 92, __pyx_L9_error)
+      __pyx_t_2 = __Pyx_PyObject_CallOneArg(__pyx_builtin_ValueError, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 93, __pyx_L9_error)
       __Pyx_GOTREF(__pyx_t_2);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       __Pyx_Raise(__pyx_t_2, 0, 0, 0);
       __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-      __PYX_ERR(0, 92, __pyx_L9_error)
+      __PYX_ERR(0, 93, __pyx_L9_error)
 
-      /* "nd2/_sdk/latest.pyx":91
+      /* "nd2/_sdk/latest.pyx":92
  *
  *     try:
  *         if not Lim_FileGetSeqIndexFromCoords(<void *>fh, &_coords[0], n, &seq_index):             # <<<<<<<<<<<<<<
@@ -3570,7 +3570,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
  */
     }
 
-    /* "nd2/_sdk/latest.pyx":93
+    /* "nd2/_sdk/latest.pyx":94
  *         if not Lim_FileGetSeqIndexFromCoords(<void *>fh, &_coords[0], n, &seq_index):
  *             raise ValueError("Coordinate %r has no sequence index" % coords)
  *         return seq_index             # <<<<<<<<<<<<<<
@@ -3578,14 +3578,14 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
  *         free(_coords)
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_2 = __Pyx_PyInt_From_LIMUINT(__pyx_v_seq_index); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 93, __pyx_L9_error)
+    __pyx_t_2 = __Pyx_PyInt_From_LIMUINT(__pyx_v_seq_index); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 94, __pyx_L9_error)
     __Pyx_GOTREF(__pyx_t_2);
     __pyx_r = __pyx_t_2;
     __pyx_t_2 = 0;
     goto __pyx_L8_return;
   }
 
-  /* "nd2/_sdk/latest.pyx":95
+  /* "nd2/_sdk/latest.pyx":96
  *         return seq_index
  *     finally:
  *         free(_coords)             # <<<<<<<<<<<<<<
@@ -3638,10 +3638,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
     }
   }
 
-  /* "nd2/_sdk/latest.pyx":72
+  /* "nd2/_sdk/latest.pyx":73
  *
  *
- * def get_seq_index_from_coords(fh: uintptr_t, coords: list | tuple):             # <<<<<<<<<<<<<<
+ * def get_seq_index_from_coords(fh: intptr_t, coords: list | tuple):             # <<<<<<<<<<<<<<
  *
  *     cdef LIMSIZE size = get_coord_size(fh)
  */
@@ -3660,10 +3660,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":98
+/* "nd2/_sdk/latest.pyx":99
  *
  *
- * def get_coords_from_seq_index(fh: uintptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
+ * def get_coords_from_seq_index(fh: intptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:
  */
@@ -3672,7 +3672,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_18get_seq_index_from_coords(CYTHON_
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_21get_coords_from_seq_index(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
 static PyMethodDef __pyx_mdef_3nd2_4_sdk_6latest_21get_coords_from_seq_index = {"get_coords_from_seq_index", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_3nd2_4_sdk_6latest_21get_coords_from_seq_index, METH_VARARGS|METH_KEYWORDS, 0};
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_21get_coords_from_seq_index(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  uintptr_t __pyx_v_fh;
+  intptr_t __pyx_v_fh;
   LIMUINT __pyx_v_seq_index;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -3703,11 +3703,11 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_21get_coords_from_seq_index(PyObjec
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_seq_index)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("get_coords_from_seq_index", 1, 2, 2, 1); __PYX_ERR(0, 98, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("get_coords_from_seq_index", 1, 2, 2, 1); __PYX_ERR(0, 99, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_coords_from_seq_index") < 0)) __PYX_ERR(0, 98, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_coords_from_seq_index") < 0)) __PYX_ERR(0, 99, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
       goto __pyx_L5_argtuple_error;
@@ -3715,12 +3715,12 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_21get_coords_from_seq_index(PyObjec
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
       values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
     }
-    __pyx_v_fh = __Pyx_PyInt_As_size_t(values[0]); if (unlikely((__pyx_v_fh == ((uintptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 98, __pyx_L3_error)
-    __pyx_v_seq_index = __Pyx_PyInt_As_LIMUINT(values[1]); if (unlikely((__pyx_v_seq_index == ((LIMUINT)-1)) && PyErr_Occurred())) __PYX_ERR(0, 98, __pyx_L3_error)
+    __pyx_v_fh = PyInt_AsSsize_t(values[0]); if (unlikely((__pyx_v_fh == ((intptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 99, __pyx_L3_error)
+    __pyx_v_seq_index = __Pyx_PyInt_As_LIMUINT(values[1]); if (unlikely((__pyx_v_seq_index == ((LIMUINT)-1)) && PyErr_Occurred())) __PYX_ERR(0, 99, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get_coords_from_seq_index", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 98, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("get_coords_from_seq_index", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 99, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("nd2._sdk.latest.get_coords_from_seq_index", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -3733,7 +3733,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_21get_coords_from_seq_index(PyObjec
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index) {
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index) {
   LIMSIZE __pyx_v_size;
   LIMUINT *__pyx_v_output;
   LIMUINT __pyx_7genexpr__pyx_v_x;
@@ -3762,16 +3762,16 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_coords_from_seq_index", 0);
 
-  /* "nd2/_sdk/latest.pyx":99
+  /* "nd2/_sdk/latest.pyx":100
  *
- * def get_coords_from_seq_index(fh: uintptr_t, seq_index: LIMUINT):
+ * def get_coords_from_seq_index(fh: intptr_t, seq_index: LIMUINT):
  *     cdef LIMSIZE size = get_coord_size(fh)             # <<<<<<<<<<<<<<
  *     if size == 0:
  *         return ()
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_get_coord_size); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 99, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_get_coord_size); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 100, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_FromSize_t(__pyx_v_fh); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 99, __pyx_L1_error)
+  __pyx_t_3 = PyInt_FromSsize_t(__pyx_v_fh); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 100, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
@@ -3786,15 +3786,15 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
   __pyx_t_1 = (__pyx_t_4) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 99, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 100, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_5 = __Pyx_PyInt_As_size_t(__pyx_t_1); if (unlikely((__pyx_t_5 == ((LIMSIZE)-1)) && PyErr_Occurred())) __PYX_ERR(0, 99, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyInt_As_size_t(__pyx_t_1); if (unlikely((__pyx_t_5 == ((LIMSIZE)-1)) && PyErr_Occurred())) __PYX_ERR(0, 100, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_size = __pyx_t_5;
 
-  /* "nd2/_sdk/latest.pyx":100
- * def get_coords_from_seq_index(fh: uintptr_t, seq_index: LIMUINT):
+  /* "nd2/_sdk/latest.pyx":101
+ * def get_coords_from_seq_index(fh: intptr_t, seq_index: LIMUINT):
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:             # <<<<<<<<<<<<<<
  *         return ()
@@ -3803,7 +3803,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
   __pyx_t_6 = ((__pyx_v_size == 0) != 0);
   if (__pyx_t_6) {
 
-    /* "nd2/_sdk/latest.pyx":101
+    /* "nd2/_sdk/latest.pyx":102
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:
  *         return ()             # <<<<<<<<<<<<<<
@@ -3815,8 +3815,8 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
     __pyx_r = __pyx_empty_tuple;
     goto __pyx_L0;
 
-    /* "nd2/_sdk/latest.pyx":100
- * def get_coords_from_seq_index(fh: uintptr_t, seq_index: LIMUINT):
+    /* "nd2/_sdk/latest.pyx":101
+ * def get_coords_from_seq_index(fh: intptr_t, seq_index: LIMUINT):
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:             # <<<<<<<<<<<<<<
  *         return ()
@@ -3824,7 +3824,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":103
+  /* "nd2/_sdk/latest.pyx":104
  *         return ()
  *
  *     cdef LIMUINT *output = <LIMUINT *> malloc(size * sizeof(LIMUINT))             # <<<<<<<<<<<<<<
@@ -3833,7 +3833,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
  */
   __pyx_v_output = ((LIMUINT *)malloc((__pyx_v_size * (sizeof(LIMUINT)))));
 
-  /* "nd2/_sdk/latest.pyx":104
+  /* "nd2/_sdk/latest.pyx":105
  *
  *     cdef LIMUINT *output = <LIMUINT *> malloc(size * sizeof(LIMUINT))
  *     if not output:             # <<<<<<<<<<<<<<
@@ -3843,16 +3843,16 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
   __pyx_t_6 = ((!(__pyx_v_output != 0)) != 0);
   if (unlikely(__pyx_t_6)) {
 
-    /* "nd2/_sdk/latest.pyx":105
+    /* "nd2/_sdk/latest.pyx":106
  *     cdef LIMUINT *output = <LIMUINT *> malloc(size * sizeof(LIMUINT))
  *     if not output:
  *         raise MemoryError()             # <<<<<<<<<<<<<<
  *
  *     try:
  */
-    PyErr_NoMemory(); __PYX_ERR(0, 105, __pyx_L1_error)
+    PyErr_NoMemory(); __PYX_ERR(0, 106, __pyx_L1_error)
 
-    /* "nd2/_sdk/latest.pyx":104
+    /* "nd2/_sdk/latest.pyx":105
  *
  *     cdef LIMUINT *output = <LIMUINT *> malloc(size * sizeof(LIMUINT))
  *     if not output:             # <<<<<<<<<<<<<<
@@ -3861,7 +3861,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":107
+  /* "nd2/_sdk/latest.pyx":108
  *         raise MemoryError()
  *
  *     try:             # <<<<<<<<<<<<<<
@@ -3870,7 +3870,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
  */
   /*try:*/ {
 
-    /* "nd2/_sdk/latest.pyx":108
+    /* "nd2/_sdk/latest.pyx":109
  *
  *     try:
  *         Lim_FileGetCoordsFromSeqIndex(<void *>fh, seq_index, output, size)             # <<<<<<<<<<<<<<
@@ -3879,7 +3879,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
  */
     (void)(Lim_FileGetCoordsFromSeqIndex(((void *)__pyx_v_fh), __pyx_v_seq_index, __pyx_v_output, __pyx_v_size));
 
-    /* "nd2/_sdk/latest.pyx":109
+    /* "nd2/_sdk/latest.pyx":110
  *     try:
  *         Lim_FileGetCoordsFromSeqIndex(<void *>fh, seq_index, output, size)
  *         return tuple([x for x in output[:size]])             # <<<<<<<<<<<<<<
@@ -3888,19 +3888,19 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
  */
     __Pyx_XDECREF(__pyx_r);
     { /* enter inner scope */
-      __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 109, __pyx_L6_error)
+      __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 110, __pyx_L6_error)
       __Pyx_GOTREF(__pyx_t_1);
       __pyx_t_8 = (__pyx_v_output + __pyx_v_size);
       for (__pyx_t_9 = __pyx_v_output; __pyx_t_9 < __pyx_t_8; __pyx_t_9++) {
         __pyx_t_7 = __pyx_t_9;
         __pyx_7genexpr__pyx_v_x = (__pyx_t_7[0]);
-        __pyx_t_2 = __Pyx_PyInt_From_LIMUINT(__pyx_7genexpr__pyx_v_x); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 109, __pyx_L6_error)
+        __pyx_t_2 = __Pyx_PyInt_From_LIMUINT(__pyx_7genexpr__pyx_v_x); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 110, __pyx_L6_error)
         __Pyx_GOTREF(__pyx_t_2);
-        if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_t_2))) __PYX_ERR(0, 109, __pyx_L6_error)
+        if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_t_2))) __PYX_ERR(0, 110, __pyx_L6_error)
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
       }
     } /* exit inner scope */
-    __pyx_t_2 = PyList_AsTuple(((PyObject*)__pyx_t_1)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 109, __pyx_L6_error)
+    __pyx_t_2 = PyList_AsTuple(((PyObject*)__pyx_t_1)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 110, __pyx_L6_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __pyx_r = __pyx_t_2;
@@ -3908,7 +3908,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
     goto __pyx_L5_return;
   }
 
-  /* "nd2/_sdk/latest.pyx":111
+  /* "nd2/_sdk/latest.pyx":112
  *         return tuple([x for x in output[:size]])
  *     finally:
  *         free(output)             # <<<<<<<<<<<<<<
@@ -3961,10 +3961,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
     }
   }
 
-  /* "nd2/_sdk/latest.pyx":98
+  /* "nd2/_sdk/latest.pyx":99
  *
  *
- * def get_coords_from_seq_index(fh: uintptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
+ * def get_coords_from_seq_index(fh: intptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:
  */
@@ -3983,10 +3983,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":114
+/* "nd2/_sdk/latest.pyx":115
  *
  *
- * def get_coord_info(fh: uintptr_t, coord=-1):             # <<<<<<<<<<<<<<
+ * def get_coord_info(fh: intptr_t, coord=-1):             # <<<<<<<<<<<<<<
  *     cdef LIMCHAR loop_type[256]
  *     cdef LIMSIZE size = get_coord_size(fh)
  */
@@ -3995,7 +3995,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_20get_coords_from_seq_index(CYTHON_
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_23get_coord_info(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
 static PyMethodDef __pyx_mdef_3nd2_4_sdk_6latest_23get_coord_info = {"get_coord_info", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_3nd2_4_sdk_6latest_23get_coord_info, METH_VARARGS|METH_KEYWORDS, 0};
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_23get_coord_info(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  uintptr_t __pyx_v_fh;
+  intptr_t __pyx_v_fh;
   PyObject *__pyx_v_coord = 0;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -4031,7 +4031,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_23get_coord_info(PyObject *__pyx_se
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_coord_info") < 0)) __PYX_ERR(0, 114, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_coord_info") < 0)) __PYX_ERR(0, 115, __pyx_L3_error)
       }
     } else {
       switch (PyTuple_GET_SIZE(__pyx_args)) {
@@ -4042,12 +4042,12 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_23get_coord_info(PyObject *__pyx_se
         default: goto __pyx_L5_argtuple_error;
       }
     }
-    __pyx_v_fh = __Pyx_PyInt_As_size_t(values[0]); if (unlikely((__pyx_v_fh == ((uintptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 114, __pyx_L3_error)
+    __pyx_v_fh = PyInt_AsSsize_t(values[0]); if (unlikely((__pyx_v_fh == ((intptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 115, __pyx_L3_error)
     __pyx_v_coord = values[1];
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get_coord_info", 0, 1, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 114, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("get_coord_info", 0, 1, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 115, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("nd2._sdk.latest.get_coord_info", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -4060,7 +4060,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_23get_coord_info(PyObject *__pyx_se
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh, PyObject *__pyx_v_coord) {
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh, PyObject *__pyx_v_coord) {
   LIMCHAR __pyx_v_loop_type[0x100];
   LIMSIZE __pyx_v_size;
   PyObject *__pyx_v_out = NULL;
@@ -4087,16 +4087,16 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_coord_info", 0);
 
-  /* "nd2/_sdk/latest.pyx":116
- * def get_coord_info(fh: uintptr_t, coord=-1):
+  /* "nd2/_sdk/latest.pyx":117
+ * def get_coord_info(fh: intptr_t, coord=-1):
  *     cdef LIMCHAR loop_type[256]
  *     cdef LIMSIZE size = get_coord_size(fh)             # <<<<<<<<<<<<<<
  *     if size == 0:
  *         return []
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_get_coord_size); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 116, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_get_coord_size); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 117, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_FromSize_t(__pyx_v_fh); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 116, __pyx_L1_error)
+  __pyx_t_3 = PyInt_FromSsize_t(__pyx_v_fh); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 117, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
@@ -4111,14 +4111,14 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
   __pyx_t_1 = (__pyx_t_4) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 116, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 117, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_5 = __Pyx_PyInt_As_size_t(__pyx_t_1); if (unlikely((__pyx_t_5 == ((LIMSIZE)-1)) && PyErr_Occurred())) __PYX_ERR(0, 116, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyInt_As_size_t(__pyx_t_1); if (unlikely((__pyx_t_5 == ((LIMSIZE)-1)) && PyErr_Occurred())) __PYX_ERR(0, 117, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_size = __pyx_t_5;
 
-  /* "nd2/_sdk/latest.pyx":117
+  /* "nd2/_sdk/latest.pyx":118
  *     cdef LIMCHAR loop_type[256]
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:             # <<<<<<<<<<<<<<
@@ -4128,7 +4128,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
   __pyx_t_6 = ((__pyx_v_size == 0) != 0);
   if (__pyx_t_6) {
 
-    /* "nd2/_sdk/latest.pyx":118
+    /* "nd2/_sdk/latest.pyx":119
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:
  *         return []             # <<<<<<<<<<<<<<
@@ -4136,13 +4136,13 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
  *         out = []
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 118, __pyx_L1_error)
+    __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 119, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __pyx_r = __pyx_t_1;
     __pyx_t_1 = 0;
     goto __pyx_L0;
 
-    /* "nd2/_sdk/latest.pyx":117
+    /* "nd2/_sdk/latest.pyx":118
  *     cdef LIMCHAR loop_type[256]
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:             # <<<<<<<<<<<<<<
@@ -4151,7 +4151,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":119
+  /* "nd2/_sdk/latest.pyx":120
  *     if size == 0:
  *         return []
  *     if coord is None or coord < 0:             # <<<<<<<<<<<<<<
@@ -4165,26 +4165,26 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
     __pyx_t_6 = __pyx_t_8;
     goto __pyx_L5_bool_binop_done;
   }
-  __pyx_t_1 = PyObject_RichCompare(__pyx_v_coord, __pyx_int_0, Py_LT); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 119, __pyx_L1_error)
-  __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely(__pyx_t_8 < 0)) __PYX_ERR(0, 119, __pyx_L1_error)
+  __pyx_t_1 = PyObject_RichCompare(__pyx_v_coord, __pyx_int_0, Py_LT); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 120, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely(__pyx_t_8 < 0)) __PYX_ERR(0, 120, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_t_6 = __pyx_t_8;
   __pyx_L5_bool_binop_done:;
   if (__pyx_t_6) {
 
-    /* "nd2/_sdk/latest.pyx":120
+    /* "nd2/_sdk/latest.pyx":121
  *         return []
  *     if coord is None or coord < 0:
  *         out = []             # <<<<<<<<<<<<<<
  *         for i in range(size):
  *             loop_size = Lim_FileGetCoordInfo(<void *>fh, i, loop_type, 256)
  */
-    __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 120, __pyx_L1_error)
+    __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 121, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __pyx_v_out = ((PyObject*)__pyx_t_1);
     __pyx_t_1 = 0;
 
-    /* "nd2/_sdk/latest.pyx":121
+    /* "nd2/_sdk/latest.pyx":122
  *     if coord is None or coord < 0:
  *         out = []
  *         for i in range(size):             # <<<<<<<<<<<<<<
@@ -4196,7 +4196,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
     for (__pyx_t_10 = 0; __pyx_t_10 < __pyx_t_9; __pyx_t_10+=1) {
       __pyx_v_i = __pyx_t_10;
 
-      /* "nd2/_sdk/latest.pyx":122
+      /* "nd2/_sdk/latest.pyx":123
  *         out = []
  *         for i in range(size):
  *             loop_size = Lim_FileGetCoordInfo(<void *>fh, i, loop_type, 256)             # <<<<<<<<<<<<<<
@@ -4205,20 +4205,20 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
  */
       __pyx_v_loop_size = Lim_FileGetCoordInfo(((void *)__pyx_v_fh), __pyx_v_i, __pyx_v_loop_type, 0x100);
 
-      /* "nd2/_sdk/latest.pyx":123
+      /* "nd2/_sdk/latest.pyx":124
  *         for i in range(size):
  *             loop_size = Lim_FileGetCoordInfo(<void *>fh, i, loop_type, 256)
  *             out.append((i, loop_type, loop_size))             # <<<<<<<<<<<<<<
  *         return out
  *
  */
-      __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_i); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 123, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyInt_FromSize_t(__pyx_v_i); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 124, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_2 = __Pyx_PyObject_FromString(__pyx_v_loop_type); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 123, __pyx_L1_error)
+      __pyx_t_2 = __Pyx_PyObject_FromString(__pyx_v_loop_type); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 124, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_2);
-      __pyx_t_3 = __Pyx_PyInt_From_LIMUINT(__pyx_v_loop_size); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 123, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyInt_From_LIMUINT(__pyx_v_loop_size); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 124, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_4 = PyTuple_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 123, __pyx_L1_error)
+      __pyx_t_4 = PyTuple_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 124, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
       __Pyx_GIVEREF(__pyx_t_1);
       PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_1);
@@ -4229,11 +4229,11 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
       __pyx_t_1 = 0;
       __pyx_t_2 = 0;
       __pyx_t_3 = 0;
-      __pyx_t_11 = __Pyx_PyList_Append(__pyx_v_out, __pyx_t_4); if (unlikely(__pyx_t_11 == ((int)-1))) __PYX_ERR(0, 123, __pyx_L1_error)
+      __pyx_t_11 = __Pyx_PyList_Append(__pyx_v_out, __pyx_t_4); if (unlikely(__pyx_t_11 == ((int)-1))) __PYX_ERR(0, 124, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     }
 
-    /* "nd2/_sdk/latest.pyx":124
+    /* "nd2/_sdk/latest.pyx":125
  *             loop_size = Lim_FileGetCoordInfo(<void *>fh, i, loop_type, 256)
  *             out.append((i, loop_type, loop_size))
  *         return out             # <<<<<<<<<<<<<<
@@ -4245,7 +4245,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
     __pyx_r = __pyx_v_out;
     goto __pyx_L0;
 
-    /* "nd2/_sdk/latest.pyx":119
+    /* "nd2/_sdk/latest.pyx":120
  *     if size == 0:
  *         return []
  *     if coord is None or coord < 0:             # <<<<<<<<<<<<<<
@@ -4254,29 +4254,29 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":126
+  /* "nd2/_sdk/latest.pyx":127
  *         return out
  *
  *     if coord >= size:             # <<<<<<<<<<<<<<
  *         raise IndexError(
  *             "coord index %r too large for file with %d coords" % (coord, size)
  */
-  __pyx_t_4 = __Pyx_PyInt_FromSize_t(__pyx_v_size); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 126, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyInt_FromSize_t(__pyx_v_size); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 127, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_3 = PyObject_RichCompare(__pyx_v_coord, __pyx_t_4, Py_GE); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 126, __pyx_L1_error)
+  __pyx_t_3 = PyObject_RichCompare(__pyx_v_coord, __pyx_t_4, Py_GE); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 127, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  __pyx_t_6 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_6 < 0)) __PYX_ERR(0, 126, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_6 < 0)) __PYX_ERR(0, 127, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   if (unlikely(__pyx_t_6)) {
 
-    /* "nd2/_sdk/latest.pyx":128
+    /* "nd2/_sdk/latest.pyx":129
  *     if coord >= size:
  *         raise IndexError(
  *             "coord index %r too large for file with %d coords" % (coord, size)             # <<<<<<<<<<<<<<
  *         )
  *
  */
-    __pyx_t_3 = PyTuple_New(5); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 128, __pyx_L1_error)
+    __pyx_t_3 = PyTuple_New(5); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 129, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __pyx_t_12 = 0;
     __pyx_t_13 = 127;
@@ -4284,7 +4284,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
     __pyx_t_12 += 12;
     __Pyx_GIVEREF(__pyx_kp_u_coord_index);
     PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_kp_u_coord_index);
-    __pyx_t_4 = __Pyx_PyObject_FormatSimpleAndDecref(PyObject_Repr(__pyx_v_coord), __pyx_empty_unicode); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 128, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyObject_FormatSimpleAndDecref(PyObject_Repr(__pyx_v_coord), __pyx_empty_unicode); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 129, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __pyx_t_13 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_4) > __pyx_t_13) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_4) : __pyx_t_13;
     __pyx_t_12 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_4);
@@ -4295,9 +4295,9 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
     __pyx_t_12 += 25;
     __Pyx_GIVEREF(__pyx_kp_u_too_large_for_file_with);
     PyTuple_SET_ITEM(__pyx_t_3, 2, __pyx_kp_u_too_large_for_file_with);
-    __pyx_t_4 = __Pyx_PyInt_FromSize_t(__pyx_v_size); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 128, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_PyInt_FromSize_t(__pyx_v_size); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 129, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_2 = __Pyx_PyObject_FormatAndDecref(__Pyx_PyNumber_IntOrLong(__pyx_t_4), __pyx_n_u_d); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 128, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyObject_FormatAndDecref(__Pyx_PyNumber_IntOrLong(__pyx_t_4), __pyx_n_u_d); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 129, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __pyx_t_13 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_2) > __pyx_t_13) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_2) : __pyx_t_13;
@@ -4309,25 +4309,25 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
     __pyx_t_12 += 7;
     __Pyx_GIVEREF(__pyx_kp_u_coords_2);
     PyTuple_SET_ITEM(__pyx_t_3, 4, __pyx_kp_u_coords_2);
-    __pyx_t_2 = __Pyx_PyUnicode_Join(__pyx_t_3, 5, __pyx_t_12, __pyx_t_13); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 128, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyUnicode_Join(__pyx_t_3, 5, __pyx_t_12, __pyx_t_13); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 129, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-    /* "nd2/_sdk/latest.pyx":127
+    /* "nd2/_sdk/latest.pyx":128
  *
  *     if coord >= size:
  *         raise IndexError(             # <<<<<<<<<<<<<<
  *             "coord index %r too large for file with %d coords" % (coord, size)
  *         )
  */
-    __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_builtin_IndexError, __pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 127, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_builtin_IndexError, __pyx_t_2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 128, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __Pyx_Raise(__pyx_t_3, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __PYX_ERR(0, 127, __pyx_L1_error)
+    __PYX_ERR(0, 128, __pyx_L1_error)
 
-    /* "nd2/_sdk/latest.pyx":126
+    /* "nd2/_sdk/latest.pyx":127
  *         return out
  *
  *     if coord >= size:             # <<<<<<<<<<<<<<
@@ -4336,17 +4336,17 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":131
+  /* "nd2/_sdk/latest.pyx":132
  *         )
  *
  *     loop_size = Lim_FileGetCoordInfo(<void *>fh, coord, loop_type, 256)             # <<<<<<<<<<<<<<
  *     return (coord, loop_type, loop_size)
  *
  */
-  __pyx_t_14 = __Pyx_PyInt_As_LIMUINT(__pyx_v_coord); if (unlikely((__pyx_t_14 == ((LIMUINT)-1)) && PyErr_Occurred())) __PYX_ERR(0, 131, __pyx_L1_error)
+  __pyx_t_14 = __Pyx_PyInt_As_LIMUINT(__pyx_v_coord); if (unlikely((__pyx_t_14 == ((LIMUINT)-1)) && PyErr_Occurred())) __PYX_ERR(0, 132, __pyx_L1_error)
   __pyx_v_loop_size = Lim_FileGetCoordInfo(((void *)__pyx_v_fh), __pyx_t_14, __pyx_v_loop_type, 0x100);
 
-  /* "nd2/_sdk/latest.pyx":132
+  /* "nd2/_sdk/latest.pyx":133
  *
  *     loop_size = Lim_FileGetCoordInfo(<void *>fh, coord, loop_type, 256)
  *     return (coord, loop_type, loop_size)             # <<<<<<<<<<<<<<
@@ -4354,11 +4354,11 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
  *
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_3 = __Pyx_PyObject_FromString(__pyx_v_loop_type); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 132, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_FromString(__pyx_v_loop_type); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 133, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_2 = __Pyx_PyInt_From_LIMUINT(__pyx_v_loop_size); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 132, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyInt_From_LIMUINT(__pyx_v_loop_size); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 133, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_4 = PyTuple_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 132, __pyx_L1_error)
+  __pyx_t_4 = PyTuple_New(3); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 133, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __Pyx_INCREF(__pyx_v_coord);
   __Pyx_GIVEREF(__pyx_v_coord);
@@ -4373,10 +4373,10 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
   __pyx_t_4 = 0;
   goto __pyx_L0;
 
-  /* "nd2/_sdk/latest.pyx":114
+  /* "nd2/_sdk/latest.pyx":115
  *
  *
- * def get_coord_info(fh: uintptr_t, coord=-1):             # <<<<<<<<<<<<<<
+ * def get_coord_info(fh: intptr_t, coord=-1):             # <<<<<<<<<<<<<<
  *     cdef LIMCHAR loop_type[256]
  *     cdef LIMSIZE size = get_coord_size(fh)
  */
@@ -4396,15 +4396,15 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_22get_coord_info(CYTHON_UNUSED PyOb
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":135
+/* "nd2/_sdk/latest.pyx":136
  *
  *
- * cdef _validate_seq(fh: uintptr_t, LIMUINT seq_index):             # <<<<<<<<<<<<<<
+ * cdef _validate_seq(fh: intptr_t, LIMUINT seq_index):             # <<<<<<<<<<<<<<
  *     cdef LIMUINT seq_count = get_seq_count(fh)
  *     if seq_index >= seq_count:
  */
 
-static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(uintptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index) {
+static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(intptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index) {
   LIMUINT __pyx_v_seq_count;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -4421,16 +4421,16 @@ static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(uintptr_t __pyx_v_fh, 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("_validate_seq", 0);
 
-  /* "nd2/_sdk/latest.pyx":136
+  /* "nd2/_sdk/latest.pyx":137
  *
- * cdef _validate_seq(fh: uintptr_t, LIMUINT seq_index):
+ * cdef _validate_seq(fh: intptr_t, LIMUINT seq_index):
  *     cdef LIMUINT seq_count = get_seq_count(fh)             # <<<<<<<<<<<<<<
  *     if seq_index >= seq_count:
  *         raise IndexError(
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_get_seq_count); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 136, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_n_s_get_seq_count); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 137, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = __Pyx_PyInt_FromSize_t(__pyx_v_fh); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 136, __pyx_L1_error)
+  __pyx_t_3 = PyInt_FromSsize_t(__pyx_v_fh); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 137, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = NULL;
   if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
@@ -4445,15 +4445,15 @@ static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(uintptr_t __pyx_v_fh, 
   __pyx_t_1 = (__pyx_t_4) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_4, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 136, __pyx_L1_error)
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 137, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_5 = __Pyx_PyInt_As_LIMUINT(__pyx_t_1); if (unlikely((__pyx_t_5 == ((LIMUINT)-1)) && PyErr_Occurred())) __PYX_ERR(0, 136, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyInt_As_LIMUINT(__pyx_t_1); if (unlikely((__pyx_t_5 == ((LIMUINT)-1)) && PyErr_Occurred())) __PYX_ERR(0, 137, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_v_seq_count = __pyx_t_5;
 
-  /* "nd2/_sdk/latest.pyx":137
- * cdef _validate_seq(fh: uintptr_t, LIMUINT seq_index):
+  /* "nd2/_sdk/latest.pyx":138
+ * cdef _validate_seq(fh: intptr_t, LIMUINT seq_index):
  *     cdef LIMUINT seq_count = get_seq_count(fh)
  *     if seq_index >= seq_count:             # <<<<<<<<<<<<<<
  *         raise IndexError(
@@ -4462,14 +4462,14 @@ static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(uintptr_t __pyx_v_fh, 
   __pyx_t_6 = ((__pyx_v_seq_index >= __pyx_v_seq_count) != 0);
   if (unlikely(__pyx_t_6)) {
 
-    /* "nd2/_sdk/latest.pyx":139
+    /* "nd2/_sdk/latest.pyx":140
  *     if seq_index >= seq_count:
  *         raise IndexError(
  *             "Sequence %d out of range (sequence count: %d)" % (seq_index, seq_count)             # <<<<<<<<<<<<<<
  *         )
  *
  */
-    __pyx_t_1 = PyTuple_New(5); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 139, __pyx_L1_error)
+    __pyx_t_1 = PyTuple_New(5); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 140, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __pyx_t_7 = 0;
     __pyx_t_8 = 127;
@@ -4477,9 +4477,9 @@ static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(uintptr_t __pyx_v_fh, 
     __pyx_t_7 += 9;
     __Pyx_GIVEREF(__pyx_kp_u_Sequence);
     PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_kp_u_Sequence);
-    __pyx_t_2 = __Pyx_PyInt_From_LIMUINT(__pyx_v_seq_index); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 139, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyInt_From_LIMUINT(__pyx_v_seq_index); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 140, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_3 = __Pyx_PyObject_FormatAndDecref(__Pyx_PyNumber_IntOrLong(__pyx_t_2), __pyx_n_u_d); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 139, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_FormatAndDecref(__Pyx_PyNumber_IntOrLong(__pyx_t_2), __pyx_n_u_d); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 140, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __pyx_t_8 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_3) > __pyx_t_8) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_3) : __pyx_t_8;
@@ -4491,9 +4491,9 @@ static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(uintptr_t __pyx_v_fh, 
     __pyx_t_7 += 31;
     __Pyx_GIVEREF(__pyx_kp_u_out_of_range_sequence_count);
     PyTuple_SET_ITEM(__pyx_t_1, 2, __pyx_kp_u_out_of_range_sequence_count);
-    __pyx_t_3 = __Pyx_PyInt_From_LIMUINT(__pyx_v_seq_count); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 139, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyInt_From_LIMUINT(__pyx_v_seq_count); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 140, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_2 = __Pyx_PyObject_FormatAndDecref(__Pyx_PyNumber_IntOrLong(__pyx_t_3), __pyx_n_u_d); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 139, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyObject_FormatAndDecref(__Pyx_PyNumber_IntOrLong(__pyx_t_3), __pyx_n_u_d); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 140, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __pyx_t_8 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_2) > __pyx_t_8) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_2) : __pyx_t_8;
@@ -4505,26 +4505,26 @@ static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(uintptr_t __pyx_v_fh, 
     __pyx_t_7 += 1;
     __Pyx_GIVEREF(__pyx_kp_u__2);
     PyTuple_SET_ITEM(__pyx_t_1, 4, __pyx_kp_u__2);
-    __pyx_t_2 = __Pyx_PyUnicode_Join(__pyx_t_1, 5, __pyx_t_7, __pyx_t_8); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 139, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyUnicode_Join(__pyx_t_1, 5, __pyx_t_7, __pyx_t_8); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 140, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-    /* "nd2/_sdk/latest.pyx":138
+    /* "nd2/_sdk/latest.pyx":139
  *     cdef LIMUINT seq_count = get_seq_count(fh)
  *     if seq_index >= seq_count:
  *         raise IndexError(             # <<<<<<<<<<<<<<
  *             "Sequence %d out of range (sequence count: %d)" % (seq_index, seq_count)
  *         )
  */
-    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_IndexError, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 138, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_IndexError, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 139, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __Pyx_Raise(__pyx_t_1, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __PYX_ERR(0, 138, __pyx_L1_error)
+    __PYX_ERR(0, 139, __pyx_L1_error)
 
-    /* "nd2/_sdk/latest.pyx":137
- * cdef _validate_seq(fh: uintptr_t, LIMUINT seq_index):
+    /* "nd2/_sdk/latest.pyx":138
+ * cdef _validate_seq(fh: intptr_t, LIMUINT seq_index):
  *     cdef LIMUINT seq_count = get_seq_count(fh)
  *     if seq_index >= seq_count:             # <<<<<<<<<<<<<<
  *         raise IndexError(
@@ -4532,10 +4532,10 @@ static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(uintptr_t __pyx_v_fh, 
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":135
+  /* "nd2/_sdk/latest.pyx":136
  *
  *
- * cdef _validate_seq(fh: uintptr_t, LIMUINT seq_index):             # <<<<<<<<<<<<<<
+ * cdef _validate_seq(fh: intptr_t, LIMUINT seq_index):             # <<<<<<<<<<<<<<
  *     cdef LIMUINT seq_count = get_seq_count(fh)
  *     if seq_index >= seq_count:
  */
@@ -4556,10 +4556,10 @@ static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(uintptr_t __pyx_v_fh, 
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pyx":143
+/* "nd2/_sdk/latest.pyx":144
  *
  *
- * def get_image(fh: uintptr_t, LIMUINT seq_index=0):             # <<<<<<<<<<<<<<
+ * def get_image(fh: intptr_t, LIMUINT seq_index=0):             # <<<<<<<<<<<<<<
  *     _validate_seq(fh, seq_index)
  *
  */
@@ -4568,7 +4568,7 @@ static PyObject *__pyx_f_3nd2_4_sdk_6latest__validate_seq(uintptr_t __pyx_v_fh, 
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_25get_image(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
 static PyMethodDef __pyx_mdef_3nd2_4_sdk_6latest_25get_image = {"get_image", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_3nd2_4_sdk_6latest_25get_image, METH_VARARGS|METH_KEYWORDS, 0};
 static PyObject *__pyx_pw_3nd2_4_sdk_6latest_25get_image(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
-  uintptr_t __pyx_v_fh;
+  intptr_t __pyx_v_fh;
   LIMUINT __pyx_v_seq_index;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -4603,7 +4603,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_25get_image(PyObject *__pyx_self, P
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_image") < 0)) __PYX_ERR(0, 143, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_image") < 0)) __PYX_ERR(0, 144, __pyx_L3_error)
       }
     } else {
       switch (PyTuple_GET_SIZE(__pyx_args)) {
@@ -4614,16 +4614,16 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_25get_image(PyObject *__pyx_self, P
         default: goto __pyx_L5_argtuple_error;
       }
     }
-    __pyx_v_fh = __Pyx_PyInt_As_size_t(values[0]); if (unlikely((__pyx_v_fh == ((uintptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 143, __pyx_L3_error)
+    __pyx_v_fh = PyInt_AsSsize_t(values[0]); if (unlikely((__pyx_v_fh == ((intptr_t)-1)) && PyErr_Occurred())) __PYX_ERR(0, 144, __pyx_L3_error)
     if (values[1]) {
-      __pyx_v_seq_index = __Pyx_PyInt_As_LIMUINT(values[1]); if (unlikely((__pyx_v_seq_index == ((LIMUINT)-1)) && PyErr_Occurred())) __PYX_ERR(0, 143, __pyx_L3_error)
+      __pyx_v_seq_index = __Pyx_PyInt_As_LIMUINT(values[1]); if (unlikely((__pyx_v_seq_index == ((LIMUINT)-1)) && PyErr_Occurred())) __PYX_ERR(0, 144, __pyx_L3_error)
     } else {
       __pyx_v_seq_index = ((LIMUINT)0);
     }
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get_image", 0, 1, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 143, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("get_image", 0, 1, 2, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 144, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("nd2._sdk.latest.get_image", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -4636,7 +4636,7 @@ static PyObject *__pyx_pw_3nd2_4_sdk_6latest_25get_image(PyObject *__pyx_self, P
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_3nd2_4_sdk_6latest_24get_image(CYTHON_UNUSED PyObject *__pyx_self, uintptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index) {
+static PyObject *__pyx_pf_3nd2_4_sdk_6latest_24get_image(CYTHON_UNUSED PyObject *__pyx_self, intptr_t __pyx_v_fh, LIMUINT __pyx_v_seq_index) {
   __pyx_t_3nd2_4_sdk_7picture_LIMPICTURE __pyx_v_pic;
   LIMRESULT __pyx_v_result;
   PyObject *__pyx_v_error = NULL;
@@ -4651,18 +4651,18 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_24get_image(CYTHON_UNUSED PyObject 
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("get_image", 0);
 
-  /* "nd2/_sdk/latest.pyx":144
+  /* "nd2/_sdk/latest.pyx":145
  *
- * def get_image(fh: uintptr_t, LIMUINT seq_index=0):
+ * def get_image(fh: intptr_t, LIMUINT seq_index=0):
  *     _validate_seq(fh, seq_index)             # <<<<<<<<<<<<<<
  *
  *     cdef LIMPICTURE pic = nullpic()
  */
-  __pyx_t_1 = __pyx_f_3nd2_4_sdk_6latest__validate_seq(__pyx_v_fh, __pyx_v_seq_index); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 144, __pyx_L1_error)
+  __pyx_t_1 = __pyx_f_3nd2_4_sdk_6latest__validate_seq(__pyx_v_fh, __pyx_v_seq_index); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 145, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":146
+  /* "nd2/_sdk/latest.pyx":147
  *     _validate_seq(fh, seq_index)
  *
  *     cdef LIMPICTURE pic = nullpic()             # <<<<<<<<<<<<<<
@@ -4671,7 +4671,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_24get_image(CYTHON_UNUSED PyObject 
  */
   __pyx_v_pic = __pyx_f_3nd2_4_sdk_7picture_nullpic();
 
-  /* "nd2/_sdk/latest.pyx":147
+  /* "nd2/_sdk/latest.pyx":148
  *
  *     cdef LIMPICTURE pic = nullpic()
  *     cdef LIMRESULT result = Lim_FileGetImageData(<void *>fh, seq_index, &pic)             # <<<<<<<<<<<<<<
@@ -4680,7 +4680,7 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_24get_image(CYTHON_UNUSED PyObject 
  */
   __pyx_v_result = Lim_FileGetImageData(((void *)__pyx_v_fh), __pyx_v_seq_index, (&__pyx_v_pic));
 
-  /* "nd2/_sdk/latest.pyx":149
+  /* "nd2/_sdk/latest.pyx":150
  *     cdef LIMRESULT result = Lim_FileGetImageData(<void *>fh, seq_index, &pic)
  *
  *     if result != 0:             # <<<<<<<<<<<<<<
@@ -4690,38 +4690,38 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_24get_image(CYTHON_UNUSED PyObject 
   __pyx_t_2 = ((__pyx_v_result != 0) != 0);
   if (unlikely(__pyx_t_2)) {
 
-    /* "nd2/_sdk/latest.pyx":150
+    /* "nd2/_sdk/latest.pyx":151
  *
  *     if result != 0:
  *         error = LIM_ERR_CODE[result]             # <<<<<<<<<<<<<<
  *         raise RuntimeError('Error retrieving image data: %s' % error)
  *
  */
-    __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_LIM_ERR_CODE); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 150, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_LIM_ERR_CODE); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 151, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_3 = __Pyx_GetItemInt(__pyx_t_1, __pyx_v_result, LIMRESULT, 1, __Pyx_PyInt_From_LIMRESULT, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 150, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_GetItemInt(__pyx_t_1, __pyx_v_result, LIMRESULT, 1, __Pyx_PyInt_From_LIMRESULT, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 151, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __pyx_v_error = __pyx_t_3;
     __pyx_t_3 = 0;
 
-    /* "nd2/_sdk/latest.pyx":151
+    /* "nd2/_sdk/latest.pyx":152
  *     if result != 0:
  *         error = LIM_ERR_CODE[result]
  *         raise RuntimeError('Error retrieving image data: %s' % error)             # <<<<<<<<<<<<<<
  *
  *     array_wrapper = PicWrapper()
  */
-    __pyx_t_3 = __Pyx_PyUnicode_FormatSafe(__pyx_kp_u_Error_retrieving_image_data_s, __pyx_v_error); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 151, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyUnicode_FormatSafe(__pyx_kp_u_Error_retrieving_image_data_s, __pyx_v_error); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 152, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_RuntimeError, __pyx_t_3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 151, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_CallOneArg(__pyx_builtin_RuntimeError, __pyx_t_3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 152, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __Pyx_Raise(__pyx_t_1, 0, 0, 0);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __PYX_ERR(0, 151, __pyx_L1_error)
+    __PYX_ERR(0, 152, __pyx_L1_error)
 
-    /* "nd2/_sdk/latest.pyx":149
+    /* "nd2/_sdk/latest.pyx":150
  *     cdef LIMRESULT result = Lim_FileGetImageData(<void *>fh, seq_index, &pic)
  *
  *     if result != 0:             # <<<<<<<<<<<<<<
@@ -4730,19 +4730,19 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_24get_image(CYTHON_UNUSED PyObject 
  */
   }
 
-  /* "nd2/_sdk/latest.pyx":153
+  /* "nd2/_sdk/latest.pyx":154
  *         raise RuntimeError('Error retrieving image data: %s' % error)
  *
  *     array_wrapper = PicWrapper()             # <<<<<<<<<<<<<<
  *     array_wrapper.set_pic(pic, Lim_DestroyPicture)
  *     return array_wrapper.to_ndarray()
  */
-  __pyx_t_1 = __Pyx_PyObject_CallNoArg(((PyObject *)__pyx_ptype_3nd2_4_sdk_7picture_PicWrapper)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 153, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_CallNoArg(((PyObject *)__pyx_ptype_3nd2_4_sdk_7picture_PicWrapper)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 154, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_v_array_wrapper = ((struct __pyx_obj_3nd2_4_sdk_7picture_PicWrapper *)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":154
+  /* "nd2/_sdk/latest.pyx":155
  *
  *     array_wrapper = PicWrapper()
  *     array_wrapper.set_pic(pic, Lim_DestroyPicture)             # <<<<<<<<<<<<<<
@@ -4750,22 +4750,22 @@ static PyObject *__pyx_pf_3nd2_4_sdk_6latest_24get_image(CYTHON_UNUSED PyObject 
  */
   ((struct __pyx_vtabstruct_3nd2_4_sdk_7picture_PicWrapper *)__pyx_v_array_wrapper->__pyx_vtab)->set_pic(__pyx_v_array_wrapper, __pyx_v_pic, Lim_DestroyPicture);
 
-  /* "nd2/_sdk/latest.pyx":155
+  /* "nd2/_sdk/latest.pyx":156
  *     array_wrapper = PicWrapper()
  *     array_wrapper.set_pic(pic, Lim_DestroyPicture)
  *     return array_wrapper.to_ndarray()             # <<<<<<<<<<<<<<
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = ((PyObject *)((struct __pyx_vtabstruct_3nd2_4_sdk_7picture_PicWrapper *)__pyx_v_array_wrapper->__pyx_vtab)->to_ndarray(__pyx_v_array_wrapper)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 155, __pyx_L1_error)
+  __pyx_t_1 = ((PyObject *)((struct __pyx_vtabstruct_3nd2_4_sdk_7picture_PicWrapper *)__pyx_v_array_wrapper->__pyx_vtab)->to_ndarray(__pyx_v_array_wrapper)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 156, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "nd2/_sdk/latest.pyx":143
+  /* "nd2/_sdk/latest.pyx":144
  *
  *
- * def get_image(fh: uintptr_t, LIMUINT seq_index=0):             # <<<<<<<<<<<<<<
+ * def get_image(fh: intptr_t, LIMUINT seq_index=0):             # <<<<<<<<<<<<<<
  *     _validate_seq(fh, seq_index)
  *
  */
@@ -5902,7 +5902,7 @@ static CYTHON_INLINE __pyx_t_3nd2_4_sdk_7picture_LIMPICTURE __pyx_f_3nd2_4_sdk_7
   return __pyx_r;
 }
 
-/* "nd2/_sdk/latest.pxd":69
+/* "nd2/_sdk/latest.pxd":70
  *
  *
  * cdef inline dict _loads(LIMSTR string):             # <<<<<<<<<<<<<<
@@ -5933,7 +5933,7 @@ static CYTHON_INLINE PyObject *__pyx_f_3nd2_4_sdk_6latest__loads(LIMSTR __pyx_v_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("_loads", 0);
 
-  /* "nd2/_sdk/latest.pxd":70
+  /* "nd2/_sdk/latest.pxd":71
  *
  * cdef inline dict _loads(LIMSTR string):
  *     if not string:             # <<<<<<<<<<<<<<
@@ -5943,7 +5943,7 @@ static CYTHON_INLINE PyObject *__pyx_f_3nd2_4_sdk_6latest__loads(LIMSTR __pyx_v_
   __pyx_t_1 = ((!(__pyx_v_string != 0)) != 0);
   if (__pyx_t_1) {
 
-    /* "nd2/_sdk/latest.pxd":71
+    /* "nd2/_sdk/latest.pxd":72
  * cdef inline dict _loads(LIMSTR string):
  *     if not string:
  *         return {}             # <<<<<<<<<<<<<<
@@ -5951,13 +5951,13 @@ static CYTHON_INLINE PyObject *__pyx_f_3nd2_4_sdk_6latest__loads(LIMSTR __pyx_v_
  *         return json.loads(string)
  */
     __Pyx_XDECREF(__pyx_r);
-    __pyx_t_2 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 71, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 72, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __pyx_r = ((PyObject*)__pyx_t_2);
     __pyx_t_2 = 0;
     goto __pyx_L0;
 
-    /* "nd2/_sdk/latest.pxd":70
+    /* "nd2/_sdk/latest.pxd":71
  *
  * cdef inline dict _loads(LIMSTR string):
  *     if not string:             # <<<<<<<<<<<<<<
@@ -5966,7 +5966,7 @@ static CYTHON_INLINE PyObject *__pyx_f_3nd2_4_sdk_6latest__loads(LIMSTR __pyx_v_
  */
   }
 
-  /* "nd2/_sdk/latest.pxd":72
+  /* "nd2/_sdk/latest.pxd":73
  *     if not string:
  *         return {}
  *     try:             # <<<<<<<<<<<<<<
@@ -5975,7 +5975,7 @@ static CYTHON_INLINE PyObject *__pyx_f_3nd2_4_sdk_6latest__loads(LIMSTR __pyx_v_
  */
   /*try:*/ {
 
-    /* "nd2/_sdk/latest.pxd":73
+    /* "nd2/_sdk/latest.pxd":74
  *         return {}
  *     try:
  *         return json.loads(string)             # <<<<<<<<<<<<<<
@@ -5983,12 +5983,12 @@ static CYTHON_INLINE PyObject *__pyx_f_3nd2_4_sdk_6latest__loads(LIMSTR __pyx_v_
  *         Lim_FileFreeString(string)
  */
     __Pyx_XDECREF(__pyx_r);
-    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_json); if (unlikely(!__pyx_t_3)) __PYX_ERR(2, 73, __pyx_L5_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_3, __pyx_n_s_json); if (unlikely(!__pyx_t_3)) __PYX_ERR(2, 74, __pyx_L5_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_loads); if (unlikely(!__pyx_t_4)) __PYX_ERR(2, 73, __pyx_L5_error)
+    __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_loads); if (unlikely(!__pyx_t_4)) __PYX_ERR(2, 74, __pyx_L5_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_3 = __Pyx_PyUnicode_FromString(__pyx_v_string); if (unlikely(!__pyx_t_3)) __PYX_ERR(2, 73, __pyx_L5_error)
+    __pyx_t_3 = __Pyx_PyUnicode_FromString(__pyx_v_string); if (unlikely(!__pyx_t_3)) __PYX_ERR(2, 74, __pyx_L5_error)
     __Pyx_GOTREF(__pyx_t_3);
     __pyx_t_5 = NULL;
     if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_4))) {
@@ -6003,16 +6003,16 @@ static CYTHON_INLINE PyObject *__pyx_f_3nd2_4_sdk_6latest__loads(LIMSTR __pyx_v_
     __pyx_t_2 = (__pyx_t_5) ? __Pyx_PyObject_Call2Args(__pyx_t_4, __pyx_t_5, __pyx_t_3) : __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_t_3);
     __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 73, __pyx_L5_error)
+    if (unlikely(!__pyx_t_2)) __PYX_ERR(2, 74, __pyx_L5_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    if (!(likely(PyDict_CheckExact(__pyx_t_2))||((__pyx_t_2) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "dict", Py_TYPE(__pyx_t_2)->tp_name), 0))) __PYX_ERR(2, 73, __pyx_L5_error)
+    if (!(likely(PyDict_CheckExact(__pyx_t_2))||((__pyx_t_2) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "dict", Py_TYPE(__pyx_t_2)->tp_name), 0))) __PYX_ERR(2, 74, __pyx_L5_error)
     __pyx_r = ((PyObject*)__pyx_t_2);
     __pyx_t_2 = 0;
     goto __pyx_L4_return;
   }
 
-  /* "nd2/_sdk/latest.pxd":75
+  /* "nd2/_sdk/latest.pxd":76
  *         return json.loads(string)
  *     finally:
  *         Lim_FileFreeString(string)             # <<<<<<<<<<<<<<
@@ -6063,7 +6063,7 @@ static CYTHON_INLINE PyObject *__pyx_f_3nd2_4_sdk_6latest__loads(LIMSTR __pyx_v_
     }
   }
 
-  /* "nd2/_sdk/latest.pxd":69
+  /* "nd2/_sdk/latest.pxd":70
  *
  *
  * cdef inline dict _loads(LIMSTR string):             # <<<<<<<<<<<<<<
@@ -6194,11 +6194,11 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {0, 0, 0, 0, 0, 0, 0}
 };
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(0, 80, __pyx_L1_error)
-  __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) __PYX_ERR(0, 86, __pyx_L1_error)
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 87, __pyx_L1_error)
-  __pyx_builtin_IndexError = __Pyx_GetBuiltinName(__pyx_n_s_IndexError); if (!__pyx_builtin_IndexError) __PYX_ERR(0, 127, __pyx_L1_error)
-  __pyx_builtin_RuntimeError = __Pyx_GetBuiltinName(__pyx_n_s_RuntimeError); if (!__pyx_builtin_RuntimeError) __PYX_ERR(0, 151, __pyx_L1_error)
+  __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(0, 81, __pyx_L1_error)
+  __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) __PYX_ERR(0, 87, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 88, __pyx_L1_error)
+  __pyx_builtin_IndexError = __Pyx_GetBuiltinName(__pyx_n_s_IndexError); if (!__pyx_builtin_IndexError) __PYX_ERR(0, 128, __pyx_L1_error)
+  __pyx_builtin_RuntimeError = __Pyx_GetBuiltinName(__pyx_n_s_RuntimeError); if (!__pyx_builtin_RuntimeError) __PYX_ERR(0, 152, __pyx_L1_error)
   __pyx_builtin_ImportError = __Pyx_GetBuiltinName(__pyx_n_s_ImportError); if (!__pyx_builtin_ImportError) __PYX_ERR(1, 945, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
@@ -6231,161 +6231,161 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__4);
   __Pyx_GIVEREF(__pyx_tuple__4);
 
-  /* "nd2/_sdk/latest.pyx":6
+  /* "nd2/_sdk/latest.pyx":7
  *
  *
  * def open(file_name: str):             # <<<<<<<<<<<<<<
- *     return <uintptr_t> Lim_FileOpenForReadUtf8(file_name)
+ *     return <intptr_t> Lim_FileOpenForReadUtf8(file_name)
  *
  */
-  __pyx_tuple__5 = PyTuple_Pack(1, __pyx_n_s_file_name); if (unlikely(!__pyx_tuple__5)) __PYX_ERR(0, 6, __pyx_L1_error)
+  __pyx_tuple__5 = PyTuple_Pack(1, __pyx_n_s_file_name); if (unlikely(!__pyx_tuple__5)) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__5);
   __Pyx_GIVEREF(__pyx_tuple__5);
-  __pyx_codeobj__6 = (PyObject*)__Pyx_PyCode_New(1, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__5, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_open, 6, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__6)) __PYX_ERR(0, 6, __pyx_L1_error)
+  __pyx_codeobj__6 = (PyObject*)__Pyx_PyCode_New(1, 0, 1, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__5, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_open, 7, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__6)) __PYX_ERR(0, 7, __pyx_L1_error)
 
-  /* "nd2/_sdk/latest.pyx":10
+  /* "nd2/_sdk/latest.pyx":11
  *
  *
- * def close(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def close(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     Lim_FileClose(<void *>fh)
  *
  */
-  __pyx_tuple__7 = PyTuple_Pack(2, __pyx_n_s_fh, __pyx_n_s_fh); if (unlikely(!__pyx_tuple__7)) __PYX_ERR(0, 10, __pyx_L1_error)
+  __pyx_tuple__7 = PyTuple_Pack(2, __pyx_n_s_fh, __pyx_n_s_fh); if (unlikely(!__pyx_tuple__7)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__7);
   __Pyx_GIVEREF(__pyx_tuple__7);
-  __pyx_codeobj__8 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__7, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_close, 10, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__8)) __PYX_ERR(0, 10, __pyx_L1_error)
+  __pyx_codeobj__8 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__7, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_close, 11, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__8)) __PYX_ERR(0, 11, __pyx_L1_error)
 
-  /* "nd2/_sdk/latest.pyx":14
+  /* "nd2/_sdk/latest.pyx":15
  *
  *
- * def get_attributes(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_attributes(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetAttributes(<void *>fh)
  *     if not out:
  */
-  __pyx_tuple__9 = PyTuple_Pack(3, __pyx_n_s_fh, __pyx_n_s_fh, __pyx_n_s_out); if (unlikely(!__pyx_tuple__9)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __pyx_tuple__9 = PyTuple_Pack(3, __pyx_n_s_fh, __pyx_n_s_fh, __pyx_n_s_out); if (unlikely(!__pyx_tuple__9)) __PYX_ERR(0, 15, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__9);
   __Pyx_GIVEREF(__pyx_tuple__9);
-  __pyx_codeobj__10 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__9, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_attributes, 14, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__10)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __pyx_codeobj__10 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__9, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_attributes, 15, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__10)) __PYX_ERR(0, 15, __pyx_L1_error)
 
-  /* "nd2/_sdk/latest.pyx":24
+  /* "nd2/_sdk/latest.pyx":25
  *
  *
- * def get_metadata(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_metadata(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetMetadata(<void *>fh)
  *     if not out:
  */
-  __pyx_tuple__11 = PyTuple_Pack(3, __pyx_n_s_fh, __pyx_n_s_fh, __pyx_n_s_out); if (unlikely(!__pyx_tuple__11)) __PYX_ERR(0, 24, __pyx_L1_error)
+  __pyx_tuple__11 = PyTuple_Pack(3, __pyx_n_s_fh, __pyx_n_s_fh, __pyx_n_s_out); if (unlikely(!__pyx_tuple__11)) __PYX_ERR(0, 25, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__11);
   __Pyx_GIVEREF(__pyx_tuple__11);
-  __pyx_codeobj__12 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__11, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_metadata, 24, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__12)) __PYX_ERR(0, 24, __pyx_L1_error)
+  __pyx_codeobj__12 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__11, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_metadata, 25, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__12)) __PYX_ERR(0, 25, __pyx_L1_error)
 
-  /* "nd2/_sdk/latest.pyx":34
+  /* "nd2/_sdk/latest.pyx":35
  *
  *
- * def get_frame_metadata(fh: uintptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
+ * def get_frame_metadata(fh: intptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetFrameMetadata(<void *>fh, seq_index)
  *     if not out:
  */
-  __pyx_tuple__13 = PyTuple_Pack(3, __pyx_n_s_fh, __pyx_n_s_seq_index, __pyx_n_s_out); if (unlikely(!__pyx_tuple__13)) __PYX_ERR(0, 34, __pyx_L1_error)
+  __pyx_tuple__13 = PyTuple_Pack(3, __pyx_n_s_fh, __pyx_n_s_seq_index, __pyx_n_s_out); if (unlikely(!__pyx_tuple__13)) __PYX_ERR(0, 35, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__13);
   __Pyx_GIVEREF(__pyx_tuple__13);
-  __pyx_codeobj__14 = (PyObject*)__Pyx_PyCode_New(2, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__13, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_frame_metadata, 34, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__14)) __PYX_ERR(0, 34, __pyx_L1_error)
+  __pyx_codeobj__14 = (PyObject*)__Pyx_PyCode_New(2, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__13, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_frame_metadata, 35, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__14)) __PYX_ERR(0, 35, __pyx_L1_error)
 
-  /* "nd2/_sdk/latest.pyx":44
+  /* "nd2/_sdk/latest.pyx":45
  *
  *
- * def get_textinfo(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_textinfo(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetTextinfo(<void *>fh)
  *     if not out:
  */
-  __pyx_tuple__15 = PyTuple_Pack(3, __pyx_n_s_fh, __pyx_n_s_fh, __pyx_n_s_out); if (unlikely(!__pyx_tuple__15)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_tuple__15 = PyTuple_Pack(3, __pyx_n_s_fh, __pyx_n_s_fh, __pyx_n_s_out); if (unlikely(!__pyx_tuple__15)) __PYX_ERR(0, 45, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__15);
   __Pyx_GIVEREF(__pyx_tuple__15);
-  __pyx_codeobj__16 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__15, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_textinfo, 44, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__16)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_codeobj__16 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__15, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_textinfo, 45, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__16)) __PYX_ERR(0, 45, __pyx_L1_error)
 
-  /* "nd2/_sdk/latest.pyx":54
+  /* "nd2/_sdk/latest.pyx":55
  *
  *
- * def get_experiment(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_experiment(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetExperiment(<void *>fh)
  *     if not out:
  */
-  __pyx_tuple__17 = PyTuple_Pack(3, __pyx_n_s_fh, __pyx_n_s_fh, __pyx_n_s_out); if (unlikely(!__pyx_tuple__17)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __pyx_tuple__17 = PyTuple_Pack(3, __pyx_n_s_fh, __pyx_n_s_fh, __pyx_n_s_out); if (unlikely(!__pyx_tuple__17)) __PYX_ERR(0, 55, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__17);
   __Pyx_GIVEREF(__pyx_tuple__17);
-  __pyx_codeobj__18 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__17, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_experiment, 54, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__18)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __pyx_codeobj__18 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__17, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_experiment, 55, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__18)) __PYX_ERR(0, 55, __pyx_L1_error)
 
-  /* "nd2/_sdk/latest.pyx":64
+  /* "nd2/_sdk/latest.pyx":65
  *
  *
- * def get_seq_count(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_seq_count(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     return Lim_FileGetSeqCount(<void *>fh)
  *
  */
-  __pyx_tuple__19 = PyTuple_Pack(2, __pyx_n_s_fh, __pyx_n_s_fh); if (unlikely(!__pyx_tuple__19)) __PYX_ERR(0, 64, __pyx_L1_error)
+  __pyx_tuple__19 = PyTuple_Pack(2, __pyx_n_s_fh, __pyx_n_s_fh); if (unlikely(!__pyx_tuple__19)) __PYX_ERR(0, 65, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__19);
   __Pyx_GIVEREF(__pyx_tuple__19);
-  __pyx_codeobj__20 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__19, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_seq_count, 64, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__20)) __PYX_ERR(0, 64, __pyx_L1_error)
+  __pyx_codeobj__20 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__19, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_seq_count, 65, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__20)) __PYX_ERR(0, 65, __pyx_L1_error)
 
-  /* "nd2/_sdk/latest.pyx":68
+  /* "nd2/_sdk/latest.pyx":69
  *
  *
- * def get_coord_size(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_coord_size(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     return Lim_FileGetCoordSize(<void *>fh)
  *
  */
-  __pyx_tuple__21 = PyTuple_Pack(2, __pyx_n_s_fh, __pyx_n_s_fh); if (unlikely(!__pyx_tuple__21)) __PYX_ERR(0, 68, __pyx_L1_error)
+  __pyx_tuple__21 = PyTuple_Pack(2, __pyx_n_s_fh, __pyx_n_s_fh); if (unlikely(!__pyx_tuple__21)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__21);
   __Pyx_GIVEREF(__pyx_tuple__21);
-  __pyx_codeobj__22 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__21, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_coord_size, 68, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__22)) __PYX_ERR(0, 68, __pyx_L1_error)
+  __pyx_codeobj__22 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__21, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_coord_size, 69, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__22)) __PYX_ERR(0, 69, __pyx_L1_error)
 
-  /* "nd2/_sdk/latest.pyx":72
+  /* "nd2/_sdk/latest.pyx":73
  *
  *
- * def get_seq_index_from_coords(fh: uintptr_t, coords: list | tuple):             # <<<<<<<<<<<<<<
+ * def get_seq_index_from_coords(fh: intptr_t, coords: list | tuple):             # <<<<<<<<<<<<<<
  *
  *     cdef LIMSIZE size = get_coord_size(fh)
  */
-  __pyx_tuple__23 = PyTuple_Pack(7, __pyx_n_s_fh, __pyx_n_s_coords, __pyx_n_s_size, __pyx_n_s_n, __pyx_n_s_seq_index, __pyx_n_s_coords_3, __pyx_n_s_i); if (unlikely(!__pyx_tuple__23)) __PYX_ERR(0, 72, __pyx_L1_error)
+  __pyx_tuple__23 = PyTuple_Pack(7, __pyx_n_s_fh, __pyx_n_s_coords, __pyx_n_s_size, __pyx_n_s_n, __pyx_n_s_seq_index, __pyx_n_s_coords_3, __pyx_n_s_i); if (unlikely(!__pyx_tuple__23)) __PYX_ERR(0, 73, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__23);
   __Pyx_GIVEREF(__pyx_tuple__23);
-  __pyx_codeobj__24 = (PyObject*)__Pyx_PyCode_New(2, 0, 7, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__23, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_seq_index_from_coords, 72, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__24)) __PYX_ERR(0, 72, __pyx_L1_error)
+  __pyx_codeobj__24 = (PyObject*)__Pyx_PyCode_New(2, 0, 7, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__23, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_seq_index_from_coords, 73, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__24)) __PYX_ERR(0, 73, __pyx_L1_error)
 
-  /* "nd2/_sdk/latest.pyx":98
+  /* "nd2/_sdk/latest.pyx":99
  *
  *
- * def get_coords_from_seq_index(fh: uintptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
+ * def get_coords_from_seq_index(fh: intptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:
  */
-  __pyx_tuple__25 = PyTuple_Pack(5, __pyx_n_s_fh, __pyx_n_s_seq_index, __pyx_n_s_size, __pyx_n_s_output, __pyx_n_s_x); if (unlikely(!__pyx_tuple__25)) __PYX_ERR(0, 98, __pyx_L1_error)
+  __pyx_tuple__25 = PyTuple_Pack(5, __pyx_n_s_fh, __pyx_n_s_seq_index, __pyx_n_s_size, __pyx_n_s_output, __pyx_n_s_x); if (unlikely(!__pyx_tuple__25)) __PYX_ERR(0, 99, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__25);
   __Pyx_GIVEREF(__pyx_tuple__25);
-  __pyx_codeobj__26 = (PyObject*)__Pyx_PyCode_New(2, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__25, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_coords_from_seq_index, 98, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__26)) __PYX_ERR(0, 98, __pyx_L1_error)
+  __pyx_codeobj__26 = (PyObject*)__Pyx_PyCode_New(2, 0, 5, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__25, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_coords_from_seq_index, 99, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__26)) __PYX_ERR(0, 99, __pyx_L1_error)
 
-  /* "nd2/_sdk/latest.pyx":114
+  /* "nd2/_sdk/latest.pyx":115
  *
  *
- * def get_coord_info(fh: uintptr_t, coord=-1):             # <<<<<<<<<<<<<<
+ * def get_coord_info(fh: intptr_t, coord=-1):             # <<<<<<<<<<<<<<
  *     cdef LIMCHAR loop_type[256]
  *     cdef LIMSIZE size = get_coord_size(fh)
  */
-  __pyx_tuple__27 = PyTuple_Pack(7, __pyx_n_s_fh, __pyx_n_s_coord, __pyx_n_s_loop_type, __pyx_n_s_size, __pyx_n_s_out, __pyx_n_s_i, __pyx_n_s_loop_size); if (unlikely(!__pyx_tuple__27)) __PYX_ERR(0, 114, __pyx_L1_error)
+  __pyx_tuple__27 = PyTuple_Pack(7, __pyx_n_s_fh, __pyx_n_s_coord, __pyx_n_s_loop_type, __pyx_n_s_size, __pyx_n_s_out, __pyx_n_s_i, __pyx_n_s_loop_size); if (unlikely(!__pyx_tuple__27)) __PYX_ERR(0, 115, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__27);
   __Pyx_GIVEREF(__pyx_tuple__27);
-  __pyx_codeobj__28 = (PyObject*)__Pyx_PyCode_New(2, 0, 7, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__27, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_coord_info, 114, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__28)) __PYX_ERR(0, 114, __pyx_L1_error)
+  __pyx_codeobj__28 = (PyObject*)__Pyx_PyCode_New(2, 0, 7, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__27, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_coord_info, 115, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__28)) __PYX_ERR(0, 115, __pyx_L1_error)
 
-  /* "nd2/_sdk/latest.pyx":143
+  /* "nd2/_sdk/latest.pyx":144
  *
  *
- * def get_image(fh: uintptr_t, LIMUINT seq_index=0):             # <<<<<<<<<<<<<<
+ * def get_image(fh: intptr_t, LIMUINT seq_index=0):             # <<<<<<<<<<<<<<
  *     _validate_seq(fh, seq_index)
  *
  */
-  __pyx_tuple__29 = PyTuple_Pack(6, __pyx_n_s_fh, __pyx_n_s_seq_index, __pyx_n_s_pic, __pyx_n_s_result, __pyx_n_s_error, __pyx_n_s_array_wrapper); if (unlikely(!__pyx_tuple__29)) __PYX_ERR(0, 143, __pyx_L1_error)
+  __pyx_tuple__29 = PyTuple_Pack(6, __pyx_n_s_fh, __pyx_n_s_seq_index, __pyx_n_s_pic, __pyx_n_s_result, __pyx_n_s_error, __pyx_n_s_array_wrapper); if (unlikely(!__pyx_tuple__29)) __PYX_ERR(0, 144, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__29);
   __Pyx_GIVEREF(__pyx_tuple__29);
-  __pyx_codeobj__30 = (PyObject*)__Pyx_PyCode_New(2, 0, 6, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__29, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_image, 143, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__30)) __PYX_ERR(0, 143, __pyx_L1_error)
+  __pyx_codeobj__30 = (PyObject*)__Pyx_PyCode_New(2, 0, 6, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__29, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_nd2__sdk_latest_pyx, __pyx_n_s_get_image, 144, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__30)) __PYX_ERR(0, 144, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -6724,173 +6724,173 @@ if (!__Pyx_RefNanny) {
   if (__Pyx_patch_abc() < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   #endif
 
-  /* "nd2/_sdk/latest.pyx":6
+  /* "nd2/_sdk/latest.pyx":7
  *
  *
  * def open(file_name: str):             # <<<<<<<<<<<<<<
- *     return <uintptr_t> Lim_FileOpenForReadUtf8(file_name)
+ *     return <intptr_t> Lim_FileOpenForReadUtf8(file_name)
  *
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_1open, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 6, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_1open, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_open, __pyx_t_1) < 0) __PYX_ERR(0, 6, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_open, __pyx_t_1) < 0) __PYX_ERR(0, 7, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":10
+  /* "nd2/_sdk/latest.pyx":11
  *
  *
- * def close(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def close(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     Lim_FileClose(<void *>fh)
  *
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_3close, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 10, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_3close, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_close, __pyx_t_1) < 0) __PYX_ERR(0, 10, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_close, __pyx_t_1) < 0) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":14
+  /* "nd2/_sdk/latest.pyx":15
  *
  *
- * def get_attributes(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_attributes(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetAttributes(<void *>fh)
  *     if not out:
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_5get_attributes, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 14, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_5get_attributes, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 15, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_attributes, __pyx_t_1) < 0) __PYX_ERR(0, 14, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_attributes, __pyx_t_1) < 0) __PYX_ERR(0, 15, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":24
+  /* "nd2/_sdk/latest.pyx":25
  *
  *
- * def get_metadata(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_metadata(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetMetadata(<void *>fh)
  *     if not out:
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_7get_metadata, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 24, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_7get_metadata, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 25, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_metadata, __pyx_t_1) < 0) __PYX_ERR(0, 24, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_metadata, __pyx_t_1) < 0) __PYX_ERR(0, 25, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":34
+  /* "nd2/_sdk/latest.pyx":35
  *
  *
- * def get_frame_metadata(fh: uintptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
+ * def get_frame_metadata(fh: intptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetFrameMetadata(<void *>fh, seq_index)
  *     if not out:
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_9get_frame_metadata, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 34, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_9get_frame_metadata, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 35, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_frame_metadata, __pyx_t_1) < 0) __PYX_ERR(0, 34, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_frame_metadata, __pyx_t_1) < 0) __PYX_ERR(0, 35, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":44
+  /* "nd2/_sdk/latest.pyx":45
  *
  *
- * def get_textinfo(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_textinfo(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetTextinfo(<void *>fh)
  *     if not out:
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_11get_textinfo, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_11get_textinfo, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 45, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_textinfo, __pyx_t_1) < 0) __PYX_ERR(0, 44, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_textinfo, __pyx_t_1) < 0) __PYX_ERR(0, 45, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":54
+  /* "nd2/_sdk/latest.pyx":55
  *
  *
- * def get_experiment(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_experiment(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     out = Lim_FileGetExperiment(<void *>fh)
  *     if not out:
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_13get_experiment, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_13get_experiment, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 55, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_experiment, __pyx_t_1) < 0) __PYX_ERR(0, 54, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_experiment, __pyx_t_1) < 0) __PYX_ERR(0, 55, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":64
+  /* "nd2/_sdk/latest.pyx":65
  *
  *
- * def get_seq_count(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_seq_count(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     return Lim_FileGetSeqCount(<void *>fh)
  *
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_15get_seq_count, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 64, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_15get_seq_count, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 65, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_seq_count, __pyx_t_1) < 0) __PYX_ERR(0, 64, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_seq_count, __pyx_t_1) < 0) __PYX_ERR(0, 65, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":68
+  /* "nd2/_sdk/latest.pyx":69
  *
  *
- * def get_coord_size(fh: uintptr_t):             # <<<<<<<<<<<<<<
+ * def get_coord_size(fh: intptr_t):             # <<<<<<<<<<<<<<
  *     return Lim_FileGetCoordSize(<void *>fh)
  *
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_17get_coord_size, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 68, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_17get_coord_size, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_coord_size, __pyx_t_1) < 0) __PYX_ERR(0, 68, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_coord_size, __pyx_t_1) < 0) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":72
+  /* "nd2/_sdk/latest.pyx":73
  *
  *
- * def get_seq_index_from_coords(fh: uintptr_t, coords: list | tuple):             # <<<<<<<<<<<<<<
+ * def get_seq_index_from_coords(fh: intptr_t, coords: list | tuple):             # <<<<<<<<<<<<<<
  *
  *     cdef LIMSIZE size = get_coord_size(fh)
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_19get_seq_index_from_coords, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 72, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_19get_seq_index_from_coords, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 73, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_seq_index_from_coords, __pyx_t_1) < 0) __PYX_ERR(0, 72, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_seq_index_from_coords, __pyx_t_1) < 0) __PYX_ERR(0, 73, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":98
+  /* "nd2/_sdk/latest.pyx":99
  *
  *
- * def get_coords_from_seq_index(fh: uintptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
+ * def get_coords_from_seq_index(fh: intptr_t, seq_index: LIMUINT):             # <<<<<<<<<<<<<<
  *     cdef LIMSIZE size = get_coord_size(fh)
  *     if size == 0:
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_21get_coords_from_seq_index, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 98, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_21get_coords_from_seq_index, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 99, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_coords_from_seq_index, __pyx_t_1) < 0) __PYX_ERR(0, 98, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_coords_from_seq_index, __pyx_t_1) < 0) __PYX_ERR(0, 99, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":114
+  /* "nd2/_sdk/latest.pyx":115
  *
  *
- * def get_coord_info(fh: uintptr_t, coord=-1):             # <<<<<<<<<<<<<<
+ * def get_coord_info(fh: intptr_t, coord=-1):             # <<<<<<<<<<<<<<
  *     cdef LIMCHAR loop_type[256]
  *     cdef LIMSIZE size = get_coord_size(fh)
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_23get_coord_info, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 114, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_23get_coord_info, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 115, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_coord_info, __pyx_t_1) < 0) __PYX_ERR(0, 114, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_coord_info, __pyx_t_1) < 0) __PYX_ERR(0, 115, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pyx":143
+  /* "nd2/_sdk/latest.pyx":144
  *
  *
- * def get_image(fh: uintptr_t, LIMUINT seq_index=0):             # <<<<<<<<<<<<<<
+ * def get_image(fh: intptr_t, LIMUINT seq_index=0):             # <<<<<<<<<<<<<<
  *     _validate_seq(fh, seq_index)
  *
  */
-  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_25get_image, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 143, __pyx_L1_error)
+  __pyx_t_1 = PyCFunction_NewEx(&__pyx_mdef_3nd2_4_sdk_6latest_25get_image, NULL, __pyx_n_s_nd2__sdk_latest); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 144, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_image, __pyx_t_1) < 0) __PYX_ERR(0, 143, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_get_image, __pyx_t_1) < 0) __PYX_ERR(0, 144, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "nd2/_sdk/latest.pyx":1
- * from libc.stdint cimport uintptr_t             # <<<<<<<<<<<<<<
+ * from libc.stdint cimport intptr_t             # <<<<<<<<<<<<<<
  * from libc.stdlib cimport free, malloc
- * from .picture cimport nullpic, PicWrapper
+ *
  */
   __pyx_t_1 = __Pyx_PyDict_NewPresized(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_test, __pyx_t_1) < 0) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "nd2/_sdk/latest.pxd":69
+  /* "nd2/_sdk/latest.pxd":70
  *
  *
  * cdef inline dict _loads(LIMSTR string):             # <<<<<<<<<<<<<<
@@ -8625,202 +8625,6 @@ bad:
 #endif
 
 /* CIntFromPy */
-static CYTHON_INLINE size_t __Pyx_PyInt_As_size_t(PyObject *x) {
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-    const size_t neg_one = (size_t) -1, const_zero = (size_t) 0;
-#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
-#pragma GCC diagnostic pop
-#endif
-    const int is_unsigned = neg_one > const_zero;
-#if PY_MAJOR_VERSION < 3
-    if (likely(PyInt_Check(x))) {
-        if (sizeof(size_t) < sizeof(long)) {
-            __PYX_VERIFY_RETURN_INT(size_t, long, PyInt_AS_LONG(x))
-        } else {
-            long val = PyInt_AS_LONG(x);
-            if (is_unsigned && unlikely(val < 0)) {
-                goto raise_neg_overflow;
-            }
-            return (size_t) val;
-        }
-    } else
-#endif
-    if (likely(PyLong_Check(x))) {
-        if (is_unsigned) {
-#if CYTHON_USE_PYLONG_INTERNALS
-            const digit* digits = ((PyLongObject*)x)->ob_digit;
-            switch (Py_SIZE(x)) {
-                case  0: return (size_t) 0;
-                case  1: __PYX_VERIFY_RETURN_INT(size_t, digit, digits[0])
-                case 2:
-                    if (8 * sizeof(size_t) > 1 * PyLong_SHIFT) {
-                        if (8 * sizeof(unsigned long) > 2 * PyLong_SHIFT) {
-                            __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
-                        } else if (8 * sizeof(size_t) >= 2 * PyLong_SHIFT) {
-                            return (size_t) (((((size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0]));
-                        }
-                    }
-                    break;
-                case 3:
-                    if (8 * sizeof(size_t) > 2 * PyLong_SHIFT) {
-                        if (8 * sizeof(unsigned long) > 3 * PyLong_SHIFT) {
-                            __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
-                        } else if (8 * sizeof(size_t) >= 3 * PyLong_SHIFT) {
-                            return (size_t) (((((((size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0]));
-                        }
-                    }
-                    break;
-                case 4:
-                    if (8 * sizeof(size_t) > 3 * PyLong_SHIFT) {
-                        if (8 * sizeof(unsigned long) > 4 * PyLong_SHIFT) {
-                            __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
-                        } else if (8 * sizeof(size_t) >= 4 * PyLong_SHIFT) {
-                            return (size_t) (((((((((size_t)digits[3]) << PyLong_SHIFT) | (size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0]));
-                        }
-                    }
-                    break;
-            }
-#endif
-#if CYTHON_COMPILING_IN_CPYTHON
-            if (unlikely(Py_SIZE(x) < 0)) {
-                goto raise_neg_overflow;
-            }
-#else
-            {
-                int result = PyObject_RichCompareBool(x, Py_False, Py_LT);
-                if (unlikely(result < 0))
-                    return (size_t) -1;
-                if (unlikely(result == 1))
-                    goto raise_neg_overflow;
-            }
-#endif
-            if (sizeof(size_t) <= sizeof(unsigned long)) {
-                __PYX_VERIFY_RETURN_INT_EXC(size_t, unsigned long, PyLong_AsUnsignedLong(x))
-#ifdef HAVE_LONG_LONG
-            } else if (sizeof(size_t) <= sizeof(unsigned PY_LONG_LONG)) {
-                __PYX_VERIFY_RETURN_INT_EXC(size_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong(x))
-#endif
-            }
-        } else {
-#if CYTHON_USE_PYLONG_INTERNALS
-            const digit* digits = ((PyLongObject*)x)->ob_digit;
-            switch (Py_SIZE(x)) {
-                case  0: return (size_t) 0;
-                case -1: __PYX_VERIFY_RETURN_INT(size_t, sdigit, (sdigit) (-(sdigit)digits[0]))
-                case  1: __PYX_VERIFY_RETURN_INT(size_t,  digit, +digits[0])
-                case -2:
-                    if (8 * sizeof(size_t) - 1 > 1 * PyLong_SHIFT) {
-                        if (8 * sizeof(unsigned long) > 2 * PyLong_SHIFT) {
-                            __PYX_VERIFY_RETURN_INT(size_t, long, -(long) (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
-                        } else if (8 * sizeof(size_t) - 1 > 2 * PyLong_SHIFT) {
-                            return (size_t) (((size_t)-1)*(((((size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
-                        }
-                    }
-                    break;
-                case 2:
-                    if (8 * sizeof(size_t) > 1 * PyLong_SHIFT) {
-                        if (8 * sizeof(unsigned long) > 2 * PyLong_SHIFT) {
-                            __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
-                        } else if (8 * sizeof(size_t) - 1 > 2 * PyLong_SHIFT) {
-                            return (size_t) ((((((size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
-                        }
-                    }
-                    break;
-                case -3:
-                    if (8 * sizeof(size_t) - 1 > 2 * PyLong_SHIFT) {
-                        if (8 * sizeof(unsigned long) > 3 * PyLong_SHIFT) {
-                            __PYX_VERIFY_RETURN_INT(size_t, long, -(long) (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
-                        } else if (8 * sizeof(size_t) - 1 > 3 * PyLong_SHIFT) {
-                            return (size_t) (((size_t)-1)*(((((((size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
-                        }
-                    }
-                    break;
-                case 3:
-                    if (8 * sizeof(size_t) > 2 * PyLong_SHIFT) {
-                        if (8 * sizeof(unsigned long) > 3 * PyLong_SHIFT) {
-                            __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
-                        } else if (8 * sizeof(size_t) - 1 > 3 * PyLong_SHIFT) {
-                            return (size_t) ((((((((size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
-                        }
-                    }
-                    break;
-                case -4:
-                    if (8 * sizeof(size_t) - 1 > 3 * PyLong_SHIFT) {
-                        if (8 * sizeof(unsigned long) > 4 * PyLong_SHIFT) {
-                            __PYX_VERIFY_RETURN_INT(size_t, long, -(long) (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
-                        } else if (8 * sizeof(size_t) - 1 > 4 * PyLong_SHIFT) {
-                            return (size_t) (((size_t)-1)*(((((((((size_t)digits[3]) << PyLong_SHIFT) | (size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
-                        }
-                    }
-                    break;
-                case 4:
-                    if (8 * sizeof(size_t) > 3 * PyLong_SHIFT) {
-                        if (8 * sizeof(unsigned long) > 4 * PyLong_SHIFT) {
-                            __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
-                        } else if (8 * sizeof(size_t) - 1 > 4 * PyLong_SHIFT) {
-                            return (size_t) ((((((((((size_t)digits[3]) << PyLong_SHIFT) | (size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
-                        }
-                    }
-                    break;
-            }
-#endif
-            if (sizeof(size_t) <= sizeof(long)) {
-                __PYX_VERIFY_RETURN_INT_EXC(size_t, long, PyLong_AsLong(x))
-#ifdef HAVE_LONG_LONG
-            } else if (sizeof(size_t) <= sizeof(PY_LONG_LONG)) {
-                __PYX_VERIFY_RETURN_INT_EXC(size_t, PY_LONG_LONG, PyLong_AsLongLong(x))
-#endif
-            }
-        }
-        {
-#if CYTHON_COMPILING_IN_PYPY && !defined(_PyLong_AsByteArray)
-            PyErr_SetString(PyExc_RuntimeError,
-                            "_PyLong_AsByteArray() not available in PyPy, cannot convert large numbers");
-#else
-            size_t val;
-            PyObject *v = __Pyx_PyNumber_IntOrLong(x);
- #if PY_MAJOR_VERSION < 3
-            if (likely(v) && !PyLong_Check(v)) {
-                PyObject *tmp = v;
-                v = PyNumber_Long(tmp);
-                Py_DECREF(tmp);
-            }
- #endif
-            if (likely(v)) {
-                int one = 1; int is_little = (int)*(unsigned char *)&one;
-                unsigned char *bytes = (unsigned char *)&val;
-                int ret = _PyLong_AsByteArray((PyLongObject *)v,
-                                              bytes, sizeof(val),
-                                              is_little, !is_unsigned);
-                Py_DECREF(v);
-                if (likely(!ret))
-                    return val;
-            }
-#endif
-            return (size_t) -1;
-        }
-    } else {
-        size_t val;
-        PyObject *tmp = __Pyx_PyNumber_IntOrLong(x);
-        if (!tmp) return (size_t) -1;
-        val = __Pyx_PyInt_As_size_t(tmp);
-        Py_DECREF(tmp);
-        return val;
-    }
-raise_overflow:
-    PyErr_SetString(PyExc_OverflowError,
-        "value too large to convert to size_t");
-    return (size_t) -1;
-raise_neg_overflow:
-    PyErr_SetString(PyExc_OverflowError,
-        "can't convert negative value to size_t");
-    return (size_t) -1;
-}
-
-/* CIntFromPy */
 static CYTHON_INLINE LIMUINT __Pyx_PyInt_As_LIMUINT(PyObject *x) {
 #ifdef __Pyx_HAS_GCC_DIAGNOSTIC
 #pragma GCC diagnostic push
@@ -9052,6 +8856,202 @@ static CYTHON_INLINE PyObject* __Pyx_PyInt_From_LIMUINT(LIMUINT value) {
         return _PyLong_FromByteArray(bytes, sizeof(LIMUINT),
                                      little, !is_unsigned);
     }
+}
+
+/* CIntFromPy */
+static CYTHON_INLINE size_t __Pyx_PyInt_As_size_t(PyObject *x) {
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+    const size_t neg_one = (size_t) -1, const_zero = (size_t) 0;
+#ifdef __Pyx_HAS_GCC_DIAGNOSTIC
+#pragma GCC diagnostic pop
+#endif
+    const int is_unsigned = neg_one > const_zero;
+#if PY_MAJOR_VERSION < 3
+    if (likely(PyInt_Check(x))) {
+        if (sizeof(size_t) < sizeof(long)) {
+            __PYX_VERIFY_RETURN_INT(size_t, long, PyInt_AS_LONG(x))
+        } else {
+            long val = PyInt_AS_LONG(x);
+            if (is_unsigned && unlikely(val < 0)) {
+                goto raise_neg_overflow;
+            }
+            return (size_t) val;
+        }
+    } else
+#endif
+    if (likely(PyLong_Check(x))) {
+        if (is_unsigned) {
+#if CYTHON_USE_PYLONG_INTERNALS
+            const digit* digits = ((PyLongObject*)x)->ob_digit;
+            switch (Py_SIZE(x)) {
+                case  0: return (size_t) 0;
+                case  1: __PYX_VERIFY_RETURN_INT(size_t, digit, digits[0])
+                case 2:
+                    if (8 * sizeof(size_t) > 1 * PyLong_SHIFT) {
+                        if (8 * sizeof(unsigned long) > 2 * PyLong_SHIFT) {
+                            __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                        } else if (8 * sizeof(size_t) >= 2 * PyLong_SHIFT) {
+                            return (size_t) (((((size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0]));
+                        }
+                    }
+                    break;
+                case 3:
+                    if (8 * sizeof(size_t) > 2 * PyLong_SHIFT) {
+                        if (8 * sizeof(unsigned long) > 3 * PyLong_SHIFT) {
+                            __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                        } else if (8 * sizeof(size_t) >= 3 * PyLong_SHIFT) {
+                            return (size_t) (((((((size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0]));
+                        }
+                    }
+                    break;
+                case 4:
+                    if (8 * sizeof(size_t) > 3 * PyLong_SHIFT) {
+                        if (8 * sizeof(unsigned long) > 4 * PyLong_SHIFT) {
+                            __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                        } else if (8 * sizeof(size_t) >= 4 * PyLong_SHIFT) {
+                            return (size_t) (((((((((size_t)digits[3]) << PyLong_SHIFT) | (size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0]));
+                        }
+                    }
+                    break;
+            }
+#endif
+#if CYTHON_COMPILING_IN_CPYTHON
+            if (unlikely(Py_SIZE(x) < 0)) {
+                goto raise_neg_overflow;
+            }
+#else
+            {
+                int result = PyObject_RichCompareBool(x, Py_False, Py_LT);
+                if (unlikely(result < 0))
+                    return (size_t) -1;
+                if (unlikely(result == 1))
+                    goto raise_neg_overflow;
+            }
+#endif
+            if (sizeof(size_t) <= sizeof(unsigned long)) {
+                __PYX_VERIFY_RETURN_INT_EXC(size_t, unsigned long, PyLong_AsUnsignedLong(x))
+#ifdef HAVE_LONG_LONG
+            } else if (sizeof(size_t) <= sizeof(unsigned PY_LONG_LONG)) {
+                __PYX_VERIFY_RETURN_INT_EXC(size_t, unsigned PY_LONG_LONG, PyLong_AsUnsignedLongLong(x))
+#endif
+            }
+        } else {
+#if CYTHON_USE_PYLONG_INTERNALS
+            const digit* digits = ((PyLongObject*)x)->ob_digit;
+            switch (Py_SIZE(x)) {
+                case  0: return (size_t) 0;
+                case -1: __PYX_VERIFY_RETURN_INT(size_t, sdigit, (sdigit) (-(sdigit)digits[0]))
+                case  1: __PYX_VERIFY_RETURN_INT(size_t,  digit, +digits[0])
+                case -2:
+                    if (8 * sizeof(size_t) - 1 > 1 * PyLong_SHIFT) {
+                        if (8 * sizeof(unsigned long) > 2 * PyLong_SHIFT) {
+                            __PYX_VERIFY_RETURN_INT(size_t, long, -(long) (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                        } else if (8 * sizeof(size_t) - 1 > 2 * PyLong_SHIFT) {
+                            return (size_t) (((size_t)-1)*(((((size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
+                        }
+                    }
+                    break;
+                case 2:
+                    if (8 * sizeof(size_t) > 1 * PyLong_SHIFT) {
+                        if (8 * sizeof(unsigned long) > 2 * PyLong_SHIFT) {
+                            __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                        } else if (8 * sizeof(size_t) - 1 > 2 * PyLong_SHIFT) {
+                            return (size_t) ((((((size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
+                        }
+                    }
+                    break;
+                case -3:
+                    if (8 * sizeof(size_t) - 1 > 2 * PyLong_SHIFT) {
+                        if (8 * sizeof(unsigned long) > 3 * PyLong_SHIFT) {
+                            __PYX_VERIFY_RETURN_INT(size_t, long, -(long) (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                        } else if (8 * sizeof(size_t) - 1 > 3 * PyLong_SHIFT) {
+                            return (size_t) (((size_t)-1)*(((((((size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
+                        }
+                    }
+                    break;
+                case 3:
+                    if (8 * sizeof(size_t) > 2 * PyLong_SHIFT) {
+                        if (8 * sizeof(unsigned long) > 3 * PyLong_SHIFT) {
+                            __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((((unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                        } else if (8 * sizeof(size_t) - 1 > 3 * PyLong_SHIFT) {
+                            return (size_t) ((((((((size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
+                        }
+                    }
+                    break;
+                case -4:
+                    if (8 * sizeof(size_t) - 1 > 3 * PyLong_SHIFT) {
+                        if (8 * sizeof(unsigned long) > 4 * PyLong_SHIFT) {
+                            __PYX_VERIFY_RETURN_INT(size_t, long, -(long) (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                        } else if (8 * sizeof(size_t) - 1 > 4 * PyLong_SHIFT) {
+                            return (size_t) (((size_t)-1)*(((((((((size_t)digits[3]) << PyLong_SHIFT) | (size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
+                        }
+                    }
+                    break;
+                case 4:
+                    if (8 * sizeof(size_t) > 3 * PyLong_SHIFT) {
+                        if (8 * sizeof(unsigned long) > 4 * PyLong_SHIFT) {
+                            __PYX_VERIFY_RETURN_INT(size_t, unsigned long, (((((((((unsigned long)digits[3]) << PyLong_SHIFT) | (unsigned long)digits[2]) << PyLong_SHIFT) | (unsigned long)digits[1]) << PyLong_SHIFT) | (unsigned long)digits[0])))
+                        } else if (8 * sizeof(size_t) - 1 > 4 * PyLong_SHIFT) {
+                            return (size_t) ((((((((((size_t)digits[3]) << PyLong_SHIFT) | (size_t)digits[2]) << PyLong_SHIFT) | (size_t)digits[1]) << PyLong_SHIFT) | (size_t)digits[0])));
+                        }
+                    }
+                    break;
+            }
+#endif
+            if (sizeof(size_t) <= sizeof(long)) {
+                __PYX_VERIFY_RETURN_INT_EXC(size_t, long, PyLong_AsLong(x))
+#ifdef HAVE_LONG_LONG
+            } else if (sizeof(size_t) <= sizeof(PY_LONG_LONG)) {
+                __PYX_VERIFY_RETURN_INT_EXC(size_t, PY_LONG_LONG, PyLong_AsLongLong(x))
+#endif
+            }
+        }
+        {
+#if CYTHON_COMPILING_IN_PYPY && !defined(_PyLong_AsByteArray)
+            PyErr_SetString(PyExc_RuntimeError,
+                            "_PyLong_AsByteArray() not available in PyPy, cannot convert large numbers");
+#else
+            size_t val;
+            PyObject *v = __Pyx_PyNumber_IntOrLong(x);
+ #if PY_MAJOR_VERSION < 3
+            if (likely(v) && !PyLong_Check(v)) {
+                PyObject *tmp = v;
+                v = PyNumber_Long(tmp);
+                Py_DECREF(tmp);
+            }
+ #endif
+            if (likely(v)) {
+                int one = 1; int is_little = (int)*(unsigned char *)&one;
+                unsigned char *bytes = (unsigned char *)&val;
+                int ret = _PyLong_AsByteArray((PyLongObject *)v,
+                                              bytes, sizeof(val),
+                                              is_little, !is_unsigned);
+                Py_DECREF(v);
+                if (likely(!ret))
+                    return val;
+            }
+#endif
+            return (size_t) -1;
+        }
+    } else {
+        size_t val;
+        PyObject *tmp = __Pyx_PyNumber_IntOrLong(x);
+        if (!tmp) return (size_t) -1;
+        val = __Pyx_PyInt_As_size_t(tmp);
+        Py_DECREF(tmp);
+        return val;
+    }
+raise_overflow:
+    PyErr_SetString(PyExc_OverflowError,
+        "value too large to convert to size_t");
+    return (size_t) -1;
+raise_neg_overflow:
+    PyErr_SetString(PyExc_OverflowError,
+        "can't convert negative value to size_t");
+    return (size_t) -1;
 }
 
 /* CIntToPy */

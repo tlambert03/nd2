@@ -6,11 +6,11 @@ def test_new_sdk():
     fh = latest.open("tests/data/dims_p2z5t3-2c4y32x32.nd2")
     assert fh
 
-    assert isinstance(latest.get_attributes(fh), str)
-    assert isinstance(latest.get_metadata(fh), str)
-    assert isinstance(latest.get_frame_metadata(fh, 0), str)
-    assert isinstance(latest.get_textinfo(fh), str)
-    assert isinstance(latest.get_experiment(fh), str)
+    assert isinstance(latest.get_attributes(fh), dict)
+    assert isinstance(latest.get_metadata(fh), dict)
+    assert isinstance(latest.get_frame_metadata(fh, 0), dict)
+    assert isinstance(latest.get_text_info(fh), dict)
+    assert isinstance(latest.get_experiment(fh), list)
 
     assert isinstance(latest.get_seq_count(fh), int)
     assert isinstance(latest.get_seq_index_from_coords(fh, (0, 1, 2)), int)
@@ -31,9 +31,9 @@ def test_old_sdk():
     assert isinstance(v9.get_attributes(fh), dict)
     assert isinstance(v9.get_metadata(fh), dict)
     # assert isinstance(v9.get_frame_metadata(fh, 0), str)
-    assert isinstance(v9.get_textinfo(fh), dict)
+    assert isinstance(v9.get_text_info(fh), dict)
     assert isinstance(v9.get_experiment(fh), dict)
-
+    assert isinstance(v9.get_stage_coords(fh), tuple)
     assert isinstance(v9.get_seq_count(fh), int)
     assert isinstance(v9.get_seq_index_from_coords(fh, (0, 1)), int)
 

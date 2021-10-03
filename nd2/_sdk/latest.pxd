@@ -1,5 +1,3 @@
-import json
-
 from libc.stddef cimport wchar_t
 
 from .picture cimport LIMPICTURE
@@ -63,14 +61,3 @@ LIM_ERR_CODE = {
     -18: 'LIM_ERR_PRIVILEGES',
     -19: 'LIM_ERR_VERSION',
 }
-
-
-
-
-cdef inline dict _loads(LIMSTR string):
-    if not string:
-        return {}
-    try:
-        return json.loads(string)
-    finally:
-        Lim_FileFreeString(string)

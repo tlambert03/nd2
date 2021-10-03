@@ -1,76 +1,57 @@
-from libc.stdint cimport intptr_t
+import json
+
+from libc.stdint cimport uintptr_t
 from libc.stdlib cimport free, malloc
 
 from .picture cimport PicWrapper, nullpic
 
 
 def open(file_name: str):
-    return <intptr_t> Lim_FileOpenForReadUtf8(file_name)
+    return <uintptr_t> Lim_FileOpenForReadUtf8(file_name)
 
 
-def close(fh: intptr_t):
+def close(fh: uintptr_t):
     Lim_FileClose(<void *>fh)
 
 
-def get_attributes(fh: intptr_t):
-    out = Lim_FileGetAttributes(<void *>fh)
-    if not out:
-        return ''
+cdef _loads(LIMSTR string, default=dict):
+    if not string:
+        return default()
     try:
-        return out
+        return json.loads(string)
     finally:
-        Lim_FileFreeString(out)
+        Lim_FileFreeString(string)
 
 
-def get_metadata(fh: intptr_t):
-    out = Lim_FileGetMetadata(<void *>fh)
-    if not out:
-        return ''
-    try:
-        return out
-    finally:
-        Lim_FileFreeString(out)
+def get_attributes(fh: uintptr_t):
+    return _loads(Lim_FileGetAttributes(<void *>fh))
 
 
-def get_frame_metadata(fh: intptr_t, seq_index: LIMUINT):
-    out = Lim_FileGetFrameMetadata(<void *>fh, seq_index)
-    if not out:
-        return ''
-    try:
-        return out
-    finally:
-        Lim_FileFreeString(out)
+def get_metadata(fh: uintptr_t):
+    return _loads(Lim_FileGetMetadata(<void *>fh))
 
 
-def get_textinfo(fh: intptr_t):
-    out = Lim_FileGetTextinfo(<void *>fh)
-    if not out:
-        return ''
-    try:
-        return out
-    finally:
-        Lim_FileFreeString(out)
+def get_frame_metadata(fh: uintptr_t, seq_index: LIMUINT):
+    return _loads(Lim_FileGetFrameMetadata(<void *>fh, seq_index))
 
 
-def get_experiment(fh: intptr_t):
-    out = Lim_FileGetExperiment(<void *>fh)
-    if not out:
-        return ''
-    try:
-        return out
-    finally:
-        Lim_FileFreeString(out)
+def get_text_info(fh: uintptr_t):
+    return _loads(Lim_FileGetTextinfo(<void *>fh))
 
 
-def get_seq_count(fh: intptr_t):
+def get_experiment(fh: uintptr_t):
+    return _loads(Lim_FileGetExperiment(<void *>fh), list)
+
+
+def get_seq_count(fh: uintptr_t):
     return Lim_FileGetSeqCount(<void *>fh)
 
 
-def get_coord_size(fh: intptr_t):
+def get_coord_size(fh: uintptr_t):
     return Lim_FileGetCoordSize(<void *>fh)
 
 
-def get_seq_index_from_coords(fh: intptr_t, coords: list | tuple):
+def get_seq_index_from_coords(fh: uintptr_t, coords: list | tuple):
 
     cdef LIMSIZE size = get_coord_size(fh)
     if size == 0:
@@ -96,7 +77,7 @@ def get_seq_index_from_coords(fh: intptr_t, coords: list | tuple):
         free(_coords)
 
 
-def get_coords_from_seq_index(fh: intptr_t, seq_index: LIMUINT):
+def get_coords_from_seq_index(fh: uintptr_t, seq_index: LIMUINT):
     cdef LIMSIZE size = get_coord_size(fh)
     if size == 0:
         return ()
@@ -112,7 +93,7 @@ def get_coords_from_seq_index(fh: intptr_t, seq_index: LIMUINT):
         free(output)
 
 
-def get_coord_info(fh: intptr_t, coord=-1):
+def get_coord_info(fh: uintptr_t, coord=None):
     cdef LIMCHAR loop_type[256]
     cdef LIMSIZE size = get_coord_size(fh)
     if size == 0:
@@ -133,7 +114,7 @@ def get_coord_info(fh: intptr_t, coord=-1):
     return (coord, loop_type, loop_size)
 
 
-cdef _validate_seq(fh: intptr_t, LIMUINT seq_index):
+cdef _validate_seq(fh: uintptr_t, LIMUINT seq_index):
     cdef LIMUINT seq_count = get_seq_count(fh)
     if seq_index >= seq_count:
         raise IndexError(
@@ -141,7 +122,7 @@ cdef _validate_seq(fh: intptr_t, LIMUINT seq_index):
         )
 
 
-def get_image(fh: intptr_t, LIMUINT seq_index=0):
+def get_image(fh: uintptr_t, LIMUINT seq_index=0):
     _validate_seq(fh, seq_index)
 
     cdef LIMPICTURE pic = nullpic()
@@ -154,3 +135,15 @@ def get_image(fh: intptr_t, LIMUINT seq_index=0):
     array_wrapper = PicWrapper()
     array_wrapper.set_pic(pic, Lim_DestroyPicture)
     return array_wrapper.to_ndarray()
+
+
+# put this in python land
+# cpdef tuple _voxel_size(self):
+#     meta = _loads(Lim_FileGetMetadata(self.hFile))
+#     if meta:
+#         ch = meta.get("channels")
+#         if ch:
+#             vol = ch[0].get('volume')
+#             if vol and 'axesCalibration' in vol:
+#                 return tuple(vol['axesCalibration'])
+#     return (None, None, None)

@@ -302,6 +302,6 @@ class FrameMetadata:
 
 
 class Coordinate(NamedTuple):
-    idx: int
+    index: int
     type: str
     size: int

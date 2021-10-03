@@ -3,12 +3,12 @@ from __future__ import annotations
 import mmap
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Literal, Union, overload
 
 import numpy as np
 
-# from . import _nd2file
 from ._chunkmap import read_chunkmap
+from ._util import open_nd2
 
 try:
     from functools import cached_property
@@ -16,13 +16,13 @@ except ImportError:
     cached_property = property  # type: ignore
 
 
+from .structures import Attributes, Coordinate, ExpLoop, Metadata
+
 if TYPE_CHECKING:
     from typing import Any, BinaryIO, Dict, List, Tuple
 
     import dask.array as da
     import xarray as xr
-
-    from .structures import Attributes, ExpLoop, Metadata
 
 
 Index = Union[int, slice]
@@ -53,7 +53,6 @@ class AXIS:
 
 
 class ND2File:
-    _rdr: _nd2file.ND2Reader
     _fh: BinaryIO
     _memmap: mmap.mmap
 
@@ -62,14 +61,6 @@ class ND2File:
     ) -> None:
         self._closed = True
         self._path = str(path)
-        try:
-            self._rdr = _nd2file.ND2Reader(self._path)
-        except OSError:
-            from ._util import is_old_format
-
-            if is_old_format(path):
-                raise NotImplementedError("Legacy file not yet supported")
-            raise OSError(f"Unable to read file: {path}")
 
         self.open()
         self._frame_map, self._meta_map = read_chunkmap(self._fh, fixup=True)
@@ -91,7 +82,7 @@ class ND2File:
     @cached_property
     def _coord_info(self):
         """simple info on each non-XYC coordinate"""
-        return self._rdr.coord_info()
+        return [Coordinate(*c) for c in self._sdk.get_coord_info(self._sdkfh)]
 
     @cached_property
     def _final_frame_shape(self) -> Tuple[int, ...]:
@@ -113,7 +104,7 @@ class ND2File:
 
     @cached_property
     def components_per_channel(self) -> int:
-        return self.attributes.componentCount // self.metadata().contents.channelCount
+        return self.attributes.componentCount // self.metadata.contents.channelCount
 
     @cached_property
     def size(self) -> int:
@@ -140,11 +131,20 @@ class ND2File:
         return self.attributes.componentCount // self.components_per_channel
 
     def voxel_size(self, channel=0) -> Tuple[float, float, float]:
-        return self._rdr._voxel_size()
+        meta = self.metadata
+        if meta:
+            ch = meta.channels
+            if ch:
+                vol = ch[0].volume
+                return tuple(vol.axesCalibration)
+        return (None, None, None)
 
     def asarray(self) -> np.ndarray:
-        arr = np.stack([self._get_frame(i) for i in range(self._rdr.seq_count())])
+        arr = np.stack([self._get_frame(i) for i in range(self._seq_count())])
         return arr.reshape(self.shape)
+
+    def _seq_count(self) -> int:
+        return self._sdk.get_seq_count(self._sdkfh)
 
     def to_dask(self) -> da.Array:
         from dask.array import map_blocks
@@ -165,7 +165,7 @@ class ND2File:
 
     def _get_frame(self, index, mode=None):
         mode = mode or self._read_mode  # TODO: protect this value
-        get_frame = self._sdk_data if mode == "sdk" else self._mmap_chunk
+        get_frame = self._image_from_sdk if mode == "sdk" else self._image_from_mmap
         frame = get_frame(index)
         frame.shape = (
             self.attributes.heightPx,
@@ -175,10 +175,12 @@ class ND2File:
         )
         return frame.transpose((2, 0, 1, 3)).squeeze()
 
-    def _dask_block(self, block_id: Tuple[int]):
+    def _dask_block(self, block_id: Tuple[int]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
             return
-        idx = self._rdr.seq_index_from_coords(block_id[: -len(self._final_frame_shape)])
+        idx = self._sdk.get_seq_index_from_coords(
+            self._sdkfh, block_id[: -len(self._final_frame_shape)]
+        )
         if idx == -1:
             if any(block_id):
                 raise ValueError(f"Cannot get chunk {block_id} for single frame image.")
@@ -194,7 +196,7 @@ class ND2File:
             coords=self._expand_coords(),
             attrs={
                 "metadata": {
-                    "metadata": self.metadata(),
+                    "metadata": self.metadata,
                     "experiment": self.experiment,
                     "attributes": self.attributes,
                     "text_info": self.text_info,
@@ -204,8 +206,8 @@ class ND2File:
 
     def _expand_coords(self) -> dict:
         """Return a dict that can be used as the coords argument to xr.DataArray"""
-        if self._rdr._is_legacy:
-            return {}
+        # if self._rdr._is_legacy:
+        #     return {}
 
         dx, dy, _ = self.voxel_size()
         coords = {
@@ -230,7 +232,7 @@ class ND2File:
                     for p in c.parameters.points
                 ]
         if self._n_true_channels > 1:
-            _channels = self.metadata().channels
+            _channels = self.metadata.channels
             coords[AXIS.CHANNEL] = [c.channel.name for c in _channels]
         if self.components_per_channel > 1:
             coords[AXIS.RGB] = ["Red", "Green", "Blue", "alpha"][
@@ -256,15 +258,14 @@ class ND2File:
 
     def open(self) -> None:
         if not self.is_open():
-            self._fh = open(self._path, "rb")
+            self._fh, self._sdkfh, self._sdk = open_nd2(self._path)
             self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
-            self._rdr.open()
             self._closed = False
 
     def close(self) -> None:
         if self.is_open():
             self._fh.close()
-            self._rdr.close()
+            self._sdk.close(self._sdkfh)
             self._closed = True
 
     def is_open(self) -> bool:
@@ -272,11 +273,11 @@ class ND2File:
 
     @cached_property
     def attributes(self) -> Attributes:
-        return self._rdr.attributes()
+        return Attributes(**self._sdk.get_attributes(self._sdkfh))
 
     @property
     def text_info(self) -> Dict[str, Any]:
-        return self._rdr.text_info()
+        return self._sdk.get_text_info(self._sdkfh)
 
     @cached_property
     def custom_data(self) -> Dict[str, Any]:
@@ -290,16 +291,19 @@ class ND2File:
 
     @cached_property
     def experiment(self) -> List[ExpLoop]:
-        return self._rdr.experiment()
+        from .structures import parse_experiment
 
-    def metadata(self, *args, **kwargs) -> Metadata:
-        return self._rdr.metadata(*args, **kwargs)  # type: ignore  # FIXME
+        return parse_experiment(self._sdk.get_experiment(self._sdkfh))
 
-    def _sdk_data(self, index: int) -> np.ndarray:
+    @cached_property
+    def metadata(self) -> Metadata:
+        return Metadata(**self._sdk.get_metadata(self._sdkfh))
+
+    def _image_from_sdk(self, index: int) -> np.ndarray:
         """Read a chunk using the SDK"""
-        return self._rdr.data(index)
+        return self._sdk.get_image(self._sdkfh, index)
 
-    def _mmap_chunk(self, index: int) -> np.ndarray:
+    def _image_from_mmap(self, index: int) -> np.ndarray:
         """Read a chunk directly without using SDK"""
         if index not in self._safe_frames:
             raise IndexError(f"Frame out of range: {index}")
@@ -330,11 +334,12 @@ class ND2File:
         bypc = a.bitsPerComponentInMemory // 8
         return a.widthBytes - (bypc * a.widthPx * a.componentCount)  # type: ignore
 
-    def _missing_frame(self, index: int = 0):
+    def _missing_frame(self, index: int = 0) -> np.ndarray:
+        # TODO: add other modes for filling missing data
         a = self.attributes
         return np.ndarray((a.heightPx, a.widthPx, a.componentCount), self.dtype)
 
-    def _get_meta_chunk(self, key):
+    def _get_meta_chunk(self, key: str) -> bytes:
         from ._chunkmap import read_chunk
 
         try:
@@ -347,7 +352,23 @@ class ND2File:
         return read_chunk(self._fh, pos)
 
 
-def imread(file: str = None) -> np.ndarray:
-    with ND2File(str(file)) as nd2:
-        arr = nd2.asarray()
-    return arr
+# fmt: off
+@overload
+def imread(  # type: ignore
+    file: str, dask: Literal[False]=False, xarray: Literal[False]=False
+) -> np.ndarray:...
+@overload
+def imread(file: str, dask: bool = ..., xarray: Literal[True]=True) -> xr.DataArray:...
+@overload
+def imread(file: str, dask: Literal[True]=..., xarray=False) -> da.Array:...
+# fmt: on
+
+
+def imread(file: str, dask: bool = False, xarray: bool = False):
+    with ND2File(file) as nd2:
+        if xarray:
+            return nd2.to_xarray(delayed=dask)
+        elif dask:
+            return nd2.to_dask()
+        else:
+            return nd2.asarray()

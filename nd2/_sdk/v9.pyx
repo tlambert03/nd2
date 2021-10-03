@@ -39,7 +39,7 @@ def get_metadata(fh: int):
 #         Lim_FileFreeString(out)
 
 
-def get_textinfo(fh: int):
+def get_text_info(fh: int):
     cdef LIMTEXTINFO info
     _rescheck(Lim_FileGetTextinfo(fh, &info))
     return info
@@ -157,6 +157,55 @@ def get_image(fh: int, seq_index: LIMUINT=0):
     return array_wrapper.to_ndarray()
 
 
+def get_stage_coords(fh):
+    cdef unsigned int n = 0
+    cdef LIMEXPERIMENT exp
+    _rescheck(Lim_FileGetExperiment(fh, &exp))
+    for i in range(exp.uiLevelCount):
+        e = exp.pAllocatedLevels[i]
+        if e.uiExpType == 1:  # XY loop
+            n = e.uiLoopSize
+            break
+    if n == 0:
+        return ()
+
+    cdef LIMUINT *puiSeqIdx = <LIMUINT *> malloc(n * sizeof(LIMUINT))
+    cdef LIMUINT *puiXPos = <LIMUINT *> malloc(n * sizeof(LIMUINT))
+    cdef LIMUINT *puiYPos = <LIMUINT *> malloc(n * sizeof(LIMUINT))
+    cdef double *pdXPos = <double *> malloc(n * sizeof(double))
+    cdef double *pdYPos = <double *> malloc(n * sizeof(double))
+    cdef double *pdZPos = <double *> malloc(n * sizeof(double))
+    if not puiSeqIdx and puiXPos and puiYPos and pdXPos and pdYPos and pdZPos:
+        raise MemoryError()
+
+    for i in range(n):
+        puiSeqIdx[i] = i
+        puiXPos[i] = 0
+        puiYPos[i] = 0
+        pdXPos[i] = 0
+        pdYPos[i] = 0
+        pdZPos[i] = 0
+
+    try:
+        _rescheck(Lim_GetStageCoordinates(
+            fh, n,
+            puiSeqIdx, puiXPos, puiYPos,
+            pdXPos, pdYPos, pdZPos, 0
+        ))
+
+        out = []
+        for i in range(n):
+            # TODO: make StagePosition object
+            out.append((pdXPos[i], pdYPos[i], pdZPos[i]))
+        return tuple(out)
+
+    finally:
+        free(puiSeqIdx)
+        free(puiXPos)
+        free(puiYPos)
+        free(pdXPos)
+        free(pdYPos)
+        free(pdZPos)
 
 def get_zstack_home(fh: int) -> int:
     return Lim_GetZStackHome(fh)
@@ -202,3 +251,21 @@ cdef void _rescheck(LIMRESULT result):
         msg = 'An error occured.'
         code = _LIM_ERR_CODE.get(result, str(result))
         raise RuntimeError('%s %s' % (msg, code))
+
+# put this in python land
+# cpdef tuple _voxel_size(self):
+#     cdef LIMMETADATA_DESC meta
+#     cdef LIMEXPERIMENT exp
+
+#     if not Lim_FileGetMetadata(self.hFile, &meta):
+#         xy = meta.dCalibration
+#     else:
+#         xy = 1.0
+
+#     z = 1.0
+#     if Lim_FileGetExperiment(self.hFile, &exp):
+#         for e in exp.pAllocatedLevels:
+#             if e.uiExpType == 2:  # Z stack loop
+#                 z = e.uiLoopSize
+#                 break
+#     return (xy, xy, z)

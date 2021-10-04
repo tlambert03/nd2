@@ -37,27 +37,3 @@ cdef extern from "Nd2ReadSdk.h":
     void      Lim_DestroyPicture(LIMPICTURE* pPicture)
 
     void      Lim_FileFreeString(LIMSTR str)
-
-
-LIM_ERR_CODE = {
-    0: 'LIM_OK',
-    -1: 'LIM_ERR_UNEXPECTED',
-    -2: 'LIM_ERR_NOTIMPL',  # NotImplementedError
-    -3: 'LIM_ERR_OUTOFMEMORY',  # MemoryError
-    -4: 'LIM_ERR_INVALIDARG',
-    -5: 'LIM_ERR_NOINTERFACE',
-    -6: 'LIM_ERR_POINTER',
-    -7: 'LIM_ERR_HANDLE',
-    -8: 'LIM_ERR_ABORT',
-    -9: 'LIM_ERR_FAIL',
-    -10: 'LIM_ERR_ACCESSDENIED',
-    -11: 'LIM_ERR_OS_FAIL',  # OSError
-    -12: 'LIM_ERR_NOTINITIALIZED',
-    -13: 'LIM_ERR_NOTFOUND',
-    -14: 'LIM_ERR_IMPL_FAILED',
-    -15: 'LIM_ERR_DLG_CANCELED',
-    -16: 'LIM_ERR_DB_PROC_FAILED',
-    -17: 'LIM_ERR_OUTOFRANGE',  # IndexError
-    -18: 'LIM_ERR_PRIVILEGES',
-    -19: 'LIM_ERR_VERSION',
-}

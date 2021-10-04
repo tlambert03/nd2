@@ -5,13 +5,185 @@ from libc.stdlib cimport free, malloc
 
 from .picture cimport PicWrapper, nullpic
 
+from pathlib import Path
+from typing import List, Sequence, Tuple
 
-def open(file_name: str):
-    return <uintptr_t> Lim_FileOpenForReadUtf8(file_name)
+import numpy as np
 
 
-def close(fh: uintptr_t):
-    Lim_FileClose(<void *>fh)
+cdef class ND2Reader:
+
+    cdef LIMFILEHANDLE _fh
+    cdef public str path
+    cdef bint _is_open
+
+    def __cinit__(self, path: str | Path):
+        self._is_open = 0
+        self._fh = NULL
+        self.path = str(path)
+        self.open()
+
+    cpdef open(self):
+        if not self._is_open:
+            self._fh = Lim_FileOpenForReadUtf8(self.path)
+            if not self._fh:
+                raise OSError("Could not open file: %s" % self.path)
+            self._is_open = 1
+
+    cpdef close(self):
+        if self._is_open:
+            Lim_FileClose(self._fh)
+            self._is_open = 0
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    cpdef dict _attributes(self):
+        return _loads(Lim_FileGetAttributes(self._fh))
+
+    def _metadata(self) -> dict:
+        return _loads(Lim_FileGetMetadata(self._fh))
+
+    def _frame_metadata(self, seq_index: int) -> dict:
+        return _loads(Lim_FileGetFrameMetadata(self._fh, seq_index))
+
+    def _text_info(self) -> dict:
+        return _loads(Lim_FileGetTextinfo(self._fh))
+
+    def _description(self) -> str:
+        return self._text_info().get("description", '')
+
+    def _experiment(self):
+        return _loads(Lim_FileGetExperiment(self._fh), list)
+
+    cpdef dict sizes(self):
+        attrs = self._attributes()
+        from .._util import AXIS, dims_from_description
+
+        # often, the 'Description' field in textinfo is the best source of dimension
+        # (dims are strangely missing from coord_info sometimes)
+        # so we start there, and fall back to coord_info if ddims are empty
+        ddims = dims_from_description(self._description())
+        # dims from coord info
+        cdims = {AXIS._MAP[c[1]]: c[2] for c in self._coord_info()}
+
+        # prefer the value in coord info if it exists. (it's usually more accurate)
+        if ddims:
+            dims = {k: cdims.get(k, v) for k, v in ddims.items()}
+        else:
+            dims = cdims
+
+        if "C" in dims:
+            dims['C'] = dims.pop("C")
+        else:
+            dims['C'] = self._metadata().get("contents", {}).get("channelCount", 1)
+        dims['Y'] = attrs.get("heightPx")
+        dims['X'] = attrs.get("widthPx")
+        compPerC = attrs['componentCount'] // dims['C']
+        if compPerC == 3:  # rgb
+            dims['c'] = compPerC
+        else:
+            # if not exactly 3 channels, throw them all into monochrome channels
+            dims['C'] = attrs['componentCount']
+        return dims
+
+    cpdef LIMUINT _seq_count(self):
+        return Lim_FileGetSeqCount(self._fh)
+
+    cpdef LIMSIZE _coord_size(self):
+        return Lim_FileGetCoordSize(self._fh)
+
+    cdef _pycoord_sizes(self):
+        return [v for k, v in self.sizes().items() if k not in "CYXc"]
+
+    def _pycoords_from_seq_index(self, seq_index: int) -> tuple:
+        sizes = self._pycoord_sizes()
+        if not sizes:
+            return ()
+        return np.unravel_index(seq_index, sizes)
+
+    def _seq_index_from_pycoords(self, coords: Sequence) -> int:
+        """alternate to _seq_index_from_coords Using coords from sizes."""
+        sizes = self._pycoord_sizes()
+        if not sizes:
+            return -1
+        return np.ravel_multi_index(coords, sizes)
+
+    def _seq_index_from_coords(self, coords: Sequence) -> int:
+        cdef LIMSIZE size = self._coord_size()
+        if size == 0:
+            return -1
+
+        cdef LIMSIZE n = len(coords)
+        if n != size:
+            raise ValueError("Coords must be length: %d" % size)
+
+        cdef LIMUINT seq_index = -1
+        cdef LIMUINT *_coords
+        _coords = <LIMUINT *>malloc(n * sizeof(LIMUINT))
+        if not _coords:
+            raise MemoryError()
+        for i in range(n):
+            _coords[i] = coords[i]
+
+        try:
+            if not Lim_FileGetSeqIndexFromCoords(self._fh, &_coords[0], n, &seq_index):
+                raise ValueError("Coordinate %r has no sequence index" % (coords,))
+            return seq_index
+        finally:
+            free(_coords)
+
+    def _coords_from_seq_index(self, seq_index: int) -> tuple:
+        cdef LIMSIZE size = self._coord_size()
+        if size == 0:
+            return ()
+
+        cdef LIMUINT *output = <LIMUINT *> malloc(size * sizeof(LIMUINT))
+        if not output:
+            raise MemoryError()
+
+        try:
+            Lim_FileGetCoordsFromSeqIndex(self._fh, seq_index, output, size)
+            return tuple([x for x in output[:size]])
+        finally:
+            free(output)
+
+    def _coord_info(self) -> List[Tuple[int, str, int]]:
+        cdef LIMCHAR loop_type[256]
+        cdef LIMSIZE size = self._coord_size()
+        if size == 0:
+            return []
+
+        out = []
+        for i in range(size):
+            loop_size = Lim_FileGetCoordInfo(self._fh, i, loop_type, 256)
+            out.append((i, loop_type, loop_size))
+        return out
+
+    cdef _validate_seq(self, LIMUINT seq_index):
+        cdef LIMUINT seq_count = self._seq_count()
+        if seq_index >= seq_count:
+            raise IndexError(
+                "Sequence %d out of range (sequence count: %d)" % (seq_index, seq_count)
+            )
+
+    def _image(self, LIMUINT seq_index):
+        self._validate_seq(seq_index)
+
+        cdef LIMPICTURE pic = nullpic()
+        cdef LIMRESULT result = Lim_FileGetImageData(self._fh, seq_index, &pic)
+
+        if result != 0:
+            error = LIM_ERR_CODE[result]
+            raise RuntimeError('Error retrieving image data: %s' % error)
+
+        array_wrapper = PicWrapper()
+        array_wrapper.set_pic(pic, Lim_DestroyPicture)
+        return array_wrapper.to_ndarray()
+
 
 
 cdef _loads(LIMSTR string, default=dict):
@@ -23,127 +195,148 @@ cdef _loads(LIMSTR string, default=dict):
         Lim_FileFreeString(string)
 
 
-def get_attributes(fh: uintptr_t):
-    return _loads(Lim_FileGetAttributes(<void *>fh))
+
+LIM_ERR_CODE = {
+    0: 'LIM_OK',
+    -1: 'LIM_ERR_UNEXPECTED',
+    -2: 'LIM_ERR_NOTIMPL',  # NotImplementedError
+    -3: 'LIM_ERR_OUTOFMEMORY',  # MemoryError
+    -4: 'LIM_ERR_INVALIDARG',
+    -5: 'LIM_ERR_NOINTERFACE',
+    -6: 'LIM_ERR_POINTER',
+    -7: 'LIM_ERR_HANDLE',
+    -8: 'LIM_ERR_ABORT',
+    -9: 'LIM_ERR_FAIL',
+    -10: 'LIM_ERR_ACCESSDENIED',
+    -11: 'LIM_ERR_OS_FAIL',  # OSError
+    -12: 'LIM_ERR_NOTINITIALIZED',
+    -13: 'LIM_ERR_NOTFOUND',
+    -14: 'LIM_ERR_IMPL_FAILED',
+    -15: 'LIM_ERR_DLG_CANCELED',
+    -16: 'LIM_ERR_DB_PROC_FAILED',
+    -17: 'LIM_ERR_OUTOFRANGE',  # IndexError
+    -18: 'LIM_ERR_PRIVILEGES',
+    -19: 'LIM_ERR_VERSION',
+}
 
 
-def get_metadata(fh: uintptr_t):
-    return _loads(Lim_FileGetMetadata(<void *>fh))
+
+# def open(file_name: str):
+#     return <uintptr_t> Lim_FileOpenForReadUtf8(file_name)
 
 
-def get_frame_metadata(fh: uintptr_t, seq_index: LIMUINT):
-    return _loads(Lim_FileGetFrameMetadata(<void *>fh, seq_index))
+# def close(fh: uintptr_t):
+#     Lim_FileClose(<void *>fh)
+
+# def get_attributes(fh: uintptr_t):
+#     return _loads(Lim_FileGetAttributes(<void *>fh))
 
 
-def get_text_info(fh: uintptr_t):
-    return _loads(Lim_FileGetTextinfo(<void *>fh))
+# def get_metadata(fh: uintptr_t):
+#     return _loads(Lim_FileGetMetadata(<void *>fh))
 
 
-def get_experiment(fh: uintptr_t):
-    return _loads(Lim_FileGetExperiment(<void *>fh), list)
+# def get_frame_metadata(fh: uintptr_t, seq_index: LIMUINT):
+#     return _loads(Lim_FileGetFrameMetadata(<void *>fh, seq_index))
 
 
-def get_seq_count(fh: uintptr_t):
-    return Lim_FileGetSeqCount(<void *>fh)
+# def get_text_info(fh: uintptr_t):
+#     return _loads(Lim_FileGetTextinfo(<void *>fh))
 
 
-def get_coord_size(fh: uintptr_t):
-    return Lim_FileGetCoordSize(<void *>fh)
+# def get_experiment(fh: uintptr_t):
+#     return _loads(Lim_FileGetExperiment(<void *>fh), list)
 
 
-def get_seq_index_from_coords(fh: uintptr_t, coords: list | tuple):
-
-    cdef LIMSIZE size = get_coord_size(fh)
-    if size == 0:
-        return -1
-
-    cdef LIMSIZE n = len(coords)
-    if n != size:
-        raise ValueError("Coords must be length: %d" % size)
-
-    cdef LIMUINT seq_index = -1
-    cdef LIMUINT *_coords
-    _coords = <LIMUINT *>malloc(n * sizeof(LIMUINT))
-    if not _coords:
-        raise MemoryError()
-    for i in range(n):
-        _coords[i] = coords[i]
-
-    try:
-        if not Lim_FileGetSeqIndexFromCoords(<void *>fh, &_coords[0], n, &seq_index):
-            raise ValueError("Coordinate %r has no sequence index" % coords)
-        return seq_index
-    finally:
-        free(_coords)
+# def get_seq_count(fh: uintptr_t):
+#     return Lim_FileGetSeqCount(<void *>fh)
 
 
-def get_coords_from_seq_index(fh: uintptr_t, seq_index: LIMUINT):
-    cdef LIMSIZE size = get_coord_size(fh)
-    if size == 0:
-        return ()
-
-    cdef LIMUINT *output = <LIMUINT *> malloc(size * sizeof(LIMUINT))
-    if not output:
-        raise MemoryError()
-
-    try:
-        Lim_FileGetCoordsFromSeqIndex(<void *>fh, seq_index, output, size)
-        return tuple([x for x in output[:size]])
-    finally:
-        free(output)
+# def get_coord_size(fh: uintptr_t):
+#     return Lim_FileGetCoordSize(<void *>fh)
 
 
-def get_coord_info(fh: uintptr_t, coord=None):
-    cdef LIMCHAR loop_type[256]
-    cdef LIMSIZE size = get_coord_size(fh)
-    if size == 0:
-        return []
-    if coord is None or coord < 0:
-        out = []
-        for i in range(size):
-            loop_size = Lim_FileGetCoordInfo(<void *>fh, i, loop_type, 256)
-            out.append((i, loop_type, loop_size))
-        return out
+# def get_seq_index_from_coords(fh: uintptr_t, coords: list | tuple):
 
-    if coord >= size:
-        raise IndexError(
-            "coord index %r too large for file with %d coords" % (coord, size)
-        )
+#     cdef LIMSIZE size = get_coord_size(fh)
+#     if size == 0:
+#         return -1
 
-    loop_size = Lim_FileGetCoordInfo(<void *>fh, coord, loop_type, 256)
-    return (coord, loop_type, loop_size)
+#     cdef LIMSIZE n = len(coords)
+#     if n != size:
+#         raise ValueError("Coords must be length: %d" % size)
 
+#     cdef LIMUINT seq_index = -1
+#     cdef LIMUINT *_coords
+#     _coords = <LIMUINT *>malloc(n * sizeof(LIMUINT))
+#     if not _coords:
+#         raise MemoryError()
+#     for i in range(n):
+#         _coords[i] = coords[i]
 
-cdef _validate_seq(fh: uintptr_t, LIMUINT seq_index):
-    cdef LIMUINT seq_count = get_seq_count(fh)
-    if seq_index >= seq_count:
-        raise IndexError(
-            "Sequence %d out of range (sequence count: %d)" % (seq_index, seq_count)
-        )
+#     try:
+#         if not Lim_FileGetSeqIndexFromCoords(<void *>fh, &_coords[0], n, &seq_index):
+#             raise ValueError("Coordinate %r has no sequence index" % (coords,))
+#         return seq_index
+#     finally:
+#         free(_coords)
 
 
-def get_image(fh: uintptr_t, LIMUINT seq_index=0):
-    _validate_seq(fh, seq_index)
+# def get_coords_from_seq_index(fh: uintptr_t, seq_index: LIMUINT):
+#     cdef LIMSIZE size = get_coord_size(fh)
+#     if size == 0:
+#         return ()
 
-    cdef LIMPICTURE pic = nullpic()
-    cdef LIMRESULT result = Lim_FileGetImageData(<void *>fh, seq_index, &pic)
+#     cdef LIMUINT *output = <LIMUINT *> malloc(size * sizeof(LIMUINT))
+#     if not output:
+#         raise MemoryError()
 
-    if result != 0:
-        error = LIM_ERR_CODE[result]
-        raise RuntimeError('Error retrieving image data: %s' % error)
-
-    array_wrapper = PicWrapper()
-    array_wrapper.set_pic(pic, Lim_DestroyPicture)
-    return array_wrapper.to_ndarray()
+#     try:
+#         Lim_FileGetCoordsFromSeqIndex(<void *>fh, seq_index, output, size)
+#         return tuple([x for x in output[:size]])
+#     finally:
+#         free(output)
 
 
-# put this in python land
-# cpdef tuple _voxel_size(self):
-#     meta = _loads(Lim_FileGetMetadata(self.hFile))
-#     if meta:
-#         ch = meta.get("channels")
-#         if ch:
-#             vol = ch[0].get('volume')
-#             if vol and 'axesCalibration' in vol:
-#                 return tuple(vol['axesCalibration'])
-#     return (None, None, None)
+# def get_coord_info(fh: uintptr_t, coord=None):
+#     cdef LIMCHAR loop_type[256]
+#     cdef LIMSIZE size = get_coord_size(fh)
+#     if size == 0:
+#         return []
+#     if coord is None or coord < 0:
+#         out = []
+#         for i in range(size):
+#             loop_size = Lim_FileGetCoordInfo(<void *>fh, i, loop_type, 256)
+#             out.append((i, loop_type, loop_size))
+#         return out
+
+#     if coord >= size:
+#         raise IndexError(
+#             "coord index %r too large for file with %d coords" % (coord, size)
+#         )
+
+#     loop_size = Lim_FileGetCoordInfo(<void *>fh, coord, loop_type, 256)
+#     return (coord, loop_type, loop_size)
+
+
+# cdef _validate_seq(fh: uintptr_t, LIMUINT seq_index):
+#     cdef LIMUINT seq_count = get_seq_count(fh)
+#     if seq_index >= seq_count:
+#         raise IndexError(
+#             "Sequence %d out of range (sequence count: %d)" % (seq_index, seq_count)
+#         )
+
+
+# def get_image(fh: uintptr_t, LIMUINT seq_index=0):
+#     # _validate_seq(fh, seq_index)
+
+#     cdef LIMPICTURE pic = nullpic()
+#     cdef LIMRESULT result = Lim_FileGetImageData(<void *>fh, seq_index, &pic)
+
+#     if result != 0:
+#         error = LIM_ERR_CODE[result]
+#         raise RuntimeError('Error retrieving image data: %s' % error)
+
+#     array_wrapper = PicWrapper()
+#     array_wrapper.set_pic(pic, Lim_DestroyPicture)
+#     return array_wrapper.to_ndarray()

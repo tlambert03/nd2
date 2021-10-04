@@ -30,6 +30,7 @@ class Attributes(NamedTuple):
     compressionType: Optional[str] = None
     tileHeightPx: Optional[int] = None
     tileWidthPx: Optional[int] = None
+    channelCount: Optional[int] = None
 
 
 class ImageInfo(NamedTuple):
@@ -188,12 +189,14 @@ LoopParams = Union[TimeLoopParams, NETimeLoopParams, XYPosLoopParams, ZStackLoop
 
 @dataclass
 class Metadata:
-    contents: Contents
-    channels: List[Channel]
+    contents: Optional[Contents] = None
+    channels: Optional[List[Channel]] = None
 
     def __post_init__(self):
-        self.contents = Contents(**self.contents)
-        self.channels = [Channel(**i) for i in self.channels]
+        if self.contents:
+            self.contents = Contents(**self.contents)
+        if self.channels:
+            self.channels = [Channel(**i) for i in self.channels]
 
 
 @dataclass
@@ -258,9 +261,9 @@ class Volume:
     cameraTransformationMatrix: Tuple[float, float, float, float]
     componentCount: int
     componentDataType: Union[Literal["unsigned"], Literal["float"]]
-    componentMaxima: List[float]
-    componentMinima: List[float]
     voxelCount: Tuple[int, int, int]
+    componentMaxima: Optional[List[float]] = None
+    componentMinima: Optional[List[float]] = None
     pixelToStageTransformationMatrix: Optional[
         Tuple[float, float, float, float, float, float]
     ] = None

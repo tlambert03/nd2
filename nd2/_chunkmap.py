@@ -97,8 +97,8 @@ def read_chunkmap(file, fixup=True):
             else:
                 meta_map[name[:-1].decode("ascii")] = position
             pos = p + 16
-    if fixup:
-        return _fix_frames(fh, image_map), meta_map
+        if fixup:
+            return _fix_frames(fh, image_map), meta_map
     return image_map, meta_map
 
 

@@ -1,13 +1,14 @@
 cimport numpy as np
 
 ctypedef struct LIMPICTURE:
-    unsigned int  uiWidth;             # !< Width (in pixels) of the picture
-    unsigned int  uiHeight;            # !< Height (in pixels) of the picture
-    unsigned int  uiBitsPerComp;       # !< Number of bits for each component
-    unsigned int  uiComponents;        # !< Number of components in each pixel
-    size_t        uiWidthBytes;        # !< Number of bytes for each pixel line (stride); aligned to 4bytes
-    size_t        uiSize;              # !< Number of bytes the image occupies
-    void*         pImageData;          # !< Image data
+    unsigned int  uiWidth             # !< Width (in pixels) of the picture
+    unsigned int  uiHeight            # !< Height (in pixels) of the picture
+    unsigned int  uiBitsPerComp       # !< Number of bits for each component
+    unsigned int  uiComponents        # !< Number of components in each pixel
+    size_t        uiWidthBytes        # !< Number of bytes for each pixel line (stride); aligned to 4bytes
+    size_t        uiSize              # !< Number of bytes the image occupies
+    void*         pImageData          # !< Image data
+
 
 cdef inline LIMPICTURE nullpic():
     cdef LIMPICTURE p
@@ -19,6 +20,7 @@ cdef inline LIMPICTURE nullpic():
     p.uiSize = 0
     p.pImageData = NULL
     return p
+
 
 ctypedef void (*destroyer_t)(LIMPICTURE*)
 

@@ -2,33 +2,33 @@ import io
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Tuple, Union
-
-if TYPE_CHECKING:
-    from ._sdk import FileHandle, SDKModule
+from typing import Tuple, Union
+from ._sdk import latest
 
 NEW_HEADER_MAGIC_NUM = 0x0ABECEDA
 OLD_HEADER_MAGIC_NUM = 0x0C000000
 VERSION = re.compile(r"^ND2 FILE SIGNATURE CHUNK NAME01!Ver([\d\.]+)$")
 
 
-def open_nd2(path: str) -> Tuple[io.BufferedReader, "FileHandle", "SDKModule"]:
+def open_nd2(path: str) -> Tuple[io.BufferedReader, latest.ND2Reader]:
     fh = open(path, "rb")
     magic_num = fh.read(4)
     try:
         if magic_num == b"\xda\xce\xbe\n":
-            from ._sdk import latest
 
-            lim_fh = latest.open(path)
-            return fh, lim_fh, latest  # type: ignore
+            rdr = latest.ND2Reader(path)
+            return fh, rdr  # type: ignore
         elif magic_num == b"\x00\x00\x00\x0c":
             from ._sdk import v9
 
             lim_fh = v9.open(path)
-            return fh, lim_fh, v9  # type: ignore
-    except Exception:
+            return fh, lim_fh  # type: ignore
+    except Exception as e:
         fh.close()
-    raise OSError(f"file {path} not recognized as ND2.  First 4 bytes: {magic_num!r}")
+        t = e
+    raise OSError(
+        f"file {path} not recognized as ND2.  First 4 bytes: {magic_num!r}: {t}"
+    )
 
 
 def is_new_format(path: str) -> bool:
@@ -58,3 +58,35 @@ def jdn_to_datetime_utc(jdn):
 
 def rgb_int_to_tuple(rgb):
     return ((rgb & 255), (rgb >> 8 & 255), (rgb >> 16 & 255))
+
+
+DIMSIZE = re.compile(r"(\w+)'?\((\d+)\)")
+
+
+def dims_from_description(desc) -> dict:
+    match = re.search(r"Dimensions:\s?([^\r]+)\r?\n", desc)
+    if not match:
+        return {}
+    dims = match.groups()[0]
+    dims = dims.replace("λ", "C")
+    dims = dims.replace("XY", "S")
+    return {k: int(v) for k, v in DIMSIZE.findall(dims)}
+
+
+class AXIS:
+    X = "X"
+    Y = "Y"
+    Z = "Z"
+    CHANNEL = "C"
+    RGB = "c"
+    TIME = "T"
+    POSITION = "S"
+    UNKNOWN = "U"
+
+    _MAP = {
+        "Unknown": UNKNOWN,
+        "TimeLoop": TIME,
+        "XYPosLoop": POSITION,
+        "ZStackLoop": Z,
+        "NETimeLoop": TIME,
+    }

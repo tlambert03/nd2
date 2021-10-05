@@ -3,13 +3,22 @@ from __future__ import annotations
 import mmap
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional, Sequence, Union, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Optional,
+    Sequence,
+    Set,
+    Union,
+    cast,
+    overload,
+)
 
 import numpy as np
 
 from ._chunkmap import read_chunkmap
 from ._util import AXIS, open_nd2
-from .structures import Attributes, ExpLoop, Metadata, Volume
+from .structures import Attributes, ExpLoop, Metadata, Volume, parse_experiment
 
 try:
     from functools import cached_property
@@ -92,8 +101,6 @@ class ND2File:
 
     @cached_property
     def experiment(self) -> List[ExpLoop]:
-        from .structures import parse_experiment
-
         return parse_experiment(self._rdr._experiment())
 
     @cached_property
@@ -119,7 +126,7 @@ class ND2File:
         return self._coord_shape + self._frame_shape
 
     @cached_property
-    def sizes(self):
+    def sizes(self) -> Dict[str, int]:
         attrs = cast(Attributes, self.attributes)
         from ._util import AXIS, dims_from_description
 
@@ -133,101 +140,19 @@ class ND2File:
         # prefer the value in coord info if it exists. (it's usually more accurate)
         dims = {k: cdims.get(k, v) for k, v in ddims.items()} if ddims else cdims
 
-        dims["C"] = dims.pop("C") if "C" in dims else (attrs.channelCount or 1)
-        dims["Y"] = attrs.heightPx
-        dims["X"] = attrs.widthPx or -1
+        dims[AXIS.CHANNEL] = (
+            dims.pop(AXIS.CHANNEL)
+            if AXIS.CHANNEL in dims
+            else (attrs.channelCount or 1)
+        )
+        dims[AXIS.Y] = attrs.heightPx
+        dims[AXIS.X] = attrs.widthPx or -1
         if self.components_per_channel == 3:  # rgb
-            dims["c"] = self.components_per_channel
+            dims[AXIS.RGB] = self.components_per_channel
         else:
             # if not exactly 3 channels, throw them all into monochrome channels
-            dims["C"] = attrs.componentCount
+            dims[AXIS.CHANNEL] = attrs.componentCount
         return {k: v for k, v in dims.items() if v != 1}
-
-    # ARRAY OUTPUT
-
-    def asarray(self) -> np.ndarray:
-        arr = np.stack([self._get_frame(i) for i in range(self._frame_count)])
-        return arr.reshape(self.shape)
-
-    def to_dask(self) -> da.Array:
-        from dask.array import map_blocks
-
-        chunks = [(1,) * x for x in self._coord_shape]
-        chunks += [(x,) for x in self._frame_shape]
-        darr = map_blocks(self._dask_block, chunks=chunks, dtype=self.dtype)
-        darr._ctx = self  # XXX: ok?  or will we leak refs
-        return darr
-
-    def _seq_index_from_coords(self, coords: Sequence) -> int:
-        if not self._coord_shape:
-            return -1
-        return np.ravel_multi_index(coords, self._coord_shape)
-
-    def _dask_block(self, block_id: Tuple[int]) -> np.ndarray:
-        if isinstance(block_id, np.ndarray):
-            return
-
-        ncoords = len(self._coord_shape)
-        idx = self.__ravel_coords(block_id[:ncoords])
-
-        if idx == -1:
-            if any(block_id):
-                raise ValueError(f"Cannot get chunk {block_id} for single frame image.")
-            idx = 0
-        return self._get_frame(idx)[(np.newaxis,) * ncoords]
-
-    def to_xarray(self, delayed: bool = True) -> xr.DataArray:
-        import xarray as xr
-
-        return xr.DataArray(
-            self.to_dask() if delayed else self.asarray(),
-            dims=list(self.sizes),
-            coords=self._expand_coords(),
-            attrs={
-                "metadata": {
-                    "metadata": self.metadata,
-                    "experiment": self.experiment,
-                    "attributes": self.attributes,
-                    "text_info": self.text_info,
-                }
-            },
-        )
-
-    # PRIVATE / IMPLEMENTATION
-
-    @property
-    def _frame_coords(self) -> str:
-        return "XYCc"
-
-    @property
-    def _raw_frame_shape(self) -> Tuple[int, int, int, int]:
-        """sizes of each frame coordinate, prior to reshape"""
-        attr = self.attributes
-        return (
-            attr.heightPx,
-            attr.widthPx or -1,
-            attr.channelCount or 1,
-            self.components_per_channel,
-        )
-
-    @property
-    def _frame_shape(self) -> Tuple[int, ...]:
-        """sizes of each frame coordinate, after reshape & squeeze"""
-        return tuple(v for k, v in self.sizes.items() if k in self._frame_coords)
-
-    @cached_property
-    def _coord_shape(self) -> Tuple[int, ...]:
-        """sizes of each *non-frame* coordinate"""
-        if self.read_mode == ReadMode.SDK:
-            return tuple(v[2] for v in self._rdr._coord_info())
-        else:
-            return tuple(
-                v for k, v in self.sizes.items() if k not in self._frame_coords
-            )
-
-    @property
-    def _frame_count(self) -> int:
-        return int(np.prod(self._coord_shape))
 
     @property
     def is_rgb(self) -> bool:
@@ -261,6 +186,92 @@ class ND2File:
                 return vol.axesCalibration
         return (1, 1, 1)
 
+    # ARRAY OUTPUT
+
+    def asarray(self) -> np.ndarray:
+        arr = np.stack([self._get_frame(i) for i in range(self._frame_count)])
+        return arr.reshape(self.shape)
+
+    def to_dask(self) -> da.Array:
+        from dask.array import map_blocks
+
+        chunks = [(1,) * x for x in self._coord_shape]
+        chunks += [(x,) for x in self._frame_shape]
+        darr = map_blocks(self._dask_block, chunks=chunks, dtype=self.dtype)
+        darr._ctx = self  # XXX: ok?  or will we leak refs
+        return darr
+
+    NO_IDX = -1
+
+    def _seq_index_from_coords(self, coords: Sequence) -> int:
+        if not self._coord_shape:
+            return self.NO_IDX
+        return np.ravel_multi_index(coords, self._coord_shape)
+
+    def _dask_block(self, block_id: Tuple[int]) -> np.ndarray:
+        if isinstance(block_id, np.ndarray):
+            return
+
+        ncoords = len(self._coord_shape)
+        idx = self.__ravel_coords(block_id[:ncoords])
+
+        if idx == self.NO_IDX:
+            if any(block_id):
+                raise ValueError(f"Cannot get chunk {block_id} for single frame image.")
+            idx = 0
+        return self._get_frame(idx)[(np.newaxis,) * ncoords]
+
+    def to_xarray(self, delayed: bool = True) -> xr.DataArray:
+        import xarray as xr
+
+        return xr.DataArray(
+            self.to_dask() if delayed else self.asarray(),
+            dims=list(self.sizes),
+            coords=self._expand_coords(),
+            attrs={
+                "metadata": {
+                    "metadata": self.metadata,
+                    "experiment": self.experiment,
+                    "attributes": self.attributes,
+                    "text_info": self.text_info,
+                }
+            },
+        )
+
+    @property
+    def _frame_coords(self) -> Set[str]:
+        return {AXIS.X, AXIS.Y, AXIS.CHANNEL, AXIS.RGB}
+
+    @property
+    def _raw_frame_shape(self) -> Tuple[int, int, int, int]:
+        """sizes of each frame coordinate, prior to reshape"""
+        attr = self.attributes
+        return (
+            attr.heightPx,
+            attr.widthPx or -1,
+            attr.channelCount or 1,
+            self.components_per_channel,
+        )
+
+    @property
+    def _frame_shape(self) -> Tuple[int, ...]:
+        """sizes of each frame coordinate, after reshape & squeeze"""
+        return tuple(v for k, v in self.sizes.items() if k in self._frame_coords)
+
+    @cached_property
+    def _coord_shape(self) -> Tuple[int, ...]:
+        """sizes of each *non-frame* coordinate"""
+        if self.read_mode == ReadMode.SDK:
+            return tuple(v[2] for v in self._rdr._coord_info())
+        else:
+            return tuple(
+                v for k, v in self.sizes.items() if k not in self._frame_coords
+            )
+
+    @property
+    def _frame_count(self) -> int:
+        return int(np.prod(self._coord_shape))
+
     def _get_frame(self, index):
         frame: np.ndarray = self.__read_frame(index)
         frame.shape = self._raw_frame_shape
@@ -268,9 +279,6 @@ class ND2File:
 
     def _expand_coords(self) -> dict:
         """Return a dict that can be used as the coords argument to xr.DataArray"""
-        # if self._rdr._is_legacy:
-        #     return {}
-
         dx, dy, dz = self.voxel_size()
 
         coords = {
@@ -345,7 +353,7 @@ class ND2File:
             return np.ndarray(
                 shape=self._raw_frame_shape,
                 dtype=self.dtype,
-                buffer=self._mmap,
+                buffer=self._mmap,  # type: ignore
                 offset=offset,
                 strides=self._strides,
             )

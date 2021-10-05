@@ -1,7 +1,7 @@
 import io
 import struct
 from pathlib import Path
-from typing import DefaultDict, Dict, List, Union
+from typing import BinaryIO, DefaultDict, Dict, List, Union
 
 from imagecodecs import jpeg2k_decode
 
@@ -20,10 +20,12 @@ IHDR = struct.Struct(">iihBB")  # yxc-dtype in jpeg 2000
 
 
 class LegacyND2Reader:
-    _fh: io.BufferedReader
+    _fh: BinaryIO
 
     def __init__(self, file: Union[Path, str, io.BufferedReader]):
-        self._fh = file if isinstance(file, io.BufferedReader) else open(file, mode="rb")  # type: ignore
+        self._fh = (
+            file if isinstance(file, io.BufferedReader) else open(file, mode="rb")
+        )
         length, box_type = I4s.unpack(self._fh.read(I4s.size))
         if length != 12 and box_type == b"jP  ":
             raise ValueError("File not recognized as Legacy ND2 (JPEG2000) format.")
@@ -117,11 +119,6 @@ class LegacyND2Reader:
             **self._get_xml_dict(b"VIMD", index),
         }
 
-    @property
-    def dims(self):
-        frame_meta = self._frame_meta(0)
-        c = frame_meta.get("MetadataSeq", {}).get("")
-
     @cached_property
     def header(self):
         try:
@@ -142,7 +139,7 @@ class LegacyND2Reader:
         }
 
 
-def legacy_nd2_chunkmap(fh: io.BufferedReader) -> Dict[bytes, List[int]]:
+def legacy_nd2_chunkmap(fh: BinaryIO) -> Dict[bytes, List[int]]:
     fh.seek(-40, 2)
     sig, map_start = struct.unpack("<32sQ", fh.read())
     assert sig == b"LABORATORY IMAGING ND BOX MAP 00", "Not a legacy ND2 file"

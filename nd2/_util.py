@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 from typing import Tuple, Union
+
 from ._sdk import latest
 
 NEW_HEADER_MAGIC_NUM = 0x0ABECEDA
@@ -64,6 +65,8 @@ DIMSIZE = re.compile(r"(\w+)'?\((\d+)\)")
 
 
 def dims_from_description(desc) -> dict:
+    if not desc:
+        return {}
     match = re.search(r"Dimensions:\s?([^\r]+)\r?\n", desc)
     if not match:
         return {}

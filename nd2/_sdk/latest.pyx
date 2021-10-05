@@ -59,58 +59,11 @@ cdef class ND2Reader:
     def _experiment(self):
         return _loads(Lim_FileGetExperiment(self._fh), list)
 
-    cpdef dict sizes(self):
-        attrs = self._attributes()
-        from .._util import AXIS, dims_from_description
-
-        # often, the 'Description' field in textinfo is the best source of dimension
-        # (dims are strangely missing from coord_info sometimes)
-        # so we start there, and fall back to coord_info if ddims are empty
-        ddims = dims_from_description(self._description())
-        # dims from coord info
-        cdims = {AXIS._MAP[c[1]]: c[2] for c in self._coord_info()}
-
-        # prefer the value in coord info if it exists. (it's usually more accurate)
-        if ddims:
-            dims = {k: cdims.get(k, v) for k, v in ddims.items()}
-        else:
-            dims = cdims
-
-        if "C" in dims:
-            dims['C'] = dims.pop("C")
-        else:
-            dims['C'] = self._metadata().get("contents", {}).get("channelCount", 1)
-        dims['Y'] = attrs.get("heightPx")
-        dims['X'] = attrs.get("widthPx")
-        compPerC = attrs['componentCount'] // dims['C']
-        if compPerC == 3:  # rgb
-            dims['c'] = compPerC
-        else:
-            # if not exactly 3 channels, throw them all into monochrome channels
-            dims['C'] = attrs['componentCount']
-        return dims
-
     cpdef LIMUINT _seq_count(self):
         return Lim_FileGetSeqCount(self._fh)
 
     cpdef LIMSIZE _coord_size(self):
         return Lim_FileGetCoordSize(self._fh)
-
-    cdef _pycoord_sizes(self):
-        return [v for k, v in self.sizes().items() if k not in "CYXc"]
-
-    def _pycoords_from_seq_index(self, seq_index: int) -> tuple:
-        sizes = self._pycoord_sizes()
-        if not sizes:
-            return ()
-        return np.unravel_index(seq_index, sizes)
-
-    def _seq_index_from_pycoords(self, coords: Sequence) -> int:
-        """alternate to _seq_index_from_coords Using coords from sizes."""
-        sizes = self._pycoord_sizes()
-        if not sizes:
-            return -1
-        return np.ravel_multi_index(coords, sizes)
 
     def _seq_index_from_coords(self, coords: Sequence) -> int:
         cdef LIMSIZE size = self._coord_size()

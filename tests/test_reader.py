@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import dask.array as da
@@ -9,11 +10,18 @@ from nd2 import ND2File, imread, structures
 
 DATA = Path(__file__).parent / "data"
 
+SDK_MISSES_COORDS = {
+    "jonas_100217_OD122_001.nd2",
+    "jonas_512c_nikonTest_two.nd2",
+    "jonas_512c_cag_p5_simgc_2511_70ms22s_crop.nd2",
+    "jonas_2112-2265.nd2",
+}
+
 
 def test_metadata_extraction(new_nd2):
     with ND2File(new_nd2) as nd:
         assert nd.path == str(new_nd2)
-        assert nd.is_open()
+        assert not nd.closed
 
         assert isinstance(nd._rdr._seq_count(), int)
         assert isinstance(nd.attributes, structures.Attributes)
@@ -22,8 +30,7 @@ def test_metadata_extraction(new_nd2):
         assert isinstance(nd.metadata, structures.Metadata)
         assert isinstance(nd.experiment, list)
         assert isinstance(nd.text_info, dict)
-        assert isinstance(nd._coord_info, list)
-        assert all(isinstance(x, structures.Coordinate) for x in nd._coord_info)
+        assert isinstance(nd.sizes, dict)
 
         assert isinstance(nd.custom_data, dict)
 
@@ -35,21 +42,52 @@ def test_metadata_extraction(new_nd2):
             assert isinstance(zcoord, tuple)
             assert len(zcoord) == n_coords
 
-    assert not nd.is_open()
+    assert nd.closed
 
 
-def test_read_safety(new_nd2):
+def test_read_safety(new_nd2: Path):
     with ND2File(new_nd2) as nd:
-        sz = np.prod([v for k, v in nd._rdr.sizes().items() if k not in "YXCc"])
-        for i in range(int(sz)):
+        for i in range(nd._frame_count):
             nd._image_from_mmap(i)
+
+
+def test_dask(new_nd2):
+    if new_nd2.stat().st_size > 1_000_000_000 and not os.getenv("CI"):
+        pytest.skip("use CI=1 to include big files in dask test")
+    with ND2File(new_nd2) as nd:
+        dsk = nd.to_dask()
+        assert isinstance(dsk, da.Array)
+        arr = np.asarray(dsk)
+        assert arr.shape == nd.shape
+        np.testing.assert_allclose(arr, nd.asarray())
+
+
+def test_get_frame(new_nd2):
+    with ND2File(new_nd2) as nd:
+        assert isinstance(nd._image_from_sdk(0), np.ndarray)
+        assert isinstance(nd._image_from_mmap(0), np.ndarray)
+
+
+def test_xarray(new_nd2):
+    with ND2File(new_nd2) as nd:
+        xarr = nd.to_xarray()
+        assert isinstance(xarr, xr.DataArray)
+        assert isinstance(xarr.data, da.Array)
+
+
+# def test_read_mode(new_nd2):
+#     with ND2File(new_nd2, read_mode='mmap') as nd:
+#         a1 =  nd.asarray()
+#     with ND2File(new_nd2, read_mode='sdk') as nd:
+#         a2 =  nd.asarray()
+#     np.testing.assert_allclose(a1, a2)
 
 
 @pytest.mark.skip
 def test_metadata_extraction_legacy(old_nd2):
     with ND2File(old_nd2) as nd:
         assert nd.path == str(old_nd2)
-        assert nd.is_open()
+        assert not nd.closed
 
         assert isinstance(nd._rdr._seq_count(), int)
         assert isinstance(nd.attributes, structures.Attributes)
@@ -67,26 +105,11 @@ def test_metadata_extraction_legacy(old_nd2):
         assert isinstance(nd.metadata, structures.Metadata)
         assert isinstance(nd.experiment, list)
         assert isinstance(nd.text_info, dict)
-        assert isinstance(nd._coord_info, list)
-        assert all(isinstance(x, structures.Coordinate) for x in nd._coord_info)
         xarr = nd.to_xarray()
         assert isinstance(xarr, xr.DataArray)
         assert isinstance(xarr.data, da.Array)
 
-    assert not nd.is_open()
-
-
-def test_get_data(new_nd2):
-    with ND2File(new_nd2) as nd:
-        assert isinstance(nd._image_from_sdk(0), np.ndarray)
-        assert isinstance(nd._image_from_mmap(0), np.ndarray)
-        assert isinstance(nd.to_dask(), da.Array)
-        xarr = nd.to_xarray()
-        assert isinstance(xarr, xr.DataArray)
-        assert isinstance(xarr.data, da.Array)
-        result = xarr[nd._rdr._coords_from_seq_index(0)].compute()
-        assert isinstance(result, xr.DataArray)
-        assert isinstance(result.data, np.ndarray)
+    assert nd.closed
 
 
 @pytest.mark.skip
@@ -101,31 +124,6 @@ def test_get_data_legacy(old_nd2):
         result = xarr[nd._rdr._coords_from_seq_index(0)].compute()
         assert isinstance(result, xr.DataArray)
         assert isinstance(result.data, np.ndarray)
-
-
-def test_data():
-    with ND2File(str(DATA / "jonas_header_test1.nd2")) as nd:
-        assert nd._rdr._coord_size() == 2
-        assert nd._rdr._seq_index_from_coords([0, 1]) == 1
-        assert nd._rdr._coords_from_seq_index(0) == (0, 0)
-
-        sdk_data = nd._image_from_sdk(0)
-        mmep_data = nd._image_from_mmap(0)
-        assert isinstance(sdk_data, np.ndarray)
-        assert isinstance(mmep_data, np.ndarray)
-        np.testing.assert_array_equal(sdk_data, mmep_data)
-        assert sdk_data.shape == (520, 696, 2)
-        np.testing.assert_array_equal(sdk_data[0, :3, 0], [200, 199, 213])
-        np.testing.assert_array_equal(sdk_data[0, :3, 1], [204, 205, 199])
-
-        with pytest.raises(IndexError):
-            nd._image_from_sdk(23)
-
-        with pytest.raises(IndexError):
-            nd._get_frame(23)
-
-        with pytest.raises(IndexError):
-            nd._image_from_mmap(23)
 
 
 def test_missing():

@@ -5,13 +5,6 @@ import pytest
 
 from nd2._sdk import latest
 
-SDK_MISSES_COORDS = {
-    "jonas_100217_OD122_001.nd2",
-    "jonas_512c_nikonTest_two.nd2",
-    "jonas_512c_cag_p5_simgc_2511_70ms22s_crop.nd2",
-    "jonas_2112-2265.nd2",
-}
-
 
 def test_new_sdk(new_nd2: Path):
     with latest.ND2Reader(new_nd2) as nd:
@@ -39,19 +32,11 @@ def test_new_sdk(new_nd2: Path):
             assert isinstance(coords, tuple)
             assert nd._seq_index_from_coords(coords) == midframe
 
-            pycoords = nd._pycoords_from_seq_index(midframe)
-            assert isinstance(pycoords, tuple)
-            assert nd._seq_index_from_pycoords(pycoords) == midframe
-
-            if new_nd2.name not in SDK_MISSES_COORDS:
-                assert coords == pycoords
-
         assert isinstance(nd._seq_index_from_coords((0,) * csize), int)
         assert isinstance(nd._coord_info(), list)
         frame = nd._image(midframe)
         assert isinstance(frame, np.ndarray)
         assert frame.shape == (a["heightPx"], a["widthPx"], a["componentCount"])
-        assert isinstance(nd.sizes(), dict)
 
 
 # def test_old_sdk():

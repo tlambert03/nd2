@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 # i = int                (4)
 # I = unsigned int       (4)
 # Q = unsigned long long (8)
-CHUNK_INFO = struct.Struct("IIQ")
+CHUNK_INFO = struct.Struct("IIQ")  # chunk_magic, shift, length
 QQ = struct.Struct("QQ")
 CHUNK_MAGIC = 0x0ABECEDA
 CHUNK_MAP_SIGNATURE = b"ND2 CHUNK MAP SIGNATURE 0000001!"
@@ -131,7 +131,7 @@ def _search(fh: BinaryIO, string: bytes, guess: int, kbrange=100):
     try:
         p = fh.tell() + fh.read(1000 * kbrange).index(string) - 16
         fh.seek(p)
-        if CHUNK_INFO.unpack(fh.read(16))[0] == CHUNK_MAGIC:
+        if CHUNK_INFO.unpack(fh.read(CHUNK_INFO.size))[0] == CHUNK_MAGIC:
             return p
     except ValueError:
         return None
@@ -140,7 +140,25 @@ def _search(fh: BinaryIO, string: bytes, guess: int, kbrange=100):
 def read_chunk(handle: BinaryIO, position: int):
     handle.seek(position)
     # confirm chunk magic, seek to shift, read for length
-    magic, shift, length = CHUNK_INFO.unpack(handle.read(16))
+    magic, shift, length = CHUNK_INFO.unpack(handle.read(CHUNK_INFO.size))
     assert magic == CHUNK_MAGIC, "invalid magic %x" % magic
     handle.seek(shift, 1)
     return handle.read(length)
+
+
+def iter_chunks(handle) -> Iterator[Tuple[str, int, int]]:
+    file_size = handle.seek(0, 2)
+    handle.seek(0)
+    pos = 0
+    while True:
+        magic, shift, length = CHUNK_INFO.unpack(handle.read(CHUNK_INFO.size))
+        if magic:
+            try:
+                name = handle.read(shift).split(b"\x00", 1)[0].decode("utf-8")
+            except UnicodeDecodeError:
+                name = "?"
+            yield (name, pos + +CHUNK_INFO.size + shift, length)
+        pos += CHUNK_INFO.size + shift + length
+        if pos >= file_size:
+            break
+        handle.seek(pos)

@@ -1,7 +1,3 @@
-from wurlitzer import pipes
+from . import latest
 
-with pipes():
-    from . import latest, v9  # type: ignore
-
-
-__all__ = ["latest", "v9"]
+__all__ = ["latest"]

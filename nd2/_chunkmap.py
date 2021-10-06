@@ -51,7 +51,19 @@ def read_chunkmap(file, fixup: Literal[False]) -> Tuple[Dict[int, int], Dict[str
     ...
 
 
-def read_chunkmap(file, fixup=True):
+def read_chunkmap(file: Union[str, io.BytesIO], fixup=True, legacy: bool = False):
+    with ensure_handle(file) as fh:
+        if not legacy:
+            return read_new_chunkmap(fh)
+        from ._legacy import legacy_nd2_chunkmap
+
+        d = legacy_nd2_chunkmap(fh)
+        if fixup:
+            f = {"bad": [], "fixed": [], "safe": dict(enumerate(d.pop(b"LUNK")))}
+            return f, d
+
+
+def read_new_chunkmap(fh: BinaryIO, fixup=True):
     """read the map of the chunks at the end of the file
 
     chunk rules:
@@ -60,45 +72,44 @@ def read_chunkmap(file, fixup=True):
       - 4 bytes: length of the chunk header (this section contains the chunk name...)
       - 8 bytes: length of chunk following the header, up to the next CHUNK_MAGIC
     """
-    with ensure_handle(file) as fh:
-        # the last 8 bytes contain the location of the beginning
-        # of the chunkamp (~FILEMAP SIGNATURE NAME)
-        # but we grab -40 to confirm that the CHUNK_MAP_SIGNATURE
-        # string appears before the last 8 bytes.
-        fh.seek(-40, 2)
-        name, chunk = struct.unpack("32sQ", fh.read(40))
-        assert name == CHUNK_MAP_SIGNATURE, "Not a valid ND2 file"
+    # the last 8 bytes contain the location of the beginning
+    # of the chunkamp (~FILEMAP SIGNATURE NAME)
+    # but we grab -40 to confirm that the CHUNK_MAP_SIGNATURE
+    # string appears before the last 8 bytes.
+    fh.seek(-40, 2)
+    name, chunk = struct.unpack("32sQ", fh.read(40))
+    assert name == CHUNK_MAP_SIGNATURE, f"Not a valid ND2 file: {name}"
 
-        # then we get all of the data in the chunkmap
-        # this asserts that the chunkmap begins with CHUNK_MAGIC
-        chunkmap_data = read_chunk(fh, chunk)
+    # then we get all of the data in the chunkmap
+    # this asserts that the chunkmap begins with CHUNK_MAGIC
+    chunkmap_data = read_chunk(fh, chunk)
 
-        # now look for each "!" in the chunkmap
-        # and record the position associated with each chunkname
-        pos = 0
-        image_map: dict = {}
-        meta_map: Dict[str, int] = {}
-        while True:
-            # find the first "!", starting at pos, then go to next byte
-            p = chunkmap_data.index(b"!", pos) + 1
-            name = chunkmap_data[pos:p]  # name of the chunk
-            if name == CHUNK_MAP_SIGNATURE:
-                # break when we find the end
-                break
-            # the next 16 bytes contain...
-            # (8) -> position of this key in the file  (@ the chunk magic)
-            # (8) -> length of this chunk in the file (not including the chunk header)
-            # Note: one still needs to go to `position` to read the CHUNK_INFO to know
-            # the absolute position of the data (excluding the chunk header).  This can
-            # be done using `read_chunk(..., position)``
-            position, _ = QQ.unpack(chunkmap_data[p : p + 16])  # noqa
-            if name[:13] == b"ImageDataSeq|":
-                image_map[int(name[13:-1])] = position
-            else:
-                meta_map[name[:-1].decode("ascii")] = position
-            pos = p + 16
-        if fixup:
-            return _fix_frames(fh, image_map), meta_map
+    # now look for each "!" in the chunkmap
+    # and record the position associated with each chunkname
+    pos = 0
+    image_map: dict = {}
+    meta_map: Dict[str, int] = {}
+    while True:
+        # find the first "!", starting at pos, then go to next byte
+        p = chunkmap_data.index(b"!", pos) + 1
+        name = chunkmap_data[pos:p]  # name of the chunk
+        if name == CHUNK_MAP_SIGNATURE:
+            # break when we find the end
+            break
+        # the next 16 bytes contain...
+        # (8) -> position of this key in the file  (@ the chunk magic)
+        # (8) -> length of this chunk in the file (not including the chunk header)
+        # Note: one still needs to go to `position` to read the CHUNK_INFO to know
+        # the absolute position of the data (excluding the chunk header).  This can
+        # be done using `read_chunk(..., position)``
+        position, _ = QQ.unpack(chunkmap_data[p : p + 16])  # noqa
+        if name[:13] == b"ImageDataSeq|":
+            image_map[int(name[13:-1])] = position
+        else:
+            meta_map[name[:-1].decode("ascii")] = position
+        pos = p + 16
+    if fixup:
+        return _fix_frames(fh, image_map), meta_map
     return image_map, meta_map
 
 

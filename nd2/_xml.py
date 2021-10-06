@@ -32,7 +32,11 @@ def elem2dict(node: lxml.etree._Element) -> Dict[str, Any]:
     result: Dict[str, Any] = {}
 
     if "value" in node.attrib:
-        return _TYPEMAP[node.attrib.get("runtype")](node.attrib["value"])
+        type_ = _TYPEMAP[node.attrib.get("runtype")]
+        try:
+            return type_(node.attrib["value"])
+        except ValueError:
+            return node.attrib["value"]
 
     attrs = node.attrib
     attrs.pop("runtype", None)

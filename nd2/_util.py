@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Tuple, Union
 
+from ._legacy import LegacyND2Reader
 from ._sdk import latest
 
 NEW_HEADER_MAGIC_NUM = 0x0ABECEDA
@@ -11,19 +12,18 @@ OLD_HEADER_MAGIC_NUM = 0x0C000000
 VERSION = re.compile(r"^ND2 FILE SIGNATURE CHUNK NAME01!Ver([\d\.]+)$")
 
 
-def open_nd2(path: str) -> Tuple[io.BufferedReader, latest.ND2Reader]:
+def open_nd2(
+    path: str,
+) -> Tuple[io.BufferedReader, Union[latest.ND2Reader, LegacyND2Reader], bool]:
     fh = open(path, "rb")
     magic_num = fh.read(4)
     try:
         if magic_num == b"\xda\xce\xbe\n":
-
             rdr = latest.ND2Reader(path)
-            return fh, rdr  # type: ignore
+            return fh, rdr, False  # type: ignore
         elif magic_num == b"\x00\x00\x00\x0c":
-            from ._sdk import v9
-
-            lim_fh = v9.open(path)
-            return fh, lim_fh  # type: ignore
+            lrdr = LegacyND2Reader(path)
+            return fh, lrdr, True  # type: ignore
     except Exception as e:
         fh.close()
         t = e

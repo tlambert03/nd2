@@ -20,7 +20,7 @@ def any_nd2(request):
     return request.param
 
 
-@pytest.fixture(params=NEW, ids=lambda x: x.name)
+@pytest.fixture(params=NEW, ids=lambda x: f"{x.name}")
 def new_nd2(request):
     return request.param
 

@@ -1,12 +1,13 @@
 import io
 import struct
 from pathlib import Path
-from typing import BinaryIO, DefaultDict, Dict, List, Union
+from threading import Lock
+from typing import BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union
 
 from imagecodecs import jpeg2k_decode
 
+from . import structures as strct
 from ._xml import parse_xml_block
-from .structures import Attributes
 
 try:
     from functools import cached_property
@@ -30,6 +31,7 @@ class LegacyND2Reader:
         if length != 12 and box_type == b"jP  ":
             raise ValueError("File not recognized as Legacy ND2 (JPEG2000) format.")
 
+        self.lock = Lock()
         self._chunkmap = legacy_nd2_chunkmap(self._fh)
 
     def close(self) -> None:
@@ -41,21 +43,131 @@ class LegacyND2Reader:
     def __exit__(self, *_):
         self.close()
 
-    @property
-    def experiment(self):
-        # nT = self.metadata["LoopPars"]["uLoopPars"]["Count"]
-        ...
+    @cached_property
+    def ddim(self) -> dict:
+        from ._util import dims_from_description
+
+        return dims_from_description(self.text_info.get("description"))
+
+    @cached_property
+    def experiment(self) -> List[strct.ExpLoop]:
+        meta = self.metadata
+        exp = []
+        if "LoopNo00" in meta:
+            # old style:
+            for i, (k, v) in enumerate(meta.items()):
+                if k != "Version":
+                    loop = self._make_loop(v, i)
+                    if loop:
+                        exp.append(loop)
+        else:
+            i = 0
+            while meta:
+                # ugh... another hack for weird metadata
+                if len(meta) == 1:
+                    meta = list(meta.values())[0]
+                    if meta and isinstance(meta, list):
+                        meta = meta[0]
+                loop = self._make_loop(meta, i)
+                if loop:
+                    exp.append(loop)
+                meta = meta.get("NextLevelEx")
+                i += 1
+        return exp
+
+    def _coord_info(self) -> List[Tuple[int, str, int]]:
+        return [(i, l.type, l.count) for i, l in enumerate(self.experiment)]
+
+    def _make_loop(
+        self, meta_level: dict, nest_level: int = 0
+    ) -> Optional[strct.ExpLoop]:
+        """converts an old style metadata loop dict to a new ExpLoop structure."""
+        type_ = meta_level.get("Type")
+        params: dict = meta_level["LoopPars"]
+        if type_ == 2:  # XYPosLoop
+            poscount = len(params["PosX"])
+            # empirically, it appears that some files list more positions in the metadata
+            # than are actually recorded in the textinfo -> description.
+            # NIS viewer seems to agree more with the description
+            count = self.ddim.get("S") or params["Count"]
+            points = []
+            for i in range(count):
+                idx = f"{poscount-i-1:05}"
+                points.append(
+                    strct.Position(
+                        pfsOffset=params["PFSOffset"][idx],
+                        stagePositionUm=strct.StagePosition(
+                            x=params["PosX"][idx],
+                            y=params["PosY"][idx],
+                            z=params["PosZ"][idx],
+                        ),
+                    )
+                )
+            return strct.XYPosLoop(
+                nestingLevel=nest_level,
+                count=count,
+                parameters=strct.XYPosLoopParams(
+                    isSettingZ=params["UseZ"], points=points
+                ),
+            )
+        if type_ == 8:  # TimeLoop
+            # XXX strangely, I've seen files that seem to have a mult-phase
+            # NETimeLoop, but use one of the Period...
+            # try to find one that matches the dims in the description
+            count = self.ddim.get("T")
+            per = None
+            if count is not None:
+                for p in params["Period"].values():
+                    if p["Count"] == count:
+                        per = p
+            # otherwise take the first period
+            # XXX: this is definitely error prone.
+            if per is None:
+                per = next(iter(params["Period"].values()))
+            return strct.TimeLoop(
+                count=per["Count"],
+                nestingLevel=nest_level,
+                parameters=strct.TimeLoopParams(
+                    startMs=per["Start"],
+                    periodMs=per["Period"],
+                    durationMs=per["Duration"],
+                    periodDiff=strct.PeriodDiff(
+                        avg=per.get("AvgPeriodDiff"),
+                        max=per.get("MaxPeriodDiff"),
+                        min=per.get("MinPeriodDiff"),
+                    ),
+                ),
+            )
+        if type_ == 4:
+            return strct.ZStackLoop(
+                count=params["Count"],
+                nestingLevel=nest_level,
+                parameters=strct.ZStackLoopParams(
+                    homeIndex=params["ZHome"],
+                    stepUm=params["ZStep"],
+                    bottomToTop=params["ZLow"] < params["ZHigh"],
+                ),
+            )
+        if type_ == 6:  # channel
+            return None
+
+        raise ValueError(f"unrecognized type: {type_}")
 
     @property
     def attributes(self):
-        fm = self.frame_meta(0)
-        pics = fm.get("MetadataSeq", {}).get("PicturePlanes", {}).get("sPicturePlanes")
         head = self.header
         bpcim = head["bits_per_component"]
         bpcs = self._advanced_image_attributes.get("SignificantBits", bpcim)
         widthPx = head.get("columns")
-        compCount = pics.get("CompCount") if pics else 1
-        return Attributes(
+
+        try:
+            picplanes = self._get_xml_dict(b"VIMD", 0)["PicturePlanes"]
+            nC = picplanes["Count"]
+            compCount = picplanes["CompCount"]
+        except Exception:
+            compCount = nC = 1
+
+        return strct.Attributes(
             bitsPerComponentInMemory=bpcim,
             bitsPerComponentSignificant=bpcs,
             componentCount=compCount,
@@ -65,6 +177,7 @@ class LegacyND2Reader:
             pixelDataType="unsigned",
             sequenceCount=len(self._chunkmap[b"VCAL"]),
             compressionLevel=head.get("compression"),
+            channelCount=nC,
         )
 
     def _get_xml_dict(self, key: bytes, index=0) -> dict:
@@ -74,19 +187,27 @@ class LegacyND2Reader:
         except KeyError:
             return {}
 
-    @property
+    @cached_property
     def events(self):
         return self._get_xml_dict(b"IEVE")
 
-    @property
-    def text_info(self):
-        return self._get_xml_dict(b"TINF")
+    # def sizes(self):
+    #     attrs = cast(Attributes, self.attributes)
 
-    @property
+    @cached_property
+    def text_info(self) -> dict:
+        d = self._get_xml_dict(b"TINF")
+        for i in d.get("TextInfoItem", []):
+            txt = i.get("Text", "")
+            if txt.startswith("Metadata:"):
+                return {"description": txt}
+        return {}
+
+    @cached_property
     def _advanced_image_attributes(self):
         return self._get_xml_dict(b"ARTT").get("AdvancedImageAttributes", {})
 
-    @property
+    @cached_property
     def metadata(self):
         meta = self._get_xml_dict(b"AIM1") or self._get_xml_dict(b"AIMD")
         version = ""
@@ -105,19 +226,47 @@ class LegacyND2Reader:
         return self._get_xml_dict(b"ACAL")
 
     def _read_chunk(self, pos) -> bytes:
-        self._fh.seek(pos)
-        length, box_type = I4s.unpack(self._fh.read(I4s.size))
-        return self._fh.read(length - I4s.size)
+        with self.lock:
+            self._fh.seek(pos)
+            length, box_type = I4s.unpack(self._fh.read(I4s.size))
+            return self._fh.read(length - I4s.size)
 
     def _read_image(self, index: int):
-        data = self._read_chunk(self._chunkmap[b"LUNK"][index])
-        return jpeg2k_decode(data)
+        import numpy as np
+
+        data = []
+        cc = self.attributes.channelCount
+        for i in range(cc):
+            d = self._read_chunk(self._chunkmap[b"LUNK"][index * cc + i])
+            data.append(jpeg2k_decode(d))
+        return np.stack(data, axis=-1)
 
     def frame_meta(self, index: int) -> dict:
         return {
             **self._get_xml_dict(b"VCAL", index),
             **self._get_xml_dict(b"VIMD", index),
         }
+
+    def _scan_vimd(self):
+        zs = set()
+        xys = set()
+        ts = set()
+        cs = set()
+        for i in range(len(self._chunkmap[b"VIMD"])):
+            xml = self._get_xml_dict(b"VIMD", i)
+            ts.add(xml["TimeMSec"])
+            xys.add((xml["XPos"], xml["YPos"]))
+            for p in xml["PicturePlanes"]["Plane"].values():
+                cs.add(p["OpticalConfigName"])
+                zs.add(p["OpticalConfigFull"]["ZPosition0"])
+        return (zs, xys, ts, cs)
+
+    def voxel_size(self):
+        return (1, 1, 1)
+
+    def channel_names(self):
+        xml = self._get_xml_dict(b"VIMD", 0)
+        return [p["OpticalConfigName"] for p in xml["PicturePlanes"]["Plane"].values()]
 
     @cached_property
     def header(self):

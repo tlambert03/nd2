@@ -45,7 +45,7 @@ class ReadMode(str, Enum):
 class ND2File:
     _fh: BinaryIO
     _memmap: mmap.mmap
-    __read_frame: Callable[[ND2File, int], np.ndarray]
+    __read_frame: Callable[[ND2File, int], np.ndarray] = None
     __ravel_coords: Callable[[ND2File, Sequence[int]], int]
 
     def __init__(
@@ -55,7 +55,9 @@ class ND2File:
         self._path = str(path)
 
         self.open()
-        self._frame_map, self._meta_map = read_chunkmap(self._fh, fixup=True)
+        self._frame_map, self._meta_map = read_chunkmap(
+            self._fh, fixup=True, legacy=self._is_legacy
+        )
         self._max_safe = max(self._frame_map["safe"])
 
         self._read_mode = ReadMode(read_mode)
@@ -65,6 +67,8 @@ class ND2File:
         else:
             self.__read_frame = self._image_from_sdk  # type: ignore[assignment]
             self.__ravel_coords = self._rdr._seq_index_from_coords  # type: ignore
+        if self._is_legacy:
+            self.__read_frame = self._rdr._read_image
 
     # PUBLIC API:
 
@@ -74,7 +78,7 @@ class ND2File:
 
     def open(self) -> None:
         if self.closed:
-            self._fh, self._rdr = open_nd2(self._path)
+            self._fh, self._rdr, self._is_legacy = open_nd2(self._path)
             self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
             self._closed = False
 
@@ -90,6 +94,8 @@ class ND2File:
 
     @cached_property
     def attributes(self) -> Attributes:
+        if self._is_legacy:
+            return self._rdr.attributes
         cont = self.metadata.contents
         attrs = self._rdr._attributes()
         nC = cont.channelCount if cont else attrs.get("componentCount", 1)
@@ -97,29 +103,25 @@ class ND2File:
 
     @cached_property
     def text_info(self) -> Dict[str, Any]:
+        if self._is_legacy:
+            return self._rdr.text_info
         return self._rdr._text_info()
 
     @cached_property
     def experiment(self) -> List[ExpLoop]:
+        if self._is_legacy:
+            return self._rdr.experiment
         return parse_experiment(self._rdr._experiment())
 
     @cached_property
     def metadata(self) -> Metadata:
+        if self._is_legacy:
+            return self._rdr.metadata
         return Metadata(**self._rdr._metadata())
 
     @cached_property
     def ndim(self) -> int:
         return len(self.shape)
-
-    @cached_property
-    def custom_data(self) -> Dict[str, Any]:
-        from ._xml import parse_xml_block
-
-        return {
-            k[14:]: parse_xml_block(self._get_meta_chunk(k))
-            for k, v in self._meta_map.items()
-            if k.startswith("CustomDataVar|")
-        }
 
     @cached_property
     def shape(self) -> Tuple[int, ...]:
@@ -139,7 +141,6 @@ class ND2File:
 
         # prefer the value in coord info if it exists. (it's usually more accurate)
         dims = {k: cdims.get(k, v) for k, v in ddims.items()} if ddims else cdims
-
         dims[AXIS.CHANNEL] = (
             dims.pop(AXIS.CHANNEL)
             if AXIS.CHANNEL in dims
@@ -178,6 +179,8 @@ class ND2File:
         return np.dtype(f"{d}{attrs.bitsPerComponentInMemory // 8}")
 
     def voxel_size(self, channel: int = 0) -> Tuple[float, float, float]:
+        if self._is_legacy:
+            return self._rdr.voxel_size()
         meta = self.metadata
         if meta:
             ch = meta.channels
@@ -305,8 +308,11 @@ class ND2File:
                     for p in c.parameters.points
                 ]
         if self.attributes.channelCount and self.attributes.channelCount > 1:
-            _channels = self.metadata.channels or []
-            coords[AXIS.CHANNEL] = [c.channel.name for c in _channels]
+            if self._is_legacy:
+                coords[AXIS.CHANNEL] = self._rdr.channel_names()
+            else:
+                _channels = self.metadata.channels or []
+                coords[AXIS.CHANNEL] = [c.channel.name for c in _channels]
         if self.components_per_channel > 1:
             coords[AXIS.RGB] = ["Red", "Green", "Blue", "alpha"][
                 : self.components_per_channel
@@ -383,6 +389,16 @@ class ND2File:
     def _missing_frame(self, index: int = 0) -> np.ndarray:
         # TODO: add other modes for filling missing data
         return np.zeros(self._raw_frame_shape, self.dtype)
+
+    @cached_property
+    def custom_data(self) -> Dict[str, Any]:
+        from ._xml import parse_xml_block
+
+        return {
+            k[14:]: parse_xml_block(self._get_meta_chunk(k))
+            for k, v in self._meta_map.items()
+            if k.startswith("CustomDataVar|")
+        }
 
     def _get_meta_chunk(self, key: str) -> bytes:
         from ._chunkmap import read_chunk

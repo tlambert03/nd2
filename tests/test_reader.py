@@ -62,6 +62,19 @@ def test_dask(new_nd2):
         np.testing.assert_allclose(arr, nd.asarray())
 
 
+def test_dask_legacy(old_nd2):
+    with ND2File(old_nd2) as nd:
+        dsk = nd.to_dask()
+        assert isinstance(dsk, da.Array)
+        # these are quite slow because of jpeg 2000
+        if old_nd2.stat().st_size > 100_000_000 and not os.getenv("CI"):
+            np.asarray(dsk[0, 0])
+            return
+        arr = np.asarray(dsk)
+        assert arr.shape == nd.shape
+        np.testing.assert_allclose(arr, nd.asarray())
+
+
 def test_get_frame(new_nd2):
     with ND2File(new_nd2) as nd:
         assert isinstance(nd._image_from_sdk(0), np.ndarray)
@@ -75,34 +88,30 @@ def test_xarray(new_nd2):
         assert isinstance(xarr.data, da.Array)
 
 
-# def test_read_mode(new_nd2):
-#     with ND2File(new_nd2, read_mode='mmap') as nd:
-#         a1 =  nd.asarray()
-#     with ND2File(new_nd2, read_mode='sdk') as nd:
-#         a2 =  nd.asarray()
-#     np.testing.assert_allclose(a1, a2)
+def test_xarray_legacy(old_nd2):
+    with ND2File(old_nd2) as nd:
+        xarr = nd.to_xarray()
+        assert isinstance(xarr, xr.DataArray)
+        assert isinstance(xarr.data, da.Array)
 
 
-@pytest.mark.skip
+def test_read_mode(new_nd2):
+    with ND2File(new_nd2, read_mode="mmap") as nd:
+        a1 = nd.asarray()
+    with ND2File(new_nd2, read_mode="sdk") as nd:
+        a2 = nd.asarray()
+    np.testing.assert_allclose(a1, a2)
+
+
 def test_metadata_extraction_legacy(old_nd2):
     with ND2File(old_nd2) as nd:
         assert nd.path == str(old_nd2)
         assert not nd.closed
 
-        assert isinstance(nd._rdr._seq_count(), int)
         assert isinstance(nd.attributes, structures.Attributes)
 
-        n_coords = nd._rdr._coord_size()
-        assert isinstance(n_coords, int)
-        if n_coords:
-            assert isinstance(nd._rdr._seq_index_from_coords([0] * n_coords), int)
-            # FIXME: currently causing strange intermittent segfault
-            # zcoord = nd._rdr.coords_from_seq_index(0)
-            # assert isinstance(zcoord, tuple)
-            # assert len(zcoord) == n_coords
-
-        # TODO: deal with typing when metadata is completely missing
-        assert isinstance(nd.metadata, structures.Metadata)
+        # # TODO: deal with typing when metadata is completely missing
+        # assert isinstance(nd.metadata, structures.Metadata)
         assert isinstance(nd.experiment, list)
         assert isinstance(nd.text_info, dict)
         xarr = nd.to_xarray()
@@ -112,22 +121,8 @@ def test_metadata_extraction_legacy(old_nd2):
     assert nd.closed
 
 
-@pytest.mark.skip
-def test_get_data_legacy(old_nd2):
-    with ND2File(old_nd2) as nd:
-        assert isinstance(nd._image_from_sdk(0), np.ndarray)
-        assert isinstance(nd._image_from_mmap(0), np.ndarray)
-        assert isinstance(nd.to_dask(), da.Array)
-        xarr = nd.to_xarray()
-        assert isinstance(xarr, xr.DataArray)
-        assert isinstance(xarr.data, da.Array)
-        result = xarr[nd._rdr._coords_from_seq_index(0)].compute()
-        assert isinstance(result, xr.DataArray)
-        assert isinstance(result.data, np.ndarray)
-
-
 def test_missing():
-    with pytest.raises(OSError):
+    with pytest.raises(FileNotFoundError):
         ND2File("asdfs")
 
 

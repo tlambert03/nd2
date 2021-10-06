@@ -1,7 +1,13 @@
 from libc.stdlib cimport free, malloc
 
 from .picture cimport PicWrapper, nullpic
-from wurlitzer import pipes
+
+try:
+    # pipes lets us hide some annoying C warnings I can't otherwise get to
+    from wurlitzer import pipes
+except ImportError:
+    from contextlib import nullcontext
+    pipex = nullcontext
 
 
 def open(file_name: str) -> int:

@@ -36,15 +36,6 @@ latest = Extension(
     define_macros=[("LX_STATIC_LINKING", None), ("CYTHON_TRACE", int(CYTHON_TRACE))],
 )
 
-# nd2file = Extension(
-#     name="nd2._nd2file",
-#     sources=["nd2/_nd2file.pyx"],
-#     libraries=[f"nd2readsdk-{LINK}"],
-#     library_dirs=[str(SDK / "lib")],
-#     include_dirs=[str(SDK / "include"), get_include()],
-#     extra_objects=[str(x) for x in LIB.glob("*") if not x.name.startswith(".")],
-#     define_macros=[("LX_STATIC_LINKING", None), ("CYTHON_TRACE", int(CYTHON_TRACE))],
-# )
 
 v9 = Extension(
     name="nd2._sdk.v9",
@@ -55,20 +46,10 @@ v9 = Extension(
     extra_link_args=link_args,
 )
 
-# nd2file_legacy = Extension(
-#     name="nd2._nd2file_legacy",
-#     sources=["nd2/_nd2file_legacy.pyx"],
-#     libraries=["v6_w32_nd2ReadSDK" if SYSTEM == "Windows" else "nd2ReadSDK"],
-#     library_dirs=[str(SDK_LEGACY / "lib")],
-#     include_dirs=[str(SDK_LEGACY / "include"), get_include()],
-#     extra_link_args=link_args,
-# )
-
 
 setup(
     use_scm_version={"write_to": "nd2/_version.py"},
     ext_modules=cythonize(
-        # [latest, nd2file, nd2file_legacy],
         [latest, v9, picwrapper],
         language_level="3",
         compiler_directives={

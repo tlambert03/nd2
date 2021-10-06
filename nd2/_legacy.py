@@ -4,8 +4,6 @@ from pathlib import Path
 from threading import Lock
 from typing import BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union
 
-from imagecodecs import jpeg2k_decode
-
 from . import structures as strct
 from ._xml import parse_xml_block
 
@@ -234,6 +232,15 @@ class LegacyND2Reader:
 
     def _read_image(self, index: int):
         import numpy as np
+
+        try:
+            from imagecodecs import jpeg2k_decode
+        except ModuleNotFoundError as e:
+            raise ModuleNotFoundError(
+                f"{e}\n"
+                f"Reading legacy format nd2 {self._fh.name!r} requires imagecodecs.\n"
+                "Please install with `pip install imagecodecs`."
+            )
 
         data = []
         cc = self.attributes.channelCount or 1

@@ -31,7 +31,7 @@ latest = Extension(
     sources=["nd2/_sdk/latest.pyx"],
     libraries=[f"nd2readsdk-{LINK}"],
     library_dirs=[str(SDK / "lib")],
-    runtime_library_dirs=[str(SDK / "lib")] if SYSTEM == "LINUX" else [],
+    runtime_library_dirs=[str(SDK / "lib")] if SYSTEM == "Linux" else [],
     include_dirs=[str(SDK / "include"), get_include()],
     extra_objects=[str(x) for x in LIB.glob("*") if not x.name.startswith(".")],
     define_macros=[("LX_STATIC_LINKING", None), ("CYTHON_TRACE", int(CYTHON_TRACE))],
@@ -43,7 +43,7 @@ v9 = Extension(
     sources=["nd2/_sdk/v9.pyx"],
     libraries=["v6_w32_nd2ReadSDK" if SYSTEM == "Windows" else "nd2ReadSDK"],
     library_dirs=[str(SDK_LEGACY / "lib")],
-    runtime_library_dirs=[str(SDK_LEGACY / "lib")] if SYSTEM == "LINUX" else [],
+    runtime_library_dirs=[str(SDK_LEGACY / "lib")] if SYSTEM == "Linux" else [],
     include_dirs=[str(SDK_LEGACY / "include"), get_include()],
     extra_link_args=link_args,
 )

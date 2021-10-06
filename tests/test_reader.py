@@ -57,7 +57,7 @@ def test_dask(new_nd2):
         assert arr.shape == nd.shape[-2:]
 
 
-def test_full_read(config, new_nd2):
+def test_full_read(new_nd2):
     with ND2File(new_nd2) as nd:
         if (new_nd2.stat().st_size > 500_000_000) and "--runslow" not in sys.argv:
             pytest.skip("use --runslow to test full read")

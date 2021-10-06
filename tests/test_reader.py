@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -23,7 +24,7 @@ def test_metadata_extraction(new_nd2):
         assert nd.path == str(new_nd2)
         assert not nd.closed
 
-        assert isinstance(nd._rdr._seq_count(), int)
+        # assert isinstance(nd._rdr._seq_count(), int)
         assert isinstance(nd.attributes, structures.Attributes)
 
         # TODO: deal with typing when metadata is completely missing
@@ -31,16 +32,11 @@ def test_metadata_extraction(new_nd2):
         assert isinstance(nd.experiment, list)
         assert isinstance(nd.text_info, dict)
         assert isinstance(nd.sizes, dict)
-
         assert isinstance(nd.custom_data, dict)
-
-        n_coords = nd._rdr._coord_size()
-        assert isinstance(n_coords, int)
-        if n_coords:
-            assert isinstance(nd._rdr._seq_index_from_coords([0] * n_coords), int)
-            zcoord = nd._rdr._coords_from_seq_index(0)
-            assert isinstance(zcoord, tuple)
-            assert len(zcoord) == n_coords
+        assert isinstance(nd.shape, tuple)
+        assert isinstance(nd.size, int)
+        assert isinstance(nd.closed, bool)
+        assert isinstance(nd.ndim, int)
 
     assert nd.closed
 
@@ -52,33 +48,41 @@ def test_read_safety(new_nd2: Path):
 
 
 def test_dask(new_nd2):
-    if new_nd2.stat().st_size > 1_000_000_000 and not os.getenv("CI"):
-        pytest.skip("use CI=1 to include big files in dask test")
     with ND2File(new_nd2) as nd:
         dsk = nd.to_dask()
         assert isinstance(dsk, da.Array)
-        arr = np.asarray(dsk)
-        assert arr.shape == nd.shape
-        np.testing.assert_allclose(arr, nd.asarray())
+        assert dsk.shape == nd.shape
+        arr = np.asarray(dsk[(0,) * (len(nd.shape) - 2)])
+        assert isinstance(arr, np.ndarray)
+        assert arr.shape == nd.shape[-2:]
+
+
+def test_full_read(new_nd2):
+    with ND2File(new_nd2) as nd:
+        if (new_nd2.stat().st_size > 500_000_000) and not os.getenv("CI"):
+            pytest.skip("use CI=1 to test full read")
+        delayed_xarray = np.asarray(nd.to_xarray(delayed=True))
+        assert delayed_xarray.shape == nd.shape
+        np.testing.assert_allclose(delayed_xarray, nd.asarray())
 
 
 def test_dask_legacy(old_nd2):
     with ND2File(old_nd2) as nd:
         dsk = nd.to_dask()
         assert isinstance(dsk, da.Array)
-        # these are quite slow because of jpeg 2000
-        if old_nd2.stat().st_size > 100_000_000 and not os.getenv("CI"):
-            np.asarray(dsk[0, 0])
-            return
-        arr = np.asarray(dsk)
-        assert arr.shape == nd.shape
-        np.testing.assert_allclose(arr, nd.asarray())
+        assert dsk.shape == nd.shape
+        arr = np.asarray(dsk[(0,) * (len(nd.shape) - 2)])
+        assert isinstance(arr, np.ndarray)
+        assert arr.shape == nd.shape[-2:]
 
 
-def test_get_frame(new_nd2):
-    with ND2File(new_nd2) as nd:
-        assert isinstance(nd._image_from_sdk(0), np.ndarray)
-        assert isinstance(nd._image_from_mmap(0), np.ndarray)
+def test_full_read_legacy(old_nd2):
+    with ND2File(old_nd2) as nd:
+        if (old_nd2.stat().st_size > 500_000) and not os.getenv("CI"):
+            pytest.skip("use CI=1 to test full read")
+        delayed_xarray = np.asarray(nd.to_xarray(delayed=True))
+        assert delayed_xarray.shape == nd.shape
+        np.testing.assert_allclose(delayed_xarray, nd.asarray())
 
 
 def test_xarray(new_nd2):
@@ -93,14 +97,6 @@ def test_xarray_legacy(old_nd2):
         xarr = nd.to_xarray()
         assert isinstance(xarr, xr.DataArray)
         assert isinstance(xarr.data, da.Array)
-
-
-def test_read_mode(new_nd2):
-    with ND2File(new_nd2, read_mode="mmap") as nd:
-        a1 = nd.asarray()
-    with ND2File(new_nd2, read_mode="sdk") as nd:
-        a2 = nd.asarray()
-    np.testing.assert_allclose(a1, a2)
 
 
 def test_metadata_extraction_legacy(old_nd2):
@@ -132,28 +128,41 @@ def test_imread():
     assert d.shape == (4, 5, 520, 696)
 
 
-# import json
+@pytest.fixture
+def bfshapes():
+    with open(DATA / "bf_shapes.json") as f:
+        return json.load(f)
 
-# with open(DATA / "shapes.json") as f:
-#     BFINO = json.load(f)
+
+def test_bioformats_parity(new_nd2: Path, bfshapes: dict):
+    """Testing that match bioformats shapes (or better when bioformats misses it)."""
+    if new_nd2.name in {
+        "dims_rgb_t3p2c2z3x64y64.nd2",  # bioformats seems to miss the RGB
+        "dims_rgb_c2x64y64.nd2",  # bioformats seems to miss the RGB
+        "dims_t3y32x32.nd2",  # bioformats misses T
+        "jonas_3.nd2",  # bioformats misses Z
+        "cluster.nd2",  # bioformats misses both Z and T
+    }:
+        pytest.xfail()
+    if new_nd2.name.startswith("JOBS_"):
+        pytest.xfail()  # bioformats misses XY position info in JOBS files
+    try:
+        bf_info = {k: v for k, v in bfshapes[new_nd2.name]["shape"].items() if v > 1}
+    except KeyError:
+        pytest.skip(f"{new_nd2.name} not in stats")
+    with ND2File(new_nd2) as nd:
+        # doing these weird checks/asserts for better error messages
+        if len(bf_info) != len(nd.sizes):
+            assert bf_info == nd.sizes
+        # allowing for off-by-one errors for now
+        if bf_info != nd.sizes and any(
+            a < b - 1 or a > b + 1 for a, b in _common_entries(bf_info, nd.sizes)
+        ):
+            assert bf_info == nd.sizes
 
 
-# @pytest.mark.parametrize("fname", NEW_FORMATS, ids=lambda x: x.name)
-# def test_bioformats_parit(fname: Path):
-#     if fname.name in {
-#         "dims_rgb_t3p2c2z3x64y64.nd2",
-#         "dims_rgb_c2x64y64.nd2",
-#         "dims_rgb.nd2",
-#     }:
-#         pytest.xfail()
-#     info = BFINO[fname.name]["shape"]
-#     for k, v in list(info.items()):
-#         if v == 1:
-#             info.pop(k)
-#     with ND2File(fname) as nd:
-#         d = dict(zip(nd.axes, nd.shape))
-#         for k, v in list(d.items()):
-#             if v == 1:
-#                 d.pop(k)
-
-#         assert d == info
+def _common_entries(*dcts):
+    if not dcts:
+        return
+    for i in set(dcts[0]).intersection(*dcts[1:]):
+        yield tuple(d[i] for d in dcts)

@@ -10,6 +10,8 @@ from typing import List, Sequence, Tuple
 
 import numpy as np
 
+from .. import structures
+
 
 cdef class ND2Reader:
 
@@ -44,20 +46,42 @@ cdef class ND2Reader:
     cpdef dict _attributes(self):
         return _loads(Lim_FileGetAttributes(self._fh))
 
+    @property
+    def attributes(self) -> structures.Attributes:
+        cont = self._metadata().get('contents')
+        attrs = self._attributes()
+        nC = cont.get('channelCount') if cont else attrs.get("componentCount", 1)
+        return structures.Attributes(**attrs, channelCount=nC)
+
+    def voxel_size(self) -> tuple[float, float, float]:
+        meta = self.metadata()
+        if meta:
+            ch = meta.channels
+            if ch:
+                return ch[0].volume.axesCalibration
+        return (1, 1, 1)
+
     def _metadata(self) -> dict:
         return _loads(Lim_FileGetMetadata(self._fh))
+
+    def metadata(self) -> structures.Metadata:
+        return structures.Metadata(**self._metadata())
 
     def _frame_metadata(self, seq_index: int) -> dict:
         return _loads(Lim_FileGetFrameMetadata(self._fh, seq_index))
 
-    def _text_info(self) -> dict:
+    def text_info(self) -> dict:
         return _loads(Lim_FileGetTextinfo(self._fh))
 
     def _description(self) -> str:
-        return self._text_info().get("description", '')
+        return self.text_info().get("description", '')
 
-    def _experiment(self):
+    def _experiment(self) -> list:
         return _loads(Lim_FileGetExperiment(self._fh), list)
+
+    def experiment(self) -> List[structures.ExpLoop]:
+        from ..structures import _Loop
+        return [_Loop.create(i) for i in self._experiment()]
 
     cpdef LIMUINT _seq_count(self):
         return Lim_FileGetSeqCount(self._fh)

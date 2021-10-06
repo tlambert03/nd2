@@ -11,7 +11,7 @@ def test_new_sdk(new_nd2: Path):
         a = nd._attributes()
         assert isinstance(a, dict)
         assert isinstance(nd._metadata(), dict)
-        assert isinstance(nd._text_info(), dict)
+        assert isinstance(nd.text_info(), dict)
         assert isinstance(nd._experiment(), list)
 
         csize = nd._coord_size()

@@ -43,10 +43,6 @@ class ImageInfo(NamedTuple):
 # experiment #################
 
 
-def parse_experiment(exp: List[dict]) -> List[ExpLoop]:
-    return [_Loop.create(i) for i in exp]
-
-
 LoopTypeString = Union[
     Literal["TimeLoop"],
     Literal["NETimeLoop"],

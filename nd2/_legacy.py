@@ -47,11 +47,10 @@ class LegacyND2Reader:
     def ddim(self) -> dict:
         from ._util import dims_from_description
 
-        return dims_from_description(self.text_info.get("description"))
+        return dims_from_description(self.text_info().get("description"))
 
-    @cached_property
     def experiment(self) -> List[strct.ExpLoop]:
-        meta = self.metadata
+        meta = self._metadata
         exp = []
         if "LoopNo00" in meta:
             # old style:
@@ -76,7 +75,7 @@ class LegacyND2Reader:
         return exp
 
     def _coord_info(self) -> List[Tuple[int, str, int]]:
-        return [(i, l.type, l.count) for i, l in enumerate(self.experiment)]
+        return [(i, l.type, l.count) for i, l in enumerate(self.experiment())]
 
     def _make_loop(
         self, meta_level: dict, nest_level: int = 0
@@ -86,8 +85,8 @@ class LegacyND2Reader:
         params: dict = meta_level["LoopPars"]
         if type_ == 2:  # XYPosLoop
             poscount = len(params["PosX"])
-            # empirically, it appears that some files list more positions in the metadata
-            # than are actually recorded in the textinfo -> description.
+            # empirically, it appears that some files list more positions in the
+            # metadata than are actually recorded in the textinfo -> description.
             # NIS viewer seems to agree more with the description
             count = self.ddim.get("S") or params["Count"]
             points = []
@@ -153,8 +152,8 @@ class LegacyND2Reader:
 
         raise ValueError(f"unrecognized type: {type_}")
 
-    @property
-    def attributes(self):
+    @cached_property
+    def attributes(self) -> strct.Attributes:
         head = self.header
         bpcim = head["bits_per_component"]
         bpcs = self._advanced_image_attributes.get("SignificantBits", bpcim)
@@ -194,7 +193,6 @@ class LegacyND2Reader:
     # def sizes(self):
     #     attrs = cast(Attributes, self.attributes)
 
-    @cached_property
     def text_info(self) -> dict:
         d = self._get_xml_dict(b"TINF")
         for i in d.get("TextInfoItem", []):
@@ -208,7 +206,7 @@ class LegacyND2Reader:
         return self._get_xml_dict(b"ARTT").get("AdvancedImageAttributes", {})
 
     @cached_property
-    def metadata(self):
+    def _metadata(self):
         meta = self._get_xml_dict(b"AIM1") or self._get_xml_dict(b"AIMD")
         version = ""
         meta.pop("UnknownData", None)
@@ -220,6 +218,9 @@ class LegacyND2Reader:
             meta.pop("UnknownData", None)
         meta["Version"] = version
         return meta
+
+    def metadata(self):
+        return self._metadata
 
     @property
     def calibration(self) -> dict:
@@ -261,7 +262,7 @@ class LegacyND2Reader:
                 zs.add(p["OpticalConfigFull"]["ZPosition0"])
         return (zs, xys, ts, cs)
 
-    def voxel_size(self):
+    def voxel_size(self) -> Tuple[float, float, float]:
         return (1, 1, 1)
 
     def channel_names(self):

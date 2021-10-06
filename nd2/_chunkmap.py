@@ -21,8 +21,8 @@ CHUNK_MAP_SIGNATURE = b"ND2 CHUNK MAP SIGNATURE 0000001!"
 
 
 @contextmanager
-def ensure_handle(obj: Union[str, io.BytesIO]) -> Iterator[BinaryIO]:
-    fh = obj if isinstance(obj, io.IOBase) else open(obj, "rb")
+def ensure_handle(obj: Union[str, BinaryIO]) -> Iterator[BinaryIO]:
+    fh = obj if isinstance(obj, io.IOBase) else open(obj, "rb")  # type: ignore
     try:
         yield fh
     finally:
@@ -51,7 +51,7 @@ def read_chunkmap(file, fixup: Literal[False]) -> Tuple[Dict[int, int], Dict[str
     ...
 
 
-def read_chunkmap(file: Union[str, io.BytesIO], fixup=True, legacy: bool = False):
+def read_chunkmap(file: Union[str, BinaryIO], fixup=True, legacy: bool = False):
     with ensure_handle(file) as fh:
         if not legacy:
             return read_new_chunkmap(fh)

@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List
 
+import psutil
 import pytest
 
 from nd2._util import is_new_format
@@ -28,3 +29,11 @@ def new_nd2(request):
 @pytest.fixture(params=OLD, ids=lambda x: x.name)
 def old_nd2(request):
     return request.param
+
+
+@pytest.fixture(autouse=True)
+def run_around_tests():
+    files_before = psutil.Process().open_files()
+    yield
+    files_after = psutil.Process().open_files()
+    assert files_before == files_after

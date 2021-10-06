@@ -18,7 +18,7 @@ import numpy as np
 
 from ._chunkmap import read_chunkmap
 from ._util import AXIS, open_nd2
-from .structures import Attributes, ExpLoop, Metadata, Volume, parse_experiment
+from .structures import Attributes, ExpLoop, Metadata
 
 try:
     from functools import cached_property
@@ -45,12 +45,11 @@ class ReadMode(str, Enum):
 class ND2File:
     _fh: BinaryIO
     _memmap: mmap.mmap
-    __read_frame: Callable[[ND2File, int], np.ndarray] = None
+    __read_frame: Callable[[ND2File, int], np.ndarray]
     __ravel_coords: Callable[[ND2File, Sequence[int]], int]
+    _is_legacy: bool
 
-    def __init__(
-        self, path: Union[Path, str], read_mode: Union[str, ReadMode] = ReadMode.MMAP
-    ) -> None:
+    def __init__(self, path: Union[Path, str]) -> None:
         self._closed = True
         self._path = str(path)
 
@@ -60,13 +59,8 @@ class ND2File:
         )
         self._max_safe = max(self._frame_map["safe"])
 
-        self._read_mode = ReadMode(read_mode)
-        if self._read_mode == ReadMode.MMAP:
-            self.__read_frame = self._image_from_mmap  # type: ignore[assignment]
-            self.__ravel_coords = self._seq_index_from_coords  # type: ignore
-        else:
-            self.__read_frame = self._image_from_sdk  # type: ignore[assignment]
-            self.__ravel_coords = self._rdr._seq_index_from_coords  # type: ignore
+        self.__read_frame = self._image_from_mmap  # type: ignore[assignment]
+        self.__ravel_coords = self._seq_index_from_coords  # type: ignore
         if self._is_legacy:
             self.__read_frame = self._rdr._read_image
 
@@ -84,6 +78,7 @@ class ND2File:
 
     def close(self) -> None:
         if not self.closed:
+            self._mmap.close()
             self._fh.close()
             self._rdr.close()
             self._closed = True
@@ -94,30 +89,19 @@ class ND2File:
 
     @cached_property
     def attributes(self) -> Attributes:
-        if self._is_legacy:
-            return self._rdr.attributes
-        cont = self.metadata.contents
-        attrs = self._rdr._attributes()
-        nC = cont.channelCount if cont else attrs.get("componentCount", 1)
-        return Attributes(**attrs, channelCount=nC)
+        return self._rdr.attributes
 
     @cached_property
     def text_info(self) -> Dict[str, Any]:
-        if self._is_legacy:
-            return self._rdr.text_info
-        return self._rdr._text_info()
+        return self._rdr.text_info()
 
     @cached_property
     def experiment(self) -> List[ExpLoop]:
-        if self._is_legacy:
-            return self._rdr.experiment
-        return parse_experiment(self._rdr._experiment())
+        return self._rdr.experiment()
 
     @cached_property
     def metadata(self) -> Metadata:
-        if self._is_legacy:
-            return self._rdr.metadata
-        return Metadata(**self._rdr._metadata())
+        return self._rdr.metadata()
 
     @cached_property
     def ndim(self) -> int:
@@ -166,7 +150,7 @@ class ND2File:
 
     @property
     def size(self) -> int:
-        return np.prod(self.shape)
+        return int(np.prod(self.shape))
 
     @property
     def nbytes(self) -> int:
@@ -179,15 +163,7 @@ class ND2File:
         return np.dtype(f"{d}{attrs.bitsPerComponentInMemory // 8}")
 
     def voxel_size(self, channel: int = 0) -> Tuple[float, float, float]:
-        if self._is_legacy:
-            return self._rdr.voxel_size()
-        meta = self.metadata
-        if meta:
-            ch = meta.channels
-            if ch:
-                vol = cast(Volume, ch[0].volume)
-                return vol.axesCalibration
-        return (1, 1, 1)
+        return self._rdr.voxel_size()
 
     # ARRAY OUTPUT
 
@@ -230,7 +206,7 @@ class ND2File:
         return xr.DataArray(
             self.to_dask() if delayed else self.asarray(),
             dims=list(self.sizes),
-            coords=self._expand_coords(),
+            coords=self._expand_coords,
             attrs={
                 "metadata": {
                     "metadata": self.metadata,
@@ -264,12 +240,7 @@ class ND2File:
     @cached_property
     def _coord_shape(self) -> Tuple[int, ...]:
         """sizes of each *non-frame* coordinate"""
-        if self.read_mode == ReadMode.SDK:
-            return tuple(v[2] for v in self._rdr._coord_info())
-        else:
-            return tuple(
-                v for k, v in self.sizes.items() if k not in self._frame_coords
-            )
+        return tuple(v for k, v in self.sizes.items() if k not in self._frame_coords)
 
     @property
     def _frame_count(self) -> int:
@@ -280,6 +251,7 @@ class ND2File:
         frame.shape = self._raw_frame_shape
         return frame.transpose((2, 0, 1, 3)).squeeze()
 
+    @cached_property
     def _expand_coords(self) -> dict:
         """Return a dict that can be used as the coords argument to xr.DataArray"""
         dx, dy, dz = self.voxel_size()
@@ -338,14 +310,6 @@ class ND2File:
 
     def __exit__(self, *_) -> None:
         self.close()
-
-    @property
-    def read_mode(self) -> ReadMode:
-        return self._read_mode
-
-    def _image_from_sdk(self, index: int) -> np.ndarray:
-        """Read a chunk using the SDK"""
-        return self._rdr._image(index)
 
     def _image_from_mmap(self, index: int) -> np.ndarray:
         """Read a chunk directly without using SDK"""

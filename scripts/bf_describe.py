@@ -1,5 +1,4 @@
 from concurrent.futures import ProcessPoolExecutor
-from concurrent.futures.process import ProcessPoolExecutor
 from pathlib import Path
 
 from aicsimageio.readers.bioformats_reader import BioFile, BioformatsReader
@@ -23,7 +22,7 @@ def get_bioformats_info():
     with ProcessPoolExecutor() as exc:
         data = {a: b for a, b in exc.map(getinfo, DATA.glob("*nd2"))}
 
-    with open(DATA / "shapes.json", "w") as fh:
+    with open(DATA / "bf_shapes.json", "w") as fh:
         import json
 
         json.dump(data, fh)

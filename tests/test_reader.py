@@ -1,5 +1,5 @@
 import json
-import os
+import sys
 from pathlib import Path
 
 import dask.array as da
@@ -57,10 +57,10 @@ def test_dask(new_nd2):
         assert arr.shape == nd.shape[-2:]
 
 
-def test_full_read(new_nd2):
+def test_full_read(config, new_nd2):
     with ND2File(new_nd2) as nd:
-        if (new_nd2.stat().st_size > 500_000_000) and not os.getenv("CI"):
-            pytest.skip("use CI=1 to test full read")
+        if (new_nd2.stat().st_size > 500_000_000) and "--runslow" not in sys.argv:
+            pytest.skip("use --runslow to test full read")
         delayed_xarray = np.asarray(nd.to_xarray(delayed=True))
         assert delayed_xarray.shape == nd.shape
         np.testing.assert_allclose(delayed_xarray, nd.asarray())
@@ -78,8 +78,8 @@ def test_dask_legacy(old_nd2):
 
 def test_full_read_legacy(old_nd2):
     with ND2File(old_nd2) as nd:
-        if (old_nd2.stat().st_size > 500_000) and not os.getenv("CI"):
-            pytest.skip("use CI=1 to test full read")
+        if (old_nd2.stat().st_size > 500_000) and "--runslow" not in sys.argv:
+            pytest.skip("use --runslow to test full read")
         delayed_xarray = np.asarray(nd.to_xarray(delayed=True))
         assert delayed_xarray.shape == nd.shape
         np.testing.assert_allclose(delayed_xarray, nd.asarray())

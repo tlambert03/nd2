@@ -41,13 +41,15 @@ class FixedImageMap(TypedDict):
 
 @overload
 def read_chunkmap(
-    file, fixup: Literal[True] = True
+    file: Union[str, BinaryIO], fixup: Literal[True] = True, legacy: bool = False
 ) -> Tuple[FixedImageMap, Dict[str, int]]:
     ...
 
 
 @overload
-def read_chunkmap(file, fixup: Literal[False]) -> Tuple[Dict[int, int], Dict[str, int]]:
+def read_chunkmap(
+    file: Union[str, BinaryIO], fixup: Literal[False], legacy: bool = False
+) -> Tuple[Dict[int, int], Dict[str, int]]:
     ...
 
 

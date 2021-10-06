@@ -236,7 +236,7 @@ class LegacyND2Reader:
         import numpy as np
 
         data = []
-        cc = self.attributes.channelCount
+        cc = self.attributes.channelCount or 1
         for i in range(cc):
             d = self._read_chunk(self._chunkmap[b"LUNK"][index * cc + i])
             data.append(jpeg2k_decode(d))

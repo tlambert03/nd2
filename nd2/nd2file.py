@@ -62,7 +62,7 @@ class ND2File:
         self.__read_frame = self._image_from_mmap  # type: ignore[assignment]
         self.__ravel_coords = self._seq_index_from_coords  # type: ignore
         if self._is_legacy:
-            self.__read_frame = self._rdr._read_image
+            self.__read_frame = self._rdr._read_image  # type: ignore
 
     # PUBLIC API:
 
@@ -280,8 +280,9 @@ class ND2File:
                     for p in c.parameters.points
                 ]
         if self.attributes.channelCount and self.attributes.channelCount > 1:
+            # TODO
             if self._is_legacy:
-                coords[AXIS.CHANNEL] = self._rdr.channel_names()
+                coords[AXIS.CHANNEL] = self._rdr.channel_names()  # type: ignore
             else:
                 _channels = self.metadata.channels or []
                 coords[AXIS.CHANNEL] = [c.channel.name for c in _channels]

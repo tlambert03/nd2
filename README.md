@@ -30,6 +30,7 @@ pip install nd2[legacy]
 
 ```python
 import nd2
+import numpy as np
 
 my_array = nd2.imread('some_file.nd2')                          # read to numpy array
 my_array = nd2.imread('some_file.nd2', dask=True)               # read to dask array

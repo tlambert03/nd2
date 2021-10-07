@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Callable,
+    NamedTuple,
     Optional,
     Sequence,
     Set,
@@ -40,6 +41,12 @@ Index = Union[int, slice]
 class ReadMode(str, Enum):
     MMAP = "mmap"
     SDK = "sdk"
+
+
+class VoxelSize(NamedTuple):
+    x: float
+    y: float
+    z: float
 
 
 class ND2File:
@@ -162,14 +169,17 @@ class ND2File:
         d = attrs.pixelDataType[0] if attrs.pixelDataType else "u"
         return np.dtype(f"{d}{attrs.bitsPerComponentInMemory // 8}")
 
-    def voxel_size(self, channel: int = 0) -> Tuple[float, float, float]:
-        return self._rdr.voxel_size()
+    def voxel_size(self, channel: int = 0) -> VoxelSize:
+        return VoxelSize(*self._rdr.voxel_size())
 
     # ARRAY OUTPUT
 
     def asarray(self) -> np.ndarray:
         arr = np.stack([self._get_frame(i) for i in range(self._frame_count)])
         return arr.reshape(self.shape)
+
+    def __array__(self) -> np.ndarray:
+        return self.asarray()
 
     def to_dask(self) -> da.Array:
         from dask.array import map_blocks
@@ -180,11 +190,11 @@ class ND2File:
         darr._ctx = self  # XXX: ok?  or will we leak refs
         return darr
 
-    NO_IDX = -1
+    _NO_IDX = -1
 
     def _seq_index_from_coords(self, coords: Sequence) -> int:
         if not self._coord_shape:
-            return self.NO_IDX
+            return self._NO_IDX
         return np.ravel_multi_index(coords, self._coord_shape)
 
     def _dask_block(self, block_id: Tuple[int]) -> np.ndarray:
@@ -194,7 +204,7 @@ class ND2File:
         ncoords = len(self._coord_shape)
         idx = self.__ravel_coords(block_id[:ncoords])
 
-        if idx == self.NO_IDX:
+        if idx == self._NO_IDX:
             if any(block_id):
                 raise ValueError(f"Cannot get chunk {block_id} for single frame image.")
             idx = 0

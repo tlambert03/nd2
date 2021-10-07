@@ -1,5 +1,7 @@
 from libc.stddef cimport wchar_t
 
+from .picture cimport LIMPICTURE
+
 
 cdef extern from "Python.h":
     wchar_t* PyUnicode_AsWideCharString(object, Py_ssize_t *)
@@ -96,14 +98,7 @@ cdef extern from "nd2ReadSDK.h":
         LIMUINT  uiLevelCount  # Number of dimensions excl. Lambda
         LIMEXPERIMENTLEVEL pAllocatedLevels[LIMMAXEXPERIMENTLEVEL]
 
-    ctypedef struct LIMPICTURE:
-        LIMUINT     uiWidth            # !< Width (in pixels) of the picture
-        LIMUINT     uiHeight           # !< Height (in pixels) of the picture
-        LIMUINT     uiBitsPerComp      # !< Number of bits for each component
-        LIMUINT     uiComponents       # !< Number of components in each pixel
-        LIMSIZE     uiWidthBytes       # !< Number of bytes for each pixel line (stride) aligned to 4bytes
-        LIMSIZE     uiSize             # !< Number of bytes the image occupies
-        void*       pImageData         # !< Image data
+
 
     ctypedef struct LIMLOCALMETADATA:
         double   dTimeMSec             # Relative time msec from the first
@@ -319,15 +314,3 @@ cdef extern from "nd2ReadSDK.h":
                                             double* pdYSrc,
                                             double* pdXDst,
                                             double *pdYDst)
-
-
-cdef inline LIMPICTURE nullpic():
-    cdef LIMPICTURE p
-    p.uiWidth = 0
-    p.uiHeight = 0
-    p.uiBitsPerComp = 0
-    p.uiComponents = 0
-    p.uiWidthBytes = 0
-    p.uiSize = 0
-    p.pImageData = NULL
-    return p

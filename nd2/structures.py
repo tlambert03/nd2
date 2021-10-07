@@ -30,6 +30,7 @@ class Attributes(NamedTuple):
     compressionType: Optional[str] = None
     tileHeightPx: Optional[int] = None
     tileWidthPx: Optional[int] = None
+    channelCount: Optional[int] = None
 
 
 class ImageInfo(NamedTuple):
@@ -40,10 +41,6 @@ class ImageInfo(NamedTuple):
 
 
 # experiment #################
-
-
-def parse_experiment(exp: List[dict]) -> List[ExpLoop]:
-    return [_Loop.create(i) for i in exp]
 
 
 LoopTypeString = Union[
@@ -75,7 +72,8 @@ class TimeLoop(_Loop):
     type: Literal["TimeLoop"] = "TimeLoop"
 
     def __post_init__(self):
-        self.parameters = TimeLoopParams(**self.parameters)
+        if isinstance(self.parameters, dict):
+            self.parameters = TimeLoopParams(**self.parameters)
 
 
 @dataclass
@@ -86,7 +84,8 @@ class TimeLoopParams:
     periodDiff: PeriodDiff
 
     def __post_init__(self):
-        self.periodDiff = PeriodDiff(**self.periodDiff)
+        if isinstance(self.periodDiff, dict):
+            self.periodDiff = PeriodDiff(**self.periodDiff)
 
 
 @dataclass
@@ -105,7 +104,8 @@ class NETimeLoop(_Loop):
     type: Literal["NETimeLoop"] = "NETimeLoop"
 
     def __post_init__(self):
-        self.parameters = NETimeLoopParams(**self.parameters)
+        if isinstance(self.parameters, dict):
+            self.parameters = NETimeLoopParams(**self.parameters)
 
 
 @dataclass
@@ -113,7 +113,7 @@ class NETimeLoopParams:
     periods: List[Period]
 
     def __post_init__(self):
-        self.periods = [Period(**i) for i in self.periods]
+        self.periods = [Period(**i) if isinstance(i, dict) else i for i in self.periods]
 
 
 @dataclass
@@ -130,7 +130,8 @@ class XYPosLoop(_Loop):
     type: Literal["XYPosLoop"] = "XYPosLoop"
 
     def __post_init__(self):
-        self.parameters = XYPosLoopParams(**self.parameters)
+        if isinstance(self.parameters, dict):
+            self.parameters = XYPosLoopParams(**self.parameters)
 
 
 @dataclass
@@ -139,7 +140,7 @@ class XYPosLoopParams:
     points: List[Position]
 
     def __post_init__(self):
-        self.points = [Position(**i) for i in self.points]
+        self.points = [Position(**i) if isinstance(i, dict) else i for i in self.points]
 
 
 @dataclass
@@ -149,7 +150,8 @@ class Position:
     name: Optional[str] = None
 
     def __post_init__(self):
-        self.stagePositionUm = StagePosition(*self.stagePositionUm)
+        if isinstance(self.stagePositionUm, dict):
+            self.stagePositionUm = StagePosition(*self.stagePositionUm)
 
 
 class StagePosition(NamedTuple):
@@ -167,7 +169,8 @@ class ZStackLoop(_Loop):
     type: Literal["ZStackLoop"] = "ZStackLoop"
 
     def __post_init__(self):
-        self.parameters = ZStackLoopParams(**self.parameters)
+        if isinstance(self.parameters, dict):
+            self.parameters = ZStackLoopParams(**self.parameters)
 
 
 @dataclass
@@ -188,12 +191,16 @@ LoopParams = Union[TimeLoopParams, NETimeLoopParams, XYPosLoopParams, ZStackLoop
 
 @dataclass
 class Metadata:
-    contents: Contents
-    channels: List[Channel]
+    contents: Optional[Contents] = None
+    channels: Optional[List[Channel]] = None
 
     def __post_init__(self):
-        self.contents = Contents(**self.contents)
-        self.channels = [Channel(**i) for i in self.channels]
+        if isinstance(self.contents, dict):
+            self.contents = Contents(**self.contents)
+        if self.channels:
+            self.channels = [
+                Channel(**i) if isinstance(i, dict) else i for i in self.channels
+            ]
 
 
 @dataclass
@@ -258,9 +265,9 @@ class Volume:
     cameraTransformationMatrix: Tuple[float, float, float, float]
     componentCount: int
     componentDataType: Union[Literal["unsigned"], Literal["float"]]
-    componentMaxima: List[float]
-    componentMinima: List[float]
     voxelCount: Tuple[int, int, int]
+    componentMaxima: Optional[List[float]] = None
+    componentMinima: Optional[List[float]] = None
     pixelToStageTransformationMatrix: Optional[
         Tuple[float, float, float, float, float, float]
     ] = None
@@ -302,6 +309,6 @@ class FrameMetadata:
 
 
 class Coordinate(NamedTuple):
-    idx: int
+    index: int
     type: str
     size: int

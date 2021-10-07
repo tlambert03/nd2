@@ -3,12 +3,22 @@ from __future__ import annotations
 import mmap
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Optional,
+    Sequence,
+    Set,
+    Union,
+    cast,
+    overload,
+)
 
 import numpy as np
 
-from . import _nd2file
 from ._chunkmap import read_chunkmap
+from ._util import AXIS, open_nd2
+from .structures import Attributes, ExpLoop, Metadata
 
 try:
     from functools import cached_property
@@ -21,8 +31,7 @@ if TYPE_CHECKING:
 
     import dask.array as da
     import xarray as xr
-
-    from .structures import Attributes, ExpLoop, Metadata
+    from typing_extensions import Literal
 
 
 Index = Union[int, slice]
@@ -33,51 +42,66 @@ class ReadMode(str, Enum):
     SDK = "sdk"
 
 
-class AXIS:
-    X = "X"
-    Y = "Y"
-    Z = "Z"
-    CHANNEL = "C"
-    RGB = "c"
-    TIME = "T"
-    POSITION = "S"
-    UNKNOWN = "U"
-
-    _MAP = {
-        "Unknown": UNKNOWN,
-        "TimeLoop": TIME,
-        "XYPosLoop": POSITION,
-        "ZStackLoop": Z,
-        "NETimeLoop": TIME,
-    }
-
-
 class ND2File:
-    _rdr: _nd2file.ND2Reader
     _fh: BinaryIO
     _memmap: mmap.mmap
+    __read_frame: Callable[[ND2File, int], np.ndarray]
+    __ravel_coords: Callable[[ND2File, Sequence[int]], int]
+    _is_legacy: bool
 
-    def __init__(
-        self, path: Union[Path, str], read_mode: Union[str, ReadMode] = ReadMode.MMAP
-    ) -> None:
+    def __init__(self, path: Union[Path, str]) -> None:
         self._closed = True
         self._path = str(path)
-        try:
-            self._rdr = _nd2file.ND2Reader(self._path)
-        except OSError:
-            from ._util import is_old_format
-
-            if is_old_format(path):
-                raise NotImplementedError("Legacy file not yet supported")
 
         self.open()
-        self._frame_map, self._meta_map = read_chunkmap(self._fh, fixup=True)
-        self._safe_frames = self._frame_map["safe"]
-        self.read_mode = read_mode  # type: ignore
+        self._frame_map, self._meta_map = read_chunkmap(
+            self._fh, fixup=True, legacy=self._is_legacy
+        )
+        self._max_safe = max(self._frame_map["safe"])
+
+        self.__read_frame = self._image_from_mmap  # type: ignore[assignment]
+        self.__ravel_coords = self._seq_index_from_coords  # type: ignore
+        if self._is_legacy:
+            self.__read_frame = self._rdr._read_image  # type: ignore
+
+    # PUBLIC API:
 
     @property
     def path(self):
         return self._path
+
+    def open(self) -> None:
+        if self.closed:
+            self._fh, self._rdr, self._is_legacy = open_nd2(self._path)
+            self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
+            self._closed = False
+
+    def close(self) -> None:
+        if not self.closed:
+            self._mmap.close()
+            self._fh.close()
+            self._rdr.close()
+            self._closed = True
+
+    @property
+    def closed(self) -> bool:
+        return self._closed
+
+    @cached_property
+    def attributes(self) -> Attributes:
+        return self._rdr.attributes
+
+    @cached_property
+    def text_info(self) -> Dict[str, Any]:
+        return self._rdr.text_info()
+
+    @cached_property
+    def experiment(self) -> List[ExpLoop]:
+        return self._rdr.experiment()
+
+    @cached_property
+    def metadata(self) -> Metadata:
+        return self._rdr.metadata()
 
     @cached_property
     def ndim(self) -> int:
@@ -85,38 +109,52 @@ class ND2File:
 
     @cached_property
     def shape(self) -> Tuple[int, ...]:
-        return tuple(c.size for c in self._coord_info) + self._final_frame_shape
+        return self._coord_shape + self._frame_shape
 
     @cached_property
-    def _coord_info(self):
-        """simple info on each non-XYC coordinate"""
-        return self._rdr.coord_info()
+    def sizes(self) -> Dict[str, int]:
+        attrs = cast(Attributes, self.attributes)
+        from ._util import AXIS, dims_from_description
 
-    @cached_property
-    def _final_frame_shape(self) -> Tuple[int, ...]:
-        """after reshaping, transposing, and squeezing a raw frame chunk
+        # often, the 'Description' field in textinfo is the best source of dimension
+        # (dims are strangely missing from coord_info sometimes)
+        # so we start there, and fall back to coord_info if ddims are empty
+        ddims = dims_from_description(self.text_info.get("description"))
+        # dims from coord info
+        cdims = {AXIS._MAP[c[1]]: c[2] for c in self._rdr._coord_info()}
 
-        [C]YX[c]  (where big C is a true channel, and little c is RGB channel.
-        """
-        attr = self.attributes
-        _shape = [attr.heightPx, attr.widthPx or -1]
-        if self._n_true_channels > 1:
-            _shape.insert(0, self._n_true_channels)
-        if self.components_per_channel > 1:
-            _shape.append(self.components_per_channel)
-        return tuple(_shape)
+        # prefer the value in coord info if it exists. (it's usually more accurate)
+        dims = {k: cdims.get(k, v) for k, v in ddims.items()} if ddims else cdims
+        dims[AXIS.CHANNEL] = (
+            dims.pop(AXIS.CHANNEL)
+            if AXIS.CHANNEL in dims
+            else (attrs.channelCount or 1)
+        )
+        dims[AXIS.Y] = attrs.heightPx
+        dims[AXIS.X] = attrs.widthPx or -1
+        if self.components_per_channel == 3:  # rgb
+            dims[AXIS.RGB] = self.components_per_channel
+        else:
+            # if not exactly 3 channels, throw them all into monochrome channels
+            dims[AXIS.CHANNEL] = attrs.componentCount
+        return {k: v for k, v in dims.items() if v != 1}
 
-    @cached_property
+    @property
     def is_rgb(self) -> bool:
         return self.components_per_channel in (3, 4)
 
-    @cached_property
+    @property
     def components_per_channel(self) -> int:
-        return self.attributes.componentCount // self.metadata().contents.channelCount
+        attrs = cast(Attributes, self.attributes)
+        return attrs.componentCount // (attrs.channelCount or 1)
 
-    @cached_property
+    @property
     def size(self) -> int:
-        return np.prod(self.shape)
+        return int(np.prod(self.shape))
+
+    @property
+    def nbytes(self) -> int:
+        return self.size * self.dtype.itemsize
 
     @cached_property
     def dtype(self) -> np.dtype:
@@ -124,76 +162,54 @@ class ND2File:
         d = attrs.pixelDataType[0] if attrs.pixelDataType else "u"
         return np.dtype(f"{d}{attrs.bitsPerComponentInMemory // 8}")
 
-    @cached_property
-    def axes(self) -> str:
-        a = [AXIS._MAP[c.type] for c in self._coord_info]
-        if self._n_true_channels > 1:
-            a.append(AXIS.CHANNEL)
-        a += [AXIS.Y, AXIS.X]
-        if self.components_per_channel > 1:
-            a.append(AXIS.RGB)
-        return "".join(a)
+    def voxel_size(self, channel: int = 0) -> Tuple[float, float, float]:
+        return self._rdr.voxel_size()
 
-    @cached_property
-    def _n_true_channels(self) -> int:
-        return self.attributes.componentCount // self.components_per_channel
-
-    def voxel_size(self, channel=0) -> Tuple[float, float, float]:
-        return self._rdr._voxel_size()
+    # ARRAY OUTPUT
 
     def asarray(self) -> np.ndarray:
-        arr = np.stack([self._get_frame(i) for i in range(self._rdr.seq_count())])
+        arr = np.stack([self._get_frame(i) for i in range(self._frame_count)])
         return arr.reshape(self.shape)
 
     def to_dask(self) -> da.Array:
         from dask.array import map_blocks
 
-        chunkshape = [(1,) * c.size for c in self._coord_info]
-        chunkshape += [(x,) for x in self._final_frame_shape]
-        darr = map_blocks(self._dask_block, chunks=chunkshape, dtype=self.dtype)
+        chunks = [(1,) * x for x in self._coord_shape]
+        chunks += [(x,) for x in self._frame_shape]
+        darr = map_blocks(self._dask_block, chunks=chunks, dtype=self.dtype)
         darr._ctx = self  # XXX: ok?  or will we leak refs
         return darr
 
-    @property
-    def read_mode(self) -> ReadMode:
-        return self._read_mode
+    NO_IDX = -1
 
-    @read_mode.setter
-    def read_mode(self, value: Union[str, ReadMode]) -> None:
-        self._read_mode = ReadMode(value)
+    def _seq_index_from_coords(self, coords: Sequence) -> int:
+        if not self._coord_shape:
+            return self.NO_IDX
+        return np.ravel_multi_index(coords, self._coord_shape)
 
-    def _get_frame(self, index, mode=None):
-        mode = mode or self._read_mode  # TODO: protect this value
-        get_frame = self._sdk_data if mode == "sdk" else self._mmap_chunk
-        frame = get_frame(index)
-        frame.shape = (
-            self.attributes.heightPx,
-            self.attributes.widthPx or -1,
-            self._n_true_channels,
-            self.components_per_channel,
-        )
-        return frame.transpose((2, 0, 1, 3)).squeeze()
-
-    def _dask_block(self, block_id: Tuple[int]):
+    def _dask_block(self, block_id: Tuple[int]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
             return
-        idx = self._rdr.seq_index_from_coords(block_id[: -len(self._final_frame_shape)])
-        if idx == -1:
+
+        ncoords = len(self._coord_shape)
+        idx = self.__ravel_coords(block_id[:ncoords])
+
+        if idx == self.NO_IDX:
             if any(block_id):
                 raise ValueError(f"Cannot get chunk {block_id} for single frame image.")
             idx = 0
-        return self._get_frame(idx)[(np.newaxis,) * len(self._coord_info)]
+        return self._get_frame(idx)[(np.newaxis,) * ncoords]
 
     def to_xarray(self, delayed: bool = True) -> xr.DataArray:
         import xarray as xr
 
         return xr.DataArray(
             self.to_dask() if delayed else self.asarray(),
-            dims=list(self.axes),
-            coords=self._expand_coords(),
+            dims=list(self.sizes),
+            coords=self._expand_coords,
             attrs={
                 "metadata": {
-                    "metadata": self.metadata(),
+                    "metadata": self.metadata,
                     "experiment": self.experiment,
                     "attributes": self.attributes,
                     "text_info": self.text_info,
@@ -201,17 +217,52 @@ class ND2File:
             },
         )
 
+    @property
+    def _frame_coords(self) -> Set[str]:
+        return {AXIS.X, AXIS.Y, AXIS.CHANNEL, AXIS.RGB}
+
+    @property
+    def _raw_frame_shape(self) -> Tuple[int, int, int, int]:
+        """sizes of each frame coordinate, prior to reshape"""
+        attr = self.attributes
+        return (
+            attr.heightPx,
+            attr.widthPx or -1,
+            attr.channelCount or 1,
+            self.components_per_channel,
+        )
+
+    @property
+    def _frame_shape(self) -> Tuple[int, ...]:
+        """sizes of each frame coordinate, after reshape & squeeze"""
+        return tuple(v for k, v in self.sizes.items() if k in self._frame_coords)
+
+    @cached_property
+    def _coord_shape(self) -> Tuple[int, ...]:
+        """sizes of each *non-frame* coordinate"""
+        return tuple(v for k, v in self.sizes.items() if k not in self._frame_coords)
+
+    @property
+    def _frame_count(self) -> int:
+        return int(np.prod(self._coord_shape))
+
+    def _get_frame(self, index):
+        frame: np.ndarray = self.__read_frame(index)
+        frame.shape = self._raw_frame_shape
+        return frame.transpose((2, 0, 1, 3)).squeeze()
+
+    @cached_property
     def _expand_coords(self) -> dict:
         """Return a dict that can be used as the coords argument to xr.DataArray"""
-        if self._rdr._is_legacy:
-            return {}
+        dx, dy, dz = self.voxel_size()
 
-        dx, dy, _ = self.voxel_size()
         coords = {
             AXIS.Y: np.arange(self.attributes.heightPx) * dy,
             AXIS.X: np.arange(self.attributes.widthPx) * dx,
         }
         for c in self.experiment:
+            if getattr(c, "count") == 1:  # squeeze
+                continue
             if c.type == "ZStackLoop":
                 coords[AXIS._MAP["ZStackLoop"]] = (
                     np.arange(c.count) * c.parameters.stepUm
@@ -228,19 +279,27 @@ class ND2File:
                     p.name or repr(tuple(p.stagePositionUm))
                     for p in c.parameters.points
                 ]
-        if self._n_true_channels > 1:
-            _channels = self.metadata().channels
-            coords[AXIS.CHANNEL] = [c.channel.name for c in _channels]
+        if self.attributes.channelCount and self.attributes.channelCount > 1:
+            # TODO
+            if self._is_legacy:
+                coords[AXIS.CHANNEL] = self._rdr.channel_names()  # type: ignore
+            else:
+                _channels = self.metadata.channels or []
+                coords[AXIS.CHANNEL] = [c.channel.name for c in _channels]
         if self.components_per_channel > 1:
             coords[AXIS.RGB] = ["Red", "Green", "Blue", "alpha"][
                 : self.components_per_channel
             ]
+
+        # fix for Z axis missing from experiment:
+        if AXIS.Z in self.sizes and AXIS.Z not in coords:
+            coords[AXIS.Z] = np.arange(self.sizes[AXIS.Z]) * dz
+
         return coords
 
     def __repr__(self) -> str:
         try:
-            shp_dict = dict(zip(self.axes, self.shape))
-            details = f" {self.dtype}: {shp_dict!r}" if self.is_open() else " (closed)"
+            details = " (closed)" if self.closed else f" {self.dtype}: {self.sizes!r}"
             extra = f": {Path(self.path).name!r}{details}"
         except Exception:
             extra = ""
@@ -253,29 +312,48 @@ class ND2File:
     def __exit__(self, *_) -> None:
         self.close()
 
-    def open(self) -> None:
-        if not self.is_open():
-            self._fh = open(self._path, "rb")
-            self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
-            self._rdr.open()
-            self._closed = False
+    def _image_from_mmap(self, index: int) -> np.ndarray:
+        """Read a chunk directly without using SDK"""
+        if index > self._max_safe:
+            raise IndexError(f"Frame out of range: {index}")
+        offset = self._frame_map["safe"].get(index, None)
+        if offset is None:
+            return self._missing_frame(index)
 
-    def close(self) -> None:
-        if self.is_open():
-            self._fh.close()
-            self._rdr.close()
-            self._closed = True
-
-    def is_open(self) -> bool:
-        return not self._closed
+        try:
+            return np.ndarray(
+                shape=self._raw_frame_shape,
+                dtype=self.dtype,
+                buffer=self._mmap,  # type: ignore
+                offset=offset,
+                strides=self._strides,
+            )
+        except TypeError:
+            # If the chunkmap is wrong, and the mmap isn't long enough
+            # for the requested offset & size, a type error is raised.
+            return self._missing_frame(index)
 
     @cached_property
-    def attributes(self) -> Attributes:
-        return self._rdr.attributes()
+    def _strides(self) -> Optional[Tuple[int, ...]]:
+        a = cast(Attributes, self.attributes)
+        width = a.widthPx
+        widthB = a.widthBytes
+        if not (width and widthB):
+            return None
+        bypc = a.bitsPerComponentInMemory // 8
+        array_stride = widthB - (bypc * width * a.componentCount)
+        if array_stride == 0:
+            return None
+        return (
+            array_stride + width * bypc * a.componentCount,
+            a.componentCount * bypc,
+            self.components_per_channel * bypc,
+            bypc,
+        )
 
-    @property
-    def text_info(self) -> Dict[str, Any]:
-        return self._rdr.text_info()
+    def _missing_frame(self, index: int = 0) -> np.ndarray:
+        # TODO: add other modes for filling missing data
+        return np.zeros(self._raw_frame_shape, self.dtype)
 
     @cached_property
     def custom_data(self) -> Dict[str, Any]:
@@ -287,53 +365,7 @@ class ND2File:
             if k.startswith("CustomDataVar|")
         }
 
-    @cached_property
-    def experiment(self) -> List[ExpLoop]:
-        return self._rdr.experiment()
-
-    def metadata(self, *args, **kwargs) -> Metadata:
-        return self._rdr.metadata(*args, **kwargs)  # type: ignore  # FIXME
-
-    def _sdk_data(self, index: int) -> np.ndarray:
-        """Read a chunk using the SDK"""
-        return self._rdr.data(index)
-
-    def _mmap_chunk(self, index: int) -> np.ndarray:
-        """Read a chunk directly without using SDK"""
-        if index not in self._safe_frames:
-            raise IndexError(f"Frame out of range: {index}")
-        offset = self._safe_frames[index]
-        if offset is None:
-            return self._missing_frame(index)
-
-        a = self.attributes
-        array_kwargs = dict(
-            shape=(a.heightPx, a.widthPx, a.componentCount),
-            dtype=self.dtype,
-            buffer=self._mmap,
-            offset=offset,
-        )
-
-        if self._array_stride != 0:
-            bypc = a.bitsPerComponentInMemory // 8
-            array_kwargs["strides"] = (
-                self._array_stride + a.widthPx * bypc * a.componentCount,  # type:ignore
-                a.componentCount * bypc,
-                bypc,
-            )
-        return np.ndarray(**array_kwargs)
-
-    @cached_property
-    def _array_stride(self) -> int:
-        a = self.attributes
-        bypc = a.bitsPerComponentInMemory // 8
-        return a.widthBytes - (bypc * a.widthPx * a.componentCount)  # type: ignore
-
-    def _missing_frame(self, index: int = 0):
-        a = self.attributes
-        return np.ndarray((a.heightPx, a.widthPx, a.componentCount), self.dtype)
-
-    def _get_meta_chunk(self, key):
+    def _get_meta_chunk(self, key: str) -> bytes:
         from ._chunkmap import read_chunk
 
         try:
@@ -346,7 +378,28 @@ class ND2File:
         return read_chunk(self._fh, pos)
 
 
-def imread(file: str = None) -> np.ndarray:
-    with ND2File(str(file)) as nd2:
-        arr = nd2.asarray()
-    return arr
+@overload
+def imread(
+    file: str, dask: Literal[False] = False, xarray: Literal[False] = False
+) -> np.ndarray:
+    ...
+
+
+@overload
+def imread(file: str, dask: bool = ..., xarray: Literal[True] = True) -> xr.DataArray:
+    ...
+
+
+@overload
+def imread(file: str, dask: Literal[True] = ..., xarray=False) -> da.Array:
+    ...
+
+
+def imread(file: str, dask: bool = False, xarray: bool = False):
+    with ND2File(file) as nd2:
+        if xarray:
+            return nd2.to_xarray(delayed=dask)
+        elif dask:
+            return nd2.to_dask()
+        else:
+            return nd2.asarray()

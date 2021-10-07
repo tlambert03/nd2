@@ -11,6 +11,8 @@ clean:
 	rm -rf htmlcov .coverage .hypothesis
 	rm -f nd2/*.so
 	rm -f nd2/_*.c
+	rm -f nd2/_sdk/*.so
+	rm -f nd2/_sdk/*.c
 
 clobber:
 	make clean

@@ -1,5 +1,6 @@
 import re
-from typing import Any, Dict, Optional
+from functools import partial
+from typing import Any, Callable, Dict, Optional
 
 import lxml.etree
 
@@ -10,7 +11,7 @@ def parse_xml_block(bxml: bytes) -> Dict[str, Any]:
 
 
 lower = re.compile("^[a-z_]+")
-_TYPEMAP: Dict[Optional[str], type] = {
+_TYPEMAP: Dict[Optional[str], Callable] = {
     "bool": bool,
     "lx_uint32": int,
     "lx_uint64": int,
@@ -18,7 +19,7 @@ _TYPEMAP: Dict[Optional[str], type] = {
     "lx_int64": int,
     "double": float,
     "CLxStringW": str,
-    "CLxByteArray": str,
+    "CLxByteArray": partial(bytes, encoding="utf-8"),
     "unknown": str,
     None: str,
 }
@@ -31,7 +32,16 @@ def elem2dict(node: lxml.etree._Element) -> Dict[str, Any]:
     result: Dict[str, Any] = {}
 
     if "value" in node.attrib:
-        return _TYPEMAP[node.attrib.get("runtype")](node.attrib["value"])
+        type_ = _TYPEMAP[node.attrib.get("runtype")]
+        try:
+            return type_(node.attrib["value"])
+        except ValueError:
+            return node.attrib["value"]
+
+    attrs = node.attrib
+    attrs.pop("runtype", None)
+    attrs.pop("version", None)
+    result.update(node.attrib)
 
     for element in node.iterchildren():
         # Remove namespace prefix
@@ -49,6 +59,18 @@ def elem2dict(node: lxml.etree._Element) -> Dict[str, Any]:
                 result[key].append(value)
             else:
                 result[key] = [result[key], value]
+        # elif key in {"no_name", "variant"}:
+        #     result.update(value)
         else:
             result[key] = value
-    return result["no_name"] if set(result.keys()) == {"no_name"} else result
+
+    if isinstance(result, dict):
+        if "variant" in result and not isinstance(result["variant"], list):
+            result = result["variant"]
+        if set(result.keys()) == {"no_name"} and not isinstance(
+            result["no_name"], list
+        ):
+            result = result["no_name"]
+    # if node.tag not in {"no_name", "variant"}:
+    #     result = {node.tag: result}
+    return result

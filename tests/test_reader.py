@@ -90,6 +90,7 @@ def test_xarray(new_nd2):
         xarr = nd.to_xarray()
         assert isinstance(xarr, xr.DataArray)
         assert isinstance(xarr.data, da.Array)
+        assert isinstance(nd.to_xarray(squeeze=False), xr.DataArray)
 
 
 def test_xarray_legacy(old_nd2):
@@ -97,6 +98,7 @@ def test_xarray_legacy(old_nd2):
         xarr = nd.to_xarray()
         assert isinstance(xarr, xr.DataArray)
         assert isinstance(xarr.data, da.Array)
+        assert isinstance(nd.to_xarray(squeeze=False), xr.DataArray)
 
 
 def test_metadata_extraction_legacy(old_nd2):

@@ -186,9 +186,7 @@ class ND2File:
 
         chunks = [(1,) * x for x in self._coord_shape]
         chunks += [(x,) for x in self._frame_shape]
-        darr = map_blocks(self._dask_block, chunks=chunks, dtype=self.dtype)
-        darr._ctx = self  # XXX: ok?  or will we leak refs
-        return darr
+        return map_blocks(self._dask_block, chunks=chunks, dtype=self.dtype)
 
     _NO_IDX = -1
 
@@ -210,13 +208,23 @@ class ND2File:
             idx = 0
         return self._get_frame(idx)[(np.newaxis,) * ncoords]
 
-    def to_xarray(self, delayed: bool = True) -> xr.DataArray:
+    def to_xarray(self, delayed: bool = True, squeeze=True) -> xr.DataArray:
         import xarray as xr
 
+        data = self.to_dask() if delayed else self.asarray()
+        dims = list(self.sizes)
+        coords = self._expand_coords(squeeze)
+        if not squeeze:
+            for missing_dim in set(coords).difference(dims):
+                dims.insert(0, missing_dim)
+            missing_axes = len(dims) - data.ndim
+            if missing_axes > 0:
+                data = data[(np.newaxis,) * missing_axes]
+
         return xr.DataArray(
-            self.to_dask() if delayed else self.asarray(),
-            dims=list(self.sizes),
-            coords=self._expand_coords,
+            data,
+            dims=dims,
+            coords=coords,
             attrs={
                 "metadata": {
                     "metadata": self.metadata,
@@ -261,41 +269,32 @@ class ND2File:
         frame.shape = self._raw_frame_shape
         return frame.transpose((2, 0, 1, 3)).squeeze()
 
-    @cached_property
-    def _expand_coords(self) -> dict:
+    def _expand_coords(self, squeeze=True) -> dict:
         """Return a dict that can be used as the coords argument to xr.DataArray"""
         dx, dy, dz = self.voxel_size()
 
         coords = {
             AXIS.Y: np.arange(self.attributes.heightPx) * dy,
             AXIS.X: np.arange(self.attributes.widthPx) * dx,
+            AXIS.CHANNEL: self._channel_names,
         }
+
         for c in self.experiment:
-            if getattr(c, "count") == 1:  # squeeze
+            if squeeze and getattr(c, "count") <= 1:
                 continue
             if c.type == "ZStackLoop":
-                coords[AXIS._MAP["ZStackLoop"]] = (
-                    np.arange(c.count) * c.parameters.stepUm
-                )
+                coords[AXIS.Z] = np.arange(c.count) * c.parameters.stepUm
             elif c.type == "TimeLoop":
-                coords[AXIS._MAP["TimeLoop"]] = (
-                    np.arange(c.count) * c.parameters.periodMs
-                )
+                coords[AXIS.TIME] = np.arange(c.count) * c.parameters.periodMs
             elif c.type == "NETimeLoop":
                 pers = [np.arange(p.count) * p.periodMs for p in c.parameters.periods]
-                coords[AXIS._MAP["NETimeLoop"]] = np.hstack(pers)
+                coords[AXIS.TIME] = np.hstack(pers)
             elif c.type == "XYPosLoop":
                 coords[AXIS._MAP["XYPosLoop"]] = [
                     p.name or repr(tuple(p.stagePositionUm))
                     for p in c.parameters.points
                 ]
-        if self.attributes.channelCount and self.attributes.channelCount > 1:
-            # TODO
-            if self._is_legacy:
-                coords[AXIS.CHANNEL] = self._rdr.channel_names()  # type: ignore
-            else:
-                _channels = self.metadata.channels or []
-                coords[AXIS.CHANNEL] = [c.channel.name for c in _channels]
+
         if self.components_per_channel > 1:
             coords[AXIS.RGB] = ["Red", "Green", "Blue", "alpha"][
                 : self.components_per_channel
@@ -305,7 +304,16 @@ class ND2File:
         if AXIS.Z in self.sizes and AXIS.Z not in coords:
             coords[AXIS.Z] = np.arange(self.sizes[AXIS.Z]) * dz
 
+        if squeeze:
+            return {k: v for k, v in coords.items() if len(v) > 1}
         return coords
+
+    @property
+    def _channel_names(self) -> List[str]:
+        # TODO
+        if self._is_legacy:
+            return self._rdr.channel_names()  # type: ignore
+        return [c.channel.name for c in self.metadata.channels or []]
 
     def __repr__(self) -> str:
         try:

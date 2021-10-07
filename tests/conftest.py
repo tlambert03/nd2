@@ -32,8 +32,8 @@ def old_nd2(request):
 
 
 @pytest.fixture(autouse=True)
-def run_around_tests():
-    files_before = psutil.Process().open_files()
+def no_files_left_open():
+    files_before = {p for p in psutil.Process().open_files() if p.path.endswith("nd2")}
     yield
-    files_after = psutil.Process().open_files()
-    assert files_before == files_after
+    files_after = {p for p in psutil.Process().open_files() if p.path.endswith("nd2")}
+    assert files_before == files_after == set()

@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Callable,
-    NamedTuple,
     Optional,
     Sequence,
     Set,
@@ -18,7 +17,7 @@ from typing import (
 import numpy as np
 
 from ._chunkmap import read_chunkmap
-from ._util import AXIS, open_nd2
+from ._util import AXIS, open_nd2, VoxelSize, is_supported_file
 from .structures import Attributes, ExpLoop, Metadata
 
 try:
@@ -43,33 +42,19 @@ class ReadMode(str, Enum):
     SDK = "sdk"
 
 
-class VoxelSize(NamedTuple):
-    x: float
-    y: float
-    z: float
-
-
 class ND2File:
     _fh: BinaryIO
     _memmap: mmap.mmap
-    __read_frame: Callable[[ND2File, int], np.ndarray]
-    __ravel_coords: Callable[[ND2File, Sequence[int]], int]
     _is_legacy: bool
 
     def __init__(self, path: Union[Path, str]) -> None:
         self._closed = True
         self._path = str(path)
-
         self.open()
-        self._frame_map, self._meta_map = read_chunkmap(
-            self._fh, fixup=True, legacy=self._is_legacy
-        )
-        self._max_safe = max(self._frame_map["safe"])
 
-        self.__read_frame = self._image_from_mmap  # type: ignore[assignment]
-        self.__ravel_coords = self._seq_index_from_coords  # type: ignore
-        if self._is_legacy:
-            self.__read_frame = self._rdr._read_image  # type: ignore
+    @staticmethod
+    def is_supported_file(path) -> bool:
+        return is_supported_file(path)
 
     # PUBLIC API:
 
@@ -79,15 +64,13 @@ class ND2File:
 
     def open(self) -> None:
         if self.closed:
-            self._fh, self._rdr, self._is_legacy = open_nd2(self._path)
-            self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
+            self._rdr = open_nd2(self._path)
+            self._is_legacy = "Legacy" in type(self._rdr).__name__
             self._closed = False
 
     def close(self) -> None:
         if not self.closed:
-            self._mmap.close()
             self._fh.close()
-            self._rdr.close()
             self._closed = True
 
     @property
@@ -200,7 +183,7 @@ class ND2File:
             return
 
         ncoords = len(self._coord_shape)
-        idx = self.__ravel_coords(block_id[:ncoords])
+        idx = self._seq_index_from_coords(block_id[:ncoords])
 
         if idx == self._NO_IDX:
             if any(block_id):
@@ -266,7 +249,7 @@ class ND2File:
         return int(np.prod(self._coord_shape))
 
     def _get_frame(self, index):
-        frame: np.ndarray = self.__read_frame(index)
+        frame = self._rdr._read_image(index)
         frame.shape = self._raw_frame_shape
         return frame.transpose((2, 0, 1, 3)).squeeze()
 
@@ -331,70 +314,9 @@ class ND2File:
     def __exit__(self, *_) -> None:
         self.close()
 
-    def _image_from_mmap(self, index: int) -> np.ndarray:
-        """Read a chunk directly without using SDK"""
-        if index > self._max_safe:
-            raise IndexError(f"Frame out of range: {index}")
-        offset = self._frame_map["safe"].get(index, None)
-        if offset is None:
-            return self._missing_frame(index)
-
-        try:
-            return np.ndarray(
-                shape=self._raw_frame_shape,
-                dtype=self.dtype,
-                buffer=self._mmap,  # type: ignore
-                offset=offset,
-                strides=self._strides,
-            )
-        except TypeError:
-            # If the chunkmap is wrong, and the mmap isn't long enough
-            # for the requested offset & size, a type error is raised.
-            return self._missing_frame(index)
-
-    @cached_property
-    def _strides(self) -> Optional[Tuple[int, ...]]:
-        a = cast(Attributes, self.attributes)
-        width = a.widthPx
-        widthB = a.widthBytes
-        if not (width and widthB):
-            return None
-        bypc = a.bitsPerComponentInMemory // 8
-        array_stride = widthB - (bypc * width * a.componentCount)
-        if array_stride == 0:
-            return None
-        return (
-            array_stride + width * bypc * a.componentCount,
-            a.componentCount * bypc,
-            self.components_per_channel * bypc,
-            bypc,
-        )
-
-    def _missing_frame(self, index: int = 0) -> np.ndarray:
-        # TODO: add other modes for filling missing data
-        return np.zeros(self._raw_frame_shape, self.dtype)
-
     @cached_property
     def custom_data(self) -> Dict[str, Any]:
-        from ._xml import parse_xml_block
-
-        return {
-            k[14:]: parse_xml_block(self._get_meta_chunk(k))
-            for k, v in self._meta_map.items()
-            if k.startswith("CustomDataVar|")
-        }
-
-    def _get_meta_chunk(self, key: str) -> bytes:
-        from ._chunkmap import read_chunk
-
-        try:
-            pos = self._meta_map[key]
-        except KeyError:
-            raise KeyError(
-                f"No metdata chunk with key {key}. "
-                f"Options include {set(self._meta_map)}"
-            )
-        return read_chunk(self._fh, pos)
+        return self._rdr._custom_data()
 
 
 @overload

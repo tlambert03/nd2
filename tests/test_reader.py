@@ -20,6 +20,7 @@ SDK_MISSES_COORDS = {
 
 
 def test_metadata_extraction(new_nd2):
+    assert ND2File.is_supported_file(new_nd2)
     with ND2File(new_nd2) as nd:
         assert nd.path == str(new_nd2)
         assert not nd.closed
@@ -102,6 +103,7 @@ def test_xarray_legacy(old_nd2):
 
 
 def test_metadata_extraction_legacy(old_nd2):
+    assert ND2File.is_supported_file(old_nd2)
     with ND2File(old_nd2) as nd:
         assert nd.path == str(old_nd2)
         assert not nd.closed

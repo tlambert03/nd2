@@ -1,10 +1,12 @@
-import io
 import struct
 from pathlib import Path
-from threading import Lock
+import threading
 from typing import BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union
 
+import numpy as np
+
 from . import structures as strct
+from ._util import VoxelSize, dims_from_description
 from ._xml import parse_xml_block
 
 try:
@@ -17,34 +19,43 @@ I4s = struct.Struct(">I4s")
 JP2_MAP_CHUNK = struct.Struct("<4s4sI")
 IHDR = struct.Struct(">iihBB")  # yxc-dtype in jpeg 2000
 
+import inspect
 
 class LegacyND2Reader:
     _fh: BinaryIO
 
-    def __init__(self, file: Union[Path, str, io.BufferedReader]):
-        self._fh = (
-            file if isinstance(file, io.BufferedReader) else open(file, mode="rb")
-        )
+    def __init__(self, path: Union[Path, str]):
+        self._path = str(path)
+        self._fh = open(self._path, mode="rb")
         length, box_type = I4s.unpack(self._fh.read(I4s.size))
         if length != 12 and box_type == b"jP  ":
             raise ValueError("File not recognized as Legacy ND2 (JPEG2000) format.")
-
-        self.lock = Lock()
         self._chunkmap = legacy_nd2_chunkmap(self._fh)
+        self.lock = threading.RLock()
+
+    def open(self) -> None:
+        print("requested open", [x.function for x in inspect.stack()[1:4]])
+        if self.closed:
+            self._fh = open(self._path, mode="rb")
 
     def close(self) -> None:
-        self._fh.close()
+        print("requested close", [x.function for x in inspect.stack()[1:4]])
+        if not self.closed:
+            self._fh.close()
+            ...
+    @property
+    def closed(self) -> bool:
+        return self._fh.closed
 
-    def __enter__(self):
+    def __enter__(self) -> "LegacyND2Reader":
+        self.open()
         return self
 
-    def __exit__(self, *_):
+    def __exit__(self, *_) -> None:
         self.close()
 
     @cached_property
     def ddim(self) -> dict:
-        from ._util import dims_from_description
-
         return dims_from_description(self.text_info().get("description"))
 
     def experiment(self) -> List[strct.ExpLoop]:
@@ -185,7 +196,7 @@ class LegacyND2Reader:
             return {}
 
     @cached_property
-    def events(self):
+    def events(self) -> dict:
         return self._get_xml_dict(b"IEVE")
 
     # def sizes(self):
@@ -200,11 +211,11 @@ class LegacyND2Reader:
         return {}
 
     @cached_property
-    def _advanced_image_attributes(self):
+    def _advanced_image_attributes(self) -> dict:
         return self._get_xml_dict(b"ARTT").get("AdvancedImageAttributes", {})
 
     @cached_property
-    def _metadata(self):
+    def _metadata(self) -> dict:
         meta = self._get_xml_dict(b"AIM1") or self._get_xml_dict(b"AIMD")
         version = ""
         meta.pop("UnknownData", None)
@@ -217,7 +228,7 @@ class LegacyND2Reader:
         meta["Version"] = version
         return meta
 
-    def metadata(self):
+    def metadata(self) -> dict:
         return self._metadata
 
     @property
@@ -226,13 +237,12 @@ class LegacyND2Reader:
 
     def _read_chunk(self, pos) -> bytes:
         with self.lock:
+            print("read", pos, self._fh.closed)
             self._fh.seek(pos)
             length, box_type = I4s.unpack(self._fh.read(I4s.size))
             return self._fh.read(length - I4s.size)
 
-    def _read_image(self, index: int):
-        import numpy as np
-
+    def _read_image(self, index: int) -> np.ndarray:
         try:
             from imagecodecs import jpeg2k_decode
         except ModuleNotFoundError as e:
@@ -269,15 +279,15 @@ class LegacyND2Reader:
                 zs.add(p["OpticalConfigFull"]["ZPosition0"])
         return (zs, xys, ts, cs)
 
-    def voxel_size(self) -> Tuple[float, float, float]:
-        return (1, 1, 1)
+    def voxel_size(self) -> VoxelSize:
+        return VoxelSize(1, 1, 1)
 
-    def channel_names(self):
+    def channel_names(self) -> List[str]:
         xml = self._get_xml_dict(b"VIMD", 0)
         return [p["OpticalConfigName"] for p in xml["PicturePlanes"]["Plane"].values()]
 
     @cached_property
-    def header(self):
+    def header(self) -> dict:
         try:
             pos = self._chunkmap[b"jp2h"][0]
         except (KeyError, IndexError):

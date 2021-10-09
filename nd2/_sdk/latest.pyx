@@ -7,8 +7,11 @@ from .picture cimport PicWrapper, nullpic
 
 from pathlib import Path
 from typing import List, Sequence, Tuple
+from .._chunkmap import read_new_chunkmap
 
+import mmap
 import numpy as np
+cimport numpy as np
 
 from .. import structures
 
@@ -18,12 +21,27 @@ cdef class ND2Reader:
     cdef LIMFILEHANDLE _fh
     cdef public str path
     cdef bint _is_open
+    cdef dict _frame_map
+    cdef dict _meta_map
+    cdef int _max_safe 
+    cdef _mmap
+    cdef __strides
 
     def __cinit__(self, path: str | Path):
         self._is_open = 0
         self._fh = NULL
         self.path = str(path)
+
+        with open(path, 'rb') as pyfh:
+            self._frame_map, self._meta_map = read_new_chunkmap(pyfh)
+
+        self._max_safe = max(self._frame_map["safe"])
+
         self.open()
+
+    def __init__(self, path):
+        with open(path, 'rb') as pyfh:
+            self._mmap = mmap.mmap(pyfh.fileno(), 0, access=mmap.ACCESS_READ)
 
     cpdef open(self):
         if not self._is_open:
@@ -160,6 +178,75 @@ cdef class ND2Reader:
         array_wrapper = PicWrapper()
         array_wrapper.set_pic(pic, Lim_DestroyPicture)
         return array_wrapper.to_ndarray()
+
+    def _custom_data(self) -> dict:
+        from .._xml import parse_xml_block
+
+        return {
+            k[14:]: parse_xml_block(self._get_meta_chunk(k))
+            for k, v in self._meta_map.items()
+            if k.startswith("CustomDataVar|")
+        }
+
+    def _get_meta_chunk(self, key: str) -> bytes:
+        from .._chunkmap import read_chunk
+
+        try:
+            pos = self._meta_map[key]
+        except KeyError:
+            raise KeyError(
+                f"No metdata chunk with key {key}. "
+                f"Options include {set(self._meta_map)}"
+            )
+        with open(self.path, 'rb') as fh:
+            return read_chunk(fh, pos)
+
+
+    cpdef np.ndarray _read_image(self, index: int):
+        """Read a chunk directly without using SDK"""
+        if index > self._max_safe:
+            raise IndexError(f"Frame out of range: {index}")
+        offset = self._frame_map["safe"].get(index, None)
+        if offset is None:
+            return self._missing_frame(index)
+
+        try:
+            return np.ndarray(
+                shape=self._raw_frame_shape,
+                dtype=self.dtype,
+                buffer=self._mmap,
+                offset=offset,
+                strides=self._strides,
+            )
+        except TypeError:
+            # If the chunkmap is wrong, and the mmap isn't long enough
+            # for the requested offset & size, a type error is raised.
+            return self._missing_frame(index)
+
+    @property
+    def _strides(self):
+        if not hasattr(self, '__strides'):
+            print("Cals")
+            a = self.attributes
+            width = a.widthPx
+            widthB = a.widthBytes
+            if not (width and widthB):
+                self.__strides = None
+            bypc = a.bitsPerComponentInMemory // 8
+            array_stride = widthB - (bypc * width * a.componentCount)
+            if array_stride == 0:
+                self.__strides = None
+            self.__strides = (
+                array_stride + width * bypc * a.componentCount,
+                a.componentCount * bypc,
+                self.components_per_channel * bypc,
+                bypc,
+            )
+        return self.__strides
+
+    cdef np.ndarray _missing_frame(self, int index = 0):
+        # TODO: add other modes for filling missing data
+        return np.zeros(self._raw_frame_shape, self.dtype)
 
 
 

@@ -181,12 +181,12 @@ class ND2File:
     def __array__(self) -> np.ndarray:
         return self.asarray()
 
-    def to_dask(self) -> da.Array:
+    def to_dask(self, copy=True) -> da.Array:
         from dask.array import map_blocks
 
         chunks = [(1,) * x for x in self._coord_shape]
         chunks += [(x,) for x in self._frame_shape]
-        return map_blocks(self._dask_block, chunks=chunks, dtype=self.dtype)
+        return map_blocks(self._dask_block, copy, chunks=chunks, dtype=self.dtype)
 
     _NO_IDX = -1
 
@@ -195,7 +195,7 @@ class ND2File:
             return self._NO_IDX
         return np.ravel_multi_index(coords, self._coord_shape)
 
-    def _dask_block(self, block_id: Tuple[int]) -> np.ndarray:
+    def _dask_block(self, copy, block_id: Tuple[int]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
             return
 
@@ -206,7 +206,8 @@ class ND2File:
             if any(block_id):
                 raise ValueError(f"Cannot get chunk {block_id} for single frame image.")
             idx = 0
-        return self._get_frame(idx)[(np.newaxis,) * ncoords]
+        data = self._get_frame(idx)[(np.newaxis,) * ncoords]
+        return data.copy() if copy else data
 
     def to_xarray(self, delayed: bool = True, squeeze=True) -> xr.DataArray:
         import xarray as xr

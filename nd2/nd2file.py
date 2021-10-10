@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Sequence, Set, Union, cast, overload
 
 import numpy as np
 
-from ._util import AXIS, VoxelSize, get_reader, is_supported_file
+from ._util import AXIS, VoxelSize, dims_from_description, get_reader, is_supported_file
 from .structures import Attributes, ExpLoop, Metadata
 
 try:
@@ -92,6 +92,10 @@ class ND2File:
         return self._rdr.metadata()
 
     @cached_property
+    def custom_data(self) -> Dict[str, Any]:
+        return self._rdr._custom_data()
+
+    @cached_property
     def ndim(self) -> int:
         return len(self.shape)
 
@@ -102,7 +106,6 @@ class ND2File:
     @cached_property
     def sizes(self) -> Dict[str, int]:
         attrs = cast(Attributes, self.attributes)
-        from ._util import AXIS, dims_from_description
 
         # often, the 'Description' field in textinfo is the best source of dimension
         # (dims are strangely missing from coord_info sometimes)
@@ -299,10 +302,6 @@ class ND2File:
         except Exception:
             extra = ""
         return f"<ND2File at {hex(id(self))}{extra}>"
-
-    @cached_property
-    def custom_data(self) -> Dict[str, Any]:
-        return self._rdr._custom_data()
 
 
 @overload

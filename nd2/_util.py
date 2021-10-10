@@ -71,7 +71,7 @@ class AXIS:
     Y = "Y"
     Z = "Z"
     CHANNEL = "C"
-    RGB = "c"
+    RGB = "S"
     TIME = "T"
     POSITION = "P"
     UNKNOWN = "U"

@@ -240,7 +240,7 @@ class ND2File:
             if missing_axes > 0:
                 data = data[(np.newaxis,) * missing_axes]
 
-        if position is not None and AXIS.POSITION in coords and not delayed:
+        if position is not None and not delayed and AXIS.POSITION in coords:
             # if it's delayed, we do this using isel below instead.
             coords[AXIS.POSITION] = [coords[AXIS.POSITION][position]]
 
@@ -257,7 +257,7 @@ class ND2File:
                 }
             },
         )
-        if delayed and position is not None:
+        if delayed and position is not None and AXIS.POSITION in coords:
             x = x.isel({AXIS.POSITION: [position]})
         return x.squeeze() if squeeze else x
 

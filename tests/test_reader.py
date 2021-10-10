@@ -51,9 +51,9 @@ def test_read_safety(new_nd2: Path):
 
 def test_position(new_nd2):
     """use position to extract a single stage position with asarray."""
+    if new_nd2.stat().st_size > 250_000_000:
+        pytest.skip("skipping read on big files")
     with ND2File(new_nd2) as nd:
-        if AXIS.POSITION not in nd.sizes:
-            return
         dx = nd.to_xarray(delayed=True, position=0, squeeze=False)
         nx = nd.to_xarray(delayed=False, position=0, squeeze=False)
         assert dx.sizes[AXIS.POSITION] == 1
@@ -76,8 +76,8 @@ def test_dask(new_nd2):
 
 def test_full_read(new_nd2):
     with ND2File(new_nd2) as nd:
-        if (new_nd2.stat().st_size > 500_000_000) and "--runslow" not in sys.argv:
-            pytest.skip("use --runslow to test full read")
+        if new_nd2.stat().st_size > 500_000_000:
+            pytest.skip("skipping full read on big files")
         delayed_xarray = np.asarray(nd.to_xarray(delayed=True))
         assert delayed_xarray.shape == nd.shape
         np.testing.assert_allclose(delayed_xarray, nd.asarray())

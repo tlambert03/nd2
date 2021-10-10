@@ -49,18 +49,22 @@ class ND2File:
 
     @property
     def path(self):
+        """Path of the image."""
         return self._path
 
     @property
     def is_legacy(self) -> bool:
+        """Whether file is a legacy nd2 (JPEG2000) file."""
         return self._is_legacy
 
     def open(self) -> None:
+        """open file for reading."""
         if self.closed:
             self._rdr.open()
             self._closed = False
 
     def close(self) -> None:
+        """Close file (may cause segfault if read when closed in some cases)."""
         if not self.closed:
             self._rdr.close()
             self._closed = True
@@ -74,38 +78,47 @@ class ND2File:
 
     @property
     def closed(self) -> bool:
+        """Whether the file is closed."""
         return self._closed
 
     @cached_property
     def attributes(self) -> Attributes:
+        """Core image attributes"""
         return self._rdr.attributes
 
     @cached_property
     def text_info(self) -> Dict[str, Any]:
+        """Misc text info."""
         return self._rdr.text_info()
 
     @cached_property
     def experiment(self) -> List[ExpLoop]:
+        """Loop information for each nd axis"""
         return self._rdr.experiment()
 
     @cached_property
     def metadata(self) -> Union[Metadata, dict]:
+        """Various metadata (will be dict if legacy format)."""
         return self._rdr.metadata()
 
     @cached_property
     def custom_data(self) -> Dict[str, Any]:
+        """Dict of various unstructured custom metadata."""
         return self._rdr._custom_data()
 
     @cached_property
     def ndim(self) -> int:
+        """number of dimensions"""
         return len(self.shape)
 
     @cached_property
     def shape(self) -> Tuple[int, ...]:
+        """size of each axis"""
         return self._coord_shape + self._frame_shape
 
     @cached_property
     def sizes(self) -> Dict[str, int]:
+        """names and sizes for each axis"""
         attrs = cast(Attributes, self.attributes)
 
         # often, the 'Description' field in textinfo is the best source of dimension
@@ -133,31 +146,53 @@ class ND2File:
 
     @property
     def is_rgb(self) -> bool:
+        """Whether the image is rgb"""
         return self.components_per_channel in (3, 4)
 
     @property
     def components_per_channel(self) -> int:
+        """Number of components per channel (e.g. 3 for rgb)"""
         attrs = cast(Attributes, self.attributes)
         return attrs.componentCount // (attrs.channelCount or 1)
 
     @property
     def size(self) -> int:
+        """Total number of pixels in the volume."""
         return int(np.prod(self.shape))
 
     @property
     def nbytes(self) -> int:
+        """Total bytes of image data."""
         return self.size * self.dtype.itemsize
 
     @cached_property
     def dtype(self) -> np.dtype:
+        """Image data type"""
         attrs = self.attributes
         d = attrs.pixelDataType[0] if attrs.pixelDataType else "u"
         return np.dtype(f"{d}{attrs.bitsPerComponentInMemory // 8}")
 
     def voxel_size(self, channel: int = 0) -> VoxelSize:
+        """XYZ voxel size."""
         return VoxelSize(*self._rdr.voxel_size())
 
     def asarray(self, position: Optional[int] = None) -> np.ndarray:
+        """Read image into numpy array.
+
+        Parameters
+        ----------
+        position : int, optional
+            A specific XY position to extract, by default (None) reads all.
+
+        Returns
+        -------
+        np.ndarray
+
+        Raises
+        ------
+        IndexError
+            if position is provided and is out of range
+        """
         final_shape = list(self.shape)
         if position is None:
             seqs: Sequence[int] = range(self._frame_count)
@@ -195,9 +230,23 @@ class ND2File:
         return arr.reshape(final_shape)
 
     def __array__(self) -> np.ndarray:
+        """array protocol"""
         return self.asarray()
 
     def to_dask(self, copy=True) -> da.Array:
+        """Create dask array (delayed reader) representing image.
+
+        Parameters
+        ----------
+        copy : bool, optional
+            Whether to copy buffer when reading, by default True.
+            (False may be faster in some cases, but is also prone to segfaults if the
+            file is closed.)
+
+        Returns
+        -------
+        da.Array
+        """
         from dask.array import map_blocks
 
         chunks = [(1,) * x for x in self._coord_shape]
@@ -228,6 +277,23 @@ class ND2File:
     def to_xarray(
         self, delayed: bool = True, squeeze: bool = True, position: Optional[int] = None
     ) -> xr.DataArray:
+        """Create labeled xarray representing image.
+
+        Parameters
+        ----------
+        delayed : bool, optional
+            Whether the DataArray should be backed by dask array or numpy array,
+            by default True (dask).
+        squeeze : bool, optional
+            Whether to squeeze singleton dimensions, by default True
+        position : int, optional
+            A specific XY position to extract, by default (None) reads all.
+
+        Returns
+        -------
+        xr.DataArray
+            xarray with all axes labeled.
+        """
         import xarray as xr
 
         data = self.to_dask() if delayed else self.asarray(position)

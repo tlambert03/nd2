@@ -54,7 +54,14 @@ def test_position(new_nd2):
     with ND2File(new_nd2) as nd:
         if AXIS.POSITION not in nd.sizes:
             return
-        assert nd.asarray(position=0).ndim == (nd.ndim - 1)
+        dx = nd.to_xarray(delayed=True, position=0, squeeze=False)
+        nx = nd.to_xarray(delayed=False, position=0, squeeze=False)
+        assert dx.sizes[AXIS.POSITION] == 1
+        assert nx.sizes[AXIS.POSITION] == 1
+        dx = nd.to_xarray(delayed=True, position=0, squeeze=True)
+        nx = nd.to_xarray(delayed=False, position=0, squeeze=True)
+        assert AXIS.POSITION not in dx.sizes
+        assert AXIS.POSITION not in nx.sizes
 
 
 def test_dask(new_nd2):

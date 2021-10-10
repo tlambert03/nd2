@@ -189,7 +189,7 @@ class ND2File:
                 ranges[pidx] = (position,)
                 coords = list(zip(*product(*ranges)))
                 seqs = self._seq_index_from_coords(coords)  # type: ignore
-                final_shape.pop(pidx)
+                final_shape[pidx] = 1
 
         arr = np.stack([self._get_frame(i) for i in seqs])
         return arr.reshape(final_shape)
@@ -225,10 +225,12 @@ class ND2File:
         data = self._get_frame(cast(int, idx))[(np.newaxis,) * ncoords]
         return data.copy() if copy else data
 
-    def to_xarray(self, delayed: bool = True, squeeze=True) -> xr.DataArray:
+    def to_xarray(
+        self, delayed: bool = True, squeeze: bool = True, position: Optional[int] = None
+    ) -> xr.DataArray:
         import xarray as xr
 
-        data = self.to_dask() if delayed else self.asarray()
+        data = self.to_dask() if delayed else self.asarray(position)
         dims = list(self.sizes)
         coords = self._expand_coords(squeeze)
         if not squeeze:
@@ -238,7 +240,11 @@ class ND2File:
             if missing_axes > 0:
                 data = data[(np.newaxis,) * missing_axes]
 
-        return xr.DataArray(
+        if position is not None and AXIS.POSITION in coords and not delayed:
+            # if it's delayed, we do this using isel below instead.
+            coords[AXIS.POSITION] = [coords[AXIS.POSITION][position]]
+
+        x = xr.DataArray(
             data,
             dims=dims,
             coords=coords,
@@ -251,6 +257,9 @@ class ND2File:
                 }
             },
         )
+        if delayed and position is not None:
+            x = x.isel({AXIS.POSITION: [position]})
+        return x.squeeze() if squeeze else x
 
     @property
     def _frame_coords(self) -> Set[str]:

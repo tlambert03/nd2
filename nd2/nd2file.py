@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import mmap
 from enum import Enum
+from itertools import product
 from pathlib import Path
-from typing import TYPE_CHECKING, Sequence, Set, Union, cast, overload
+from typing import TYPE_CHECKING, Optional, Sequence, Set, Union, cast, overload
 
 import numpy as np
 
 from ._util import AXIS, VoxelSize, dims_from_description, get_reader, is_supported_file
-from .structures import Attributes, ExpLoop, Metadata
+from .structures import Attributes, ExpLoop, Metadata, XYPosLoop
 
 try:
     from functools import cached_property
@@ -156,9 +157,42 @@ class ND2File:
     def voxel_size(self, channel: int = 0) -> VoxelSize:
         return VoxelSize(*self._rdr.voxel_size())
 
-    def asarray(self) -> np.ndarray:
-        arr = np.stack([self._get_frame(i) for i in range(self._frame_count)])
-        return arr.reshape(self.shape)
+    def asarray(self, position: Optional[int] = None) -> np.ndarray:
+        final_shape = list(self.shape)
+        if position is None:
+            seqs: Sequence[int] = range(self._frame_count)
+        else:
+            if isinstance(position, str):
+                try:
+                    position = self._position_names().index(position)
+                except ValueError:
+                    raise ValueError(f"{position!r} is not a valid position name")
+            try:
+                pidx = list(self.sizes).index(AXIS.POSITION)
+            except ValueError:
+                if position > 0:
+                    raise IndexError(
+                        f"Position {position} is out of range. "
+                        f"Only 1 position available"
+                    )
+                seqs = range(self._frame_count)
+            else:
+                if position >= self.sizes[AXIS.POSITION]:
+                    raise IndexError(
+                        f"Position {position} is out of range. "
+                        f"Only {self.sizes[AXIS.POSITION]} positions available"
+                    )
+
+                ranges: List[Union[range, tuple]] = [
+                    range(x) for x in self._coord_shape
+                ]
+                ranges[pidx] = (position,)
+                coords = list(zip(*product(*ranges)))
+                seqs = self._seq_index_from_coords(coords)  # type: ignore
+                final_shape.pop(pidx)
+
+        arr = np.stack([self._get_frame(i) for i in seqs])
+        return arr.reshape(final_shape)
 
     def __array__(self) -> np.ndarray:
         return self.asarray()
@@ -172,7 +206,7 @@ class ND2File:
 
     _NO_IDX = -1
 
-    def _seq_index_from_coords(self, coords: Sequence) -> int:
+    def _seq_index_from_coords(self, coords: Sequence) -> Union[int, Sequence[int]]:
         if not self._coord_shape:
             return self._NO_IDX
         return np.ravel_multi_index(coords, self._coord_shape)
@@ -188,7 +222,7 @@ class ND2File:
             if any(block_id):
                 raise ValueError(f"Cannot get chunk {block_id} for single frame image.")
             idx = 0
-        data = self._get_frame(idx)[(np.newaxis,) * ncoords]
+        data = self._get_frame(cast(int, idx))[(np.newaxis,) * ncoords]
         return data.copy() if copy else data
 
     def to_xarray(self, delayed: bool = True, squeeze=True) -> xr.DataArray:
@@ -247,7 +281,7 @@ class ND2File:
     def _frame_count(self) -> int:
         return int(np.prod(self._coord_shape))
 
-    def _get_frame(self, index):
+    def _get_frame(self, index: int) -> np.ndarray:
         frame = self._rdr._read_image(index)
         frame.shape = self._raw_frame_shape
         return frame.transpose((2, 0, 1, 3)).squeeze()
@@ -260,6 +294,7 @@ class ND2File:
             AXIS.Y: np.arange(self.attributes.heightPx) * dy,
             AXIS.X: np.arange(self.attributes.widthPx) * dx,
             AXIS.CHANNEL: self._channel_names,
+            AXIS.POSITION: ["XYPos:0"],  # maybe overwritten below
         }
 
         for c in self.experiment:
@@ -273,10 +308,7 @@ class ND2File:
                 pers = [np.arange(p.count) * p.periodMs for p in c.parameters.periods]
                 coords[AXIS.TIME] = np.hstack(pers)
             elif c.type == "XYPosLoop":
-                coords[AXIS._MAP["XYPosLoop"]] = [
-                    p.name or repr(tuple(p.stagePositionUm))
-                    for p in c.parameters.points
-                ]
+                coords[AXIS._MAP["XYPosLoop"]] = self._position_names(c)
 
         if self.components_per_channel > 1:
             coords[AXIS.RGB] = ["Red", "Green", "Blue", "alpha"][
@@ -290,6 +322,16 @@ class ND2File:
         if squeeze:
             return {k: v for k, v in coords.items() if len(v) > 1}
         return coords
+
+    def _position_names(self, loop: Optional[XYPosLoop] = None) -> List[str]:
+        if loop is None:
+            for c in self.experiment:
+                if c.type == "XYPosLoop":
+                    loop = c
+                    break
+        if loop is None:
+            return ["XYPos:0"]
+        return [p.name or f"XYPos:{i}" for i, p in enumerate(loop.parameters.points)]
 
     @property
     def _channel_names(self) -> List[str]:

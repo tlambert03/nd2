@@ -61,8 +61,8 @@ def dims_from_description(desc) -> dict:
     if not match:
         return {}
     dims = match.groups()[0]
-    dims = dims.replace("λ", "C")
-    dims = dims.replace("XY", "S")
+    dims = dims.replace("λ", AXIS.CHANNEL)
+    dims = dims.replace("XY", AXIS.POSITION)
     return {k: int(v) for k, v in DIMSIZE.findall(dims)}
 
 
@@ -73,7 +73,7 @@ class AXIS:
     CHANNEL = "C"
     RGB = "c"
     TIME = "T"
-    POSITION = "S"
+    POSITION = "P"
     UNKNOWN = "U"
 
     _MAP = {

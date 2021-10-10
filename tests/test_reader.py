@@ -8,6 +8,7 @@ import pytest
 import xarray as xr
 
 from nd2 import ND2File, imread, structures
+from nd2._util import AXIS
 
 DATA = Path(__file__).parent / "data"
 
@@ -46,6 +47,14 @@ def test_read_safety(new_nd2: Path):
     with ND2File(new_nd2) as nd:
         for i in range(nd._frame_count):
             nd._rdr._read_image(i)
+
+
+def test_position(new_nd2):
+    """use position to extract a single stage position with asarray."""
+    with ND2File(new_nd2) as nd:
+        if AXIS.POSITION not in nd.sizes:
+            return
+        assert nd.asarray(position=0).ndim == (nd.ndim - 1)
 
 
 def test_dask(new_nd2):

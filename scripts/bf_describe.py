@@ -3,6 +3,8 @@ from pathlib import Path
 
 from aicsimageio.readers.bioformats_reader import BioFile, BioformatsReader
 
+from nd2._util import AXIS
+
 DATA = Path(__file__).parent.parent / "tests" / "data"
 
 
@@ -11,10 +13,10 @@ def getinfo(path: Path):
     r = BioformatsReader(path)
     shp = dict(r.xarray_dask_data.sizes)
     if len(r.scenes) > 1:
-        shp["S"] = len(r.scenes)
+        shp[AXIS.POSITION] = len(r.scenes)
     with BioFile(path) as rdr:
         if rdr.core_meta.is_rgb:
-            shp["c"] = 3
+            shp[AXIS.RGB] = 3
     return (path.name, {"shape": shp, "dtype": str(r.dtype)})
 
 

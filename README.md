@@ -48,7 +48,7 @@ f.dtype         # np.dtype('uint16')
 f.size          # 1310720  (total voxel elements)
 f.sizes         # {'T': 10, 'C': 2, 'Y': 256, 'X': 256}
 f.is_rgb        # False (whether the file is rgb)
-# if RGB, sizes will have an additional {'c': 3} component
+# if RGB, sizes will have an additional {'S': 3} component
 
 # array output
 f.asarray()     # in-memory np.ndarray

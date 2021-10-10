@@ -5,10 +5,15 @@ from libc.stdlib cimport free, malloc
 
 from .picture cimport PicWrapper, nullpic
 
+import mmap
 from pathlib import Path
 from typing import List, Sequence, Tuple
 
 import numpy as np
+
+from .._chunkmap import read_new_chunkmap
+
+cimport numpy as np
 
 from .. import structures
 
@@ -18,11 +23,25 @@ cdef class ND2Reader:
     cdef LIMFILEHANDLE _fh
     cdef public str path
     cdef bint _is_open
+    cdef dict _frame_map
+    cdef dict _meta_map
+    cdef int _max_safe
+    cdef _mmap
+    cdef __strides
+    cdef __attributes
+    cdef __dtype
+    cdef __raw_frame_shape
 
     def __cinit__(self, path: str | Path):
         self._is_open = 0
+        self.__raw_frame_shape = None
         self._fh = NULL
         self.path = str(path)
+
+        with open(path, 'rb') as pyfh:
+            self._frame_map, self._meta_map = read_new_chunkmap(pyfh)
+
+        self._max_safe = max(self._frame_map["safe"])
         self.open()
 
     cpdef open(self):
@@ -30,14 +49,18 @@ cdef class ND2Reader:
             self._fh = Lim_FileOpenForReadUtf8(self.path)
             if not self._fh:
                 raise OSError("Could not open file: %s" % self.path)
+            with open(self.path, 'rb') as fh:
+                self._mmap = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
             self._is_open = 1
 
     cpdef close(self):
         if self._is_open:
             Lim_FileClose(self._fh)
+            self._mmap.close()
             self._is_open = 0
 
     def __enter__(self):
+        self.open()
         return self
 
     def __exit__(self, *args):
@@ -48,10 +71,12 @@ cdef class ND2Reader:
 
     @property
     def attributes(self) -> structures.Attributes:
-        cont = self._metadata().get('contents')
-        attrs = self._attributes()
-        nC = cont.get('channelCount') if cont else attrs.get("componentCount", 1)
-        return structures.Attributes(**attrs, channelCount=nC)
+        if not hasattr(self, '__attributes'):
+            cont = self._metadata().get('contents')
+            attrs = self._attributes()
+            nC = cont.get('channelCount') if cont else attrs.get("componentCount", 1)
+            self.__attributes = structures.Attributes(**attrs, channelCount=nC)
+        return self.__attributes
 
     def voxel_size(self) -> tuple[float, float, float]:
         meta = self.metadata()
@@ -161,7 +186,95 @@ cdef class ND2Reader:
         array_wrapper.set_pic(pic, Lim_DestroyPicture)
         return array_wrapper.to_ndarray()
 
+    def _custom_data(self) -> dict:
+        from .._xml import parse_xml_block
 
+        return {
+            k[14:]: parse_xml_block(self._get_meta_chunk(k))
+            for k, v in self._meta_map.items()
+            if k.startswith("CustomDataVar|")
+        }
+
+    def _get_meta_chunk(self, key: str) -> bytes:
+        from .._chunkmap import read_chunk
+
+        try:
+            pos = self._meta_map[key]
+        except KeyError:
+            raise KeyError(
+                f"No metdata chunk with key {key}. "
+                f"Options include {set(self._meta_map)}"
+            )
+        with open(self.path, 'rb') as fh:
+            return read_chunk(fh, pos)
+
+    cdef _raw_frame_shape(self):
+        if self.__raw_frame_shape is None:
+            attr = self.attributes
+            self.__raw_frame_shape = (
+                    attr.heightPx,
+                    attr.widthPx or -1,
+                    attr.channelCount or 1,
+                    attr.componentCount // (attr.channelCount or 1),
+                )
+        return self.__raw_frame_shape
+
+    cdef _dtype(self):
+        if self.__dtype is None:
+            a = self.attributes
+            d = a.pixelDataType[0] if a.pixelDataType else "u"
+            self.__dtype = np.dtype(f"{d}{a.bitsPerComponentInMemory // 8}")
+        return self.__dtype
+
+    cpdef np.ndarray _read_image(self, index: int):
+        """Read a chunk directly without using SDK"""
+        if index > self._max_safe:
+            raise IndexError(f"Frame out of range: {index}")
+        offset = self._frame_map["safe"].get(index, None)
+        if offset is None:
+            return self._missing_frame(index)
+
+        try:
+            return np.ndarray(
+                shape=self._raw_frame_shape(),
+                dtype=self._dtype(),
+                buffer=self._mmap,
+                offset=offset,
+                strides=self._strides,
+            )
+        except TypeError:
+            # If the chunkmap is wrong, and the mmap isn't long enough
+            # for the requested offset & size, a type error is raised.
+            return self._missing_frame(index)
+
+    @property
+    def _strides(self):
+        if not hasattr(self, '__strides'):
+            a = self.attributes
+            width = a.widthPx
+            widthB = a.widthBytes
+            if not (width and widthB):
+                self.__strides = None
+            else:
+                bypc = a.bitsPerComponentInMemory // 8
+                array_stride = widthB - (bypc * width * a.componentCount)
+                if array_stride == 0:
+                    self.__strides = None
+                else:
+                    self.__strides = (
+                        array_stride + width * bypc * a.componentCount,
+                        a.componentCount * bypc,
+                        a.componentCount // a.channelCount * bypc,
+                        bypc,
+                    )
+        return self.__strides
+
+    cdef np.ndarray _missing_frame(self, int index = 0):
+        # TODO: add other modes for filling missing data
+        return np.zeros(self._raw_frame_shape(), self._dtype())
+
+    cpdef channel_names(self):
+        return [c.channel.name for c in self.metadata().channels or []]
 
 cdef _loads(LIMSTR string, default=dict):
     if not string:

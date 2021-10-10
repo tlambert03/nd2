@@ -1,52 +1,42 @@
-import io
 import re
 from datetime import datetime
-from pathlib import Path
-from typing import Tuple, Union
+from typing import TYPE_CHECKING, NamedTuple, Union
 
-from ._legacy import LegacyND2Reader
-from ._sdk import latest
+if TYPE_CHECKING:
+    from ._legacy import LegacyND2Reader
+    from ._sdk.latest import ND2Reader
 
-NEW_HEADER_MAGIC_NUM = 0x0ABECEDA
-OLD_HEADER_MAGIC_NUM = 0x0C000000
+
+NEW_HEADER_MAGIC = b"\xda\xce\xbe\n"
+OLD_HEADER_MAGIC = b"\x00\x00\x00\x0c"
 VERSION = re.compile(r"^ND2 FILE SIGNATURE CHUNK NAME01!Ver([\d\.]+)$")
 
 
-def open_nd2(
-    path: str,
-) -> Tuple[io.BufferedReader, Union[latest.ND2Reader, LegacyND2Reader], bool]:
-    fh = open(path, "rb")
-    magic_num = fh.read(4)
-    try:
-        if magic_num == b"\xda\xce\xbe\n":
-            rdr = latest.ND2Reader(path)
-            return fh, rdr, False  # type: ignore
-        elif magic_num == b"\x00\x00\x00\x0c":
-            lrdr = LegacyND2Reader(path)
-            return fh, lrdr, True  # type: ignore
-    except Exception as e:
-        fh.close()
-        t = e
-    raise OSError(
-        f"file {path} not recognized as ND2.  First 4 bytes: {magic_num!r}: {t}"
-    )
+def is_supported_file(path):
+    with open(path, "rb") as fh:
+        return fh.read(4) in (NEW_HEADER_MAGIC, OLD_HEADER_MAGIC)
+
+
+def get_reader(path: str) -> Union["ND2Reader", "LegacyND2Reader"]:
+    with open(path, "rb") as fh:
+        magic_num = fh.read(4)
+        if magic_num == NEW_HEADER_MAGIC:
+            from ._sdk.latest import ND2Reader
+
+            return ND2Reader(path)
+        elif magic_num == OLD_HEADER_MAGIC:
+            from ._legacy import LegacyND2Reader
+
+            return LegacyND2Reader(path)
+        raise OSError(
+            f"file {path} not recognized as ND2.  First 4 bytes: {magic_num!r}"
+        )
 
 
 def is_new_format(path: str) -> bool:
     # TODO: this is just for dealing with missing test data
-    try:
-        return magic_num(path) == NEW_HEADER_MAGIC_NUM
-    except Exception:
-        return False
-
-
-def is_old_format(path: Union[str, Path]) -> bool:
-    return magic_num(path) == OLD_HEADER_MAGIC_NUM
-
-
-def magic_num(path: Union[str, Path]) -> int:
     with open(path, "rb") as fh:
-        return int.from_bytes(fh.read(4), "little")
+        return fh.read(4) == NEW_HEADER_MAGIC
 
 
 def jdn_to_datetime_local(jdn):
@@ -93,3 +83,9 @@ class AXIS:
         "ZStackLoop": Z,
         "NETimeLoop": TIME,
     }
+
+
+class VoxelSize(NamedTuple):
+    x: float
+    y: float
+    z: float

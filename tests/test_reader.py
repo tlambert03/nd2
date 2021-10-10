@@ -11,15 +11,16 @@ from nd2 import ND2File, imread, structures
 
 DATA = Path(__file__).parent / "data"
 
-SDK_MISSES_COORDS = {
-    "jonas_100217_OD122_001.nd2",
-    "jonas_512c_nikonTest_two.nd2",
-    "jonas_512c_cag_p5_simgc_2511_70ms22s_crop.nd2",
-    "jonas_2112-2265.nd2",
-}
+# SDK_MISSES_COORDS = {
+#     "jonas_100217_OD122_001.nd2",
+#     "jonas_512c_nikonTest_two.nd2",
+#     "jonas_512c_cag_p5_simgc_2511_70ms22s_crop.nd2",
+#     "jonas_2112-2265.nd2",
+# }
 
 
 def test_metadata_extraction(new_nd2):
+    assert ND2File.is_supported_file(new_nd2)
     with ND2File(new_nd2) as nd:
         assert nd.path == str(new_nd2)
         assert not nd.closed
@@ -44,7 +45,7 @@ def test_metadata_extraction(new_nd2):
 def test_read_safety(new_nd2: Path):
     with ND2File(new_nd2) as nd:
         for i in range(nd._frame_count):
-            nd._image_from_mmap(i)
+            nd._rdr._read_image(i)
 
 
 def test_dask(new_nd2):
@@ -102,6 +103,7 @@ def test_xarray_legacy(old_nd2):
 
 
 def test_metadata_extraction_legacy(old_nd2):
+    assert ND2File.is_supported_file(old_nd2)
     with ND2File(old_nd2) as nd:
         assert nd.path == str(old_nd2)
         assert not nd.closed

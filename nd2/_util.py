@@ -1,8 +1,6 @@
-import io
 import re
 from datetime import datetime
-from pathlib import Path
-from typing import TYPE_CHECKING, NamedTuple, Tuple, Union
+from typing import TYPE_CHECKING, NamedTuple, Union
 
 if TYPE_CHECKING:
     from ._legacy import LegacyND2Reader
@@ -19,10 +17,9 @@ def is_supported_file(path):
         return fh.read(4) in (NEW_HEADER_MAGIC, OLD_HEADER_MAGIC)
 
 
-def open_nd2(path: str) -> Union["ND2Reader", "LegacyND2Reader"]:
-    fh = open(path, "rb")
-    magic_num = fh.read(4)
-    try:
+def get_reader(path: str) -> Union["ND2Reader", "LegacyND2Reader"]:
+    with open(path, "rb") as fh:
+        magic_num = fh.read(4)
         if magic_num == NEW_HEADER_MAGIC:
             from ._sdk.latest import ND2Reader
 
@@ -34,9 +31,6 @@ def open_nd2(path: str) -> Union["ND2Reader", "LegacyND2Reader"]:
         raise OSError(
             f"file {path} not recognized as ND2.  First 4 bytes: {magic_num!r}"
         )
-    except Exception:
-        fh.close()
-        raise
 
 
 def is_new_format(path: str) -> bool:

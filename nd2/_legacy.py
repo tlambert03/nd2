@@ -1,6 +1,7 @@
+import re
 import struct
-from pathlib import Path
 import threading
+from pathlib import Path
 from typing import BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -19,7 +20,6 @@ I4s = struct.Struct(">I4s")
 JP2_MAP_CHUNK = struct.Struct("<4s4sI")
 IHDR = struct.Struct(">iihBB")  # yxc-dtype in jpeg 2000
 
-import inspect
 
 class LegacyND2Reader:
     _fh: BinaryIO
@@ -34,15 +34,13 @@ class LegacyND2Reader:
         self.lock = threading.RLock()
 
     def open(self) -> None:
-        print("requested open", [x.function for x in inspect.stack()[1:4]])
         if self.closed:
             self._fh = open(self._path, mode="rb")
 
     def close(self) -> None:
-        print("requested close", [x.function for x in inspect.stack()[1:4]])
         if not self.closed:
             self._fh.close()
-            ...
+
     @property
     def closed(self) -> bool:
         return self._fh.closed
@@ -79,7 +77,7 @@ class LegacyND2Reader:
                 loop = self._make_loop(meta, i)
                 if loop:
                     exp.append(loop)
-                meta = meta.get("NextLevelEx")
+                meta = meta.get("NextLevelEx")  # type: ignore
                 i += 1
         return exp
 
@@ -237,7 +235,6 @@ class LegacyND2Reader:
 
     def _read_chunk(self, pos) -> bytes:
         with self.lock:
-            print("read", pos, self._fh.closed)
             self._fh.seek(pos)
             length, box_type = I4s.unpack(self._fh.read(I4s.size))
             return self._fh.read(length - I4s.size)
@@ -280,7 +277,22 @@ class LegacyND2Reader:
         return (zs, xys, ts, cs)
 
     def voxel_size(self) -> VoxelSize:
-        return VoxelSize(1, 1, 1)
+
+        z: Optional[float] = None
+        d = self.text_info().get("description") or ""
+        _z = re.search(r"Z Stack Loop: 5\s+-\s+Step\s+([.\d]+)", d)
+        if _z:
+            try:
+                z = float(_z.groups()[0])
+            except Exception:
+                pass
+        if z is None:
+            for e in self.experiment():
+                if e.type == "ZStackLoop":
+                    z = e.parameters.stepUm
+                    break
+        xy = self._get_xml_dict(b"VIMD", 0).get("Calibration") or 1
+        return VoxelSize(xy, xy, z or 1)
 
     def channel_names(self) -> List[str]:
         xml = self._get_xml_dict(b"VIMD", 0)
@@ -304,6 +316,9 @@ class LegacyND2Reader:
             "bits_per_component": t + 1,
             "compression": z,
         }
+
+    def _custom_data(self) -> dict:
+        return {}
 
 
 def legacy_nd2_chunkmap(fh: BinaryIO) -> Dict[bytes, List[int]]:

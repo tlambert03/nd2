@@ -3,21 +3,11 @@ from __future__ import annotations
 import mmap
 from enum import Enum
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Optional,
-    Sequence,
-    Set,
-    Union,
-    cast,
-    overload,
-)
+from typing import TYPE_CHECKING, Sequence, Set, Union, cast, overload
 
 import numpy as np
 
-from ._chunkmap import read_chunkmap
-from ._util import AXIS, open_nd2, VoxelSize, is_supported_file
+from ._util import AXIS, VoxelSize, get_reader, is_supported_file
 from .structures import Attributes, ExpLoop, Metadata
 
 try:
@@ -27,7 +17,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from typing import Any, BinaryIO, Dict, List, Tuple
+    from typing import Any, Dict, List, Tuple
 
     import dask.array as da
     import xarray as xr
@@ -43,35 +33,43 @@ class ReadMode(str, Enum):
 
 
 class ND2File:
-    _fh: BinaryIO
     _memmap: mmap.mmap
     _is_legacy: bool
 
     def __init__(self, path: Union[Path, str]) -> None:
-        self._closed = True
         self._path = str(path)
-        self.open()
+        self._rdr = get_reader(self._path)
+        self._closed = False
+        self._is_legacy = "Legacy" in type(self._rdr).__name__
 
     @staticmethod
     def is_supported_file(path) -> bool:
         return is_supported_file(path)
 
-    # PUBLIC API:
-
     @property
     def path(self):
         return self._path
 
+    @property
+    def is_legacy(self) -> bool:
+        return self._is_legacy
+
     def open(self) -> None:
         if self.closed:
-            self._rdr = open_nd2(self._path)
-            self._is_legacy = "Legacy" in type(self._rdr).__name__
+            self._rdr.open()
             self._closed = False
 
     def close(self) -> None:
         if not self.closed:
-            self._fh.close()
+            self._rdr.close()
             self._closed = True
+
+    def __enter__(self) -> ND2File:
+        self.open()
+        return self
+
+    def __exit__(self, *_) -> None:
+        self.close()
 
     @property
     def closed(self) -> bool:
@@ -90,7 +88,7 @@ class ND2File:
         return self._rdr.experiment()
 
     @cached_property
-    def metadata(self) -> Metadata:
+    def metadata(self) -> Union[Metadata, dict]:
         return self._rdr.metadata()
 
     @cached_property
@@ -154,8 +152,6 @@ class ND2File:
 
     def voxel_size(self, channel: int = 0) -> VoxelSize:
         return VoxelSize(*self._rdr.voxel_size())
-
-    # ARRAY OUTPUT
 
     def asarray(self) -> np.ndarray:
         arr = np.stack([self._get_frame(i) for i in range(self._frame_count)])
@@ -294,10 +290,7 @@ class ND2File:
 
     @property
     def _channel_names(self) -> List[str]:
-        # TODO
-        if self._is_legacy:
-            return self._rdr.channel_names()  # type: ignore
-        return [c.channel.name for c in self.metadata.channels or []]
+        return self._rdr.channel_names()
 
     def __repr__(self) -> str:
         try:
@@ -306,13 +299,6 @@ class ND2File:
         except Exception:
             extra = ""
         return f"<ND2File at {hex(id(self))}{extra}>"
-
-    def __enter__(self) -> ND2File:
-        self.open()
-        return self
-
-    def __exit__(self, *_) -> None:
-        self.close()
 
     @cached_property
     def custom_data(self) -> Dict[str, Any]:

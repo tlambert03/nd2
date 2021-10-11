@@ -45,7 +45,7 @@ jobs:
           CYTHON_TRACE: "1"
 
       - name: Test
-        run: pytest -v --cov=nd2 --cov-report=xml
+        run: pytest -v --cov=nd2 --cov-report=xml --cov-report=terminal
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2

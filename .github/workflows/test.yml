@@ -40,7 +40,9 @@ jobs:
 
       - name: Build
         # -e seems necessary for coverage to work
-        run: CYTHON_TRACE=1 pip install -e .[testing]
+        run: pip install -e .[testing]
+        env:
+          CYTHON_TRACE: "1"
 
       - name: Test
         run: pytest -v --cov=nd2 --cov-report=xml

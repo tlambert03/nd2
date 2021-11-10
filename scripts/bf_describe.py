@@ -2,7 +2,6 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 from aicsimageio.readers.bioformats_reader import BioFile, BioformatsReader
-
 from nd2._util import AXIS
 
 DATA = Path(__file__).parent.parent / "tests" / "data"

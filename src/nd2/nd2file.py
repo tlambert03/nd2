@@ -249,9 +249,14 @@ class ND2File:
         """
         from dask.array import map_blocks
 
+        from ._dask_proxy import DaskArrayProxy
+
         chunks = [(1,) * x for x in self._coord_shape]
         chunks += [(x,) for x in self._frame_shape]
-        return map_blocks(self._dask_block, copy, chunks=chunks, dtype=self.dtype)
+        dask_arr = map_blocks(self._dask_block, copy, chunks=chunks, dtype=self.dtype)
+        # this proxy allows the dask array to re-open the underlying
+        # nd2 file on compute.
+        return DaskArrayProxy(dask_arr, self)
 
     _NO_IDX = -1
 

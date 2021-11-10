@@ -74,6 +74,12 @@ def test_dask(new_nd2):
         assert arr.shape == nd.shape[-2:]
 
 
+def test_dask_closed(single_nd2):
+    with ND2File(single_nd2) as nd:
+        dsk = nd.to_dask()
+    assert isinstance(dsk.compute(), np.ndarray)
+
+
 @pytest.mark.skipif(bool(os.getenv("CIBUILDWHEEL")), reason="slow")
 def test_full_read(new_nd2):
     with ND2File(new_nd2) as nd:

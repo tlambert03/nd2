@@ -15,6 +15,11 @@ for x in ALL:
     NEW.append(x) if is_new_format(str(x)) else OLD.append(x)
 
 
+@pytest.fixture
+def single_nd2():
+    return DATA / "dims_rgb_t3p2c2z3x64y64.nd2"
+
+
 @pytest.fixture(params=ALL, ids=lambda x: x.name)
 def any_nd2(request):
     return request.param

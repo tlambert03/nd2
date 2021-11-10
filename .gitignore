@@ -14,6 +14,7 @@ develop-eggs/
 dist/
 downloads/
 eggs/
+lib/
 .eggs/
 lib64/
 parts/
@@ -111,3 +112,7 @@ src/nd2/_version.py
 src/nd2/_sdk/picture.c
 src/nd2/_sdk/v9.c
 src/nd2/_sdk/latest.c
+
+# allow these
+!src/sdk/**/*.so
+!src/sdk/**/*.a

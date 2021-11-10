@@ -78,6 +78,7 @@ def test_proxy_asarray(proxy: DaskArrayProxy) -> None:
 
 
 def test_proxy_getitem(dask_arr: da.Array, proxy: DaskArrayProxy) -> None:
+    dask_arr.ctx.FILE_OPEN = True
     a = dask_arr[0, 1:3]
     b = proxy[0, 1:3]
     assert isinstance(a, da.Array)
@@ -89,7 +90,8 @@ def test_proxy_methods(dask_arr: da.Array, proxy: DaskArrayProxy) -> None:
     dmean = proxy.mean()
     assert isinstance(dmean, DaskArrayProxy)
     assert isinstance(dmean.compute(), float)
-    assert dmean.compute() == dask_arr.mean().compute()
+    with pytest.warns(UserWarning):
+        assert dmean.compute() == dask_arr.mean().compute()
 
     # non array-returning methods don't return proxies
     assert isinstance(proxy.to_svg(), str)
@@ -100,6 +102,7 @@ def test_proxy_ufunc(dask_arr: da.Array, proxy: DaskArrayProxy) -> None:
     pmean = np.mean(proxy)
     assert isinstance(amean, da.Array)
     assert isinstance(pmean, DaskArrayProxy)
+    dask_arr.ctx.FILE_OPEN = True
     assert amean.compute() == pmean.compute()
 
 

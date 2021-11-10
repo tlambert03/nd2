@@ -33,7 +33,6 @@ jobs:
       - name: Download Samples
         run: |
           python scripts/download_samples.py
-          python scripts/download_sdk.py
         env:
           DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
 

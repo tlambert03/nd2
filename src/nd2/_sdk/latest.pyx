@@ -231,6 +231,8 @@ cdef class ND2Reader:
         """Read a chunk directly without using SDK"""
         if index > self._max_safe:
             raise IndexError(f"Frame out of range: {index}")
+        if not self._is_open:
+            raise ValueError("Attempt to read from closed nd2 file")
         offset = self._frame_map["safe"].get(index, None)
         if offset is None:
             return self._missing_frame(index)

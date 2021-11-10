@@ -8,7 +8,7 @@ skip = ["*-win32", "*-manylinux_i686", "pp*", "*musllinux*"]
 test-requires = "pytest"
 test-command = "pytest {project}/tests -v"
 test-extras = ["testing"]
-manylinux-x86_64-image = "manylinux_2_24"
+manylinux-x86_64-image = "manylinux2010"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
@@ -20,7 +20,9 @@ repair-wheel-command = [
 
 [tool.cibuildwheel.linux]
 before-all = [
-    "apt-get update && apt-get install -y libtiff5-dev",
+    # "apt-get update && apt-get install -y libtiff5-dev",
+    # "yum install libtiff",
     "cp {project}/sdk/latest/Linux/lib/* /lib",
+    # "cp {project}/sdk/latest/Centos/lib/* /lib",
     "cp {project}/sdk/v9/Linux/lib/* /lib",
 ]

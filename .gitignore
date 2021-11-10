@@ -104,13 +104,13 @@ ENV/
 # IDE settings
 .vscode/
 
-nd2/_nd2file.c
-nd2/_nd2file_legacy.c
-nd2/_version.py
 sdk
 sdk_legacy/*
 tests/data
 wheelhouse
-nd2/_sdk/picture.c
-nd2/_sdk/v9.c
-nd2/_sdk/latest.c
+src/nd2/_nd2file.c
+src/nd2/_nd2file_legacy.c
+src/nd2/_version.py
+src/nd2/_sdk/picture.c
+src/nd2/_sdk/v9.c
+src/nd2/_sdk/latest.c

@@ -3,7 +3,6 @@ import json
 from libc.stdint cimport uintptr_t
 from libc.stdlib cimport free, malloc
 
-from .picture cimport PicWrapper, nullpic
 
 import mmap
 from pathlib import Path
@@ -16,15 +15,17 @@ from .._chunkmap import read_new_chunkmap
 cimport numpy as np
 
 from .. import structures
+from cpython cimport Py_INCREF, PyObject
 
+np.import_array()
 
 cdef class ND2Reader:
 
     cdef LIMFILEHANDLE _fh
     cdef public str path
     cdef bint _is_open
-    cdef dict _frame_map
-    cdef dict _meta_map
+    cdef public dict _frame_map
+    cdef public dict _meta_map
     cdef int _max_safe
     cdef _mmap
     cdef __strides
@@ -276,6 +277,17 @@ cdef class ND2Reader:
     cpdef channel_names(self):
         return [c.channel.name for c in self.metadata().channels or []]
 
+    cpdef time_stamps(self):
+        stamps = []
+        for s in range(self._seq_count()):
+            chs = self._frame_metadata(s).get('channels')
+            if not chs:
+                break
+            stamps.append(chs[0]['time']['relativeTimeMs'])
+        return stamps
+
+
+
 cdef _loads(LIMSTR string, default=dict):
     if not string:
         return default()
@@ -308,3 +320,45 @@ LIM_ERR_CODE = {
     -18: 'LIM_ERR_PRIVILEGES',
     -19: 'LIM_ERR_VERSION',
 }
+
+
+
+
+
+# based on https://gist.github.com/GaelVaroquaux/1249305
+# from Gael Varoquaux License: BSD 3 clause
+cdef class PicWrapper:
+
+    cdef void set_pic(PicWrapper self, LIMPICTURE pic, destroyer_t finalizer):
+        if pic.uiBitsPerComp == 8:
+            self.dtype = np.NPY_UINT8
+        elif 8 < pic.uiBitsPerComp <= 16:
+            self.dtype = np.NPY_UINT16
+        elif pic.uiBitsPerComp == 32:
+            self.dtype = np.NPY_UINT32
+        else:
+            raise ValueError("Unexpected bits per component: %d" % pic.uiBitsPerComp)
+
+        self.pic = pic
+        self.finalizer = finalizer
+
+    def __array__(self):
+        cdef np.npy_intp shape[3]
+        shape[0] = <np.npy_intp> self.pic.uiHeight
+        shape[1] = <np.npy_intp> self.pic.uiWidth
+        shape[2] = <np.npy_intp> self.pic.uiComponents
+        return np.PyArray_SimpleNewFromData(3, shape, self.dtype, self.pic.pImageData)
+
+    def __dealloc__(self):
+        self.finalizer(&self.pic)
+
+    cdef np.ndarray to_ndarray(self):
+        cdef np.ndarray ndarray = np.array(self, copy=False)
+
+        # Assign our object to the 'base' of the ndarray object
+        ndarray.base = <PyObject*> self
+
+        # Increment the reference count, as the above assignement was done in
+        # C, and Python does not know that there is this additional reference
+        Py_INCREF(self)
+        return ndarray

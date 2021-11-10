@@ -298,6 +298,10 @@ class LegacyND2Reader:
         xml = self._get_xml_dict(b"VIMD", 0)
         return [p["OpticalConfigName"] for p in xml["PicturePlanes"]["Plane"].values()]
 
+    def time_stamps(self) -> List[str]:
+        xml = self._get_xml_dict(b"VIMD", 0)
+        return [p["OpticalConfigName"] for p in xml["PicturePlanes"]["Plane"].values()]
+
     @cached_property
     def header(self) -> dict:
         try:

@@ -6,13 +6,12 @@ build-backend = "setuptools.build_meta"
 # Skip 32-bit builds & PyPy wheels on all platforms
 skip = ["*-win32", "*-manylinux_i686", "pp*", "*musllinux*"]
 test-requires = "pytest"
-test-command = "pytest {project}/tests -v"
+test-command = 'pytest "{project}/tests" -v'
 test-extras = ["testing"]
 manylinux-x86_64-image = "manylinux_2_24"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
-environment = { REPAIR_LIBRARY_PATH = 'sdk/v9/Darwin/lib' }
 repair-wheel-command = [
     "DYLD_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-listdeps {wheel}",
     "DYLD_LIBRARY_PATH=$REPAIR_LIBRARY_PATH delocate-wheel --require-archs {delocate_archs} -w {dest_dir} {wheel}",
@@ -21,6 +20,5 @@ repair-wheel-command = [
 [tool.cibuildwheel.linux]
 before-all = [
     "apt-get update && apt-get install -y libtiff5-dev",
-    "cp {project}/sdk/latest/Linux/lib/* /lib",
-    "cp {project}/sdk/v9/Linux/lib/* /lib",
+    "cp {project}/src/sdk/Linux/lib/* /lib",
 ]

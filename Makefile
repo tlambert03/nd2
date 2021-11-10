@@ -9,14 +9,15 @@ build:
 clean:
 	rm -rf build dist wheelhouse
 	rm -rf htmlcov .coverage .hypothesis
-	rm -f nd2/*.so
-	rm -f nd2/_*.c
-	rm -f nd2/_sdk/*.so
-	rm -f nd2/_sdk/*.c
+	rm -f src/nd2/*.so
+	rm -f src/nd2/_*.c
+	rm -f src/nd2/_sdk/*.so
+	rm -f src/nd2/_sdk/*.c
+	rm -f src/nd2/_sdk/*.cpp
 
 clobber:
 	make clean
-	rm -rf sdk .mypy_cache
+	rm -rf .mypy_cache
 
 rebuild:
 	make clean

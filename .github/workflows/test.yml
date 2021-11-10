@@ -34,7 +34,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install dropbox
           python scripts/download_samples.py
-          python scripts/download_sdk.py
         env:
           DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
 

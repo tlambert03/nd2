@@ -1,10 +1,21 @@
 from __future__ import annotations
 
 import mmap
+import threading
+from contextlib import nullcontext
 from enum import Enum
 from itertools import product
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Sequence, Set, Union, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    ContextManager,
+    Optional,
+    Sequence,
+    Set,
+    Union,
+    cast,
+    overload,
+)
 
 import numpy as np
 
@@ -42,6 +53,7 @@ class ND2File:
         self._rdr = get_reader(self._path)
         self._closed = False
         self._is_legacy = "Legacy" in type(self._rdr).__name__
+        self._lock = threading.RLock()
 
     @staticmethod
     def is_supported_file(path) -> bool:
@@ -233,15 +245,21 @@ class ND2File:
         """array protocol"""
         return self.asarray()
 
-    def to_dask(self, copy=True) -> da.Array:
+    def to_dask(self, opening_array=True) -> da.Array:
         """Create dask array (delayed reader) representing image.
 
         Parameters
         ----------
-        copy : bool, optional
-            Whether to copy buffer when reading, by default True.
-            (False may be faster in some cases, but is also prone to segfaults if the
-            file is closed.)
+        opening_array : bool, optional
+            If True (the default), the returned obect will be a thin subclass of
+            a :class:`dask.array.Array` (an
+            `nd2.opening_dask_array.OpeningDaskArray`) that manages the opening
+            and closing of this file when getting chunks. If opening_array is
+            `False`, then a pure `da.Array` will be returned. However, when that
+            array is computed, it will incur a file open/close on *every* chunk
+            that is read (in the `_dask_block` method).  As such `opening_array`
+            will generally be much faster, however, it *may* fail with certain
+            dask schedulers.
 
         Returns
         -------
@@ -249,14 +267,22 @@ class ND2File:
         """
         from dask.array import map_blocks
 
-        from ._dask_proxy import DaskArrayProxy
+        from .opening_dask_array import OpeningDaskArray
 
         chunks = [(1,) * x for x in self._coord_shape]
         chunks += [(x,) for x in self._frame_shape]
-        dask_arr = map_blocks(self._dask_block, copy, chunks=chunks, dtype=self.dtype)
-        # this proxy allows the dask array to re-open the underlying
-        # nd2 file on compute.
-        return DaskArrayProxy(dask_arr, self)
+        dask_arr = map_blocks(
+            self._dask_block,
+            # the opening_array doesn't need a threading lock
+            nullcontext() if opening_array else self._lock,
+            chunks=chunks,
+            dtype=self.dtype,
+        )
+        if opening_array:
+            # this subtype allows the dask array to re-open the underlying
+            # nd2 file on compute.
+            return OpeningDaskArray.from_array(dask_arr, self)
+        return dask_arr
 
     _NO_IDX = -1
 
@@ -265,19 +291,30 @@ class ND2File:
             return self._NO_IDX
         return np.ravel_multi_index(coords, self._coord_shape)
 
-    def _dask_block(self, copy, block_id: Tuple[int]) -> np.ndarray:
+    def _dask_block(self, lock: ContextManager, block_id: Tuple[int]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
             return
 
-        ncoords = len(self._coord_shape)
-        idx = self._seq_index_from_coords(block_id[:ncoords])
+        with lock:
+            was_closed = self.closed
+            if self.closed:
+                self.open()
+            try:
+                ncoords = len(self._coord_shape)
+                idx = self._seq_index_from_coords(block_id[:ncoords])
 
-        if idx == self._NO_IDX:
-            if any(block_id):
-                raise ValueError(f"Cannot get chunk {block_id} for single frame image.")
-            idx = 0
-        data = self._get_frame(cast(int, idx))[(np.newaxis,) * ncoords]
-        return data.copy() if copy else data
+                if idx == self._NO_IDX:
+                    if any(block_id):
+                        raise ValueError(
+                            f"Cannot get chunk {block_id} for single frame image."
+                        )
+                    idx = 0
+                data = self._get_frame(cast(int, idx))[(np.newaxis,) * ncoords]
+                # non copy on a closed file WILL segfault.
+                return data.copy() if was_closed else data
+            finally:
+                if was_closed:
+                    self.close()
 
     def to_xarray(
         self, delayed: bool = True, squeeze: bool = True, position: Optional[int] = None

@@ -81,6 +81,17 @@ class ND2File:
             self._rdr.close()
             self._closed = True
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["_rdr"]
+        return state
+
+    def __setstate__(self, d):
+        self.__dict__ = d
+        self._rdr = get_reader(self._path)
+        if not self._closed:
+            self.open()
+
     def __enter__(self) -> ND2File:
         self.open()
         return self

@@ -8,11 +8,14 @@
 
 Yet another `.nd2` (Nikon NIS Elements) file reader.
 
-This reader provides a Cython wrapper for the official Nikon SDK – currently version 1.7.0.0, released Jun 23, 2021. (The actual reading of image frames, however, uses a direct memmap approach, instead of the SDK, for performance reasons and to avoid occasional segfaults from the SDK.)
+This reader provides a Cython wrapper for the official Nikon SDK.
+(The actual reading of image frames, however, uses a direct memmap approach, instead of the SDK, 
+for performance reasons and to avoid occasional segfaults from the SDK.)
 
 Features good metadata retrieval, and direct `to_dask` and `to_xarray` options for lazy and/or annotated arrays.
 
-This library is tested against many nd2 files with the goal of maximizing compatibility and data extraction. (If you find an nd2 file that fails in some way, please open an issue with the file!)
+This library is tested against many nd2 files with the goal of maximizing compatibility and data extraction. 
+(If you find an nd2 file that fails in some way, please open an issue with the file!)
 
 ## install
 

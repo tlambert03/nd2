@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -6,7 +7,6 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
-
 from nd2 import ND2File, imread, structures
 from nd2._util import AXIS
 
@@ -74,6 +74,13 @@ def test_dask(new_nd2):
         assert arr.shape == nd.shape[-2:]
 
 
+def test_dask_closed(single_nd2):
+    with ND2File(single_nd2) as nd:
+        dsk = nd.to_dask()
+    assert isinstance(dsk.compute(), np.ndarray)
+
+
+@pytest.mark.skipif(bool(os.getenv("CIBUILDWHEEL")), reason="slow")
 def test_full_read(new_nd2):
     with ND2File(new_nd2) as nd:
         if new_nd2.stat().st_size > 500_000_000:
@@ -84,6 +91,7 @@ def test_full_read(new_nd2):
 
 
 def test_dask_legacy(old_nd2):
+    pytest.importorskip("imagecodecs")
     with ND2File(old_nd2) as nd:
         dsk = nd.to_dask()
         assert isinstance(dsk, da.Array)
@@ -93,6 +101,7 @@ def test_dask_legacy(old_nd2):
         assert arr.shape == nd.shape[-2:]
 
 
+@pytest.mark.skipif(bool(os.getenv("CIBUILDWHEEL")), reason="slow")
 def test_full_read_legacy(old_nd2):
     with ND2File(old_nd2) as nd:
         if (old_nd2.stat().st_size > 500_000) and "--runslow" not in sys.argv:

@@ -1,0 +1,3 @@
+SDK version 1.7.2.0
+released 26 Oct 2021
+https://www.nd2sdk.com/

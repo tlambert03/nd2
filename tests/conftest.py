@@ -3,7 +3,6 @@ from typing import List
 
 import psutil
 import pytest
-
 from nd2._util import is_new_format
 
 DATA = Path(__file__).parent / "data"
@@ -14,6 +13,11 @@ OLD: List[Path] = []
 
 for x in ALL:
     NEW.append(x) if is_new_format(str(x)) else OLD.append(x)
+
+
+@pytest.fixture
+def single_nd2():
+    return DATA / "dims_rgb_t3p2c2z3x64y64.nd2"
 
 
 @pytest.fixture(params=ALL, ids=lambda x: x.name)

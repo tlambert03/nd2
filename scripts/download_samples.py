@@ -16,7 +16,6 @@ SUBSET = [
     "jonas_512c_nikonTest_1_header.mat",
     "jonas_512c_cag_p5_simgc_2511_70ms22s_crop_header.mat",
     "dims_p4z5t3c2y32x32-tile2x3.txt",
-    ".DS_Store",
     "bf_shapes.json",
     "shapes.json",
     "dims_p4z5t3c2y32x32-Zlambda.txt",

@@ -18,8 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.8, 3.9]
-        platform: [macos-latest, windows-latest, 'ubuntu-latest']
+        python-version: ["3.8", "3.9", "3.10"]
+        platform: [macos-latest, windows-latest, "ubuntu-latest"]
 
     steps:
       - uses: actions/checkout@v2
@@ -34,7 +34,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install dropbox
           python scripts/download_samples.py
-          python scripts/download_sdk.py
         env:
           DROPBOX_TOKEN: ${{ secrets.DROPBOX_TOKEN }}
 

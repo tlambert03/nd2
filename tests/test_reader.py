@@ -195,3 +195,23 @@ def _common_entries(*dcts):
         return
     for i in set(dcts[0]).intersection(*dcts[1:]):
         yield tuple(d[i] for d in dcts)
+
+
+def test_pickle(single_nd2):
+    import pickle
+
+    f = ND2File(single_nd2)
+    pf = pickle.dumps(f)
+    assert isinstance(pf, bytes)
+    f2: ND2File = pickle.loads(pf)
+    np.testing.assert_array_equal(f, f2)
+
+    d = f.to_dask()
+    pd = pickle.dumps(d)
+    assert isinstance(pd, bytes)
+    # FIXME: this line currently leaks a file handle...
+    d2: da.Array = pickle.loads(pd)
+    np.testing.assert_array_equal(d, d2)
+
+    f.close()
+    f2.close()

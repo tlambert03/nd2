@@ -84,10 +84,12 @@ class ND2File:
     def __getstate__(self):
         state = self.__dict__.copy()
         del state["_rdr"]
+        del state["_lock"]
         return state
 
     def __setstate__(self, d):
         self.__dict__ = d
+        self._lock = threading.RLock()
         self._rdr = get_reader(self._path)
         if not self._closed:
             self.open()

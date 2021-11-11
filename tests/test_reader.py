@@ -91,6 +91,7 @@ def test_full_read(new_nd2):
 
 
 def test_dask_legacy(old_nd2):
+    pytest.importorskip("imagecodecs")
     with ND2File(old_nd2) as nd:
         dsk = nd.to_dask()
         assert isinstance(dsk, da.Array)

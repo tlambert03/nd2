@@ -19,7 +19,7 @@ def main():
     else:
         dl = 0
         total_length = int(total_length)
-        for data in response.iter_content(chunk_size=4096):
+        for data in response.iter_content(chunk_size=total_length // 100):
             dl += len(data)
             f.write(data)
             done = int(50 * dl / total_length)

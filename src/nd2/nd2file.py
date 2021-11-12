@@ -19,7 +19,7 @@ from typing import (
 
 import numpy as np
 
-from ._util import AXIS, VoxelSize, dims_from_description, get_reader, is_supported_file
+from ._util import AXIS, VoxelSize, get_reader, is_supported_file
 from .structures import Attributes, ExpLoop, Metadata, XYPosLoop
 
 try:
@@ -144,17 +144,8 @@ class ND2File:
     @cached_property
     def sizes(self) -> Dict[str, int]:
         """names and sizes for each axis"""
-        attrs = cast(Attributes, self.attributes)
-
-        # often, the 'Description' field in textinfo is the best source of dimension
-        # (dims are strangely missing from coord_info sometimes)
-        # so we start there, and fall back to coord_info if ddims are empty
-        ddims = dims_from_description(self.text_info.get("description"))
-        # dims from coord info
-        cdims = {AXIS._MAP[c[1]]: c[2] for c in self._rdr._coord_info()}
-
-        # prefer the value in coord info if it exists. (it's usually more accurate)
-        dims = {k: cdims.get(k, v) for k, v in ddims.items()} if ddims else cdims
+        attrs = self.attributes
+        dims = {AXIS._MAP[c[1]]: c[2] for c in self._rdr._coord_info()}
         dims[AXIS.CHANNEL] = (
             dims.pop(AXIS.CHANNEL)
             if AXIS.CHANNEL in dims

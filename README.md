@@ -521,3 +521,26 @@ The motivating factors for this library were:
 - pims-independent delayed reader based on dask
 - axis-associated metadata via xarray
 - combined approach of SDK and direct binary reads
+
+## Contributing / Development
+
+To test locally and contribute.  Clone this repo, then:
+
+```
+pip install -e .[dev]
+```
+
+To download sample data:
+
+```
+pip install requests
+python scripts/download_samples.py
+```
+
+then run tests:
+
+```
+pytest
+```
+
+(and feel free to open an issue if that doesn't work!)

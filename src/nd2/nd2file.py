@@ -103,6 +103,8 @@ class ND2File:
         self.__dict__ = d
         self._lock = threading.RLock()
         self._rdr = get_reader(self._path)
+        if self._closed:
+            self._rdr.close()
 
     @cached_property
     def attributes(self) -> Attributes:

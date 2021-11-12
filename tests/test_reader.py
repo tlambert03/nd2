@@ -198,7 +198,7 @@ def _common_entries(*dcts):
         yield tuple(d[i] for d in dcts)
 
 
-def test_pickle_reader(single_nd2):
+def test_pickle_open_reader(single_nd2):
     """test that we can pickle and restore an ND2File"""
     f = ND2File(single_nd2)
     pf = pickle.dumps(f)
@@ -207,6 +207,16 @@ def test_pickle_reader(single_nd2):
     np.testing.assert_array_equal(f, f2)
     f.close()
     f2.close()
+
+def test_pickle_closed_reader(single_nd2):
+    """test that we can pickle and restore an ND2File"""
+    f = ND2File(single_nd2)
+    f.close()
+    pf = pickle.dumps(f)
+    assert isinstance(pf, bytes)
+    f2: ND2File = pickle.loads(pf)
+    assert f.closed
+    assert f2.closed
 
 
 def test_pickle_dask_wrapper(single_nd2):

@@ -85,7 +85,9 @@ class ResourceBackedDaskArray(da.Array):
 
     def __getitem__(self, index):
         # indexing should also return an Opening Array
-        return ResourceBackedDaskArray.from_array(super().__getitem__(index), self._file_ctx)
+        return ResourceBackedDaskArray.from_array(
+            super().__getitem__(index), self._file_ctx
+        )
 
     def __getattribute__(self, name: Any) -> Any:
         # allows methods like `array.mean()` to also return an OpeningDaskArray

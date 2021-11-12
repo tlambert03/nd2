@@ -7,7 +7,7 @@ from numpy import get_include
 from setuptools import Extension, setup
 
 SYSTEM = platform.system()
-PLATFORM = platform.machine()
+PLATFORM = platform.machine().replace("AMD64", "x68_64")
 SDK = Path("src/sdk") / SYSTEM / PLATFORM
 LIB = SDK / "lib"
 INCLUDE = SDK / "include"

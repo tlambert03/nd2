@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import List
 
@@ -41,4 +42,7 @@ def no_files_left_open(request):
     yield
     files_after = {p for p in psutil.Process().open_files() if p.path.endswith("nd2")}
     if request.function.__name__ != "test_pickle":
-        assert files_before == files_after == set()
+        assert files_before == files_after
+    else:
+        for f in psutil.Process().open_files():
+            os.close(f.fd)

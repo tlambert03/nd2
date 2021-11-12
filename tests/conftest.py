@@ -45,4 +45,7 @@ def no_files_left_open(request):
         assert files_before == files_after
     else:
         for f in psutil.Process().open_files():
-            os.close(f.fd)
+            try:
+                os.close(f.fd)
+            except OSError:
+                pass

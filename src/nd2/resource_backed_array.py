@@ -42,12 +42,12 @@ class ResourceBackedDaskArray(da.Array):
         dtype=None,
         meta=None,
         shape=None,
-        *,
-        _file_ctx: CheckableContext
+        _file_ctx: CheckableContext = None,
     ):
         arr = super().__new__(
             cls, dask, name, chunks, dtype=dtype, meta=meta, shape=shape
         )
+        assert _file_ctx is not None
         arr._file_ctx = _file_ctx
         return arr
 
@@ -107,6 +107,28 @@ class ResourceBackedDaskArray(da.Array):
         if isinstance(arr, da.Array):
             return ResourceBackedDaskArray.from_array(arr, self._file_ctx)
         return arr
+
+    def __reduce__(self):
+        # for pickle
+        return (
+            ResourceBackedDaskArray,
+            (
+                self.dask,
+                self.name,
+                self.chunks,
+                self.dtype,
+                None,
+                None,
+                self._file_ctx,
+            ),
+            # this empty dict causes __setstate__ to be called during pickle.load
+            # allowing us to close the newly created file_ctx, preventing leaked handle
+            {}, 
+        )
+
+    def __setstate__(self, d):
+        if not self._file_ctx.closed:
+            self._file_ctx.__exit__()
 
 
 class _ArrayMethodProxy:

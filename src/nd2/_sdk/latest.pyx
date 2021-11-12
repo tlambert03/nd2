@@ -72,6 +72,8 @@ cdef class ND2Reader:
 
     @property
     def attributes(self) -> structures.Attributes:
+        if not self._is_open:
+            raise ValueError("Attempt to get attributes from closed nd2 file")
         if not hasattr(self, '__attributes'):
             cont = self._metadata().get('contents')
             attrs = self._attributes()

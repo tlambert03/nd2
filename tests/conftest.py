@@ -41,11 +41,4 @@ def no_files_left_open(request):
     files_before = {p for p in psutil.Process().open_files() if p.path.endswith("nd2")}
     yield
     files_after = {p for p in psutil.Process().open_files() if p.path.endswith("nd2")}
-    if request.function.__name__ != "test_pickle":
-        assert files_before == files_after
-    else:
-        for f in psutil.Process().open_files():
-            try:
-                os.close(f.fd)
-            except OSError:
-                pass
+    assert files_before == files_after == set()

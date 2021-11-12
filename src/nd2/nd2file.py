@@ -81,6 +81,18 @@ class ND2File:
             self._rdr.close()
             self._closed = True
 
+    @property
+    def closed(self) -> bool:
+        """Whether the file is closed."""
+        return self._closed
+
+    def __enter__(self) -> ND2File:
+        self.open()
+        return self
+
+    def __exit__(self, *_) -> None:
+        self.close()
+
     def __getstate__(self):
         state = self.__dict__.copy()
         del state["_rdr"]
@@ -91,20 +103,6 @@ class ND2File:
         self.__dict__ = d
         self._lock = threading.RLock()
         self._rdr = get_reader(self._path)
-        if not self._closed:
-            self.open()
-
-    def __enter__(self) -> ND2File:
-        self.open()
-        return self
-
-    def __exit__(self, *_) -> None:
-        self.close()
-
-    @property
-    def closed(self) -> bool:
-        """Whether the file is closed."""
-        return self._closed
 
     @cached_property
     def attributes(self) -> Attributes:

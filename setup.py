@@ -7,11 +7,11 @@ from numpy import get_include
 from setuptools import Extension, setup
 
 SYSTEM = platform.system()
-SDK = Path("src/sdk") / SYSTEM
+PLATFORM = platform.machine().replace("AMD64", "x86_64")
+SDK = Path("src/sdk") / SYSTEM / PLATFORM
 LIB = SDK / "lib"
 INCLUDE = SDK / "include"
 LINK = "shared" if SYSTEM == "Linux" else "static"
-
 # set env CYTHON_TRACE=1 to enable coverage on .pyx files
 CYTHON_TRACE = bool(os.getenv("CYTHON_TRACE", "0") not in ("0", "False"))
 

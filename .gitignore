@@ -115,4 +115,5 @@ src/nd2/_sdk/latest.c
 
 # allow these
 !src/sdk/**/*.so
+!src/sdk/**/lib/
 !src/sdk/**/*.a

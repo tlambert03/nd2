@@ -4,6 +4,7 @@ import mmap
 import threading
 from contextlib import nullcontext
 from enum import Enum
+from functools import lru_cache
 from itertools import product
 from pathlib import Path
 from typing import (
@@ -19,8 +20,8 @@ from typing import (
 
 import numpy as np
 
-from ._util import AXIS, VoxelSize, dims_from_description, get_reader, is_supported_file
-from .structures import Attributes, ExpLoop, Metadata, XYPosLoop
+from ._util import AXIS, VoxelSize, get_reader, is_supported_file
+from .structures import Attributes, ExpLoop, FrameMetadata, Metadata, XYPosLoop
 
 try:
     from functools import cached_property
@@ -126,6 +127,23 @@ class ND2File:
         """Various metadata (will be dict if legacy format)."""
         return self._rdr.metadata()
 
+    @lru_cache(maxsize=1024)
+    def frame_metadata(
+        self, seq_index: Union[int, tuple]
+    ) -> Union[FrameMetadata, dict]:
+        """Metadata for specific frame.
+
+        This includes the global metadata from the metadata function.
+        (will be dict if legacy format).
+        """
+        idx = cast(
+            int,
+            self._seq_index_from_coords(seq_index)
+            if isinstance(seq_index, tuple)
+            else seq_index,
+        )
+        return self._rdr.frame_metadata(idx)
+
     @cached_property
     def custom_data(self) -> Dict[str, Any]:
         """Dict of various unstructured custom metadata."""
@@ -144,17 +162,8 @@ class ND2File:
     @cached_property
     def sizes(self) -> Dict[str, int]:
         """names and sizes for each axis"""
-        attrs = cast(Attributes, self.attributes)
-
-        # often, the 'Description' field in textinfo is the best source of dimension
-        # (dims are strangely missing from coord_info sometimes)
-        # so we start there, and fall back to coord_info if ddims are empty
-        ddims = dims_from_description(self.text_info.get("description"))
-        # dims from coord info
-        cdims = {AXIS._MAP[c[1]]: c[2] for c in self._rdr._coord_info()}
-
-        # prefer the value in coord info if it exists. (it's usually more accurate)
-        dims = {k: cdims.get(k, v) for k, v in ddims.items()} if ddims else cdims
+        attrs = self.attributes
+        dims = {AXIS._MAP[c[1]]: c[2] for c in self._rdr._coord_info()}
         dims[AXIS.CHANNEL] = (
             dims.pop(AXIS.CHANNEL)
             if AXIS.CHANNEL in dims

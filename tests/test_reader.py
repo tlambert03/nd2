@@ -13,13 +13,6 @@ from nd2._util import AXIS
 
 DATA = Path(__file__).parent / "data"
 
-# SDK_MISSES_COORDS = {
-#     "jonas_100217_OD122_001.nd2",
-#     "jonas_512c_nikonTest_two.nd2",
-#     "jonas_512c_cag_p5_simgc_2511_70ms22s_crop.nd2",
-#     "jonas_2112-2265.nd2",
-# }
-
 
 def test_metadata_extraction(new_nd2):
     assert ND2File.is_supported_file(new_nd2)
@@ -32,6 +25,7 @@ def test_metadata_extraction(new_nd2):
 
         # TODO: deal with typing when metadata is completely missing
         assert isinstance(nd.metadata, structures.Metadata)
+        assert isinstance(nd.frame_metadata(0), structures.FrameMetadata)
         assert isinstance(nd.experiment, list)
         assert isinstance(nd.text_info, dict)
         assert isinstance(nd.sizes, dict)
@@ -233,3 +227,22 @@ def test_pickle_dask_wrapper(single_nd2):
     d2 = pickle.loads(pd)
     assert isinstance(d2, ResourceBackedDaskArray)
     np.testing.assert_array_equal(d, d2)
+
+
+# in v1.7.0.0, the sdk missed z coords for these
+OLD_SDK_MISSES_COORDS = (
+    (
+        "jonas_100217_OD122_001.nd2",
+        {"T": 25, "Z": 29, "C": 2, "Y": 311, "X": 277},
+    ),
+    (
+        "jonas_512c_nikonTest_two.nd2",
+        {"T": 16, "Z": 11, "C": 2, "Y": 520, "X": 696},
+    ),
+)
+
+
+@pytest.mark.parametrize("fname, sizes", OLD_SDK_MISSES_COORDS)
+def test_sizes(fname, sizes):
+    with ND2File(DATA / fname) as f:
+        assert f.sizes == sizes

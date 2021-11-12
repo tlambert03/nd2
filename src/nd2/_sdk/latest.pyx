@@ -73,6 +73,8 @@ cdef class ND2Reader:
     @property
     def attributes(self) -> structures.Attributes:
         if not hasattr(self, '__attributes'):
+            if not self._is_open:
+                raise ValueError("Attempt to get attributes from closed nd2 file")
             cont = self._metadata().get('contents')
             attrs = self._attributes()
             nC = cont.get('channelCount') if cont else attrs.get("componentCount", 1)
@@ -88,21 +90,32 @@ cdef class ND2Reader:
         return (1, 1, 1)
 
     def _metadata(self) -> dict:
+        if not self._is_open:
+            raise ValueError("Attempt to get metadata from closed nd2 file")
         return _loads(Lim_FileGetMetadata(self._fh))
 
     def metadata(self) -> structures.Metadata:
         return structures.Metadata(**self._metadata())
 
     def _frame_metadata(self, seq_index: int) -> dict:
+        if not self._is_open:
+            raise ValueError("Attempt to get frame_metadata from closed nd2 file")
         return _loads(Lim_FileGetFrameMetadata(self._fh, seq_index))
 
+    def frame_metadata(self) -> structures.Metadata:
+        return structures.FrameMetadata(**self._frame_metadata())
+
     def text_info(self) -> dict:
+        if not self._is_open:
+            raise ValueError("Attempt to get text_info from closed nd2 file")
         return _loads(Lim_FileGetTextinfo(self._fh))
 
     def _description(self) -> str:
         return self.text_info().get("description", '')
 
     def _experiment(self) -> list:
+        if not self._is_open:
+            raise ValueError("Attempt to get experiment from closed nd2 file")
         return _loads(Lim_FileGetExperiment(self._fh), list)
 
     def experiment(self) -> List[structures.ExpLoop]:
@@ -116,6 +129,8 @@ cdef class ND2Reader:
         return Lim_FileGetCoordSize(self._fh)
 
     def _seq_index_from_coords(self, coords: Sequence) -> int:
+        if not self._is_open:
+            raise ValueError("Attempt to seq_index from closed nd2 file")
         cdef LIMSIZE size = self._coord_size()
         if size == 0:
             return -1

@@ -1,5 +1,6 @@
 import json
 import os
+import pickle
 import sys
 from pathlib import Path
 
@@ -195,3 +196,40 @@ def _common_entries(*dcts):
         return
     for i in set(dcts[0]).intersection(*dcts[1:]):
         yield tuple(d[i] for d in dcts)
+
+
+def test_pickle_open_reader(single_nd2):
+    """test that we can pickle and restore an ND2File"""
+    f = ND2File(single_nd2)
+    pf = pickle.dumps(f)
+    assert isinstance(pf, bytes)
+    f2: ND2File = pickle.loads(pf)
+    np.testing.assert_array_equal(f, f2)
+    f.close()
+    f2.close()
+
+
+def test_pickle_closed_reader(single_nd2):
+    """test that we can pickle and restore an ND2File"""
+    f = ND2File(single_nd2)
+    f.close()
+    pf = pickle.dumps(f)
+    assert isinstance(pf, bytes)
+    f2: ND2File = pickle.loads(pf)
+    assert f.closed
+    assert f2.closed
+
+
+def test_pickle_dask_wrapper(single_nd2):
+    """test that we can pickle and restore just the dask wrapper"""
+    from nd2.resource_backed_array import ResourceBackedDaskArray
+
+    # test that we can pickle and restore a file
+    with ND2File(single_nd2) as f:
+        d = f.to_dask()
+
+    pd = pickle.dumps(d)
+    assert isinstance(pd, bytes)
+    d2 = pickle.loads(pd)
+    assert isinstance(d2, ResourceBackedDaskArray)
+    np.testing.assert_array_equal(d, d2)

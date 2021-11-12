@@ -31,7 +31,7 @@ def _copy_doc(method):
     return method
 
 
-class OpeningDaskArray(da.Array):
+class ResourceBackedDaskArray(da.Array):
     _file_ctx: CheckableContext
 
     def __new__(
@@ -42,17 +42,17 @@ class OpeningDaskArray(da.Array):
         dtype=None,
         meta=None,
         shape=None,
-        *,
-        _file_ctx: CheckableContext
+        _file_ctx: CheckableContext = None,
     ):
         arr = super().__new__(
             cls, dask, name, chunks, dtype=dtype, meta=meta, shape=shape
         )
+        assert _file_ctx is not None
         arr._file_ctx = _file_ctx
         return arr
 
     @classmethod
-    def from_array(cls, arr, ctx: CheckableContext) -> OpeningDaskArray:
+    def from_array(cls, arr, ctx: CheckableContext) -> ResourceBackedDaskArray:
         """Create an OpeningDaskArray with a checkable context.
 
         `ctx` must be a context manager that opens/closes some underlying resource (like
@@ -60,7 +60,7 @@ class OpeningDaskArray(da.Array):
         resource.  This subclass will take care of opening and closing the resource on
         compute.
         """
-        if isinstance(arr, OpeningDaskArray):
+        if isinstance(arr, ResourceBackedDaskArray):
             return arr
         _a = arr if isinstance(arr, da.Array) else da.from_array(arr)
         arr = cls(
@@ -85,14 +85,16 @@ class OpeningDaskArray(da.Array):
 
     def __getitem__(self, index):
         # indexing should also return an Opening Array
-        return OpeningDaskArray.from_array(super().__getitem__(index), self._file_ctx)
+        return ResourceBackedDaskArray.from_array(
+            super().__getitem__(index), self._file_ctx
+        )
 
     def __getattribute__(self, name: Any) -> Any:
         # allows methods like `array.mean()` to also return an OpeningDaskArray
         attr = object.__getattribute__(self, name)
         if (
             not name.startswith("_")
-            and name not in OpeningDaskArray.__dict__
+            and name not in ResourceBackedDaskArray.__dict__
             and callable(attr)
         ):
             return _ArrayMethodProxy(attr, self._file_ctx)
@@ -100,11 +102,33 @@ class OpeningDaskArray(da.Array):
 
     def __array_function__(self, func, types, args, kwargs):
         # obey NEP18
-        types = tuple(da.Array if x is OpeningDaskArray else x for x in types)
+        types = tuple(da.Array if x is ResourceBackedDaskArray else x for x in types)
         arr = super().__array_function__(func, types, args, kwargs)
         if isinstance(arr, da.Array):
-            return OpeningDaskArray.from_array(arr, self._file_ctx)
+            return ResourceBackedDaskArray.from_array(arr, self._file_ctx)
         return arr
+
+    def __reduce__(self):
+        # for pickle
+        return (
+            ResourceBackedDaskArray,
+            (
+                self.dask,
+                self.name,
+                self.chunks,
+                self.dtype,
+                None,
+                None,
+                self._file_ctx,
+            ),
+            # this empty dict causes __setstate__ to be called during pickle.load
+            # allowing us to close the newly created file_ctx, preventing leaked handle
+            {},
+        )
+
+    def __setstate__(self, d):
+        if not self._file_ctx.closed:
+            self._file_ctx.__exit__()
 
 
 class _ArrayMethodProxy:
@@ -122,5 +146,5 @@ class _ArrayMethodProxy:
         with self._file_ctx if self._file_ctx.closed else nullcontext():
             result = self.method(*args, **kwds)
         if isinstance(result, da.Array):
-            return OpeningDaskArray.from_array(result, self._file_ctx)
+            return ResourceBackedDaskArray.from_array(result, self._file_ctx)
         return result

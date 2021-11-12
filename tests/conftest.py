@@ -7,7 +7,10 @@ from nd2._util import is_new_format
 
 DATA = Path(__file__).parent / "data"
 MAX_FILES = None
-ALL = sorted(DATA.glob("*.nd2"), key=lambda x: x.stat().st_size)[:MAX_FILES]
+ALL = sorted(
+    (x for x in DATA.glob("*.nd2") if not x.name.startswith(".")),
+    key=lambda x: x.stat().st_size,
+)[:MAX_FILES]
 NEW: List[Path] = []
 OLD: List[Path] = []
 

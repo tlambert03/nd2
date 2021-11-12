@@ -256,7 +256,7 @@ class LegacyND2Reader:
             data.append(jpeg2k_decode(d))
         return np.stack(data, axis=-1)
 
-    def frame_meta(self, index: int) -> dict:
+    def frame_metadata(self, index: int) -> dict:
         return {
             **self._get_xml_dict(b"VCAL", index),
             **self._get_xml_dict(b"VIMD", index),

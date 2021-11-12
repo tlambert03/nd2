@@ -4,6 +4,7 @@ import mmap
 import threading
 from contextlib import nullcontext
 from enum import Enum
+from functools import lru_cache
 from itertools import product
 from pathlib import Path
 from typing import (
@@ -20,7 +21,7 @@ from typing import (
 import numpy as np
 
 from ._util import AXIS, VoxelSize, get_reader, is_supported_file
-from .structures import Attributes, ExpLoop, Metadata, XYPosLoop
+from .structures import Attributes, ExpLoop, FrameMetadata, Metadata, XYPosLoop
 
 try:
     from functools import cached_property
@@ -125,6 +126,23 @@ class ND2File:
     def metadata(self) -> Union[Metadata, dict]:
         """Various metadata (will be dict if legacy format)."""
         return self._rdr.metadata()
+
+    @lru_cache(maxsize=1024)
+    def frame_metadata(
+        self, seq_index: Union[int, tuple]
+    ) -> Union[FrameMetadata, dict]:
+        """Metadata for specific frame.
+
+        This includes the global metadata from the metadata function.
+        (will be dict if legacy format).
+        """
+        idx = cast(
+            int,
+            self._seq_index_from_coords(seq_index)
+            if isinstance(seq_index, tuple)
+            else seq_index,
+        )
+        return self._rdr.frame_metadata(idx)
 
     @cached_property
     def custom_data(self) -> Dict[str, Any]:

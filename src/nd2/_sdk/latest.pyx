@@ -102,8 +102,8 @@ cdef class ND2Reader:
             raise ValueError("Attempt to get frame_metadata from closed nd2 file")
         return _loads(Lim_FileGetFrameMetadata(self._fh, seq_index))
 
-    def frame_metadata(self) -> structures.Metadata:
-        return structures.FrameMetadata(**self._frame_metadata())
+    def frame_metadata(self, seq_index: int) -> structures.Metadata:
+        return structures.FrameMetadata(**self._frame_metadata(seq_index))
 
     def text_info(self) -> dict:
         if not self._is_open:

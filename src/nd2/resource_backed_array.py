@@ -123,7 +123,7 @@ class ResourceBackedDaskArray(da.Array):
             ),
             # this empty dict causes __setstate__ to be called during pickle.load
             # allowing us to close the newly created file_ctx, preventing leaked handle
-            {}, 
+            {},
         )
 
     def __setstate__(self, d):

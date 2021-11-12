@@ -36,7 +36,7 @@ def old_nd2(request):
 
 
 @pytest.fixture(autouse=True)
-def no_files_left_open(request):
+def no_files_left_open():
     files_before = {p for p in psutil.Process().open_files() if p.path.endswith("nd2")}
     yield
     files_after = {p for p in psutil.Process().open_files() if p.path.endswith("nd2")}

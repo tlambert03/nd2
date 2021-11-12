@@ -47,7 +47,7 @@ def dask_arr() -> da.Array:
 
 
 @pytest.fixture
-def proxy(dask_arr: da.Array) -> ResourceBackedDaskArray:
+def wrapper(dask_arr: da.Array) -> ResourceBackedDaskArray:
     arr = ResourceBackedDaskArray.from_array(dask_arr, dask_arr.ctx)
     arr.called = dask_arr.called
     arr.ctx = dask_arr.ctx
@@ -66,52 +66,52 @@ def test_array(dask_arr: da.Array) -> None:
     assert dask_arr.ctx.OPEN_COUNT == 1
 
 
-def test_proxy_compute(proxy: ResourceBackedDaskArray) -> None:
-    ary = proxy.compute()
+def test_wrapper_compute(wrapper: ResourceBackedDaskArray) -> None:
+    ary = wrapper.compute()
     assert isinstance(ary, np.ndarray)
     assert ary.shape == (10, 10, 10, 10)
-    assert proxy.called[0] == 100
+    assert wrapper.called[0] == 100
 
 
-def test_proxy_asarray(proxy: ResourceBackedDaskArray) -> None:
-    assert proxy.ctx.OPEN_COUNT == 0
-    ary = np.asarray(proxy)
+def test_wrapper_asarray(wrapper: ResourceBackedDaskArray) -> None:
+    assert wrapper.ctx.OPEN_COUNT == 0
+    ary = np.asarray(wrapper)
     assert isinstance(ary, np.ndarray)
     assert ary.shape == (10, 10, 10, 10)
-    assert proxy.ctx.OPEN_COUNT == 1
-    assert proxy.called[0] == 100
+    assert wrapper.ctx.OPEN_COUNT == 1
+    assert wrapper.called[0] == 100
 
 
-def test_proxy_getitem(dask_arr: da.Array, proxy: ResourceBackedDaskArray) -> None:
+def test_wrapper_getitem(dask_arr: da.Array, wrapper: ResourceBackedDaskArray) -> None:
     dask_arr.ctx.FILE_OPEN = True
     a = dask_arr[0, 1:3]
-    b = proxy[0, 1:3]
+    b = wrapper[0, 1:3]
     assert isinstance(a, da.Array)
     assert isinstance(b, ResourceBackedDaskArray)
     np.testing.assert_array_equal(a.compute(), b.compute())
 
 
-def test_proxy_methods(dask_arr: da.Array, proxy: ResourceBackedDaskArray) -> None:
-    assert isinstance(proxy, ResourceBackedDaskArray)
-    dmean = proxy.mean()
+def test_wrapper_methods(dask_arr: da.Array, wrapper: ResourceBackedDaskArray) -> None:
+    assert isinstance(wrapper, ResourceBackedDaskArray)
+    dmean = wrapper.mean()
     assert isinstance(dmean, ResourceBackedDaskArray)
     assert isinstance(dmean.compute(), float)
     with pytest.warns(UserWarning):
         assert dmean.compute() == dask_arr.mean().compute()
 
     # non array-returning methods don't return proxies
-    assert isinstance(proxy.to_svg(), str)
+    assert isinstance(wrapper.to_svg(), str)
 
 
-def test_proxy_ufunc(dask_arr: da.Array, proxy: ResourceBackedDaskArray) -> None:
+def test_wrapper_ufunc(dask_arr: da.Array, wrapper: ResourceBackedDaskArray) -> None:
     amean = np.mean(dask_arr)
-    pmean = np.mean(proxy)
+    pmean = np.mean(wrapper)
     assert isinstance(amean, da.Array)
     assert isinstance(pmean, ResourceBackedDaskArray)
     dask_arr.ctx.FILE_OPEN = True
     assert amean.compute() == pmean.compute()
 
 
-def test_proxy_repr(dask_arr: da.Array, proxy: ResourceBackedDaskArray) -> None:
-    assert repr(dask_arr) == repr(proxy)
-    assert repr(dask_arr.mean) == repr(proxy.mean)
+def test_wrapper_repr(dask_arr: da.Array, wrapper: ResourceBackedDaskArray) -> None:
+    assert repr(dask_arr) == repr(wrapper)
+    assert repr(dask_arr.mean) == repr(wrapper.mean)

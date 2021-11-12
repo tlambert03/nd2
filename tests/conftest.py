@@ -17,7 +17,7 @@ for x in ALL:
 
 @pytest.fixture
 def single_nd2():
-    return DATA / "dims_rgb_t3p2c2z3x64y64.nd2"
+    return DATA / "dims_t3c2y32x32.nd2"
 
 
 @pytest.fixture(params=ALL, ids=lambda x: x.name)

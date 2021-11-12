@@ -20,5 +20,5 @@ repair-wheel-command = [
 [tool.cibuildwheel.linux]
 before-all = [
     "apt-get update && apt-get install -y libtiff5-dev",
-    "cp {project}/src/sdk/Linux/lib/* /lib",
+    "cp {project}/src/sdk/Linux/x86_64/lib/* /lib",
 ]

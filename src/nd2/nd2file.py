@@ -258,21 +258,21 @@ class ND2File:
         """array protocol"""
         return self.asarray()
 
-    def to_dask(self, opening_array=True) -> da.Array:
+    def to_dask(self, wrapper=True) -> da.Array:
         """Create dask array (delayed reader) representing image.
 
         Parameters
         ----------
-        opening_array : bool, optional
+        wrapper : bool, optional
             If True (the default), the returned obect will be a thin subclass of
             a :class:`dask.array.Array` (an
-            `nd2.opening_dask_array.OpeningDaskArray`) that manages the opening
-            and closing of this file when getting chunks. If opening_array is
-            `False`, then a pure `da.Array` will be returned. However, when that
+            `nd2.resource_backed_array.OpeningDaskArray`) that manages the opening
+            and closing of this file when getting chunks via compute(). If `wrapper`
+            is `False`, then a pure `da.Array` will be returned. However, when that
             array is computed, it will incur a file open/close on *every* chunk
-            that is read (in the `_dask_block` method).  As such `opening_array`
-            will generally be much faster, however, it *may* fail with certain
-            dask schedulers.
+            that is read (in the `_dask_block` method).  As such `wrapper`
+            will generally be much faster, however, it *may* fail (i.e. result in
+            segmentation faults) with certain dask schedulers.
 
         Returns
         -------
@@ -280,21 +280,21 @@ class ND2File:
         """
         from dask.array import map_blocks
 
-        from .opening_dask_array import OpeningDaskArray
+        from .resource_backed_array import ResourceBackedDaskArray
 
         chunks = [(1,) * x for x in self._coord_shape]
         chunks += [(x,) for x in self._frame_shape]
         dask_arr = map_blocks(
             self._dask_block,
-            # the opening_array doesn't need a threading lock
-            nullcontext() if opening_array else self._lock,
+            # the wrapper doesn't need a threading lock
+            nullcontext() if wrapper else self._lock,
             chunks=chunks,
             dtype=self.dtype,
         )
-        if opening_array:
+        if wrapper:
             # this subtype allows the dask array to re-open the underlying
             # nd2 file on compute.
-            return OpeningDaskArray.from_array(dask_arr, self)
+            return ResourceBackedDaskArray.from_array(dask_arr, self)
         return dask_arr
 
     _NO_IDX = -1

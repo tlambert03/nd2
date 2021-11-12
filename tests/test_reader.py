@@ -208,6 +208,7 @@ def test_pickle_open_reader(single_nd2):
     f.close()
     f2.close()
 
+
 def test_pickle_closed_reader(single_nd2):
     """test that we can pickle and restore an ND2File"""
     f = ND2File(single_nd2)

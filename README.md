@@ -54,23 +54,24 @@ f.is_rgb        # False (whether the file is rgb)
 # if RGB, sizes will have an additional {'S': 3} component
 
 # array output
-f.asarray()     # in-memory np.ndarray
-np.asarray(f)   # alternative to f.asarray()
-f.to_dask()     # delayed dask.array.Array
-f.to_xarray()   # in-memory xarray.DataArray, with labeled axes/coords
+f.asarray()         # in-memory np.ndarray
+np.asarray(f)       # alternative to f.asarray()
+f.to_dask()         # delayed dask.array.Array
+f.to_xarray()       # in-memory xarray.DataArray, with labeled axes/coords
 f.to_xarray(delayed=True)   # delayed xarray.DataArray
 
-                # see below for examples of these structures
-# metadata      # returns instance of ...
-f.attributes    # nd2.structures.Attributes
-f.metadata      # nd2.structures.Metadata
-f.experiment    # List[nd2.structures.ExpLoop]
-f.text_info     # dict of misc info
-f.custom_data   # mishmash of data extracted from file
-f.voxel_size()  # VoxelSize(x=0.65, y=0.65, z=1.0)
+                    # see below for examples of these structures
+# metadata          # returns instance of ...
+f.attributes        # nd2.structures.Attributes
+f.metadata          # nd2.structures.Metadata
+f.frame_metadata(0) # nd2.structures.FrameMetadata (frame-specific meta)
+f.experiment        # List[nd2.structures.ExpLoop]
+f.text_info         # dict of misc info
+f.custom_data       # mishmash of data extracted from file
+f.voxel_size()      # VoxelSize(x=0.65, y=0.65, z=1.0)
 
-f.close()       # don't forget to close when done!
-f.closed        # boolean, whether the file is closed
+f.close()           # don't forget to close when done!
+f.closed            # boolean, whether the file is closed
 
 # ... or you can use it as a context manager
 with nd2.ND2File('some_file.nd2') as ndfile:

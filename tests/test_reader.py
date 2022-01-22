@@ -64,7 +64,7 @@ def test_dask(new_nd2):
         dsk = nd.to_dask()
         assert isinstance(dsk, da.Array)
         assert dsk.shape == nd.shape
-        arr = np.asarray(dsk[(0,) * (len(nd.shape) - 2)])
+        arr: np.ndarray = np.asarray(dsk[(0,) * (len(nd.shape) - 2)])
         assert isinstance(arr, np.ndarray)
         assert arr.shape == nd.shape[-2:]
 
@@ -80,7 +80,7 @@ def test_full_read(new_nd2):
     with ND2File(new_nd2) as nd:
         if new_nd2.stat().st_size > 500_000_000:
             pytest.skip("skipping full read on big files")
-        delayed_xarray = np.asarray(nd.to_xarray(delayed=True))
+        delayed_xarray: np.ndarray = np.asarray(nd.to_xarray(delayed=True))
         assert delayed_xarray.shape == nd.shape
         np.testing.assert_allclose(delayed_xarray, nd.asarray())
 
@@ -91,7 +91,7 @@ def test_dask_legacy(old_nd2):
         dsk = nd.to_dask()
         assert isinstance(dsk, da.Array)
         assert dsk.shape == nd.shape
-        arr = np.asarray(dsk[(0,) * (len(nd.shape) - 2)])
+        arr: np.ndarray = np.asarray(dsk[(0,) * (len(nd.shape) - 2)])
         assert isinstance(arr, np.ndarray)
         assert arr.shape == nd.shape[-2:]
 
@@ -101,7 +101,7 @@ def test_full_read_legacy(old_nd2):
     with ND2File(old_nd2) as nd:
         if (old_nd2.stat().st_size > 500_000) and "--runslow" not in sys.argv:
             pytest.skip("use --runslow to test full read")
-        delayed_xarray = np.asarray(nd.to_xarray(delayed=True))
+        delayed_xarray: np.ndarray = np.asarray(nd.to_xarray(delayed=True))
         assert delayed_xarray.shape == nd.shape
         np.testing.assert_allclose(delayed_xarray, nd.asarray())
 

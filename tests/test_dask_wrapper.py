@@ -75,7 +75,7 @@ def test_wrapper_compute(wrapper: ResourceBackedDaskArray) -> None:
 
 def test_wrapper_asarray(wrapper: ResourceBackedDaskArray) -> None:
     assert wrapper.ctx.OPEN_COUNT == 0
-    ary = np.asarray(wrapper)
+    ary: np.ndarray = np.asarray(wrapper)
     assert isinstance(ary, np.ndarray)
     assert ary.shape == (10, 10, 10, 10)
     assert wrapper.ctx.OPEN_COUNT == 1

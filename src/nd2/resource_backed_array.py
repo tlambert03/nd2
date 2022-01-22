@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from types import MethodType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ContextManager, Optional
 
 import dask.array as da
 import numpy as np
@@ -12,11 +12,9 @@ if TYPE_CHECKING:
     from typing import Protocol
 
     # fmt: off
-    class CheckableContext(Protocol):
+    class CheckableContext(ContextManager, Protocol):
         @property
         def closed(self) -> bool: ...  # noqa: E704
-        def __enter__(self): ...  # noqa: E704
-        def __exit__(self, *a): ...  # noqa: E704
     # fmt: on
 
 
@@ -42,7 +40,7 @@ class ResourceBackedDaskArray(da.Array):
         dtype=None,
         meta=None,
         shape=None,
-        _file_ctx: CheckableContext = None,
+        _file_ctx: Optional[CheckableContext] = None,
     ):
         arr = super().__new__(
             cls, dask, name, chunks, dtype=dtype, meta=meta, shape=shape
@@ -80,7 +78,8 @@ class ResourceBackedDaskArray(da.Array):
         Notes
         -----
         This subclass of da.Array will re-open the underlying file before compute."""
-        with self._file_ctx if self._file_ctx.closed else nullcontext():
+        _ctx = self._file_ctx if self._file_ctx.closed else nullcontext()
+        with _ctx:
             return super().compute(**kwargs)
 
     def __getitem__(self, index):
@@ -128,7 +127,7 @@ class ResourceBackedDaskArray(da.Array):
 
     def __setstate__(self, d):
         if not self._file_ctx.closed:
-            self._file_ctx.__exit__()
+            self._file_ctx.__exit__(None, None, None)
 
 
 class _ArrayMethodProxy:

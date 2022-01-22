@@ -13,6 +13,8 @@ from typing import (
     Optional,
     Sequence,
     Set,
+    Sized,
+    SupportsInt,
     Union,
     cast,
     overload,
@@ -260,7 +262,7 @@ class ND2File:
                 seqs = self._seq_index_from_coords(coords)  # type: ignore
                 final_shape[pidx] = 1
 
-        arr = np.stack([self._get_frame(i) for i in seqs])
+        arr: np.ndarray = np.stack([self._get_frame(i) for i in seqs])
         return arr.reshape(final_shape)
 
     def __array__(self) -> np.ndarray:
@@ -308,7 +310,9 @@ class ND2File:
 
     _NO_IDX = -1
 
-    def _seq_index_from_coords(self, coords: Sequence) -> Union[int, Sequence[int]]:
+    def _seq_index_from_coords(
+        self, coords: Sequence
+    ) -> Union[Sequence[int], SupportsInt]:
         if not self._coord_shape:
             return self._NO_IDX
         return np.ravel_multi_index(coords, self._coord_shape)
@@ -316,7 +320,6 @@ class ND2File:
     def _dask_block(self, lock: ContextManager, block_id: Tuple[int]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
             return
-
         with lock:
             was_closed = self.closed
             if self.closed:
@@ -429,7 +432,7 @@ class ND2File:
         """Return a dict that can be used as the coords argument to xr.DataArray"""
         dx, dy, dz = self.voxel_size()
 
-        coords = {
+        coords: Dict[str, Sized] = {
             AXIS.Y: np.arange(self.attributes.heightPx) * dy,
             AXIS.X: np.arange(self.attributes.widthPx) * dx,
             AXIS.CHANNEL: self._channel_names,

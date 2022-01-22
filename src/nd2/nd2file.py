@@ -81,7 +81,6 @@ class ND2File:
     def close(self) -> None:
         """Close file (may cause segfault if read when closed in some cases)."""
         if not self.closed:
-            print("closing")
             self._rdr.close()
             self._closed = True
 
@@ -95,7 +94,6 @@ class ND2File:
         return self
 
     def __exit__(self, *_) -> None:
-        print("EXIT")
         self.close()
 
     def __getstate__(self):
@@ -322,7 +320,6 @@ class ND2File:
     def _dask_block(self, lock: ContextManager, block_id: Tuple[int]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
             return
-        print("get chunk")
         with lock:
             was_closed = self.closed
             if self.closed:

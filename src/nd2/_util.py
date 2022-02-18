@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, NamedTuple, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, NamedTuple, Union
 
 if TYPE_CHECKING:
     from ._legacy import LegacyND2Reader
@@ -12,8 +12,8 @@ OLD_HEADER_MAGIC = b"\x00\x00\x00\x0c"
 VERSION = re.compile(r"^ND2 FILE SIGNATURE CHUNK NAME01!Ver([\d\.]+)$")
 
 
-def is_supported_file(path):
-    with open(path, "rb") as fh:
+def is_supported_file(path, open_: Callable[[str, str], IO[Any]] = open):
+    with open_(path, "rb") as fh:
         return fh.read(4) in (NEW_HEADER_MAGIC, OLD_HEADER_MAGIC)
 
 

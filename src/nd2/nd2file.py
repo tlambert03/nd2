@@ -277,7 +277,7 @@ class ND2File:
         wrapper : bool, optional
             If True (the default), the returned obect will be a thin subclass of
             a :class:`dask.array.Array` (an
-            `nd2.resource_backed_array.OpeningDaskArray`) that manages the opening
+            `ResourceBackedDaskArray`) that manages the opening
             and closing of this file when getting chunks via compute(). If `wrapper`
             is `False`, then a pure `da.Array` will be returned. However, when that
             array is computed, it will incur a file open/close on *every* chunk
@@ -290,8 +290,7 @@ class ND2File:
         da.Array
         """
         from dask.array import map_blocks
-
-        from .resource_backed_array import ResourceBackedDaskArray
+        from resource_backed_dask_array import ResourceBackedDaskArray
 
         chunks = [(1,) * x for x in self._coord_shape]
         chunks += [(x,) for x in self._frame_shape]

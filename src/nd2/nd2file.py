@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import mmap
 import threading
-from contextlib import nullcontext
 from enum import Enum
 from functools import lru_cache
 from itertools import product
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
-    ContextManager,
     Optional,
     Sequence,
     Set,
@@ -236,16 +234,18 @@ class ND2File:
             if isinstance(position, str):
                 try:
                     position = self._position_names().index(position)
-                except ValueError:
-                    raise ValueError(f"{position!r} is not a valid position name")
+                except ValueError as e:
+                    raise ValueError(
+                        f"{position!r} is not a valid position name"
+                    ) from e
             try:
                 pidx = list(self.sizes).index(AXIS.POSITION)
-            except ValueError:
+            except ValueError as exc:
                 if position > 0:
                     raise IndexError(
                         f"Position {position} is out of range. "
                         f"Only 1 position available"
-                    )
+                    ) from exc
                 seqs = range(self._frame_count)
             else:
                 if position >= self.sizes[AXIS.POSITION]:
@@ -290,18 +290,17 @@ class ND2File:
         da.Array
         """
         from dask.array import map_blocks
-        from resource_backed_dask_array import ResourceBackedDaskArray
 
         chunks = [(1,) * x for x in self._coord_shape]
         chunks += [(x,) for x in self._frame_shape]
         dask_arr = map_blocks(
             self._dask_block,
-            # the wrapper doesn't need a threading lock
-            nullcontext() if wrapper else self._lock,
             chunks=chunks,
             dtype=self.dtype,
         )
         if wrapper:
+            from resource_backed_dask_array import ResourceBackedDaskArray
+
             # this subtype allows the dask array to re-open the underlying
             # nd2 file on compute.
             return ResourceBackedDaskArray.from_array(dask_arr, self)
@@ -316,10 +315,10 @@ class ND2File:
             return self._NO_IDX
         return np.ravel_multi_index(coords, self._coord_shape)
 
-    def _dask_block(self, lock: ContextManager, block_id: Tuple[int]) -> np.ndarray:
+    def _dask_block(self, block_id: Tuple[int]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
             return
-        with lock:
+        with self._lock:
             was_closed = self.closed
             if self.closed:
                 self.open()
@@ -335,7 +334,7 @@ class ND2File:
                     idx = 0
                 data = self._get_frame(cast(int, idx))[(np.newaxis,) * ncoords]
                 # non copy on a closed file WILL segfault.
-                return data.copy() if was_closed else data
+                return data.copy()
             finally:
                 if was_closed:
                     self.close()

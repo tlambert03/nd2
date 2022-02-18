@@ -1,10 +1,14 @@
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, NamedTuple, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, NamedTuple, Union
 
 if TYPE_CHECKING:
+    from os import PathLike
+
     from ._legacy import LegacyND2Reader
     from ._sdk.latest import ND2Reader
+
+    StrOrBytesPath = Union[str, bytes, PathLike[str], PathLike[bytes]]
 
 
 NEW_HEADER_MAGIC = b"\xda\xce\xbe\n"
@@ -12,8 +16,24 @@ OLD_HEADER_MAGIC = b"\x00\x00\x00\x0c"
 VERSION = re.compile(r"^ND2 FILE SIGNATURE CHUNK NAME01!Ver([\d\.]+)$")
 
 
-def is_supported_file(path):
-    with open(path, "rb") as fh:
+def is_supported_file(
+    path: "StrOrBytesPath", open_: Callable[["StrOrBytesPath", str], IO[Any]] = open
+):
+    """Return `True` if `path` can be opened as an nd2 file.
+
+    Parameters
+    ----------
+    path : Union[str, bytes, PathLike]
+        A path to query
+    open_ : Callable[[StrOrBytesPath, str], IO[Any]]
+        Filesystem opener, by default `builtins.open`
+
+    Returns
+    -------
+    bool
+        Whether the can be opened.
+    """
+    with open_(path, "rb") as fh:
         return fh.read(4) in (NEW_HEADER_MAGIC, OLD_HEADER_MAGIC)
 
 

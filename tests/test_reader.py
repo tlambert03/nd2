@@ -10,6 +10,7 @@ import pytest
 import xarray as xr
 from nd2 import ND2File, imread, structures
 from nd2._util import AXIS
+from resource_backed_dask_array import ResourceBackedDaskArray
 
 DATA = Path(__file__).parent / "data"
 
@@ -216,7 +217,6 @@ def test_pickle_closed_reader(single_nd2):
 
 def test_pickle_dask_wrapper(single_nd2):
     """test that we can pickle and restore just the dask wrapper"""
-    from nd2.resource_backed_array import ResourceBackedDaskArray
 
     # test that we can pickle and restore a file
     with ND2File(single_nd2) as f:

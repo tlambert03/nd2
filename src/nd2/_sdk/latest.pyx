@@ -252,17 +252,29 @@ cdef class ND2Reader:
         if offset is None:
             return self._missing_frame(index)
 
+        # try:
+        #     return np.ndarray(
+        #         shape=self._raw_frame_shape(),
+        #         dtype=self._dtype(),
+        #         buffer=self._mmap,
+        #         offset=offset,
+        #         strides=self._strides,
+        #     )
+        # except TypeError:
+        #     # If the chunkmap is wrong, and the mmap isn't long enough
+        #     # for the requested offset & size, a TypeError is raised.
+        #     return self._missing_frame(index)
+
         try:
-            return np.ndarray(
-                shape=self._raw_frame_shape(),
+            return np.frombuffer(
+                self._mmap,
                 dtype=self._dtype(),
-                buffer=self._mmap,
-                offset=offset,
-                strides=self._strides,
-            )
-        except TypeError:
+                count=np.prod(self._raw_frame_shape()),
+                offset=offset
+            )  # this will be reshaped in nd2file.py
+        except ValueError:
             # If the chunkmap is wrong, and the mmap isn't long enough
-            # for the requested offset & size, a type error is raised.
+            # for the requested offset & size, a ValueError is raised.
             return self._missing_frame(index)
 
     @property

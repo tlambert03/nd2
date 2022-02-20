@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import mmap
 import threading
-from contextlib import nullcontext
 from enum import Enum
 from functools import lru_cache
 from itertools import product
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
-    ContextManager,
     Optional,
     Sequence,
     Set,
@@ -236,16 +234,18 @@ class ND2File:
             if isinstance(position, str):
                 try:
                     position = self._position_names().index(position)
-                except ValueError:
-                    raise ValueError(f"{position!r} is not a valid position name")
+                except ValueError as e:
+                    raise ValueError(
+                        f"{position!r} is not a valid position name"
+                    ) from e
             try:
                 pidx = list(self.sizes).index(AXIS.POSITION)
-            except ValueError:
+            except ValueError as exc:
                 if position > 0:
                     raise IndexError(
                         f"Position {position} is out of range. "
                         f"Only 1 position available"
-                    )
+                    ) from exc
                 seqs = range(self._frame_count)
             else:
                 if position >= self.sizes[AXIS.POSITION]:
@@ -269,21 +269,32 @@ class ND2File:
         """array protocol"""
         return self.asarray()
 
-    def to_dask(self, wrapper=True) -> da.Array:
+    def to_dask(self, wrapper=True, copy=True) -> da.Array:
         """Create dask array (delayed reader) representing image.
+
+        This generally works well, but it remains to be seen whether performance
+        is optimized, or if we're duplicating safety mechanisms. You may try
+        various combinations of `wrapper` and `copy`, setting both to `False`
+        will very likely cause segmentation faults in many cases.  But setting
+        one of them to `False`, may slightly improve read speed in certain
+        cases.
 
         Parameters
         ----------
-        wrapper : bool, optional
+        wrapper : bool
             If True (the default), the returned obect will be a thin subclass of
             a :class:`dask.array.Array` (an
-            `nd2.resource_backed_array.OpeningDaskArray`) that manages the opening
+            `ResourceBackedDaskArray`) that manages the opening
             and closing of this file when getting chunks via compute(). If `wrapper`
             is `False`, then a pure `da.Array` will be returned. However, when that
             array is computed, it will incur a file open/close on *every* chunk
             that is read (in the `_dask_block` method).  As such `wrapper`
             will generally be much faster, however, it *may* fail (i.e. result in
             segmentation faults) with certain dask schedulers.
+        copy : bool
+            If `True` (the default), the dask chunk-reading function will return
+            an array copy. This can avoid segfaults in certain cases, though it
+            may also add overhead.
 
         Returns
         -------
@@ -291,18 +302,17 @@ class ND2File:
         """
         from dask.array import map_blocks
 
-        from .resource_backed_array import ResourceBackedDaskArray
-
         chunks = [(1,) * x for x in self._coord_shape]
         chunks += [(x,) for x in self._frame_shape]
         dask_arr = map_blocks(
             self._dask_block,
-            # the wrapper doesn't need a threading lock
-            nullcontext() if wrapper else self._lock,
+            copy=copy,
             chunks=chunks,
             dtype=self.dtype,
         )
         if wrapper:
+            from resource_backed_dask_array import ResourceBackedDaskArray
+
             # this subtype allows the dask array to re-open the underlying
             # nd2 file on compute.
             return ResourceBackedDaskArray.from_array(dask_arr, self)
@@ -317,10 +327,10 @@ class ND2File:
             return self._NO_IDX
         return np.ravel_multi_index(coords, self._coord_shape)
 
-    def _dask_block(self, lock: ContextManager, block_id: Tuple[int]) -> np.ndarray:
+    def _dask_block(self, copy: bool, block_id: Tuple[int]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
             return
-        with lock:
+        with self._lock:
             was_closed = self.closed
             if self.closed:
                 self.open()
@@ -335,26 +345,31 @@ class ND2File:
                         )
                     idx = 0
                 data = self._get_frame(cast(int, idx))[(np.newaxis,) * ncoords]
-                # non copy on a closed file WILL segfault.
-                return data.copy() if was_closed else data
+                return data.copy() if copy else data
             finally:
                 if was_closed:
                     self.close()
 
     def to_xarray(
-        self, delayed: bool = True, squeeze: bool = True, position: Optional[int] = None
+        self,
+        delayed: bool = True,
+        squeeze: bool = True,
+        position: Optional[int] = None,
+        copy: bool = True,
     ) -> xr.DataArray:
         """Create labeled xarray representing image.
 
         Parameters
         ----------
-        delayed : bool, optional
+        delayed : bool
             Whether the DataArray should be backed by dask array or numpy array,
             by default True (dask).
-        squeeze : bool, optional
+        squeeze : bool
             Whether to squeeze singleton dimensions, by default True
         position : int, optional
             A specific XY position to extract, by default (None) reads all.
+        copy : bool
+            Only applies when `delayed==True`.  See `to_dask` for details.
 
         Returns
         -------
@@ -363,7 +378,7 @@ class ND2File:
         """
         import xarray as xr
 
-        data = self.to_dask() if delayed else self.asarray(position)
+        data = self.to_dask(copy=copy) if delayed else self.asarray(position)
         dims = list(self.sizes)
         coords = self._expand_coords(squeeze)
         if not squeeze:

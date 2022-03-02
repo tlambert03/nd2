@@ -1,16 +1,18 @@
-The SDK here was downloaded from https://www.nd2sdk.com/
+This SDK was downloaded from https://www.nd2sdk.com/
 Please do not redistribute without permission from LIM
 
-Permission for this library was granted on Oct 8, 2021
+Permission for this library was granted on Mar 1, 2022
 
-[From email dated Oct 8, 2021]
- 
-We have no license agreement.
-You can distribute the DLL (not other materials) as you want.
+[From email dated Mar 1, 2022]
+
+LIM (Laboratory Imaging s.r.o.) grants Talley Lambert, conda-forge,
+and the python package index (PyPI) permission to re-distribute
+the pre-compiled libraries and header (but no other materials
+from the sdk package) as desired.
+
 Consider this email as a permission from LIM.
- 
-Best regards,
- 
-Mirek Svoboda
+
+Miroslav Svoboda
+Technical director
 Laboratory Imaging s.r.o.
 https://www.lim.cz/

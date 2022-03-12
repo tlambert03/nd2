@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import io
+import mmap
 import struct
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, overload
 
+import numpy as np
 from typing_extensions import TypedDict
 
 if TYPE_CHECKING:
     from typing import BinaryIO, Dict, Iterator, Literal, Optional, Set, Tuple, Union
+
+    from numpy.typing import DTypeLike
 
 # h = short              (2)
 # i = int                (4)
@@ -41,22 +45,61 @@ class FixedImageMap(TypedDict):
 
 @overload
 def read_chunkmap(
-    file: Union[str, BinaryIO], fixup: Literal[True] = True, legacy: bool = False
+    file: Union[str, BinaryIO],
+    *,
+    fixup: Literal[True] = True,
+    legacy: bool = False,
+    search_window: int = ...,
 ) -> Tuple[FixedImageMap, Dict[str, int]]:
     ...
 
 
 @overload
 def read_chunkmap(
-    file: Union[str, BinaryIO], fixup: Literal[False], legacy: bool = False
+    file: Union[str, BinaryIO],
+    *,
+    fixup: Literal[False],
+    legacy: bool = False,
+    search_window: int = ...,
 ) -> Tuple[Dict[int, int], Dict[str, int]]:
     ...
 
 
-def read_chunkmap(file: Union[str, BinaryIO], fixup=True, legacy: bool = False):
+def read_chunkmap(
+    file: Union[str, BinaryIO],
+    *,
+    fixup=True,
+    legacy: bool = False,
+    search_window: int = 100,
+):
+    """Read chunkmap of nd2 `file`.
+
+    Parameters
+    ----------
+    file : Union[str, BinaryIO]
+        Filename or file handle to nd2 file.
+    fixup : bool, optional
+        Whether to verify (and attempt to fix) frames whose positions have been
+        shifted relative to the predicted offset (i.e. in a corrupted file),
+        by default True.
+    legacy : bool, optional
+        Treat file as legacy nd2 format, by default False
+    search_window : int, optional
+        When fixup is true, this is the search window (in KB) that will be used
+        to try to find the actual chunk position. by default 100 KB
+
+    Returns
+    -------
+    tuple
+        (image chunk positions, metadata chunk positions).  If `fixup` is true,
+        the image chunk dict will have three keys:
+        `bad`: estimated frame positions that could not be verified
+        `fixed`: estimated frame positions that were wrong, but corrected
+        `safe`: estimated frame positions that were found to be correct.
+    """
     with ensure_handle(file) as fh:
         if not legacy:
-            return read_new_chunkmap(fh)
+            return read_new_chunkmap(fh, fixup=fixup, search_window=search_window)
         from ._legacy import legacy_nd2_chunkmap
 
         d = legacy_nd2_chunkmap(fh)
@@ -65,7 +108,9 @@ def read_chunkmap(file: Union[str, BinaryIO], fixup=True, legacy: bool = False):
             return f, d
 
 
-def read_new_chunkmap(fh: BinaryIO, fixup=True):
+def read_new_chunkmap(
+    fh: BinaryIO, fixup: bool = True, search_window: int = 100
+) -> Tuple[Union[Dict[int, int], FixedImageMap], Dict[str, int]]:
     """read the map of the chunks at the end of the file
 
     chunk rules:
@@ -111,11 +156,13 @@ def read_new_chunkmap(fh: BinaryIO, fixup=True):
             meta_map[name[:-1].decode("ascii")] = position
         pos = p + 16
     if fixup:
-        return _fix_frames(fh, image_map), meta_map
+        return _fix_frames(fh, image_map, kbrange=search_window), meta_map
     return image_map, meta_map
 
 
-def _fix_frames(fh: BinaryIO, images: Dict[int, int]) -> FixedImageMap:
+def _fix_frames(
+    fh: BinaryIO, images: Dict[int, int], kbrange: int = 100
+) -> FixedImageMap:
     """Look for corrupt frames, and try to find their actual positions."""
     bad: Set[int] = set()
     fixed: Set[int] = set()
@@ -126,7 +173,9 @@ def _fix_frames(fh: BinaryIO, images: Dict[int, int]) -> FixedImageMap:
         magic, shift, length = CHUNK_INFO.unpack(fh.read(16))
         _lengths.add(length)
         if magic != CHUNK_MAGIC:  # corrupt frame
-            correct_pos = _search(fh, b"ImageDataSeq|%a!" % fnum, images[fnum])
+            correct_pos = _search(
+                fh, b"ImageDataSeq|%a!" % fnum, images[fnum], kbrange=kbrange
+            )
             if correct_pos is not None:
                 fixed.add(fnum)
                 safe[fnum] = correct_pos + 24 + int(shift)
@@ -138,7 +187,7 @@ def _fix_frames(fh: BinaryIO, images: Dict[int, int]) -> FixedImageMap:
     return {"bad": bad, "fixed": fixed, "safe": safe}
 
 
-def _search(fh: BinaryIO, string: bytes, guess: int, kbrange=100):
+def _search(fh: BinaryIO, string: bytes, guess: int, kbrange: int = 100):
     """Search for `string`, in the `kbrange` bytes around position `guess`."""
     fh.seek(max(guess - ((1000 * kbrange) // 2), 0))
     try:
@@ -175,3 +224,102 @@ def iter_chunks(handle) -> Iterator[Tuple[str, int, int]]:
         if pos >= file_size:
             break
         handle.seek(pos)
+
+
+def rescue_nd2(
+    handle: Union[BinaryIO, str],
+    frame_shape: Tuple[int, ...] = (),
+    dtype: DTypeLike = "uint16",
+    max_iters: Optional[int] = None,
+    verbose=True,
+    chunk_start=CHUNK_MAGIC.to_bytes(4, "little"),
+):
+    """Iterator that yields all discovered frames in a file handle
+
+    In nd2 files, each "frame" contains XY and all channel info (both true
+    channels as well as RGB components).  Frames are laid out as (Y, X, C),
+    and the `frame_shape` should match the expected frame size.  If
+    `frame_shape` is not provided, a guess will be made about the vector shape
+    of each frame, but it may be incorrect.
+
+    Parameters
+    ----------
+    handle : Union[BinaryIO,str]
+        Filepath string, or binary file handle (For example
+        `handle = open('some.nd2', 'rb')`)
+    frame_shape : Tuple[int, ...], optional
+        expected shape of each frame, by default a 1 dimensional array will
+        be yielded for each frame, which can be reshaped later if desired.
+        NOTE: nd2 frames are generally ordered as
+        (height, width, true_channels, rgbcomponents).
+        So unlike numpy, which would use (channels, Y, X), you should use
+        (Y, X, channels)
+    dtype : np.dtype, optional
+        Data type, by default np.uint16
+    max_iters : Optional[int], optional
+        A maximum number of frames to yield, by default will yield until the
+        end of the file is reached
+
+    Yields
+    ------
+    np.ndarray
+        each discovered frame in the file
+
+    Examples
+    --------
+    >>> with open('some_bad.nd2', 'rb') as fh:
+    >>>     frames = rescue_nd2(fh, (512, 512, 4), 'uint16')
+    >>>     ary = np.stack(frames)
+
+    You will likely want to reshape `ary` after that.
+    """
+    dtype = np.dtype(dtype)
+    with ensure_handle(handle) as _fh:
+        mm = mmap.mmap(_fh.fileno(), 0, access=mmap.ACCESS_READ)
+
+        offset = 0
+        iters = 0
+        while True:
+            # search for the next part of the file starting with CHUNK_START
+            offset = mm.find(chunk_start, offset)
+            if offset < 0:
+                if verbose:
+                    print("End of file.")
+                return
+
+            # location at the end of the chunk header
+            end_hdr = offset + CHUNK_INFO.size
+
+            # find the next "!"
+            # In nd2 files, each data chunk starts with the
+            # string "ImageDataSeq|N" ... where N is the frame index
+            next_bang = mm.find(b"!", end_hdr)
+            if next_bang > 0 and (0 < next_bang - end_hdr < 128):
+                # if we find the "!"... make sure we have an ImageDataSeq
+                chunk_name = mm[end_hdr:next_bang]
+                if chunk_name.startswith(b"ImageDataSeq|"):
+                    if verbose:
+                        print(f"Found image {iters} at offset {offset}")
+                    # Now, read the actual data
+                    _, shift, length = CHUNK_INFO.unpack(mm[offset:end_hdr])
+                    # convert to numpy array and yield
+                    # (can't remember why the extra 8 bytes)
+                    try:
+                        shape = frame_shape or ((length - 8) // dtype.itemsize,)
+                        yield np.ndarray(
+                            shape=shape,
+                            dtype=dtype,
+                            buffer=mm,
+                            offset=end_hdr + shift + 8,
+                        )
+                    except TypeError as e:
+                        # buffer is likely too small
+                        if verbose:
+                            print(f"Error at offset {offset}: {e}")
+                    iters += 1
+            elif verbose:
+                print(f"Found chunk at offset {offset} with no image data")
+
+            offset += 1
+            if max_iters and iters >= max_iters:
+                return

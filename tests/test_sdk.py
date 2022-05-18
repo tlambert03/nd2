@@ -19,7 +19,7 @@ def test_new_sdk(new_nd2: Path):
         assert isinstance(csize, int)
 
         # sometimes _seq_count is lower than attrs.sequenceCount
-        # if it is, _seq_count provides the highest "safe" frame you can retrieve.
+        # if it is, _seq_count provides the highest "good" frame you can retrieve.
         if scount != a.get("sequenceCount"):
             nd._image(scount - 1)
             with pytest.raises(IndexError):

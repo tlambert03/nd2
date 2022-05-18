@@ -6,7 +6,7 @@ def test_rescue(single_nd2):
     # TODO: we could potentially put more of this logic into convenience functions
     # we can't do too much magic about guessing shape and dtype since some files
     # may not have that information intact
-    with nd2.ND2File(single_nd2) as rdr:
+    with nd2.ND2File(single_nd2, validate_frames=True) as rdr:
         real_read = rdr.asarray()
         raw_frames = [
             f.transpose((2, 0, 1, 3)).squeeze()

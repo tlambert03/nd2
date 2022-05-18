@@ -33,14 +33,18 @@ cdef class ND2Reader:
     cdef __dtype
     cdef __raw_frame_shape
 
-    def __cinit__(self, path: str | Path):
+    def __cinit__(
+        self, path: str | Path, validate_frames: bool = False, search_window: int = 100
+    ):
         self._is_open = 0
         self.__raw_frame_shape = None
         self._fh = NULL
         self.path = str(path)
 
         with open(path, 'rb') as pyfh:
-            self._frame_map, self._meta_map = read_new_chunkmap(pyfh)
+            self._frame_map, self._meta_map = read_new_chunkmap(
+                pyfh, validate_frames=validate_frames, search_window=search_window
+            )
 
         self._max_safe = max(self._frame_map["safe"])
         self.open()

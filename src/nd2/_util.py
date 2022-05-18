@@ -37,13 +37,17 @@ def is_supported_file(
         return fh.read(4) in (NEW_HEADER_MAGIC, OLD_HEADER_MAGIC)
 
 
-def get_reader(path: str) -> Union["ND2Reader", "LegacyND2Reader"]:
+def get_reader(
+    path: str, validate_frames: bool = False, search_window: int = 100
+) -> Union["ND2Reader", "LegacyND2Reader"]:
     with open(path, "rb") as fh:
         magic_num = fh.read(4)
         if magic_num == NEW_HEADER_MAGIC:
             from ._sdk.latest import ND2Reader
 
-            return ND2Reader(path)
+            return ND2Reader(
+                path, validate_frames=validate_frames, search_window=search_window
+            )
         elif magic_num == OLD_HEADER_MAGIC:
             from ._legacy import LegacyND2Reader
 

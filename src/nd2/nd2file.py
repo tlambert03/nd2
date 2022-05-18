@@ -49,9 +49,30 @@ class ND2File:
     _memmap: mmap.mmap
     _is_legacy: bool
 
-    def __init__(self, path: Union[Path, str]) -> None:
+    def __init__(
+        self,
+        path: Union[Path, str],
+        validate_frames: bool = False,
+        search_window: int = 100,
+    ) -> None:
+        """Open an nd2 file.
+
+        Parameters
+        ----------
+        path : Union[Path, str]
+            Filename of an nd2 file.
+        validate_frames : bool, optional
+            Whether to verify (and attempt to fix) frames whose positions have been
+            shifted relative to the predicted offset (i.e. in a corrupted file),
+            by default False.
+        search_window : int, optional
+            When validate_frames is true, this is the search window (in KB) that will
+            be used to try to find the actual chunk position. by default 100 KB
+        """
         self._path = str(path)
-        self._rdr = get_reader(self._path)
+        self._rdr = get_reader(
+            self._path, validate_frames=validate_frames, search_window=search_window
+        )
         self._closed = False
         self._is_legacy = "Legacy" in type(self._rdr).__name__
         self._lock = threading.RLock()

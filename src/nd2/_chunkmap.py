@@ -40,14 +40,14 @@ class FixedImageMap(TypedDict):
     fixed: Set[int]  # frames that were bad but fixed
     # final mapping of frame number to absolute byte offset starting the chunk
     # or None, if the chunk could not be verified
-    safe: Dict[int, Optional[int]]
+    good: Dict[int, Optional[int]]
 
 
 @overload
 def read_chunkmap(
     file: Union[str, BinaryIO],
     *,
-    fixup: Literal[True] = True,
+    validate_frames: Literal[True] = True,
     legacy: bool = False,
     search_window: int = ...,
 ) -> Tuple[FixedImageMap, Dict[str, int]]:
@@ -58,7 +58,7 @@ def read_chunkmap(
 def read_chunkmap(
     file: Union[str, BinaryIO],
     *,
-    fixup: Literal[False],
+    validate_frames: Literal[False],
     legacy: bool = False,
     search_window: int = ...,
 ) -> Tuple[Dict[int, int], Dict[str, int]]:
@@ -68,7 +68,7 @@ def read_chunkmap(
 def read_chunkmap(
     file: Union[str, BinaryIO],
     *,
-    fixup=True,
+    validate_frames=False,
     legacy: bool = False,
     search_window: int = 100,
 ):
@@ -78,38 +78,40 @@ def read_chunkmap(
     ----------
     file : Union[str, BinaryIO]
         Filename or file handle to nd2 file.
-    fixup : bool, optional
+    validate_frames : bool, optional
         Whether to verify (and attempt to fix) frames whose positions have been
         shifted relative to the predicted offset (i.e. in a corrupted file),
-        by default True.
+        by default False.
     legacy : bool, optional
         Treat file as legacy nd2 format, by default False
     search_window : int, optional
-        When fixup is true, this is the search window (in KB) that will be used
-        to try to find the actual chunk position. by default 100 KB
+        When validate_frames is true, this is the search window (in KB) that will
+        be used to try to find the actual chunk position. by default 100 KB
 
     Returns
     -------
     tuple
-        (image chunk positions, metadata chunk positions).  If `fixup` is true,
-        the image chunk dict will have three keys:
-        `bad`: estimated frame positions that could not be verified
-        `fixed`: estimated frame positions that were wrong, but corrected
-        `safe`: estimated frame positions that were found to be correct.
+        (image chunk positions, metadata chunk positions).  If `validate_frames` is
+        true, the image chunk dict will have three keys:
+        `bad`: estimated frame positions that were invalid.
+        `fixed`: estimated frame positions that were invalid, but corrected.
+        `good`: estimated frame positions that were already valid.
     """
     with ensure_handle(file) as fh:
         if not legacy:
-            return read_new_chunkmap(fh, fixup=fixup, search_window=search_window)
+            return read_new_chunkmap(
+                fh, validate_frames=validate_frames, search_window=search_window
+            )
         from ._legacy import legacy_nd2_chunkmap
 
         d = legacy_nd2_chunkmap(fh)
-        if fixup:
-            f = {"bad": [], "fixed": [], "safe": dict(enumerate(d.pop(b"LUNK")))}
+        if validate_frames:
+            f = {"bad": [], "fixed": [], "good": dict(enumerate(d.pop(b"LUNK")))}
             return f, d
 
 
 def read_new_chunkmap(
-    fh: BinaryIO, fixup: bool = True, search_window: int = 100
+    fh: BinaryIO, validate_frames: bool = False, search_window: int = 100
 ) -> Tuple[Union[Dict[int, int], FixedImageMap], Dict[str, int]]:
     """read the map of the chunks at the end of the file
 
@@ -155,18 +157,18 @@ def read_new_chunkmap(
         else:
             meta_map[name[:-1].decode("ascii")] = position
         pos = p + 16
-    if fixup:
-        return _fix_frames(fh, image_map, kbrange=search_window), meta_map
+    if validate_frames:
+        return _validate_frames(fh, image_map, kbrange=search_window), meta_map
     return image_map, meta_map
 
 
-def _fix_frames(
+def _validate_frames(
     fh: BinaryIO, images: Dict[int, int], kbrange: int = 100
 ) -> FixedImageMap:
-    """Look for corrupt frames, and try to find their actual positions."""
+    """Look for invalid frames, and try to find their actual positions."""
     bad: Set[int] = set()
     fixed: Set[int] = set()
-    safe: Dict[int, Optional[int]] = {}
+    good: Dict[int, Optional[int]] = {}
     _lengths = set()
     for fnum, _p in images.items():
         fh.seek(_p)
@@ -178,13 +180,13 @@ def _fix_frames(
             )
             if correct_pos is not None:
                 fixed.add(fnum)
-                safe[fnum] = correct_pos + 24 + int(shift)
+                good[fnum] = correct_pos + 24 + int(shift)
                 images[fnum] = correct_pos
             else:
-                safe[fnum] = None
+                good[fnum] = None
         else:
-            safe[fnum] = _p + 24 + int(shift)
-    return {"bad": bad, "fixed": fixed, "safe": safe}
+            good[fnum] = _p + 24 + int(shift)
+    return {"bad": bad, "fixed": fixed, "good": good}
 
 
 def _search(fh: BinaryIO, string: bytes, guess: int, kbrange: int = 100):

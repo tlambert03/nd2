@@ -26,23 +26,29 @@ cdef class ND2Reader:
     cdef bint _is_open
     cdef public dict _frame_map
     cdef public dict _meta_map
-    cdef int _max_safe
+    cdef int _max_frame_index
     cdef _mmap
     cdef __strides
     cdef __attributes
     cdef __dtype
     cdef __raw_frame_shape
 
-    def __cinit__(self, path: str | Path):
+    def __cinit__(
+        self, path: str | Path, validate_frames: bool = False, search_window: int = 100
+    ):
         self._is_open = 0
         self.__raw_frame_shape = None
         self._fh = NULL
         self.path = str(path)
 
         with open(path, 'rb') as pyfh:
-            self._frame_map, self._meta_map = read_new_chunkmap(pyfh)
+            self._frame_map, self._meta_map = read_new_chunkmap(
+                pyfh, validate_frames=validate_frames, search_window=search_window
+            )
+        if validate_frames:
+            self._frame_map = self._frame_map['good']
 
-        self._max_safe = max(self._frame_map["safe"])
+        self._max_frame_index = max(self._frame_map)
         self.open()
 
     cpdef open(self):
@@ -244,11 +250,11 @@ cdef class ND2Reader:
 
     cpdef np.ndarray _read_image(self, index: int):
         """Read a chunk directly without using SDK"""
-        if index > self._max_safe:
+        if index > self._max_frame_index:
             raise IndexError(f"Frame out of range: {index}")
         if not self._is_open:
             raise ValueError("Attempt to read from closed nd2 file")
-        offset = self._frame_map["safe"].get(index, None)
+        offset = self._frame_map.get(index, None)
         if offset is None:
             return self._missing_frame(index)
 

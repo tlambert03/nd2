@@ -85,14 +85,14 @@ def read_chunkmap(
     legacy : bool, optional
         Treat file as legacy nd2 format, by default False
     search_window : int, optional
-        When validate_frames is true, this is the search window (in KB) that will be used
-        to try to find the actual chunk position. by default 100 KB
+        When validate_frames is true, this is the search window (in KB) that will
+        be used to try to find the actual chunk position. by default 100 KB
 
     Returns
     -------
     tuple
-        (image chunk positions, metadata chunk positions).  If `validate_frames` is true,
-        the image chunk dict will have three keys:
+        (image chunk positions, metadata chunk positions).  If `validate_frames` is
+        true, the image chunk dict will have three keys:
         `bad`: estimated frame positions that were invalid.
         `fixed`: estimated frame positions that were invalid, but corrected.
         `good`: estimated frame positions that were already valid.

@@ -66,8 +66,8 @@ class ND2File:
             shifted relative to the predicted offset (i.e. in a corrupted file),
             by default False.
         search_window : int, optional
-            When validate_frames is true, this is the search window (in KB) that will be used
-            to try to find the actual chunk position. by default 100 KB
+            When validate_frames is true, this is the search window (in KB) that will
+            be used to try to find the actual chunk position. by default 100 KB
         """
         self._path = str(path)
         self._rdr = get_reader(

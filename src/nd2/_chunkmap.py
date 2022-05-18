@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import io
 import mmap
 import struct
 from contextlib import contextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING, overload
 
 import numpy as np
@@ -26,7 +26,7 @@ CHUNK_MAP_SIGNATURE = b"ND2 CHUNK MAP SIGNATURE 0000001!"
 
 @contextmanager
 def ensure_handle(obj: Union[str, BinaryIO]) -> Iterator[BinaryIO]:
-    fh = obj if isinstance(obj, io.IOBase) else open(obj, "rb")  # type: ignore
+    fh = open(obj, "rb") if isinstance(obj, (str, bytes, Path)) else obj
     try:
         yield fh
     finally:

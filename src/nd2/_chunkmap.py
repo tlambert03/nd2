@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import io
 import struct
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, overload
@@ -21,8 +20,8 @@ CHUNK_MAP_SIGNATURE = b"ND2 CHUNK MAP SIGNATURE 0000001!"
 
 
 @contextmanager
-def ensure_handle(obj: Union[str, BinaryIO]) -> Iterator[BinaryIO]:
-    fh = obj if isinstance(obj, io.IOBase) else open(obj, "rb")  # type: ignore
+def ensure_handle(obj: Union[str, bytes, BinaryIO]) -> Iterator[BinaryIO]:
+    fh: BinaryIO = open(obj, "rb") if isinstance(obj, (str, bytes)) else obj
     try:
         yield fh
     finally:

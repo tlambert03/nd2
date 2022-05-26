@@ -365,8 +365,9 @@ class ND2File:
                             f"Cannot get chunk {block_id} for single frame image."
                         )
                     idx = 0
-                data = self._get_frame(cast(int, idx))[(np.newaxis,) * ncoords]
-                return data.copy() if copy else data
+                data = self._get_frame(cast(int, idx))
+                data = data.copy() if copy else data
+                return data[(np.newaxis,) * ncoords]
             finally:
                 if was_closed:
                     self.close()
@@ -470,7 +471,7 @@ class ND2File:
 
         coords: Dict[str, Sized] = {
             AXIS.Y: np.arange(self.attributes.heightPx) * dy,
-            AXIS.X: np.arange(self.attributes.widthPx) * dx,
+            AXIS.X: np.arange(self.attributes.widthPx or 1) * dx,
             AXIS.CHANNEL: self._channel_names,
             AXIS.POSITION: ["XYPos:0"],  # maybe overwritten below
         }

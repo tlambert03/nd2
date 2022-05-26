@@ -4,13 +4,13 @@ import mmap
 import struct
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Dict, NewType, overload
 
 import numpy as np
 from typing_extensions import TypedDict
 
 if TYPE_CHECKING:
-    from typing import BinaryIO, Dict, Iterator, Literal, Optional, Set, Tuple, Union
+    from typing import BinaryIO, Iterator, Literal, Optional, Set, Tuple, Union
 
     from numpy.typing import DTypeLike
 
@@ -22,6 +22,7 @@ CHUNK_INFO = struct.Struct("IIQ")  # chunk_magic, shift, length
 QQ = struct.Struct("QQ")
 CHUNK_MAGIC = 0x0ABECEDA
 CHUNK_MAP_SIGNATURE = b"ND2 CHUNK MAP SIGNATURE 0000001!"
+DEFAULT_SHIFT = 4072
 
 
 @contextmanager
@@ -35,12 +36,17 @@ def ensure_handle(obj: Union[str, BinaryIO]) -> Iterator[BinaryIO]:
             fh.close()
 
 
+FrameIndex = NewType("FrameIndex", int)
+FrameOffset = NewType("FrameOffset", int)
+ImageMap = Dict[FrameIndex, FrameOffset]
+
+
 class FixedImageMap(TypedDict):
-    bad: Set[int]  # frames that could not be found
-    fixed: Set[int]  # frames that were bad but fixed
+    bad: Set[FrameIndex]  # frames that could not be found
+    fixed: Set[FrameIndex]  # frames that were bad but fixed
     # final mapping of frame number to absolute byte offset starting the chunk
     # or None, if the chunk could not be verified
-    good: Dict[int, Optional[int]]
+    good: ImageMap
 
 
 @overload
@@ -112,7 +118,7 @@ def read_chunkmap(
 
 def read_new_chunkmap(
     fh: BinaryIO, validate_frames: bool = False, search_window: int = 100
-) -> Tuple[Union[Dict[int, int], FixedImageMap], Dict[str, int]]:
+) -> Tuple[Union[ImageMap, FixedImageMap], Dict[str, int]]:
     """read the map of the chunks at the end of the file
 
     chunk rules:
@@ -127,7 +133,7 @@ def read_new_chunkmap(
     # string appears before the last 8 bytes.
     fh.seek(-40, 2)
     name, chunk = struct.unpack("32sQ", fh.read(40))
-    assert name == CHUNK_MAP_SIGNATURE, f"Not a valid ND2 file: {name}"
+    assert name == CHUNK_MAP_SIGNATURE, f"Not a valid ND2 file: {fh.name}"
 
     # then we get all of the data in the chunkmap
     # this asserts that the chunkmap begins with CHUNK_MAGIC
@@ -136,7 +142,7 @@ def read_new_chunkmap(
     # now look for each "!" in the chunkmap
     # and record the position associated with each chunkname
     pos = 0
-    image_map: dict = {}
+    image_map: ImageMap = {}
     meta_map: Dict[str, int] = {}
     while True:
         # find the first "!", starting at pos, then go to next byte
@@ -153,22 +159,23 @@ def read_new_chunkmap(
         # be done using `read_chunk(..., position)``
         position, _ = QQ.unpack(chunkmap_data[p : p + 16])  # noqa
         if name[:13] == b"ImageDataSeq|":
-            image_map[int(name[13:-1])] = position
+            image_map[FrameIndex(int(name[13:-1]))] = position
         else:
             meta_map[name[:-1].decode("ascii")] = position
         pos = p + 16
     if validate_frames:
         return _validate_frames(fh, image_map, kbrange=search_window), meta_map
+    image_map = {f: FrameOffset(o + 24 + DEFAULT_SHIFT) for f, o in image_map.items()}
     return image_map, meta_map
 
 
 def _validate_frames(
-    fh: BinaryIO, images: Dict[int, int], kbrange: int = 100
+    fh: BinaryIO, images: ImageMap, kbrange: int = 100
 ) -> FixedImageMap:
     """Look for invalid frames, and try to find their actual positions."""
-    bad: Set[int] = set()
-    fixed: Set[int] = set()
-    good: Dict[int, Optional[int]] = {}
+    bad: Set[FrameIndex] = set()
+    fixed: Set[FrameIndex] = set()
+    good: ImageMap = {}
     _lengths = set()
     for fnum, _p in images.items():
         fh.seek(_p)
@@ -183,9 +190,9 @@ def _validate_frames(
                 good[fnum] = correct_pos + 24 + int(shift)
                 images[fnum] = correct_pos
             else:
-                good[fnum] = None
+                bad.add(fnum)
         else:
-            good[fnum] = _p + 24 + int(shift)
+            good[fnum] = FrameOffset(_p + 24 + int(shift))
     return {"bad": bad, "fixed": fixed, "good": good}
 
 

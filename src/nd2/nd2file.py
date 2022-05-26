@@ -367,8 +367,9 @@ class ND2File:
                             f"Cannot get chunk {block_id} for single frame image."
                         )
                     idx = 0
-                data = self._get_frame(cast(int, idx))[(np.newaxis,) * ncoords]
-                return data.copy() if copy else data
+                data = self._get_frame(cast(int, idx))
+                data = data.copy() if copy else data
+                return data[(np.newaxis,) * ncoords]
             finally:
                 if was_closed:
                     self.close()

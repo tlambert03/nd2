@@ -63,8 +63,9 @@ class ND2File:
             Filename of an nd2 file.
         validate_frames : bool, optional
             Whether to verify (and attempt to fix) frames whose positions have been
-            shifted relative to the predicted offset (i.e. in a corrupted file),
-            by default False.
+            shifted relative to the predicted offset (i.e. in a corrupted file).
+            This comes at a slight performance penalty at file open, but may "rescue"
+            some corrupt files. by default False.
         search_window : int, optional
             When validate_frames is true, this is the search window (in KB) that will
             be used to try to find the actual chunk position. by default 100 KB
@@ -357,6 +358,7 @@ class ND2File:
                 self.open()
             try:
                 ncoords = len(self._coord_shape)
+                print(block_id[:ncoords])
                 idx = self._seq_index_from_coords(block_id[:ncoords])
 
                 if idx == self._NO_IDX:
@@ -380,6 +382,10 @@ class ND2File:
         copy: bool = True,
     ) -> xr.DataArray:
         """Create labeled xarray representing image.
+
+        `array.dims` will be populated according to image metadata, and coordinates
+        will be populated based on pixel spacings. Additional metadata is available
+        in `array.attrs['metadata']`.
 
         Parameters
         ----------
@@ -527,23 +533,68 @@ class ND2File:
 
 @overload
 def imread(
-    file: str, dask: Literal[False] = False, xarray: Literal[False] = False
+    file: Union[Path, str],
+    dask: Literal[False] = False,
+    xarray: Literal[False] = False,
+    validate_frames: bool = False,
 ) -> np.ndarray:
     ...
 
 
 @overload
-def imread(file: str, dask: bool = ..., xarray: Literal[True] = True) -> xr.DataArray:
+def imread(
+    file: Union[Path, str],
+    dask: bool = ...,
+    xarray: Literal[True] = True,
+    validate_frames: bool = False,
+) -> xr.DataArray:
     ...
 
 
 @overload
-def imread(file: str, dask: Literal[True] = ..., xarray=False) -> da.Array:
+def imread(
+    file: Union[Path, str],
+    dask: Literal[True] = ...,
+    xarray=False,
+    validate_frames: bool = False,
+) -> da.Array:
     ...
 
 
-def imread(file: str, dask: bool = False, xarray: bool = False):
-    with ND2File(file) as nd2:
+def imread(
+    file: Union[Path, str],
+    dask: bool = False,
+    xarray: bool = False,
+    validate_frames: bool = False,
+):
+    """Open `file`, return requested array type, and close `file`.
+
+    Parameters
+    ----------
+    file : Union[Path, str]
+        Filepath (`str`) or `Path` object to ND2 file.
+    dask : bool
+        If `True`, returns a (delayed) `dask.array.Array`. This will avoid reading
+        any data from disk until specifically requested by using `.compute()` or
+        casting to a numpy array with `np.asarray()`. By default `False`.
+    xarray : bool
+        If `True`, returns an `xarray.DataArray`, `array.dims` will be populated
+        according to image metadata, and coordinates will be populated based on pixel
+        spacings. Additional metadata is available in `array.attrs['metadata']`.
+        If `dask` is also `True`, will return an xarray backed by a delayed dask array.
+        By default `False`.
+    validate_frames : bool
+        Whether to verify (and attempt to fix) frames whose positions have been
+        shifted relative to the predicted offset (i.e. in a corrupted file).
+        This comes at a slight performance penalty at file open, but may "rescue"
+        some corrupt files. by default False.
+
+    Returns
+    -------
+    Union[np.ndarray, dask.array.Array, xarray.DataArray]
+        Array subclass, depending on arguments used.
+    """
+    with ND2File(file, validate_frames=validate_frames) as nd2:
         if xarray:
             return nd2.to_xarray(delayed=dask)
         elif dask:

@@ -246,3 +246,22 @@ OLD_SDK_MISSES_COORDS = (
 def test_sizes(fname, sizes):
     with ND2File(DATA / fname) as f:
         assert f.sizes == sizes
+
+
+@pytest.mark.parametrize("validate", [True, False])
+def test_chunkmap(validate):
+    d = imread(str(DATA / "1.2audrosophila.nd2"), validate_frames=validate)
+    expected: np.ndarray = np.array(
+        [
+            [57, 11, 51, 60, 92],
+            [9, 19, 63, 80, 90],
+            [17, 4, 47, 104, 62],
+            [33, 28, 48, 36, 53],
+            [67, 73, 86, 64, 69],
+        ],
+        dtype="uint16",
+    )
+
+    assert isinstance(d, np.ndarray)
+    assert d.shape == (512, 512)
+    assert np.array_equal(d[250:255, 250:255], expected)

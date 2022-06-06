@@ -121,6 +121,7 @@ filterwarnings = [
     "error",
     "ignore:The distutils package is deprecated::",
     "ignore:The distutils.sysconfig module is deprecated::",
+    "ignore:distutils Version classes are deprecated:"
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html

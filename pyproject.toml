@@ -146,7 +146,12 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "@overload",
     "except ImportError",
+    "except NotImplementedError",
 ]
+
+[tool.coverage.run]
+plugins = "Cython.Coverage"
+omit = ["tests"]
 
 # https://github.com/cruft/cruft
 [tool.cruft]

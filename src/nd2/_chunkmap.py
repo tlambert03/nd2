@@ -235,13 +235,16 @@ def iter_chunks(handle) -> Iterator[Tuple[str, int, int]]:
         handle.seek(pos)
 
 
+_default_chunk_start = CHUNK_MAGIC.to_bytes(4, "little")
+
+
 def rescue_nd2(
     handle: Union[BinaryIO, str],
     frame_shape: Tuple[int, ...] = (),
     dtype: DTypeLike = "uint16",
     max_iters: Optional[int] = None,
     verbose=True,
-    chunk_start=CHUNK_MAGIC.to_bytes(4, "little"),
+    chunk_start: bytes = _default_chunk_start,
 ):
     """Iterator that yields all discovered frames in a file handle
 
@@ -268,6 +271,9 @@ def rescue_nd2(
     max_iters : Optional[int], optional
         A maximum number of frames to yield, by default will yield until the
         end of the file is reached
+    verbose : bool
+        whether to print info
+    chunk_start
 
     Yields
     ------

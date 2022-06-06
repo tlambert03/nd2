@@ -1,0 +1,21 @@
+{
+  "template": "https://github.com/tlambert03/pyrepo-cookiecutter",
+  "commit": "a9545077bbb7a5c6d62addbe8a3484f844e7d5b2",
+  "context": {
+    "cookiecutter": {
+      "full_name": "Talley Lambert",
+      "email": "talley.lambert@gmail.com",
+      "github_username": "tlambert03",
+      "project_name": "nd2",
+      "project_slug": "nd2",
+      "project_short_description": "Yet another nd2 (Nikon NIS Elements) file reader",
+      "pypi_username": "talley",
+      "version_control": "setuptools-scm",
+      "_copy_without_render": [
+        ".github/workflows/*"
+      ],
+      "_template": "https://github.com/tlambert03/pyrepo-cookiecutter"
+    }
+  },
+  "directory": null
+}

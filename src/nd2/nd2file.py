@@ -3,7 +3,6 @@ from __future__ import annotations
 import mmap
 import threading
 from enum import Enum
-from functools import lru_cache
 from itertools import product
 from pathlib import Path
 from typing import (
@@ -61,12 +60,12 @@ class ND2File:
         ----------
         path : Union[Path, str]
             Filename of an nd2 file.
-        validate_frames : bool, optional
+        validate_frames : bool
             Whether to verify (and attempt to fix) frames whose positions have been
             shifted relative to the predicted offset (i.e. in a corrupted file).
             This comes at a slight performance penalty at file open, but may "rescue"
             some corrupt files. by default False.
-        search_window : int, optional
+        search_window : int
             When validate_frames is true, this is the search window (in KB) that will
             be used to try to find the actual chunk position. by default 100 KB
         """
@@ -149,7 +148,6 @@ class ND2File:
         """Various metadata (will be dict if legacy format)."""
         return self._rdr.metadata()
 
-    @lru_cache(maxsize=1024)
     def frame_metadata(
         self, seq_index: Union[int, tuple]
     ) -> Union[FrameMetadata, dict]:
@@ -157,7 +155,18 @@ class ND2File:
 
         This includes the global metadata from the metadata function.
         (will be dict if legacy format).
+
+        Parameters
+        ----------
+        seq_index : Union[int, tuple]
+            frame index
+
+        Returns
+        -------
+        Union[FrameMetadata, dict]
+            dict if legacy format, else FrameMetadata
         """
+
         idx = cast(
             int,
             self._seq_index_from_coords(seq_index)
@@ -229,7 +238,18 @@ class ND2File:
         return np.dtype(f"{d}{attrs.bitsPerComponentInMemory // 8}")
 
     def voxel_size(self, channel: int = 0) -> VoxelSize:
-        """XYZ voxel size."""
+        """XYZ voxel size.
+
+        Parameters
+        ----------
+        channel : int
+            Channel for which to retrieve voxel info, by default 0
+
+        Returns
+        -------
+        VoxelSize
+            Named tuple with attrs `x`, `y`, and `z`.
+        """
         return VoxelSize(*self._rdr.voxel_size())
 
     def asarray(self, position: Optional[int] = None) -> np.ndarray:
@@ -246,8 +266,10 @@ class ND2File:
 
         Raises
         ------
+        ValueError
+            if `position` is a string and is not a valid position name
         IndexError
-            if position is provided and is out of range
+            if `position` is provided and is out of range
         """
         final_shape = list(self.shape)
         if position is None:
@@ -471,8 +493,19 @@ class ND2File:
         frame.shape = self._raw_frame_shape
         return frame.transpose((2, 0, 1, 3)).squeeze()
 
-    def _expand_coords(self, squeeze=True) -> dict:
-        """Return a dict that can be used as the coords argument to xr.DataArray"""
+    def _expand_coords(self, squeeze: bool = True) -> dict:
+        """Return a dict that can be used as the coords argument to xr.DataArray
+
+        Parameters
+        ----------
+        squeeze : bool
+            whether to squeeze axes with length < 2, by default True
+
+        Returns
+        -------
+        dict
+            dict of axis name -> coordinates
+        """
         dx, dy, dz = self.voxel_size()
 
         coords: Dict[str, Sized] = {
@@ -483,7 +516,7 @@ class ND2File:
         }
 
         for c in self.experiment:
-            if squeeze and getattr(c, "count") <= 1:
+            if squeeze and c.count <= 1:
                 continue
             if c.type == "ZStackLoop":
                 coords[AXIS.Z] = np.arange(c.count) * c.parameters.stepUm

@@ -1,0 +1,5 @@
+user=tlambert03
+project=nd2
+issues=false
+exclude-labels=duplicate,question,invalid,wontfix,hide
+add-sections={"tests":{"prefix":"**Tests & CI:**","labels":["tests"]}}

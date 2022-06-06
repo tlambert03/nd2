@@ -1,7 +1,8 @@
 from pathlib import Path
 
-import nd2
 import numpy as np
+
+import nd2
 
 DATA = Path(__file__).parent / "data"
 

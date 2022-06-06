@@ -59,4 +59,3 @@ repos:
         files: "^src/"
         exclude: scripts
         additional_dependencies: [numpy]
-

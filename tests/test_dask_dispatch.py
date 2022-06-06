@@ -1,8 +1,9 @@
 import dask.array as da
 import numpy as np
 import pytest
-from nd2 import ND2File
 from resource_backed_dask_array import ResourceBackedDaskArray
+
+from nd2 import ND2File
 
 
 @pytest.mark.parametrize("leave_open", [True, False])

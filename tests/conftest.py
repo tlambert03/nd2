@@ -3,6 +3,7 @@ from typing import List
 
 import psutil
 import pytest
+
 from nd2._util import is_new_format
 
 DATA = Path(__file__).parent / "data"

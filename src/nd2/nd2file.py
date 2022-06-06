@@ -380,7 +380,6 @@ class ND2File:
                 self.open()
             try:
                 ncoords = len(self._coord_shape)
-                print(block_id[:ncoords])
                 idx = self._seq_index_from_coords(block_id[:ncoords])
 
                 if idx == self._NO_IDX:

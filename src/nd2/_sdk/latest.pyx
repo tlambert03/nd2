@@ -1,21 +1,18 @@
 import json
-
-from libc.stdint cimport uintptr_t
-from libc.stdlib cimport free, malloc
-
-
 import mmap
 from pathlib import Path
 from typing import List, Sequence, Tuple
 
 import numpy as np
 
+from .. import structures
 from .._chunkmap import read_new_chunkmap
 
 cimport numpy as np
-
-from .. import structures
 from cpython cimport Py_INCREF, PyObject
+from libc.stdint cimport uintptr_t
+from libc.stdlib cimport free, malloc
+from numpy cimport PyArray_SetBaseObject
 
 np.import_array()
 
@@ -391,7 +388,7 @@ cdef class PicWrapper:
         cdef np.ndarray ndarray = np.array(self, copy=False)
 
         # Assign our object to the 'base' of the ndarray object
-        ndarray.base = <PyObject*> self
+        PyArray_SetBaseObject(ndarray, self)
 
         # Increment the reference count, as the above assignement was done in
         # C, and Python does not know that there is this additional reference

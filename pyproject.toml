@@ -150,7 +150,7 @@ exclude_lines = [
 ]
 
 [tool.coverage.run]
-plugins = "Cython.Coverage"
+plugins = ["Cython.Coverage"]
 omit = ["tests"]
 
 # https://github.com/cruft/cruft

@@ -1,0 +1,6 @@
+[flake8]
+profile = black
+exclude = docs,.eggs,examples
+max-line-length = 88
+docstring-convention = numpy
+ignore =  D100, D213, D401, D413, D107, W503

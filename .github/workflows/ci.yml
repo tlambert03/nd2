@@ -1,4 +1,4 @@
-name: Test
+name: CI
 
 on:
   push:
@@ -12,6 +12,14 @@ on:
   workflow_dispatch:
 
 jobs:
+  check-manifest:
+    name: Check Manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+      - run: pip install check-manifest && check-manifest
+
   test:
     name: ${{ matrix.platform }} (${{ matrix.python-version }})
     runs-on: ${{ matrix.platform }}
@@ -22,14 +30,14 @@ jobs:
         platform: [macos-latest, windows-latest, "ubuntu-latest"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: cache
         with:
           path: tests/data
@@ -43,7 +51,7 @@ jobs:
 
       - name: Build
         # -e seems necessary for coverage to work
-        run: pip install -e .[testing]
+        run: pip install -e .[test]
         env:
           CYTHON_TRACE: "1"
 

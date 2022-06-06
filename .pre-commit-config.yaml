@@ -48,10 +48,10 @@ repos:
     rev: 4.0.1
     hooks:
       - id: flake8
-        args: [--min-python-version=3.7.0]
         additional_dependencies:
           - flake8-typing-imports
           - flake8-bugbear
+          - flake8-pyprojecttoml
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v0.960

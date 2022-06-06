@@ -121,6 +121,7 @@ filterwarnings = [
     "error",
     "ignore:The distutils package is deprecated::",
     "ignore:The distutils.sysconfig module is deprecated::",
+    "ignore:distutils Version classes are deprecated:"
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
@@ -146,7 +147,12 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "@overload",
     "except ImportError",
+    "except NotImplementedError",
 ]
+
+[tool.coverage.run]
+plugins = ["Cython.Coverage"]
+omit = ["tests"]
 
 # https://github.com/cruft/cruft
 [tool.cruft]
@@ -195,3 +201,12 @@ branch = "main"
 changelog_sections="feature,fix,breaking,documentation,performance,chore,:boom:,:sparkles:,:children_crossing:,:lipstick:,:iphone:,:egg:,:chart_with_upwards_trend:,:ambulance:,:lock:,:bug:,:zap:,:goal_net:,:alien:,:wheelchair:,:speech_balloon:,:mag:,:apple:,:penguin:,:checkered_flag:,:robot:,:green_apple:,Other"
 # commit_parser=semantic_release.history.angular_parser
 build_command = "pip install build && python -m build"
+
+# https://flake8.pycqa.org/en/latest/user/options.html
+# https://gitlab.com/durko/flake8-pyprojecttoml
+[tool.flake8]
+exclude = "docs,_version.py,.eggs,examples"
+max-line-length = "88"
+docstring-convention = "numpy"
+ignore = "W503,D"
+min-python-version = "3.7.0"

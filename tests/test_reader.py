@@ -273,8 +273,9 @@ def test_with_without_sdk(small_nd2s: Path):
         ary1 = withsdk.asarray()
         dsk1 = withsdk.to_dask()
         np.testing.assert_array_equal(ary1, dsk1)
+        compressed = bool(withsdk.attributes.compressionType)
 
-    if not withsdk.attributes.compressionType:
+    if not compressed:
         with ND2File(small_nd2s, read_using_sdk=False) as nosdk:
             ary2 = nosdk.asarray()
             dsk2 = nosdk.to_dask()

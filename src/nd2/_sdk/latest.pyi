@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -12,6 +12,7 @@ class ND2Reader:
         path: Union[str, Path],
         validate_frames: bool = False,
         search_window: int = 100,
+        read_using_sdk: Optional[bool] = None,
     ) -> None: ...
     def open(self) -> None: ...
     def close(self) -> None: ...

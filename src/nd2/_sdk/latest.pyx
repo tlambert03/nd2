@@ -1,7 +1,8 @@
 import json
 import mmap
+import warnings
 from pathlib import Path
-from typing import List, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -29,38 +30,69 @@ cdef class ND2Reader:
     cdef __attributes
     cdef __dtype
     cdef __raw_frame_shape
+    cdef public _read_image
+    cdef public _read_using_sdk
+    cdef _wants_read_using_sdk
 
     def __cinit__(
-        self, path: str | Path, validate_frames: bool = False, search_window: int = 100
+        self,
+        path: str | Path,
+        validate_frames: bool = False,
+        search_window: int = 100,
+        read_using_sdk: Optional[bool] = None,
     ):
         self._is_open = 0
         self.__raw_frame_shape = None
         self._fh = NULL
         self.path = str(path)
-
-        with open(path, 'rb') as pyfh:
-            self._frame_map, self._meta_map = read_new_chunkmap(
-                pyfh, validate_frames=validate_frames, search_window=search_window
-            )
-        if validate_frames:
-            self._frame_map = self._frame_map['good']
-
-        self._max_frame_index = max(self._frame_map)
+        self._wants_read_using_sdk = read_using_sdk
         self.open()
+
+        if read_using_sdk is None:
+            read_using_sdk = self.attributes.compressionType is not None
+        self._read_using_sdk = read_using_sdk
+
+        if self._read_using_sdk:
+            self._read_image = self._read_image_with_sdk
+            self._frame_map, self._meta_map = {}, {}
+            self._max_frame_index = 0
+        else:
+            self._read_image = self._read_image_from_memmap
+
+            with open(path, 'rb') as pyfh:
+                self._frame_map, self._meta_map = read_new_chunkmap(
+                    pyfh, validate_frames=validate_frames, search_window=search_window
+                )
+            if validate_frames:
+                self._frame_map = self._frame_map['good']
+
+            self._max_frame_index = max(self._frame_map)
+
 
     cpdef open(self):
         if not self._is_open:
             self._fh = Lim_FileOpenForReadUtf8(self.path)
             if not self._fh:
                 raise OSError("Could not open file: %s" % self.path)
-            with open(self.path, 'rb') as fh:
-                self._mmap = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
             self._is_open = 1
+
+            if self._wants_read_using_sdk is None:
+                self._read_using_sdk = self.attributes.compressionType is not None
+            else:
+                self._read_using_sdk = self._wants_read_using_sdk
+                if self.attributes.compressionType is not None and self._wants_read_using_sdk is False:
+                    Lim_FileClose(self._fh)
+                    raise ValueError("Cannot read compressed nd2 files with `read_using_sdk=False`")
+
+            if not self._read_using_sdk:
+                with open(self.path, 'rb') as fh:
+                    self._mmap = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
 
     cpdef close(self):
         if self._is_open:
             Lim_FileClose(self._fh)
-            self._mmap.close()
+            if not self._read_using_sdk:
+                self._mmap.close()
             self._is_open = 0
 
     def __enter__(self):
@@ -191,20 +223,6 @@ cdef class ND2Reader:
                 "Sequence %d out of range (sequence count: %d)" % (seq_index, seq_count)
             )
 
-    def _image(self, LIMUINT seq_index):
-        self._validate_seq(seq_index)
-
-        cdef LIMPICTURE pic = nullpic()
-        cdef LIMRESULT result = Lim_FileGetImageData(self._fh, seq_index, &pic)
-
-        if result != 0:
-            error = LIM_ERR_CODE[result]
-            raise RuntimeError('Error retrieving image data: %s' % error)
-
-        array_wrapper = PicWrapper()
-        array_wrapper.set_pic(pic, Lim_DestroyPicture)
-        return array_wrapper.to_ndarray()
-
     def _custom_data(self) -> dict:
         from .._xml import parse_xml_block
 
@@ -245,7 +263,21 @@ cdef class ND2Reader:
             self.__dtype = np.dtype(f"{d}{a.bitsPerComponentInMemory // 8}")
         return self.__dtype
 
-    cpdef np.ndarray _read_image(self, index: int):
+    def _read_image_with_sdk(self, LIMUINT seq_index):
+        self._validate_seq(seq_index)
+
+        cdef LIMPICTURE pic = nullpic()
+        cdef LIMRESULT result = Lim_FileGetImageData(self._fh, seq_index, &pic)
+
+        if result != 0:
+            error = LIM_ERR_CODE[result]
+            raise RuntimeError('Error retrieving image data: %s' % error)
+
+        array_wrapper = PicWrapper()
+        array_wrapper.set_pic(pic, Lim_DestroyPicture)
+        return array_wrapper.to_ndarray()
+
+    cpdef np.ndarray _read_image_from_memmap(self, index: int):
         """Read a chunk directly without using SDK"""
         if index > self._max_frame_index:
             raise IndexError(f"Frame out of range: {index}")
@@ -275,6 +307,7 @@ cdef class ND2Reader:
                 count=np.prod(self._raw_frame_shape()),
                 offset=offset
             )  # this will be reshaped in nd2file.py
+
         except ValueError:
             # If the chunkmap is wrong, and the mmap isn't long enough
             # for the requested offset & size, a ValueError is raised.

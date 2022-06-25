@@ -31,7 +31,7 @@ except ImportError:
 if TYPE_CHECKING:
     from typing import Any, Dict, List, Tuple
 
-    import dask.array as da
+    import dask.array.core
     import xarray as xr
     from typing_extensions import Literal
 
@@ -51,8 +51,10 @@ class ND2File:
     def __init__(
         self,
         path: Union[Path, str],
+        *,
         validate_frames: bool = False,
         search_window: int = 100,
+        read_using_sdk: bool = None,
     ) -> None:
         """Open an nd2 file.
 
@@ -68,10 +70,19 @@ class ND2File:
         search_window : int
             When validate_frames is true, this is the search window (in KB) that will
             be used to try to find the actual chunk position. by default 100 KB
+        read_using_sdk : Optional[bool]
+            If `True`, use the SDK to read the file. If `False`, inspects the chunkmap
+            and reads from a `numpy.memmap`. If `None` (the default), uses the SDK if
+            the file is compressed, otherwise uses the memmap. Note: using
+            `read_using_sdk=False` on a compressed file will result in a ValueError.
+
         """
         self._path = str(path)
         self._rdr = get_reader(
-            self._path, validate_frames=validate_frames, search_window=search_window
+            self._path,
+            validate_frames=validate_frames,
+            search_window=search_window,
+            read_using_sdk=read_using_sdk,
         )
         self._closed = False
         self._is_legacy = "Legacy" in type(self._rdr).__name__
@@ -313,7 +324,7 @@ class ND2File:
         """array protocol"""
         return self.asarray()
 
-    def to_dask(self, wrapper=True, copy=True) -> da.Array:
+    def to_dask(self, wrapper=True, copy=True) -> dask.array.core.Array:
         """Create dask array (delayed reader) representing image.
 
         This generally works well, but it remains to be seen whether performance
@@ -328,13 +339,13 @@ class ND2File:
         wrapper : bool
             If True (the default), the returned obect will be a thin subclass of
             a :class:`dask.array.Array` (an
-            `ResourceBackedDaskArray`) that manages the opening
-            and closing of this file when getting chunks via compute(). If `wrapper`
-            is `False`, then a pure `da.Array` will be returned. However, when that
-            array is computed, it will incur a file open/close on *every* chunk
-            that is read (in the `_dask_block` method).  As such `wrapper`
-            will generally be much faster, however, it *may* fail (i.e. result in
-            segmentation faults) with certain dask schedulers.
+            `ResourceBackedDaskArray`) that manages the opening and closing of this file
+            when getting chunks via compute(). If `wrapper` is `False`, then a pure
+            `dask.array.core.Array` will be returned. However, when that array is
+            computed, it will incur a file open/close on *every* chunk that is read (in
+            the `_dask_block` method).  As such `wrapper` will generally be much faster,
+            however, it *may* fail (i.e. result in segmentation faults) with certain
+            dask schedulers.
         copy : bool
             If `True` (the default), the dask chunk-reading function will return
             an array copy. This can avoid segfaults in certain cases, though it
@@ -342,7 +353,7 @@ class ND2File:
 
         Returns
         -------
-        da.Array
+        dask.array.core.Array
         """
         from dask.array import map_blocks
 
@@ -566,9 +577,11 @@ class ND2File:
 @overload
 def imread(
     file: Union[Path, str],
-    dask: Literal[False] = False,
-    xarray: Literal[False] = False,
+    *,
+    dask: Literal[False],
+    xarray: Literal[False],
     validate_frames: bool = False,
+    read_using_sdk: Optional[bool] = None,
 ) -> np.ndarray:
     ...
 
@@ -576,9 +589,11 @@ def imread(
 @overload
 def imread(
     file: Union[Path, str],
+    *,
     dask: bool = ...,
-    xarray: Literal[True] = True,
+    xarray: Literal[True],
     validate_frames: bool = False,
+    read_using_sdk: Optional[bool] = None,
 ) -> xr.DataArray:
     ...
 
@@ -586,18 +601,22 @@ def imread(
 @overload
 def imread(
     file: Union[Path, str],
-    dask: Literal[True] = ...,
-    xarray=False,
+    *,
+    dask: Literal[True],
+    xarray: Literal[False],
     validate_frames: bool = False,
-) -> da.Array:
+    read_using_sdk: Optional[bool] = None,
+) -> dask.array.core.Array:
     ...
 
 
 def imread(
     file: Union[Path, str],
+    *,
     dask: bool = False,
     xarray: bool = False,
     validate_frames: bool = False,
+    read_using_sdk: Optional[bool] = None,
 ):
     """Open `file`, return requested array type, and close `file`.
 
@@ -620,13 +639,21 @@ def imread(
         shifted relative to the predicted offset (i.e. in a corrupted file).
         This comes at a slight performance penalty at file open, but may "rescue"
         some corrupt files. by default False.
+    read_using_sdk : Optional[bool]
+        If `True`, use the SDK to read the file. If `False`, inspects the chunkmap and
+        reads from a `numpy.memmap`. If `None` (the default), uses the SDK if the file
+        is compressed, otherwise uses the memmap.
+        Note: using `read_using_sdk=False` on a compressed file will result in a
+        ValueError.
 
     Returns
     -------
     Union[np.ndarray, dask.array.Array, xarray.DataArray]
         Array subclass, depending on arguments used.
     """
-    with ND2File(file, validate_frames=validate_frames) as nd2:
+    with ND2File(
+        file, validate_frames=validate_frames, read_using_sdk=read_using_sdk
+    ) as nd2:
         if xarray:
             return nd2.to_xarray(delayed=dask)
         elif dask:

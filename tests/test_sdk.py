@@ -7,7 +7,7 @@ from nd2._sdk import latest
 
 
 def test_new_sdk(new_nd2: Path):
-    with latest.ND2Reader(new_nd2) as nd:
+    with latest.ND2Reader(new_nd2, read_using_sdk=True) as nd:
         a = nd._attributes()
         assert isinstance(a, dict)
         assert isinstance(nd._metadata(), dict)
@@ -22,9 +22,9 @@ def test_new_sdk(new_nd2: Path):
         # sometimes _seq_count is lower than attrs.sequenceCount
         # if it is, _seq_count provides the highest "good" frame you can retrieve.
         if scount != a.get("sequenceCount"):
-            nd._image(scount - 1)
+            nd._read_image(scount - 1)
             with pytest.raises(IndexError):
-                nd._image(scount)
+                nd._read_image(scount)
 
         midframe = scount // 2
         if midframe > 1:
@@ -34,7 +34,7 @@ def test_new_sdk(new_nd2: Path):
 
         assert isinstance(nd._seq_index_from_coords((0,) * csize), int)
         assert isinstance(nd._coord_info(), list)
-        frame = nd._image(midframe)
+        frame = nd._read_image(midframe)
         assert isinstance(frame, np.ndarray)
         assert frame.shape == (a["heightPx"], a["widthPx"], a["componentCount"])
 

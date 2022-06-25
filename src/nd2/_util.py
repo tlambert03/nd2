@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import IO, TYPE_CHECKING, Any, Callable, NamedTuple, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, NamedTuple, Optional, Union
 
 if TYPE_CHECKING:
     from os import PathLike
@@ -38,7 +38,10 @@ def is_supported_file(
 
 
 def get_reader(
-    path: str, validate_frames: bool = False, search_window: int = 100
+    path: str,
+    validate_frames: bool = False,
+    search_window: int = 100,
+    read_using_sdk: Optional[bool] = None,
 ) -> Union["ND2Reader", "LegacyND2Reader"]:
     with open(path, "rb") as fh:
         magic_num = fh.read(4)
@@ -46,7 +49,10 @@ def get_reader(
             from ._sdk.latest import ND2Reader
 
             return ND2Reader(
-                path, validate_frames=validate_frames, search_window=search_window
+                path,
+                validate_frames=validate_frames,
+                search_window=search_window,
+                read_using_sdk=read_using_sdk,
             )
         elif magic_num == OLD_HEADER_MAGIC:
             from ._legacy import LegacyND2Reader

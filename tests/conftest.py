@@ -18,10 +18,17 @@ OLD: List[Path] = []
 for x in ALL:
     NEW.append(x) if is_new_format(str(x)) else OLD.append(x)
 
+SINGLE = DATA / "dims_t3c2y32x32.nd2"
+
 
 @pytest.fixture
 def single_nd2():
-    return DATA / "dims_t3c2y32x32.nd2"
+    return SINGLE
+
+
+@pytest.fixture(params=ALL[:20])
+def small_nd2s(request):
+    return request.param
 
 
 @pytest.fixture(params=ALL, ids=lambda x: x.name)

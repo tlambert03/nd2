@@ -1,10 +1,14 @@
 import io
+import re
 import struct
+from enum import IntEnum
 from functools import partial
-from typing import Any, Callable, Dict, cast
+from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
+
+lower = re.compile("^[a-z]*")
 
 
-def decode_metadata(data: bytes, count: int = 1) -> Dict[str, Any]:
+def decode_metadata(data: bytes, count: int = 1, strip_prefix=True) -> Dict[str, Any]:
     output: Dict[str, Any] = {}
     if not data:
         return output
@@ -19,9 +23,13 @@ def decode_metadata(data: bytes, count: int = 1) -> Dict[str, Any]:
 
         data_type, name_length = strctBB.unpack(header)
         name = stream.read(name_length * 2).decode("utf16")[:-1]
-
+        if strip_prefix:
+            name = lower.sub("", name)
         if data_type == 11:
-            value = _parse_metadata_item(stream, curs)
+            new_count, length = strctIQ.unpack(stream.read(strctIQ.size))
+            next_data_length = stream.read(length - (stream.tell() - curs))
+            value = decode_metadata(next_data_length, new_count)
+            stream.seek(new_count * 8, 1)
         elif data_type in _PARSER:
             value = _PARSER[data_type](stream)
         else:
@@ -69,14 +77,6 @@ def _unpack_string(data: io.BytesIO):
         return value.decode("utf8")
 
 
-def _parse_metadata_item(data: io.BytesIO, curs: int):
-    new_count, length = strctIQ.unpack(data.read(strctIQ.size))
-    next_data_length = data.read(length - (data.tell() - curs))
-    value = decode_metadata(next_data_length, new_count)
-    data.read(new_count * 8)
-    return value
-
-
 _PARSER: Dict[int, Callable] = {
     1: unpack_B,
     2: unpack_I,
@@ -85,5 +85,130 @@ _PARSER: Dict[int, Callable] = {
     6: unpack_d,
     8: _unpack_string,
     9: _unpack_list,
-    11: _parse_metadata_item,
 }
+
+from pydantic import BaseModel
+
+
+class AutoFocusBeforeLoop(BaseModel):
+    Type: int = 0
+    Step: float = 0.0
+    Range: float = 0.0
+    Precision: float = 0.0
+    Speed: float = 0.0
+    Offset: float = 0.0
+    FocusPlane: Optional[dict] = None
+    Flags: int = 0
+    FocusCriterion: int = 0
+    ZDrive: str = ""
+    PiezoZTriggered: int = 0
+    OptConf: str = ""
+    PreferedAFChannel: str = ""
+
+
+class LoopType(IntEnum):
+    NETimeLoop = 8
+    XYPosLoop = 2
+    ZStackLoop = 6
+
+
+class ExperimentLoop(BaseModel):
+    Type: LoopType
+    ApplicationDesc: str = ""
+    UserDesc: str = ""
+    MeasProbesBase64: str = ""
+    CameraName: str = ""
+    ItemValid: Optional[list] = None
+    LoopPars: Union["TimeLoopPars", "XYPosLoopPars", "ZStackLoopPars", dict]
+    AutoFocusBeforeLoop: Optional[dict] = None
+    ParallelExperiment: Optional[dict] = None
+    CommandBeforeLoop: str = ""
+    CommandBeforeCapture: str = ""
+    CommandAfterCapture: str = ""
+    CommandAfterLoop: str = ""
+    ControlShutter: Optional[int] = None
+    ControlLight: Optional[int] = None
+    UsePFS: Optional[int] = None
+    UseHWSequencer: Optional[int] = None
+    UseTiRecipe: Optional[int] = None
+    RecipeDSCPort: Optional[int] = None
+    UseIntenzityCorrection: Optional[int] = None
+    KeepObject: Optional[int] = None
+    RepeatCount: Optional[int] = None
+    NextLevelCount: Optional[int] = None
+    NextLevelEx: Union["ExperimentLoop", List["ExperimentLoop"], None] = None
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, value: Any) -> "ExperimentLoop":
+        if isinstance(value, dict):
+            if "" in value:
+                value = value[""]
+            if "NextLevelEx" in value:
+                nlex = value["NextLevelEx"]
+                if isinstance(nlex, dict) and len(nlex) == 1 and "" in nlex:
+                    value["NextLevelEx"] = nlex[""]
+            return cls(**value)
+
+    class Config:
+        extra = "forbid"
+
+
+class TimeLoopPars(BaseModel):
+    Count: int
+    PeriodCount: int
+    Period: dict
+    CommandAfterPeriod: dict
+    CommandBeforePeriod: dict
+    PeriodValid: list
+    AutoFocusBeforeCapture: dict
+    AutoFocusBeforePeriod: dict
+
+
+class TimeLoop(ExperimentLoop):
+    Type: Literal[LoopType.NETimeLoop]
+    LoopPars: TimeLoopPars
+
+
+class XYPosLoopPars(BaseModel):
+    Count: int
+    RelativeXY: int
+    ReferenceX: float
+    ReferenceY: float
+    RedefineAfterPFS: int
+    RedefineAfterAutoFocus: int
+    KeepPFSOn: int
+    SplitMultipoints: int
+    UseAFPlane: int
+    UseZ: int
+    ZDevice: str
+    AFBefore: dict
+    Points: dict
+
+
+class XYPosLoop(ExperimentLoop):
+    Type: Literal[LoopType.XYPosLoop]
+    LoopPars: XYPosLoopPars
+
+
+class ZStackLoopPars(BaseModel):
+    Planes: dict
+    MergeCameras: int
+    AskForFilter: int
+    OffsetReference: int
+    Points: dict
+
+
+class ZStackLoop(ExperimentLoop):
+    Type: Literal[LoopType.ZStackLoop]
+    LoopPars: ZStackLoopPars
+
+
+class Experiment(BaseModel):
+    SLxExperiment: Union[TimeLoop, XYPosLoopPars, ZStackLoopPars, ExperimentLoop]
+
+
+ExperimentLoop.update_forward_refs()

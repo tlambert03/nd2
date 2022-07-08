@@ -232,6 +232,12 @@ cdef class ND2Reader:
             if k.startswith("CustomDataVar|")
         }
 
+
+    def _image_metadata(self) -> dict:
+        from .._nd2decode import decode_metadata
+
+        return decode_metadata(self._get_meta_chunk("ImageMetadataLV"))
+
     def _get_meta_chunk(self, key: str) -> bytes:
         from .._chunkmap import read_chunk
 
@@ -244,6 +250,7 @@ cdef class ND2Reader:
             )
         with open(self.path, 'rb') as fh:
             return read_chunk(fh, pos)
+
 
     cdef _raw_frame_shape(self):
         if self.__raw_frame_shape is None:

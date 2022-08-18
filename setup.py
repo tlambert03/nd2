@@ -7,13 +7,15 @@ from numpy import get_include
 from setuptools import Extension, setup
 
 SYSTEM = platform.system()
-PLATFORM = platform.machine().replace("AMD64", "x86_64")
+PLATFORM = platform.machine()
+if SYSTEM != "Darwin":
+    PLATFORM = PLATFORM.replace("AMD64", "x86_64")
 SDK = Path("src/sdk") / SYSTEM / PLATFORM
 LIB = SDK / "lib"
 INCLUDE = SDK / "include"
 LINK = "shared" if SYSTEM == "Linux" else "static"
 # set env CYTHON_TRACE=1 to enable coverage on .pyx files
-CYTHON_TRACE = bool(os.getenv("CYTHON_TRACE", "0") not in ("0", "False"))
+CYTHON_TRACE = os.getenv("CYTHON_TRACE", "0") not in ("0", "False")
 
 sdk = Extension(
     name="nd2._sdk.latest",

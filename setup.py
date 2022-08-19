@@ -7,9 +7,9 @@ from numpy import get_include
 from setuptools import Extension, setup
 
 SYSTEM = platform.system()
-PLATFORM = platform.machine()
-PLATFORM = PLATFORM.replace("AMD64", "x86_64")
+PLATFORM = platform.machine().replace("AMD64", "x86_64")
 if "arm64" in os.getenv("_PYTHON_HOST_PLATFORM", ""):
+    # e.g. macosx-arm builds
     PLATFORM = "arm64"
 SDK = Path("src/sdk") / SYSTEM / PLATFORM
 LIB = SDK / "lib"
@@ -18,7 +18,6 @@ LINK = "shared" if SYSTEM == "Linux" else "static"
 # set env CYTHON_TRACE=1 to enable coverage on .pyx files
 CYTHON_TRACE = os.getenv("CYTHON_TRACE", "0") not in ("0", "False")
 
-print("USING SDK:", SDK)
 
 sdk = Extension(
     name="nd2._sdk.latest",

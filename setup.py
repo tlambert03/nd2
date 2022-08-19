@@ -19,7 +19,9 @@ CYTHON_TRACE = os.getenv("CYTHON_TRACE", "0") not in ("0", "False")
 
 print("LIB:", LIB)
 print("SDK:", SDK)
-print("ENVIRON\n_________\n", os.environ)
+print("ENVIRON\n_________\n")
+for k, v in os.environ.items():
+    print(k, "=", v)
 
 
 sdk = Extension(

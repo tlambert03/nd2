@@ -8,8 +8,9 @@ from setuptools import Extension, setup
 
 SYSTEM = platform.system()
 PLATFORM = platform.machine()
-if SYSTEM != "Darwin":
-    PLATFORM = PLATFORM.replace("AMD64", "x86_64")
+PLATFORM = PLATFORM.replace("AMD64", "x86_64")
+if "arm64" in os.getenv("_PYTHON_HOST_PLATFORM", ""):
+    PLATFORM = "arm64"
 SDK = Path("src/sdk") / SYSTEM / PLATFORM
 LIB = SDK / "lib"
 INCLUDE = SDK / "include"
@@ -17,12 +18,7 @@ LINK = "shared" if SYSTEM == "Linux" else "static"
 # set env CYTHON_TRACE=1 to enable coverage on .pyx files
 CYTHON_TRACE = os.getenv("CYTHON_TRACE", "0") not in ("0", "False")
 
-print("LIB:", LIB)
-print("SDK:", SDK)
-print("ENVIRON\n_________\n")
-for k, v in os.environ.items():
-    print(k, "=", v)
-
+print("USING SDK:", SDK)
 
 sdk = Extension(
     name="nd2._sdk.latest",

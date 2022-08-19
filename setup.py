@@ -17,8 +17,8 @@ LINK = "shared" if SYSTEM == "Linux" else "static"
 # set env CYTHON_TRACE=1 to enable coverage on .pyx files
 CYTHON_TRACE = os.getenv("CYTHON_TRACE", "0") not in ("0", "False")
 
-print(f"{LIB=}")
-print(f"{SDK=}")
+print("LIB:", LIB)
+print("SDK:", SDK)
 print("ENVIRON\n_________\n", os.environ)
 
 

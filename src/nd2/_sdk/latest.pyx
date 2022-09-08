@@ -113,6 +113,17 @@ cdef class ND2Reader:
             cont = self._metadata().get('contents')
             attrs = self._attributes()
             nC = cont.get('channelCount') if cont else attrs.get("componentCount", 1)
+            # widthPx doesn't always equal widthBytes / bytesPerPixel ... but when it doesn't
+            # the image is slanted anyway. For now, we just force it here.
+            w = attrs.get('widthBytes') // (attrs.get("componentCount", 1) * attrs.get('bitsPerComponentInMemory') // 8)
+            if w != attrs['widthPx']:
+                wb = attrs.get('widthBytes')
+                bpp = (attrs.get('bitsPerComponentInMemory') // 8)
+                warnings.warn(
+                    f"widthPx ({attrs['widthPx']}) != widthBytes ({wb}) / bytesPerPixel ({bpp}). "
+                    f"Forcing widthPx to {w} (widthBytes / bytesPerPixel)."
+                )
+                attrs['widthPx'] = w
             self.__attributes = structures.Attributes(**attrs, channelCount=nC)
         return self.__attributes
 

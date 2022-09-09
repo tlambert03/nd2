@@ -1,8 +1,16 @@
 # Changelog
 
-## [0.4.0](https://github.com/tlambert03/nd2/tree/0.4.0) (2022-08-19)
+## [0.4.1](https://github.com/tlambert03/nd2/tree/0.4.1) (2022-09-09)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.3.0...0.4.0)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.0...0.4.1)
+
+**Fixed bugs:**
+
+- fix: Fix images where widthPx x Bytes is not the same as expected width Bytes [\#90](https://github.com/tlambert03/nd2/pull/90) ([tlambert03](https://github.com/tlambert03))
+
+## [v0.4.0](https://github.com/tlambert03/nd2/tree/v0.4.0) (2022-08-19)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.3.0...v0.4.0)
 
 **Implemented enhancements:**
 

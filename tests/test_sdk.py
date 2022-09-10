@@ -1,4 +1,3 @@
-from contextlib import nullcontext
 from pathlib import Path
 
 import numpy as np
@@ -7,18 +6,8 @@ import pytest
 from nd2._sdk import latest
 
 
-# duplicated in test_reader
-def _warning_ctx(fname: Path):
-    if fname.name in {
-        "jonas_control002.nd2",
-        "jonas_JJ1473_control_24h_JJ1473_control_24h_03.nd2",
-    }:
-        return pytest.warns(UserWarning, match="widthPx")
-    return nullcontext()
-
-
 def test_new_sdk(new_nd2: Path):
-    with _warning_ctx(new_nd2), latest.ND2Reader(new_nd2, read_using_sdk=True) as nd:
+    with latest.ND2Reader(new_nd2, read_using_sdk=True) as nd:
         a = nd._attributes()
         assert isinstance(a, dict)
         assert isinstance(nd._metadata(), dict)

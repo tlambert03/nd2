@@ -1,6 +1,5 @@
 import json
 import mmap
-import warnings
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
@@ -113,17 +112,6 @@ cdef class ND2Reader:
             cont = self._metadata().get('contents')
             attrs = self._attributes()
             nC = cont.get('channelCount') if cont else attrs.get("componentCount", 1)
-            # widthPx doesn't always equal widthBytes / bytesPerPixel ... but when it doesn't
-            # the image is slanted anyway. For now, we just force it here.
-            w = attrs.get('widthBytes') // (attrs.get("componentCount", 1) * attrs.get('bitsPerComponentInMemory') // 8)
-            if w != attrs['widthPx']:
-                wb = attrs.get('widthBytes')
-                bpp = (attrs.get('bitsPerComponentInMemory') // 8)
-                warnings.warn(
-                    f"widthPx ({attrs['widthPx']}) != widthBytes ({wb}) / bytesPerPixel ({bpp}). "
-                    f"Forcing widthPx to {w} (widthBytes / bytesPerPixel)."
-                )
-                attrs['widthPx'] = w
             self.__attributes = structures.Attributes(**attrs, channelCount=nC)
         return self.__attributes
 
@@ -261,17 +249,29 @@ cdef class ND2Reader:
             attr = self.attributes
             self.__raw_frame_shape = (
                     attr.heightPx,
-                    attr.widthPx or -1,
+                    attr.widthBytes // (self._bytes_per_pixel()) // attr.componentCount,
                     attr.channelCount or 1,
                     attr.componentCount // (attr.channelCount or 1),
                 )
         return self.__raw_frame_shape
 
+    cdef _actual_frame_shape(self):
+        attr = self.attributes
+        return (
+                attr.heightPx,
+                attr.widthPx,
+                attr.channelCount or 1,
+                attr.componentCount // (attr.channelCount or 1),
+            )
+
+    def _bytes_per_pixel(self):
+        return self.attributes.bitsPerComponentInMemory // 8
+
     cdef _dtype(self):
         if self.__dtype is None:
             a = self.attributes
             d = a.pixelDataType[0] if a.pixelDataType else "u"
-            self.__dtype = np.dtype(f"{d}{a.bitsPerComponentInMemory // 8}")
+            self.__dtype = np.dtype(f"{d}{self._bytes_per_pixel()}")
         return self.__dtype
 
     def _read_image_with_sdk(self, LIMUINT seq_index):
@@ -298,48 +298,46 @@ cdef class ND2Reader:
         if offset is None:
             return self._missing_frame(index)
 
-        # try:
-        #     return np.ndarray(
-        #         shape=self._raw_frame_shape(),
-        #         dtype=self._dtype(),
-        #         buffer=self._mmap,
-        #         offset=offset,
-        #         strides=self._strides,
-        #     )
-        # except TypeError:
-        #     # If the chunkmap is wrong, and the mmap isn't long enough
-        #     # for the requested offset & size, a TypeError is raised.
-        #     return self._missing_frame(index)
-
         try:
-            return np.frombuffer(
-                self._mmap,
+            return np.ndarray(
+                shape=self._actual_frame_shape(),
                 dtype=self._dtype(),
-                count=np.prod(self._raw_frame_shape()),
-                offset=offset
-            )  # this will be reshaped in nd2file.py
-
-        except ValueError:
+                buffer=self._mmap,
+                offset=offset,
+                strides=self._strides,
+            )
+            #     buf = np.frombuffer(
+            #         self._mmap,
+            #         dtype=self._dtype(),
+            #         count=np.prod(self._raw_frame_shape()),
+            #         offset=offset
+            #     )
+            #     return np.lib.stride_tricks.as_strided(
+            #         buf,
+            #         shape=self._actual_frame_shape(),
+            #         strides=self._strides,
+            #     )
+        except TypeError:
             # If the chunkmap is wrong, and the mmap isn't long enough
-            # for the requested offset & size, a ValueError is raised.
+            # for the requested offset & size, a TypeError is raised.
             return self._missing_frame(index)
 
     @property
     def _strides(self):
         if not hasattr(self, '__strides'):
             a = self.attributes
-            width = a.widthPx
+            widthP = a.widthPx
             widthB = a.widthBytes
-            if not (width and widthB):
+            if not (widthP and widthB):
                 self.__strides = None
             else:
-                bypc = a.bitsPerComponentInMemory // 8
-                array_stride = widthB - (bypc * width * a.componentCount)
+                bypc = self._bytes_per_pixel()
+                array_stride = widthB - (bypc * widthP * a.componentCount)
                 if array_stride == 0:
                     self.__strides = None
                 else:
                     self.__strides = (
-                        array_stride + width * bypc * a.componentCount,
+                        array_stride + widthP * bypc * a.componentCount,
                         a.componentCount * bypc,
                         a.componentCount // a.channelCount * bypc,
                         bypc,

@@ -1,8 +1,16 @@
 # Changelog
 
-## [0.4.1](https://github.com/tlambert03/nd2/tree/0.4.1) (2022-09-09)
+## [0.4.2](https://github.com/tlambert03/nd2/tree/0.4.2) (2022-09-10)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.0...0.4.1)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.1...0.4.2)
+
+**Fixed bugs:**
+
+- fix: better fix for images with non-normal strides [\#92](https://github.com/tlambert03/nd2/pull/92) ([tlambert03](https://github.com/tlambert03))
+
+## [v0.4.1](https://github.com/tlambert03/nd2/tree/v0.4.1) (2022-09-09)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.0...v0.4.1)
 
 **Fixed bugs:**
 

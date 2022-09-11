@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import mmap
 import threading
 from enum import Enum
@@ -14,6 +15,7 @@ from typing import (
     SupportsInt,
     Union,
     cast,
+    no_type_check,
     overload,
 )
 
@@ -34,6 +36,8 @@ if TYPE_CHECKING:
     import dask.array.core
     import xarray as xr
     from typing_extensions import Literal
+
+    from .structures import Position
 
 
 Index = Union[int, slice]
@@ -152,7 +156,80 @@ class ND2File:
     @cached_property
     def experiment(self) -> List[ExpLoop]:
         """Loop information for each nd axis"""
-        return self._rdr.experiment()
+        exp = self._rdr.experiment()
+
+        # https://github.com/tlambert03/nd2/issues/78
+        # the SDK doesn't always do a good job of pulling position names from metadata
+        # here, we try to extract it manually.  Might be error prone, so currently
+        # we just ignore errors.
+        if not self.is_legacy:
+            for n, item in enumerate(exp):
+                if isinstance(item, XYPosLoop):
+                    names = {
+                        tuple(p.stagePositionUm): p.name for p in item.parameters.points
+                    }
+                    if not any(names.values()):
+                        _exp = self.unstructured_metadata(unnest=True)
+                        if n >= len(_exp):
+                            continue
+                        with contextlib.suppress(Exception):
+                            _fix_names(_exp[n], item.parameters.points)
+        return exp
+
+    @overload
+    def unstructured_metadata(
+        self, unnest: Literal[True], strip_prefix: bool = True
+    ) -> List[Dict[str, Any]]:
+        ...
+
+    @overload
+    def unstructured_metadata(
+        self, unnest: Literal[False] = False, strip_prefix: bool = True
+    ) -> Dict[str, Any]:
+        ...
+
+    def unstructured_metadata(
+        self, unnest: bool = False, strip_prefix: bool = True
+    ) -> Union[list, dict]:
+        """Exposes all metadata in the `ImageMetadataLV` portion of the nd2 header.
+
+        This is provided as a fallback in the event that ND2File.experiment does not
+        contain all of the information you need. No attempt is made to parse the
+        metadata. Consumption of this metadata should use appropriate exception
+        handling.
+
+        Parameters
+        ----------
+        unnest : bool, optional
+            If `True` the nested `NextLevelEx` keys of each Experiment loop level will
+            be flattened into a list, and the return type will be `list`. by default
+            `False`.
+        strip_prefix : bool, optional
+            Whether to strip the type information from the front of the keys in the
+            dict. For example, if `True`: `uiModeFQ` becomes `ModeFQ` and `bUsePFS`
+            becomes `UsePFS`, etc... by default `True`
+
+        Returns
+        -------
+        Union[list[list | dict], dict]
+            If unnest is `True`, returns a `list` of dicts or lists, else a `dict` is
+            returned where nested experiment loop levels are available at `NextLevelEx`.
+        """
+        if self.is_legacy:
+            raise NotImplementedError(
+                "unstructured_metadata not available for legacy files"
+            )
+
+        from ._nd2decode import decode_metadata, unnest_experiments
+
+        try:
+            meta = self._rdr._get_meta_chunk("ImageMetadataLV")  # type: ignore
+        except KeyError:
+            return [] if unnest else {}
+
+        data = decode_metadata(meta, strip_prefix=strip_prefix)
+        data = data["SLxExperiment"]
+        return unnest_experiments(data) if unnest else data
 
     @cached_property
     def metadata(self) -> Union[Metadata, dict]:
@@ -660,3 +737,20 @@ def imread(
             return nd2.to_dask()
         else:
             return nd2.asarray()
+
+
+@no_type_check
+def _fix_names(xy_exp, points: List[Position]) -> None:
+    """Attempt to fix missing XYPosLoop position names."""
+    if not isinstance(xy_exp, dict) or xy_exp.get("Type", "") != 2:
+        raise ValueError("Invalid XY experiment")
+    _points = xy_exp["LoopPars"]["Points"]
+    if len(_points) == 1 and "" in _points:
+        _points = _points[""]
+    if not isinstance(_points, list):
+        _points = [_points]
+    _names = {(p["PosX"], p["PosY"], p["PosZ"]): p["PosName"] for p in _points}
+
+    for p in points:
+        if p.name is None:
+            p.name = _names.get(tuple(p.stagePositionUm), p.name)

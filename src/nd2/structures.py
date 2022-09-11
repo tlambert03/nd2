@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import List, NamedTuple, Optional, Tuple, Union
 
 from typing_extensions import Literal
 
 # enums
+
+
+class LoopType(IntEnum):
+    NETimeLoop = 8
+    XYPosLoop = 2
+    ZStackLoop = 6
+    TimeLoop = 1  # not sure about this
+    Unknown = 4  # not sure about this
 
 
 class AxisInterpretation(str, Enum):

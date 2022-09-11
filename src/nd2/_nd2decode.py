@@ -1,20 +1,39 @@
 import io
 import re
 import struct
-from enum import IntEnum
 from functools import partial
-from typing import Any, Callable, Dict, List, Literal, Optional, Union, cast
+from typing import Any, Callable, Dict, List, cast
 
-lower = re.compile("^[a-z]*")
+from .structures import LoopType
+
+__all__ = ["decode_metadata", "unnest_experiments"]
+
+lower = re.compile("^[_a-z]*")
 
 
-def decode_metadata(data: bytes, count: int = 1, strip_prefix=True) -> Dict[str, Any]:
+def decode_metadata(data: bytes, strip_prefix=True, _count: int = 1) -> Dict[str, Any]:
+    """Decode the `ImageMetadataLV` metadata block from an ND2 file.
+
+    Parameters
+    ----------
+    data : bytes
+        The bytes of the metadata.
+    strip_prefix : bool, optional
+        Whether to strip the prefix from the metadata keys, by default True
+    _count : int, optional
+        The number of metadata entries to decode, by default 1
+
+    Returns
+    -------
+    Dict[str, Any]
+        A dictionary of the metadata.
+    """
     output: Dict[str, Any] = {}
     if not data:
         return output
 
     stream = io.BytesIO(data)
-    for _ in range(count):
+    for _ in range(_count):
 
         curs = stream.tell()
         header = stream.read(2)
@@ -28,12 +47,18 @@ def decode_metadata(data: bytes, count: int = 1, strip_prefix=True) -> Dict[str,
         if data_type == 11:
             new_count, length = strctIQ.unpack(stream.read(strctIQ.size))
             next_data_length = stream.read(length - (stream.tell() - curs))
-            value = decode_metadata(next_data_length, new_count)
+            value = decode_metadata(next_data_length, strip_prefix, new_count)
             stream.seek(new_count * 8, 1)
         elif data_type in _PARSER:
             value = _PARSER[data_type](stream)
         else:
             value = None
+
+        if isinstance(value, dict):
+            t = "Type" if strip_prefix else "eType"
+            a = "ApplicationDesc" if strip_prefix else "wsApplicationDesc"
+            if t in value and a in value:
+                value[t] = LoopType(value[t])
 
         if name in output:
             if not isinstance(output[name], list):
@@ -43,6 +68,38 @@ def decode_metadata(data: bytes, count: int = 1, strip_prefix=True) -> Dict[str,
             output[name] = value
 
     return output
+
+
+def unnest_experiments(metadata: dict) -> List[Dict[str, Any]]:
+    """Unnest the experiments from the metadata.
+
+    Parameters
+    ----------
+    metadata : dict
+        The metadata to unnest.
+
+    Returns
+    -------
+    List[Dict[str, Any]]
+        A list of the experiments.
+    """
+    if "SLxExperiment" in metadata:
+        metadata = metadata["SLxExperiment"]
+
+    loops = []
+    next_level = metadata.copy()
+    while True:
+        if isinstance(next_level, dict) and len(next_level) == 1 and "" in next_level:
+            next_level = next_level[""]
+        if isinstance(next_level, list):
+            loops.append([unnest_experiments(i)[0] for i in next_level])
+            break
+        next_level.pop("NextLevelCount", None)
+        loops.append(next_level)
+        next_level = next_level.pop("NextLevelEx", None)
+        if next_level is None:
+            break
+    return loops
 
 
 def _unpack_one(strct: struct.Struct, data: io.BytesIO):
@@ -86,129 +143,3 @@ _PARSER: Dict[int, Callable] = {
     8: _unpack_string,
     9: _unpack_list,
 }
-
-from pydantic import BaseModel
-
-
-class AutoFocusBeforeLoop(BaseModel):
-    Type: int = 0
-    Step: float = 0.0
-    Range: float = 0.0
-    Precision: float = 0.0
-    Speed: float = 0.0
-    Offset: float = 0.0
-    FocusPlane: Optional[dict] = None
-    Flags: int = 0
-    FocusCriterion: int = 0
-    ZDrive: str = ""
-    PiezoZTriggered: int = 0
-    OptConf: str = ""
-    PreferedAFChannel: str = ""
-
-
-class LoopType(IntEnum):
-    NETimeLoop = 8
-    XYPosLoop = 2
-    ZStackLoop = 6
-
-
-class ExperimentLoop(BaseModel):
-    Type: LoopType
-    ApplicationDesc: str = ""
-    UserDesc: str = ""
-    MeasProbesBase64: str = ""
-    CameraName: str = ""
-    ItemValid: Optional[list] = None
-    LoopPars: Union["TimeLoopPars", "XYPosLoopPars", "ZStackLoopPars", dict]
-    AutoFocusBeforeLoop: Optional[dict] = None
-    ParallelExperiment: Optional[dict] = None
-    CommandBeforeLoop: str = ""
-    CommandBeforeCapture: str = ""
-    CommandAfterCapture: str = ""
-    CommandAfterLoop: str = ""
-    ControlShutter: Optional[int] = None
-    ControlLight: Optional[int] = None
-    UsePFS: Optional[int] = None
-    UseHWSequencer: Optional[int] = None
-    UseTiRecipe: Optional[int] = None
-    RecipeDSCPort: Optional[int] = None
-    UseIntenzityCorrection: Optional[int] = None
-    KeepObject: Optional[int] = None
-    RepeatCount: Optional[int] = None
-    NextLevelCount: Optional[int] = None
-    NextLevelEx: Union["ExperimentLoop", List["ExperimentLoop"], None] = None
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, value: Any) -> "ExperimentLoop":
-        if isinstance(value, dict):
-            if "" in value:
-                value = value[""]
-            if "NextLevelEx" in value:
-                nlex = value["NextLevelEx"]
-                if isinstance(nlex, dict) and len(nlex) == 1 and "" in nlex:
-                    value["NextLevelEx"] = nlex[""]
-            return cls(**value)
-
-    class Config:
-        extra = "forbid"
-
-
-class TimeLoopPars(BaseModel):
-    Count: int
-    PeriodCount: int
-    Period: dict
-    CommandAfterPeriod: dict
-    CommandBeforePeriod: dict
-    PeriodValid: list
-    AutoFocusBeforeCapture: dict
-    AutoFocusBeforePeriod: dict
-
-
-class TimeLoop(ExperimentLoop):
-    Type: Literal[LoopType.NETimeLoop]
-    LoopPars: TimeLoopPars
-
-
-class XYPosLoopPars(BaseModel):
-    Count: int
-    RelativeXY: int
-    ReferenceX: float
-    ReferenceY: float
-    RedefineAfterPFS: int
-    RedefineAfterAutoFocus: int
-    KeepPFSOn: int
-    SplitMultipoints: int
-    UseAFPlane: int
-    UseZ: int
-    ZDevice: str
-    AFBefore: dict
-    Points: dict
-
-
-class XYPosLoop(ExperimentLoop):
-    Type: Literal[LoopType.XYPosLoop]
-    LoopPars: XYPosLoopPars
-
-
-class ZStackLoopPars(BaseModel):
-    Planes: dict
-    MergeCameras: int
-    AskForFilter: int
-    OffsetReference: int
-    Points: dict
-
-
-class ZStackLoop(ExperimentLoop):
-    Type: Literal[LoopType.ZStackLoop]
-    LoopPars: ZStackLoopPars
-
-
-class Experiment(BaseModel):
-    SLxExperiment: Union[TimeLoop, XYPosLoopPars, ZStackLoopPars, ExperimentLoop]
-
-
-ExperimentLoop.update_forward_refs()

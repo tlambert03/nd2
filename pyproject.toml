@@ -45,7 +45,7 @@ dependencies = [
 [project.optional-dependencies]
 legacy = [
     "imagecodecs",
-    "wurlizter",
+    "wurlitzer",
 ]
 test = [
     "aicsimageio",

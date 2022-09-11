@@ -16,7 +16,7 @@ from nd2._util import AXIS
 DATA = Path(__file__).parent / "data"
 
 
-def test_metadata_extraction(new_nd2):
+def test_metadata_extraction(new_nd2: Path):
     assert ND2File.is_supported_file(new_nd2)
     with ND2File(new_nd2) as nd:
         assert nd.path == str(new_nd2)
@@ -287,3 +287,22 @@ def test_with_without_sdk(small_nd2s: Path):
             ValueError, match="compressed nd2 files with `read_using_sdk=False`"
         ):
             imread(small_nd2s, read_using_sdk=False)
+
+
+def test_extra_width_bytes():
+    expected = [
+        [203, 195, 193, 197],
+        [203, 195, 195, 197],
+        [205, 191, 192, 190],
+        [204, 201, 196, 206],
+    ]
+
+    im = imread(str(DATA / "jonas_JJ1473_control_24h_JJ1473_control_24h_03.nd2"))
+    np.testing.assert_array_equal(im[0, 0, :4, :4], expected)
+
+    im = imread(
+        str(DATA / "jonas_JJ1473_control_24h_JJ1473_control_24h_03.nd2"),
+        read_using_sdk=True,
+    )
+    # NOTE: we actually WANT this to pass... but the SDK isn't doing the right thing
+    assert not np.array_equal(im[0, 0, :4, :4], expected)

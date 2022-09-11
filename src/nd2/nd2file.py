@@ -476,7 +476,7 @@ class ND2File:
                             f"Cannot get chunk {block_id} for single frame image."
                         )
                     idx = 0
-                data = self._get_frame(cast(int, idx))
+                data = self._get_frame(int(idx))  # type: ignore
                 data = data.copy() if copy else data
                 return data[(np.newaxis,) * ncoords]
             finally:
@@ -575,8 +575,8 @@ class ND2File:
     def _frame_count(self) -> int:
         return int(np.prod(self._coord_shape))
 
-    def _get_frame(self, index: int) -> np.ndarray:
-        frame = self._rdr._read_image(index)
+    def _get_frame(self, index: SupportsInt) -> np.ndarray:
+        frame = self._rdr._read_image(int(index))
         frame.shape = self._raw_frame_shape
         return frame.transpose((2, 0, 1, 3)).squeeze()
 

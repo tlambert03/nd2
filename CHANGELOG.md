@@ -1,8 +1,42 @@
 # Changelog
 
-## [0.3.0](https://github.com/tlambert03/nd2/tree/0.3.0) (2022-06-25)
+## [0.4.2](https://github.com/tlambert03/nd2/tree/0.4.2) (2022-09-10)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.2.5...0.3.0)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.1...0.4.2)
+
+**Fixed bugs:**
+
+- fix: better fix for images with non-normal strides [\#92](https://github.com/tlambert03/nd2/pull/92) ([tlambert03](https://github.com/tlambert03))
+
+## [v0.4.1](https://github.com/tlambert03/nd2/tree/v0.4.1) (2022-09-09)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.0...v0.4.1)
+
+**Fixed bugs:**
+
+- fix: Fix images where widthPx x Bytes is not the same as expected width Bytes [\#90](https://github.com/tlambert03/nd2/pull/90) ([tlambert03](https://github.com/tlambert03))
+
+## [v0.4.0](https://github.com/tlambert03/nd2/tree/v0.4.0) (2022-08-19)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.3.0...v0.4.0)
+
+**Implemented enhancements:**
+
+- feat: Add native macosx-arm64 \(M1\) support [\#87](https://github.com/tlambert03/nd2/pull/87) ([tlambert03](https://github.com/tlambert03))
+
+**Fixed bugs:**
+
+- fix: Typo in legacy requirements [\#79](https://github.com/tlambert03/nd2/pull/79) ([c0deizbae](https://github.com/c0deizbae))
+
+**Merged pull requests:**
+
+- ci\(dependabot\): bump pypa/cibuildwheel from 2.8.1 to 2.9.0 [\#84](https://github.com/tlambert03/nd2/pull/84) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump pypa/cibuildwheel from 2.8.0 to 2.8.1 [\#81](https://github.com/tlambert03/nd2/pull/81) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump pypa/cibuildwheel from 2.7.0 to 2.8.0 [\#80](https://github.com/tlambert03/nd2/pull/80) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v0.3.0](https://github.com/tlambert03/nd2/tree/v0.3.0) (2022-06-25)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.2.5...v0.3.0)
 
 **Implemented enhancements:**
 
@@ -78,7 +112,7 @@
 
 ## [v0.2.0](https://github.com/tlambert03/nd2/tree/v0.2.0) (2022-02-20)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5-1...v0.2.0)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.6...v0.2.0)
 
 **Merged pull requests:**
 
@@ -91,13 +125,13 @@
 - \[pre-commit.ci\] pre-commit autoupdate [\#34](https://github.com/tlambert03/nd2/pull/34) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 - \[pre-commit.ci\] pre-commit autoupdate [\#33](https://github.com/tlambert03/nd2/pull/33) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 
-## [v0.1.5-1](https://github.com/tlambert03/nd2/tree/v0.1.5-1) (2021-11-12)
-
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.6...v0.1.5-1)
-
 ## [v0.1.6](https://github.com/tlambert03/nd2/tree/v0.1.6) (2021-11-12)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5...v0.1.6)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5-1...v0.1.6)
+
+## [v0.1.5-1](https://github.com/tlambert03/nd2/tree/v0.1.5-1) (2021-11-12)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5...v0.1.5-1)
 
 ## [v0.1.5](https://github.com/tlambert03/nd2/tree/v0.1.5) (2021-11-12)
 

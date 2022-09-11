@@ -55,8 +55,8 @@ DATA = Path(__file__).parent / "data"
         ),
         (
             "ND2_dims_p4z5t3c2y32x32.nd2",
-            "XYPos:0",
-            ("XYPos:0", "XYPos:1", "XYPos:2", "XYPos:3"),
+            "point name 1",
+            ("point name 1", "point name 2", "point name 3", "point name 4"),
             (3, 5, 2, 32, 32),
             np.uint16,
             "TZCYX",
@@ -85,8 +85,8 @@ DATA = Path(__file__).parent / "data"
         ),
         (
             "ND2_dims_p2z5t3-2c4y32x32.nd2",
-            "XYPos:1",
-            ("XYPos:0", "XYPos:1"),
+            "point name 1",
+            ("point name 1", "point name 2"),
             (5, 5, 4, 32, 32),
             np.uint16,
             "TZCYX",

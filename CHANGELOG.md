@@ -1,8 +1,16 @@
 # Changelog
 
-## [0.4.2](https://github.com/tlambert03/nd2/tree/0.4.2) (2022-09-10)
+## [0.4.3](https://github.com/tlambert03/nd2/tree/0.4.3) (2022-09-11)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.1...0.4.2)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.2...0.4.3)
+
+**Implemented enhancements:**
+
+- Add `unstructured_metadata` method, fix missing position names in experiment. [\#93](https://github.com/tlambert03/nd2/pull/93) ([tlambert03](https://github.com/tlambert03))
+
+## [v0.4.2](https://github.com/tlambert03/nd2/tree/v0.4.2) (2022-09-10)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.1...v0.4.2)
 
 **Fixed bugs:**
 

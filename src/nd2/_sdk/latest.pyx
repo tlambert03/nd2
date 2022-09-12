@@ -287,7 +287,7 @@ cdef class ND2Reader:
 
         array_wrapper = PicWrapper()
         array_wrapper.set_pic(pic, Lim_DestroyPicture)
-        return array_wrapper.to_ndarray()
+        return array_wrapper.to_ndarray()[:, :pic.uiWidth]
 
     cpdef np.ndarray _read_image_from_memmap(self, index: int):
         """Read a chunk directly without using SDK"""
@@ -420,7 +420,7 @@ cdef class PicWrapper:
     def __array__(self):
         cdef np.npy_intp shape[3]
         shape[0] = <np.npy_intp> self.pic.uiHeight
-        shape[1] = <np.npy_intp> self.pic.uiWidth
+        shape[1] = <np.npy_intp> self.pic.uiWidthBytes // (np.ceil(self.pic.uiBitsPerComp / 8) * self.pic.uiComponents)
         shape[2] = <np.npy_intp> self.pic.uiComponents
         return np.PyArray_SimpleNewFromData(3, shape, self.dtype, self.pic.pImageData)
 

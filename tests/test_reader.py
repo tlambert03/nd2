@@ -304,5 +304,4 @@ def test_extra_width_bytes():
         str(DATA / "jonas_JJ1473_control_24h_JJ1473_control_24h_03.nd2"),
         read_using_sdk=True,
     )
-    # NOTE: we actually WANT this to pass... but the SDK isn't doing the right thing
-    assert not np.array_equal(im[0, 0, :4, :4], expected)
+    assert np.array_equal(im[0, 0, :4, :4], expected)

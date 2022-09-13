@@ -420,7 +420,8 @@ cdef class PicWrapper:
     def __array__(self):
         cdef np.npy_intp shape[3]
         shape[0] = <np.npy_intp> self.pic.uiHeight
-        shape[1] = <np.npy_intp> self.pic.uiWidthBytes // (np.ceil(self.pic.uiBitsPerComp / 8) * self.pic.uiComponents)
+        # np.ceil because pic doesn't offer uiBitsPerCompInMemory... so round up to the nearest byte
+        shape[1] = <np.npy_intp> int(self.pic.uiWidthBytes / (np.ceil(self.pic.uiBitsPerComp / 8) * self.pic.uiComponents))
         shape[2] = <np.npy_intp> self.pic.uiComponents
         return np.PyArray_SimpleNewFromData(3, shape, self.dtype, self.pic.pImageData)
 

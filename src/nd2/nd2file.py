@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     import xarray as xr
     from typing_extensions import Literal
 
+    from ._sdk.latest import ND2Reader as LatestSDKReader
     from .structures import Position
 
 
@@ -169,34 +170,34 @@ class ND2File:
                         tuple(p.stagePositionUm): p.name for p in item.parameters.points
                     }
                     if not any(names.values()):
-                        _exp = self.unstructured_metadata(unnest=True)
+                        _exp = self.unstructured_metadata(
+                            include={"ImageMetadataLV"}, unnest=True
+                        )["ImageMetadataLV"]
                         if n >= len(_exp):
                             continue
                         with contextlib.suppress(Exception):
                             _fix_names(_exp[n], item.parameters.points)
         return exp
 
-    @overload
     def unstructured_metadata(
-        self, unnest: Literal[True], strip_prefix: bool = True
-    ) -> List[Dict[str, Any]]:
-        ...
-
-    @overload
-    def unstructured_metadata(
-        self, unnest: Literal[False] = False, strip_prefix: bool = True
+        self,
+        *,
+        unnest: bool = False,
+        strip_prefix: bool = True,
+        include: Optional[Set[str]] = None,
+        exclude: Optional[Set[str]] = None,
     ) -> Dict[str, Any]:
-        ...
+        """Exposes, and attempts to decode, each metadata chunk in the file.
 
-    def unstructured_metadata(
-        self, unnest: bool = False, strip_prefix: bool = True
-    ) -> Union[list, dict]:
-        """Exposes all metadata in the `ImageMetadataLV` portion of the nd2 header.
+        This is provided as a *experimental* fallback in the event that
+        `ND2File.experiment` does not contain all of the information you need. No
+        attempt is made to parse or validate the metadata, and the format of various
+        sections, *may* change in future versions of nd2. Consumption of this metadata
+        should use appropriate exception handling!
 
-        This is provided as a fallback in the event that ND2File.experiment does not
-        contain all of the information you need. No attempt is made to parse the
-        metadata. Consumption of this metadata should use appropriate exception
-        handling.
+        The 'ImageMetadataLV' chunk is the most likely to contain useful information,
+        but if you're generally looking for "hidden" metadata, it may be helpful to
+        look at the full output.
 
         Parameters
         ----------
@@ -208,12 +209,18 @@ class ND2File:
             Whether to strip the type information from the front of the keys in the
             dict. For example, if `True`: `uiModeFQ` becomes `ModeFQ` and `bUsePFS`
             becomes `UsePFS`, etc... by default `True`
+        include : Optional[Set[str]], optional
+            If provided, only include the specified keys in the output. by default,
+            all metadata sections found in the file are included.
+        exclude : Optional[Set[str]], optional
+            If provided, exclude the specified keys from the output. by default `None`
 
         Returns
         -------
-        Union[list[list | dict], dict]
-            If unnest is `True`, returns a `list` of dicts or lists, else a `dict` is
-            returned where nested experiment loop levels are available at `NextLevelEx`.
+        Dict[str, Any]
+            A dict of the unstructured metadata, with keys that are the type of the
+            metadata chunk (things like 'CustomData|RoiMetadata_v1' or
+            'ImageMetadataLV'), and values that are associated metadata chunk.
         """
         if self.is_legacy:
             raise NotImplementedError(
@@ -222,14 +229,28 @@ class ND2File:
 
         from ._nd2decode import decode_metadata, unnest_experiments
 
-        try:
-            meta = self._rdr._get_meta_chunk("ImageMetadataLV")  # type: ignore
-        except KeyError:
-            return [] if unnest else {}
+        output: Dict[str, Any] = {}
 
-        data = decode_metadata(meta, strip_prefix=strip_prefix)
-        data = data["SLxExperiment"]
-        return unnest_experiments(data) if unnest else data
+        rdr = cast("LatestSDKReader", self._rdr)
+        keys = set(include) if include else set(rdr._meta_map)
+        if exclude:
+            keys = {k for k in keys if k not in exclude}
+
+        for key in sorted(keys):
+            try:
+                meta: bytes = rdr._get_meta_chunk(key)
+                if meta.startswith(b"<"):
+                    # probably xml
+                    decoded: Any = meta.decode("utf-8")
+                else:
+                    decoded = decode_metadata(meta, strip_prefix=strip_prefix)
+                    if key == "ImageMetadataLV" and unnest:
+                        decoded = unnest_experiments(decoded)
+            except Exception:
+                decoded = meta
+
+            output[key] = decoded
+        return output
 
     @cached_property
     def metadata(self) -> Union[Metadata, dict]:

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -7,6 +7,9 @@ from .. import structures
 
 class ND2Reader:
     path: str
+    _meta_map: Dict[str, int]  # map of metadata keys to their byte offset
+    _frame_map: Dict[int, int]  # map of sequence index to byte offset
+
     def __init__(
         self,
         path: Union[str, Path],
@@ -42,3 +45,5 @@ class ND2Reader:
     def _custom_data(self) -> Dict[str, Any]: ...
     def _read_image(self, index: int) -> np.ndarray: ...
     def channel_names(self) -> List[str]: ...
+    def _get_meta_chunk(self, key: str) -> bytes:
+        """Return the metadata chunk for the given key in `_meta_map`."""

@@ -66,9 +66,14 @@ f.attributes        # nd2.structures.Attributes
 f.metadata          # nd2.structures.Metadata
 f.frame_metadata(0) # nd2.structures.FrameMetadata (frame-specific meta)
 f.experiment        # List[nd2.structures.ExpLoop]
-f.text_info         # dict of misc info
-f.custom_data       # mishmash of data extracted from file
 f.voxel_size()      # VoxelSize(x=0.65, y=0.65, z=1.0)
+f.text_info         # dict of misc info
+
+# allll the metadata we can find...
+# no attempt made to standardize or parse it
+# look in here if you're searching for metdata that isn't exposed in the above
+f.unstructured_metadata()
+f.custom_data       # bits of unstructured metadata that start with CustomData
 
 f.close()           # don't forget to close when done!
 f.closed            # boolean, whether the file is closed

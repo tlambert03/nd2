@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.4.5](https://github.com/tlambert03/nd2/tree/0.4.5) (2022-10-06)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.4...0.4.5)
+
+**Implemented enhancements:**
+
+- feat: offer full unstructured data [\#101](https://github.com/tlambert03/nd2/pull/101) ([tlambert03](https://github.com/tlambert03))
+
+**Fixed bugs:**
+
+- fix: fix rounding error in numpy pre-release [\#96](https://github.com/tlambert03/nd2/pull/96) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- ci\(dependabot\): bump pypa/cibuildwheel from 2.10.1 to 2.10.2 [\#98](https://github.com/tlambert03/nd2/pull/98) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump pypa/cibuildwheel from 2.9.0 to 2.10.1 [\#97](https://github.com/tlambert03/nd2/pull/97) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v0.4.4](https://github.com/tlambert03/nd2/tree/v0.4.4) (2022-09-12)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.3...v0.4.4)

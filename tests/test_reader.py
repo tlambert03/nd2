@@ -37,6 +37,8 @@ def test_metadata_extraction(new_nd2: Path):
         assert isinstance(nd.closed, bool)
         assert isinstance(nd.ndim, int)
 
+        assert isinstance(nd.unstructured_metadata(), dict)
+
     assert nd.closed
 
 

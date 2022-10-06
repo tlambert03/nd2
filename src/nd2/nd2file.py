@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import mmap
 import threading
+import warnings
 from enum import Enum
 from itertools import product
 from pathlib import Path
@@ -163,7 +164,7 @@ class ND2File:
         # the SDK doesn't always do a good job of pulling position names from metadata
         # here, we try to extract it manually.  Might be error prone, so currently
         # we just ignore errors.
-        if not self.is_legacy:
+        if not self.is_legacy and "ImageMetadataLV" in self._rdr._meta_map:  # type: ignore # noqa
             for n, item in enumerate(exp):
                 if isinstance(item, XYPosLoop):
                     names = {
@@ -232,7 +233,15 @@ class ND2File:
         output: Dict[str, Any] = {}
 
         rdr = cast("LatestSDKReader", self._rdr)
-        keys = set(include) if include else set(rdr._meta_map)
+        keys = set(rdr._meta_map)
+        if include:
+            _keys: Set[str] = set()
+            for i in include:
+                if i not in keys:
+                    warnings.warn(f"include key {i!r} not found in metadata")
+                else:
+                    _keys.add(i)
+            keys = _keys
         if exclude:
             keys = {k for k in keys if k not in exclude}
 

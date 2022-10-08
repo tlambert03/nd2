@@ -6,7 +6,7 @@ from zipfile import ZipFile
 import requests
 
 TEST_DATA = str(Path(__file__).parent.parent / "tests" / "data")
-URL = "https://www.dropbox.com/s/8jknj9jghdsk6y1/nd2_test_data.zip?dl=1"
+URL = "https://www.dropbox.com/s/q57orjfzzagzull/nd2_test_data.zip?dl=1"
 
 
 def main():

@@ -1,8 +1,16 @@
 # Changelog
 
-## [0.4.5](https://github.com/tlambert03/nd2/tree/0.4.5) (2022-10-06)
+## [0.4.6](https://github.com/tlambert03/nd2/tree/0.4.6) (2022-10-08)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.4...0.4.5)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.5...0.4.6)
+
+**Implemented enhancements:**
+
+- feat: add roi parsing [\#102](https://github.com/tlambert03/nd2/pull/102) ([tlambert03](https://github.com/tlambert03))
+
+## [v0.4.5](https://github.com/tlambert03/nd2/tree/v0.4.5) (2022-10-06)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.4...v0.4.5)
 
 **Implemented enhancements:**
 

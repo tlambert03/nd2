@@ -6,7 +6,7 @@ from zipfile import ZipFile
 import requests
 
 TEST_DATA = str(Path(__file__).parent.parent / "tests" / "data")
-URL = "https://www.dropbox.com/s/shbuvnkheudt7d7/nd2_test_data.zip?dl=1"
+URL = "https://www.dropbox.com/s/q57orjfzzagzull/nd2_test_data.zip?dl=1"
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
             dl += len(data)
             f.write(data)
             done = int(50 * dl / total_length)
-            sys.stdout.write("\r[{}{}]".format("=" * done, " " * (50 - done)))
+            sys.stdout.write(f'\r[{"=" * done}{" " * (50 - done)}]')
             sys.stdout.flush()
     with ZipFile(f) as zf:
         zf.extractall(TEST_DATA)

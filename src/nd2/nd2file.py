@@ -23,7 +23,7 @@ from typing import (
 import numpy as np
 
 from ._util import AXIS, VoxelSize, get_reader, is_supported_file
-from .structures import Attributes, ExpLoop, FrameMetadata, Metadata, XYPosLoop
+from .structures import ROI, Attributes, ExpLoop, FrameMetadata, Metadata, XYPosLoop
 
 try:
     from functools import cached_property
@@ -43,6 +43,9 @@ if TYPE_CHECKING:
 
 
 Index = Union[int, slice]
+
+ROI_METADATA = "CustomData|RoiMetadata_v1"
+IMG_METADATA = "ImageMetadataLV"
 
 
 class ReadMode(str, Enum):
@@ -156,6 +159,21 @@ class ND2File:
         return self._rdr.text_info()
 
     @cached_property
+    def rois(self) -> Dict[int, ROI]:
+        """Return dict of {id: ROI} for all ROIs found in the metadata."""
+        if self.is_legacy or ROI_METADATA not in self._rdr._meta_map:  # type: ignore
+            return {}
+        data = self.unstructured_metadata(include={ROI_METADATA})
+        data = data.get(ROI_METADATA, {}).get("RoiMetadata_v1", {})
+        data.pop("Global_Size", None)
+        try:
+            _rois = (ROI._from_meta_dict(d) for d in data.values())
+            rois = {r.id: r for r in _rois}
+        except Exception as e:
+            raise ValueError(f"Could not parse ROI metadata: {e}") from e
+        return rois
+
+    @cached_property
     def experiment(self) -> List[ExpLoop]:
         """Loop information for each nd axis"""
         exp = self._rdr.experiment()
@@ -164,7 +182,7 @@ class ND2File:
         # the SDK doesn't always do a good job of pulling position names from metadata
         # here, we try to extract it manually.  Might be error prone, so currently
         # we just ignore errors.
-        if not self.is_legacy and "ImageMetadataLV" in self._rdr._meta_map:  # type: ignore # noqa
+        if not self.is_legacy and IMG_METADATA in self._rdr._meta_map:  # type: ignore
             for n, item in enumerate(exp):
                 if isinstance(item, XYPosLoop):
                     names = {
@@ -172,8 +190,8 @@ class ND2File:
                     }
                     if not any(names.values()):
                         _exp = self.unstructured_metadata(
-                            include={"ImageMetadataLV"}, unnest=True
-                        )["ImageMetadataLV"]
+                            include={IMG_METADATA}, unnest=True
+                        )[IMG_METADATA]
                         if n >= len(_exp):
                             continue
                         with contextlib.suppress(Exception):
@@ -238,7 +256,7 @@ class ND2File:
             _keys: Set[str] = set()
             for i in include:
                 if i not in keys:
-                    warnings.warn(f"include key {i!r} not found in metadata")
+                    warnings.warn(f"Key {i!r} not found in metadata")
                 else:
                     _keys.add(i)
             keys = _keys
@@ -253,7 +271,7 @@ class ND2File:
                     decoded: Any = meta.decode("utf-8")
                 else:
                     decoded = decode_metadata(meta, strip_prefix=strip_prefix)
-                    if key == "ImageMetadataLV" and unnest:
+                    if key == IMG_METADATA and unnest:
                         decoded = unnest_experiments(decoded)
             except Exception:
                 decoded = meta

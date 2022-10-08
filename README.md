@@ -66,6 +66,7 @@ f.attributes        # nd2.structures.Attributes
 f.metadata          # nd2.structures.Metadata
 f.frame_metadata(0) # nd2.structures.FrameMetadata (frame-specific meta)
 f.experiment        # List[nd2.structures.ExpLoop]
+f.rois              # Dict[int, nd2.structures.ROI]
 f.voxel_size()      # VoxelSize(x=0.65, y=0.65, z=1.0)
 f.text_info         # dict of misc info
 
@@ -229,6 +230,62 @@ Metadata(
 ```
 
 </details>
+
+
+<details>
+
+<summary><code>rois</code></summary>
+
+ROIs found in the metadata are available at `ND2File.rois`, which is a
+`dict` of `nd2.structures.ROI` objects, keyed by the ROI ID:
+
+```python
+{
+    1: ROI(
+        id=1,
+        info=RoiInfo(
+            shapeType=<RoiShapeType.Rectangle: 3>,
+            interpType=<InterpType.StimulationROI: 4>,
+            cookie=1,
+            color=255,
+            label='',
+            stimulationGroup=0,
+            scope=1,
+            appData=0,
+            multiFrame=False,
+            locked=False,
+            compCount=2,
+            bpc=16,
+            autodetected=False,
+            gradientStimulation=False,
+            gradientStimulationBitDepth=0,
+            gradientStimulationLo=0.0,
+            gradientStimulationHi=0.0
+        ),
+        guid='{87190352-9B32-46E4-8297-C46621C1E1EF}',
+        animParams=[
+            AnimParam(
+                timeMs=0.0,
+                enabled=1,
+                centerX=-0.4228425369685782,
+                centerY=-0.5194951478743071,
+                centerZ=0.0,
+                rotationZ=0.0,
+                boxShape=BoxShape(
+                    sizeX=0.21256931608133062,
+                    sizeY=0.21441774491682075,
+                    sizeZ=0.0
+                ),
+                extrudedShape=ExtrudedShape(sizeZ=0, basePoints=[])
+            )
+        ]
+    ),
+    ...
+}
+```
+
+</details>
+
 
 <details>
 

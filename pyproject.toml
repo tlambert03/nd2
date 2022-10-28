@@ -51,7 +51,7 @@ legacy = [
     "wurlitzer",
 ]
 test = [
-    "aicsimageio; platform_system=='Windows' or python_version<'3.11'",
+    "aicsimageio; python_version<'3.11'",
     "Cython",
     "dask[array]",
     "imagecodecs; platform_system=='Windows' or python_version<'3.11'",

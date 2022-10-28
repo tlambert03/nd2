@@ -22,6 +22,7 @@ from typing import (
 
 import numpy as np
 
+from ._nd2decode import _decode_custom_data, decode_metadata, unnest_experiments
 from ._util import AXIS, VoxelSize, get_reader, is_supported_file
 from .structures import ROI, Attributes, ExpLoop, FrameMetadata, Metadata, XYPosLoop
 
@@ -245,8 +246,6 @@ class ND2File:
             raise NotImplementedError(
                 "unstructured_metadata not available for legacy files"
             )
-
-        from ._nd2decode import decode_metadata, unnest_experiments
 
         output: Dict[str, Any] = {}
 
@@ -697,6 +696,35 @@ class ND2File:
         except Exception:
             extra = ""
         return f"<ND2File at {hex(id(self))}{extra}>"
+
+    def recorded_data(self) -> Dict[str, list]:
+        if self.is_legacy:
+            warnings.warn(
+                "recorded_data is not supported for legacy ND2 files", UserWarning
+            )
+            return {}
+
+        cd = self.custom_data
+        if "CustomDataV2_0" not in cd:
+            return {}
+        try:
+            tags: dict = self.custom_data["CustomDataV2_0"]["CustomTagDescription_v1.0"]
+        except KeyError:
+            warnings.warn(
+                "Could not find 'CustomTagDescription_v1' tag, please open an issue "
+                "with this nd2 file at https://github.com/tlambert03/nd2/issues/new",
+            )
+            return {}
+
+        # tags will be a dict of dicts: eg:
+        # {'Tag0': {'ID': 'X', 'Type': 3, 'Group': 1, 'Size': 5000, 'Desc': 'X Coord', 'Unit': 'µm'}}  # noqa
+        data: Dict[str, list] = {}
+        for tag in tags.values():
+            header = f"{tag['Desc']} [{tag['Unit']}]"
+            raw = self._rdr._get_meta_chunk(f"CustomData|{tag['ID']}")  # type: ignore
+            data[header] = _decode_custom_data(raw, tag["Type"], tag["Size"])
+
+        return data
 
 
 @overload

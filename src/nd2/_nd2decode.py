@@ -4,6 +4,8 @@ import struct
 from functools import partial
 from typing import Any, Callable, Dict, List, cast
 
+import numpy as np
+
 from .structures import LoopType
 
 __all__ = ["decode_metadata", "unnest_experiments"]
@@ -143,3 +145,12 @@ _PARSER: Dict[int, Callable] = {
     8: _unpack_string,
     9: _unpack_list,
 }
+
+
+def _decode_custom_data(data: bytes, type: int, count: int):
+    if type == 3:
+        return np.frombuffer(data, dtype=np.float64, count=count).tolist()
+    elif type == 2:
+        return np.frombuffer(data, dtype=np.uint32, count=count).tolist()
+    elif type == 1:
+        return [""] * count

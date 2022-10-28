@@ -1,6 +1,7 @@
 import io
 import re
 import struct
+import warnings
 from functools import partial
 from typing import Any, Callable, Dict, List, cast
 
@@ -154,3 +155,6 @@ def _decode_custom_data(data: bytes, type: int, count: int):
         return np.frombuffer(data, dtype=np.uint32, count=count).tolist()
     elif type == 1:
         return [""] * count
+    else:
+        warnings.warn(f"Unknown custom data type: {type!r}")
+        return [None] * count

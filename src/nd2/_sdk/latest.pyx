@@ -204,6 +204,10 @@ cdef class ND2Reader:
             free(output)
 
     def _coord_info(self) -> List[Tuple[int, str, int]]:
+        """Returns a list of tuples (index, type, size) for each coordinate.
+
+        e.g. [(0, 'NETimeLoop', 5), (1, 'XYPosLoop', 2), (2, 'ZStackLoop', 5)]
+        """
         cdef LIMCHAR loop_type[256]
         cdef LIMSIZE size = self._coord_size()
         if size == 0:

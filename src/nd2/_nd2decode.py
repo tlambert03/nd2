@@ -3,7 +3,7 @@ import re
 import struct
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, List, cast
+from typing import Any, Callable, Dict, List, Sequence, Union, cast
 
 import numpy as np
 
@@ -148,12 +148,18 @@ _PARSER: Dict[int, Callable] = {
 }
 
 
-def _decode_custom_data(data: bytes, type: int, count: int):
+def _decode_custom_data(
+    data: bytes, type: int, count: int
+) -> Union[np.ndarray, Sequence]:
+    """Decode data sequences from `CustomData|TagID` sections in the metadata."""
     if type == 3:
-        return np.frombuffer(data, dtype=np.float64, count=count).tolist()
+        return np.frombuffer(data, dtype=np.float64, count=count)
     elif type == 2:
-        return np.frombuffer(data, dtype=np.uint32, count=count).tolist()
+        return np.frombuffer(data, dtype=np.int32, count=count)
     elif type == 1:
+        warnings.warn(
+            "CustomData Column skipped: (parsing string data is not yet implemented)"
+        )
         return [""] * count
     else:
         warnings.warn(f"Unknown custom data type: {type!r}")

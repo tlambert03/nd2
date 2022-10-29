@@ -24,7 +24,15 @@ import numpy as np
 
 from ._nd2decode import _decode_custom_data, decode_metadata, unnest_experiments
 from ._util import AXIS, VoxelSize, get_reader, is_supported_file
-from .structures import ROI, Attributes, ExpLoop, FrameMetadata, Metadata, XYPosLoop
+from .structures import (
+    ROI,
+    Attributes,
+    ExpLoop,
+    FrameMetadata,
+    Metadata,
+    XYPosLoop,
+    ZStackLoop,
+)
 
 try:
     from functools import cached_property
@@ -697,12 +705,25 @@ class ND2File:
             extra = ""
         return f"<ND2File at {hex(id(self))}{extra}>"
 
-    def recorded_data(self) -> Dict[str, list]:
+    @cached_property
+    def recorded_data(self) -> Dict[str, Union[np.ndarray, Sequence]]:
+        """Return tabular data recorded for each frame of the experiment.
+
+        This method returns a dict of equal-length sequences (passable to
+        pd.DataFrame()). It matches the tabular data reported in the Image Properties >
+        Recorded Data tab of the NIS Viewer.
+
+        (There will be a column for each tag in the `CustomDataV2_0` section of
+        `ND2File.custom_data`)
+
+        Legacy ND2 files are not supported.
+        """
         if self.is_legacy:
             warnings.warn(
-                "recorded_data is not supported for legacy ND2 files", UserWarning
+                "`recorded_data` is not supported for legacy ND2 files", UserWarning
             )
             return {}
+        rdr = cast("LatestSDKReader", self._rdr)
 
         cd = self.custom_data
         if "CustomDataV2_0" not in cd:
@@ -718,10 +739,38 @@ class ND2File:
 
         # tags will be a dict of dicts: eg:
         # {'Tag0': {'ID': 'X', 'Type': 3, 'Group': 1, 'Size': 5000, 'Desc': 'X Coord', 'Unit': 'µm'}}  # noqa
-        data: Dict[str, list] = {}
+        # FIXME: technically, it is possible to have multiple tags with the same Desc
+        # (e.g. for IDs PFS_OFFSET and Z2). In the current implementation, the
+        # 2nd tag will overwrite the first one.
+        data: Dict[str, Union[np.ndarray, Sequence]] = {}
+        with contextlib.suppress(KeyError):
+            chunk = rdr._get_meta_chunk("CustomData|AcqTimesCache")
+            data["Time [s]"] = np.frombuffer(chunk) / 1000
+
+        try:
+            z_idx = [AXIS._MAP[c[1]] for c in self._rdr._coord_info()].index(AXIS.Z)
+        except ValueError:
+            pass
+        else:
+            # TODO: this is probably slow... and could definitely be improved
+            z_loop = cast("ZStackLoop", self.experiment[z_idx])
+            z_positions = [
+                z_loop.parameters.stepUm * (i - z_loop.parameters.homeIndex)
+                for i in range(z_loop.count)
+            ]
+            if not z_loop.parameters.bottomToTop:
+                z_positions = list(reversed(z_positions))
+
+            data["Z-Series"] = np.array(
+                [
+                    z_positions[rdr._coords_from_seq_index(i)[z_idx]]
+                    for i in range(self.attributes.sequenceCount)
+                ]
+            )
+
         for tag in tags.values():
             header = f"{tag['Desc']} [{tag['Unit']}]"
-            raw = self._rdr._get_meta_chunk(f"CustomData|{tag['ID']}")  # type: ignore
+            raw = rdr._get_meta_chunk(f"CustomData|{tag['ID']}")
             data[header] = _decode_custom_data(raw, tag["Type"], tag["Size"])
 
         return data

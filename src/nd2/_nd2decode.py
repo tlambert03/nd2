@@ -157,9 +157,6 @@ def _decode_custom_data(
     elif type == 2:
         return np.frombuffer(data, dtype=np.int32, count=count)
     elif type == 1:
-        warnings.warn(
-            "CustomData Column skipped: (parsing string data is not yet implemented)"
-        )
         return [""] * count
     else:
         warnings.warn(f"Unknown custom data type: {type!r}")

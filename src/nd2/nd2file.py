@@ -769,9 +769,18 @@ class ND2File:
             )
 
         for tag in tags.values():
-            header = f"{tag['Desc']} [{tag['Unit']}]"
+            header = f"{tag['Desc']}"
+            if tag["Unit"]:
+                header += f" [{tag['Unit']}]"
             raw = rdr._get_meta_chunk(f"CustomData|{tag['ID']}")
-            data[header] = _decode_custom_data(raw, tag["Type"], tag["Size"])
+            _type = tag["Type"]
+            if _type == 1:
+                warnings.warn(
+                    f"{header!r} column skipped: "
+                    "(parsing string data is not yet implemented)"
+                )
+            else:
+                data[header] = _decode_custom_data(raw, _type, tag["Size"])
 
         return data
 

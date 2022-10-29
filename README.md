@@ -75,6 +75,9 @@ f.text_info         # dict of misc info
 # look in here if you're searching for metdata that isn't exposed in the above
 f.unstructured_metadata()
 f.custom_data       # bits of unstructured metadata that start with CustomData
+f.recorded_data   # returns a dict of lists (passable to pandas.DataFrame) that
+                    # the tabular "Recorded Data" view from in NIS Elements/Viewer
+                    # with info for each frame in the experiment.
 
 f.close()           # don't forget to close when done!
 f.closed            # boolean, whether the file is closed
@@ -193,7 +196,6 @@ Metadata(
 
 </details>
 
-
 <details>
 
 <summary><code>experiment</code></summary>
@@ -230,7 +232,6 @@ Metadata(
 ```
 
 </details>
-
 
 <details>
 
@@ -285,7 +286,6 @@ ROIs found in the metadata are available at `ND2File.rois`, which is a
 ```
 
 </details>
-
 
 <details>
 
@@ -571,6 +571,63 @@ No attempt is made to parse this data.  It will vary from file to file, but you 
 
 </details>
 
+<details>
+
+<summary><code>recorded_data</code></summary>
+
+This method returns a `dict` of equal-length sequences.
+It matches the tabular data reported in the `Image Properties > Recorded Data` tab of the NIS Viewer.
+
+(There will be a column for each tag in the `CustomDataV2_0` section of `custom_data` above.)
+
+```python
+{
+    'Time [s]': array([ 1.32686654,  1.69089657,  2.04194662,  2.38194662,  2.63795663,
+        8.7022286 ,  9.03626864,  9.33031869,  9.63934872,  9.90636874,
+       11.48143856, 11.7964786 , 12.0894786 , 12.37153866, 12.66546859]),
+    'Z-Series': array([-2., -1.,  0.,  1.,  2., -2., -1.,  0.,  1.,  2., -2., -1.,  0.,
+        1.,  2.]),
+    'Exposure Time [ms]': array([100., 100., 100., 100., 100., 100., 100., 100., 100., 100., 100.,
+       100., 100., 100., 100.]),
+    'PFS Offset []': array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=int32),
+    'PFS Status []': array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=int32),
+    'X Coord [µm]': array([31452.2, 31452.2, 31452.2, 31452.2, 31452.2, 31452.2, 31452.2,
+       31452.2, 31452.2, 31452.2, 31452.2, 31452.2, 31452.2, 31452.2,
+       31452.2]),
+    'Y Coord [µm]': array([-1801.6, -1801.6, -1801.6, -1801.6, -1801.6, -1801.6, -1801.6,
+       -1801.6, -1801.6, -1801.6, -1801.6, -1801.6, -1801.6, -1801.6,
+       -1801.6]),
+    'Z Coord [µm]': array([552.74, 553.74, 554.74, 555.74, 556.74, 552.7 , 553.7 , 554.68,
+       555.7 , 556.64, 552.68, 553.68, 554.68, 555.68, 556.68]),
+    'Ti2 ZDrive [µm]': array([552.74, 553.74, 554.74, 555.74, 556.74, 552.7 , 553.7 , 554.68,
+       555.7 , 556.64, 552.68, 553.68, 554.68, 555.68, 556.68])
+}
+```
+
+You can pass the output of `recorded_data` to `pandas.DataFrame`:
+
+```python
+In [13]: pd.DataFrame(nd2file.recorded_data)
+Out[13]:
+     Time [s]  Z-Series  Exposure Time [ms]  PFS Offset []  PFS Status []  X Coord [µm]  Y Coord [µm]  Z Coord [µm]  Ti2 ZDrive [µm]
+0    1.326867      -2.0               100.0              0              0       31452.2       -1801.6        552.74           552.74
+1    1.690897      -1.0               100.0              0              0       31452.2       -1801.6        553.74           553.74
+2    2.041947       0.0               100.0              0              0       31452.2       -1801.6        554.74           554.74
+3    2.381947       1.0               100.0              0              0       31452.2       -1801.6        555.74           555.74
+4    2.637957       2.0               100.0              0              0       31452.2       -1801.6        556.74           556.74
+5    8.702229      -2.0               100.0              0              0       31452.2       -1801.6        552.70           552.70
+6    9.036269      -1.0               100.0              0              0       31452.2       -1801.6        553.70           553.70
+7    9.330319       0.0               100.0              0              0       31452.2       -1801.6        554.68           554.68
+8    9.639349       1.0               100.0              0              0       31452.2       -1801.6        555.70           555.70
+9    9.906369       2.0               100.0              0              0       31452.2       -1801.6        556.64           556.64
+10  11.481439      -2.0               100.0              0              0       31452.2       -1801.6        552.68           552.68
+11  11.796479      -1.0               100.0              0              0       31452.2       -1801.6        553.68           553.68
+12  12.089479       0.0               100.0              0              0       31452.2       -1801.6        554.68           554.68
+13  12.371539       1.0               100.0              0              0       31452.2       -1801.6        555.68           555.68
+14  12.665469       2.0               100.0              0              0       31452.2       -1801.6        556.68           556.68
+
+```
+</details>
 ## alternatives
 
 - [pims_nd2](https://github.com/soft-matter/pims_nd2) - *pims-based reader. ctypes wrapper around the v9.00 (2015) SDK*

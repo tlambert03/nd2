@@ -1,8 +1,21 @@
 # Changelog
 
-## [0.4.6](https://github.com/tlambert03/nd2/tree/0.4.6) (2022-10-08)
+## [0.5.0](https://github.com/tlambert03/nd2/tree/0.5.0) (2022-10-29)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.5...0.4.6)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.6...0.5.0)
+
+**Implemented enhancements:**
+
+- feat: Extract recorded data [\#107](https://github.com/tlambert03/nd2/pull/107) ([tlambert03](https://github.com/tlambert03))
+- feat: support python 3.11 [\#106](https://github.com/tlambert03/nd2/pull/106) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- ci\(dependabot\): bump pypa/cibuildwheel from 2.10.2 to 2.11.1 [\#104](https://github.com/tlambert03/nd2/pull/104) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v0.4.6](https://github.com/tlambert03/nd2/tree/v0.4.6) (2022-10-08)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.5...v0.4.6)
 
 **Implemented enhancements:**
 

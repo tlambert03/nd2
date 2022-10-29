@@ -18,7 +18,7 @@ name = "nd2"
 description = "Yet another nd2 (Nikon NIS Elements) file reader"
 readme = "README.md"
 requires-python = ">=3.7,<3.12"
-license = {file = "LICENSE"}
+license = {text = "BSD 3-Clause License"}
 authors = [
   {email = "talley.lambert@gmail.com"},
   {name = "Talley Lambert"},

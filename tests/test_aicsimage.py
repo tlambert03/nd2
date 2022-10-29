@@ -8,7 +8,9 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import pytest
-from aicsimageio.readers.nd2_reader import ND2Reader
+
+pytest.importorskip("aicsimageio")
+from aicsimageio.readers.nd2_reader import ND2Reader  # noqa
 
 DATA = Path(__file__).parent / "data"
 

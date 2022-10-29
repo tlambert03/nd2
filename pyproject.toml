@@ -8,6 +8,7 @@ requires = [
     "numpy==1.17.3; python_version=='3.8'",
     "numpy==1.19.3; python_version=='3.9'",
     "numpy==1.21.3; python_version=='3.10'",
+    "numpy==1.23.2; python_version=='3.11'",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -16,7 +17,7 @@ build-backend = "setuptools.build_meta"
 name = "nd2"
 description = "Yet another nd2 (Nikon NIS Elements) file reader"
 readme = "README.md"
-requires-python = ">=3.7,<3.11"
+requires-python = ">=3.7,<3.12"
 license = {file = "LICENSE"}
 authors = [
   {email = "talley.lambert@gmail.com"},
@@ -30,16 +31,17 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 dynamic = ["version"]
 dependencies = [
-    "lxml",
     "resource-backed-dask-array",
     "typing-extensions",
     "numpy>=1.14.5;python_version=='3.7'",
     "numpy>=1.17.3;python_version=='3.8'",
     "numpy>=1.19.3;python_version=='3.9'",
     "numpy>=1.21.3;python_version=='3.10'",
+    "numpy>=1.23.2;python_version=='3.11'",
 ]
 
 [project.optional-dependencies]
@@ -48,10 +50,11 @@ legacy = [
     "wurlitzer",
 ]
 test = [
-    "aicsimageio",
+    "lxml; python_version<'3.11'",
+    "aicsimageio; python_version<'3.11'",
     "Cython",
     "dask[array]",
-    "imagecodecs",
+    "imagecodecs; platform_system=='Windows' or python_version<'3.11'",
     "psutil",
     "pytest-cov",
     "pytest>=6.0",

@@ -38,6 +38,7 @@ def test_metadata_extraction(new_nd2: Path):
         assert isinstance(nd.ndim, int)
 
         assert isinstance(nd.unstructured_metadata(), dict)
+        assert isinstance(nd.recorded_data, dict)
 
     assert nd.closed
 
@@ -307,3 +308,52 @@ def test_extra_width_bytes():
         read_using_sdk=True,
     )
     assert np.array_equal(im[0, 0, :4, :4], expected)
+
+
+def test_recorded_data() -> None:
+    # this method is smoke-tested for every file above...
+    # but specific values are asserted here:
+    with ND2File(DATA / "cluster.nd2") as f:
+        rd = f.recorded_data
+        headers = list(rd)
+        row_0 = [rd[h][0] for h in headers]
+        assert headers == [
+            "Time [s]",
+            "Z-Series",
+            "Camera 1 Temperature [°C]",
+            "Laser Power; 1.channel [%]",
+            "High Voltage; 1.channel",
+            "Laser Power; 2.channel [%]",
+            "High Voltage; 2.channel",
+            "Laser Power; 3.channel [%]",
+            "High Voltage; 3.channel",
+            "Laser Power; 4.channel [%]",
+            "High Voltage; 4.channel",
+            "Camera 1 Exposure Time [ms]",
+            "High Voltage; TD",
+            "PFS Offset",
+            "PFS Status",
+            "X Coord [µm]",
+            "Y Coord [µm]",
+            "Ti ZDrive [µm]",
+        ]
+        assert row_0 == [
+            0.44508349828422067,
+            -2.0,
+            -5.0,
+            0.0,
+            0,
+            0.5,
+            37,
+            10.758400000000002,
+            137,
+            9.0,
+            75,
+            8.1,
+            0,
+            -1,
+            7,
+            -26056.951209195162,
+            -4155.462732842248,
+            3916.7250000000004,
+        ]

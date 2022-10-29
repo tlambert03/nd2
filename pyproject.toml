@@ -35,7 +35,6 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-    "lxml",
     "resource-backed-dask-array",
     "typing-extensions",
     "numpy>=1.14.5;python_version=='3.7'",
@@ -51,6 +50,7 @@ legacy = [
     "wurlitzer",
 ]
 test = [
+    "lxml; python_version<'3.11'",
     "aicsimageio; python_version<'3.11'",
     "Cython",
     "dask[array]",

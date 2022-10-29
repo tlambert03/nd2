@@ -2,11 +2,14 @@ import re
 from functools import partial
 from typing import Any, Callable, Dict, Optional
 
-import lxml.etree
+try:
+    from lxml import etree
+except ImportError:
+    import xml.etree.ElementTree as etree  # type: ignore
 
 
 def parse_xml_block(bxml: bytes) -> Dict[str, Any]:
-    node = lxml.etree.XML(bxml.split(b"?>", 1)[-1])
+    node = etree.XML(bxml.split(b"?>", 1)[-1])
     return elem2dict(node)
 
 
@@ -25,7 +28,7 @@ _TYPEMAP: Dict[Optional[str], Callable] = {
 }
 
 
-def elem2dict(node: lxml.etree._Element) -> Dict[str, Any]:
+def elem2dict(node: "etree._Element") -> Dict[str, Any]:
     """
     Convert an lxml.etree node tree into a dict.
     """
@@ -43,7 +46,8 @@ def elem2dict(node: lxml.etree._Element) -> Dict[str, Any]:
     attrs.pop("version", None)
     result.update(node.attrib)
 
-    for element in node.iterchildren():
+    # [<Element CustomTagDescription_v1.0 at 0x12a29ac40>]
+    for element in node:
         # Remove namespace prefix
         key = element.tag.split("}")[1] if "}" in element.tag else element.tag
         key = lower.sub("", key) or key

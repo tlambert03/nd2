@@ -792,6 +792,7 @@ class ND2File:
 
     @cached_property
     def binary_data(self) -> list[BinaryData]:
+        """Return binary mask data embedded in the file."""
         if self.is_legacy:
             warnings.warn(
                 "`binary_data` is not supported for legacy ND2 files", UserWarning
@@ -810,6 +811,8 @@ class ND2File:
                 "issue with this file at https://github.com/tlambert03/nd2/issues/new",
             )
             return []
+        if isinstance(items, dict):
+            items = [items]
 
         binseqs = sorted(x for x in rdr._meta_map if "RleZipBinarySequence" in x)
         mask_items = []

@@ -22,11 +22,17 @@ from typing import (
 
 import numpy as np
 
-from ._nd2decode import _decode_custom_data, decode_metadata, unnest_experiments
+from ._nd2decode import (
+    _decode_binary_mask,
+    _decode_custom_data,
+    decode_metadata,
+    unnest_experiments,
+)
 from ._util import AXIS, VoxelSize, get_reader, is_supported_file
 from .structures import (
     ROI,
     Attributes,
+    BinaryData,
     ExpLoop,
     FrameMetadata,
     Metadata,
@@ -729,7 +735,7 @@ class ND2File:
         if "CustomDataV2_0" not in cd:
             return {}
         try:
-            tags: dict = self.custom_data["CustomDataV2_0"]["CustomTagDescription_v1.0"]
+            tags: dict = cd["CustomDataV2_0"]["CustomTagDescription_v1.0"]
         except KeyError:
             warnings.warn(
                 "Could not find 'CustomTagDescription_v1' tag, please open an issue "
@@ -783,6 +789,53 @@ class ND2File:
                 data[header] = _decode_custom_data(raw, _type, tag["Size"])
 
         return data
+
+    @cached_property
+    def binary_data(self) -> list[BinaryData]:
+        if self.is_legacy:
+            warnings.warn(
+                "`binary_data` is not supported for legacy ND2 files", UserWarning
+            )
+            return []
+        rdr = cast("LatestSDKReader", self._rdr)
+
+        binary_meta = self.custom_data.get("BinaryMetadata_v1")
+        if binary_meta is None:
+            return []
+        try:
+            items: list[dict] = binary_meta["BinaryMetadata_v1"]["BinaryItem"]
+        except KeyError:
+            warnings.warn(
+                "Could not find 'BinaryMetadata_v1->BinaryItem' tag, please open an "
+                "issue with this file at https://github.com/tlambert03/nd2/issues/new",
+            )
+            return []
+
+        binseqs = sorted(x for x in rdr._meta_map if "RleZipBinarySequence" in x)
+        mask_items = []
+        for item in items:
+            key = item["FileTag"]
+            _masks = []
+            for bs in binseqs:
+                if key in bs:
+                    data = rdr._get_meta_chunk(bs)[4:]
+                    if not data:
+                        continue
+                    _masks.append(_decode_binary_mask(data))
+            mask_items.append(
+                BinaryData(
+                    data=_masks,
+                    name=item["Name"],
+                    comp_name=item["CompName"],
+                    comp_order=item["CompOrder"],
+                    color_mode=item["ColorMode"],
+                    state=item["State"],
+                    color=item["Color"],
+                    file_tag=key,
+                    layer_id=item["BinLayerID"],
+                )
+            )
+        return mask_items
 
 
 @overload

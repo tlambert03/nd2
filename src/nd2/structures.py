@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, List, NamedTuple, Optional, Tuple, Union
 from typing_extensions import Literal
 
 if TYPE_CHECKING:
-    import numpy as np
+    pass
 
 # enums
 
@@ -474,15 +474,3 @@ class RoiInfo:
             else:
                 type_ = getattr(builtins, anno)
                 setattr(self, key, type_(getattr(self, key)))
-
-
-class BinaryData(NamedTuple):
-    data: list[np.ndarray]
-    name: str
-    comp_name: str
-    comp_order: int
-    color: int
-    color_mode: int
-    state: int
-    file_tag: str
-    layer_id: int

@@ -22,17 +22,11 @@ from typing import (
 
 import numpy as np
 
-from ._nd2decode import (
-    _decode_binary_mask,
-    _decode_custom_data,
-    decode_metadata,
-    unnest_experiments,
-)
+from ._nd2decode import _decode_custom_data, decode_metadata, unnest_experiments
 from ._util import AXIS, VoxelSize, get_reader, is_supported_file
 from .structures import (
     ROI,
     Attributes,
-    BinaryData,
     ExpLoop,
     FrameMetadata,
     Metadata,
@@ -53,6 +47,7 @@ if TYPE_CHECKING:
     import xarray as xr
     from typing_extensions import Literal
 
+    from ._binary import BinaryWrapper
     from ._sdk.latest import ND2Reader as LatestSDKReader
     from .structures import Position
 
@@ -791,26 +786,28 @@ class ND2File:
         return data
 
     @cached_property
-    def binary_data(self) -> list[BinaryData]:
+    def binary_data(self) -> BinaryWrapper | None:
         """Return binary mask data embedded in the file."""
+        from ._binary import BinaryData, BinaryWrapper, _decode_binary_mask
+
         if self.is_legacy:
             warnings.warn(
                 "`binary_data` is not supported for legacy ND2 files", UserWarning
             )
-            return []
+            return None
         rdr = cast("LatestSDKReader", self._rdr)
 
         binary_meta = self.custom_data.get("BinaryMetadata_v1")
         if binary_meta is None:
-            return []
+            return None
         try:
-            items: list[dict] = binary_meta["BinaryMetadata_v1"]["BinaryItem"]
+            items: List[dict] = binary_meta["BinaryMetadata_v1"]["BinaryItem"]
         except KeyError:
             warnings.warn(
                 "Could not find 'BinaryMetadata_v1->BinaryItem' tag, please open an "
                 "issue with this file at https://github.com/tlambert03/nd2/issues/new",
             )
-            return []
+            return None
         if isinstance(items, dict):
             items = [items]
 
@@ -818,13 +815,11 @@ class ND2File:
         mask_items = []
         for item in items:
             key = item["FileTag"]
-            _masks = []
+            _masks: List[np.ndarray | None] = []
             for bs in binseqs:
                 if key in bs:
                     data = rdr._get_meta_chunk(bs)[4:]
-                    if not data:
-                        continue
-                    _masks.append(_decode_binary_mask(data))
+                    _masks.append(_decode_binary_mask(data) if data else None)
             mask_items.append(
                 BinaryData(
                     data=_masks,
@@ -838,7 +833,7 @@ class ND2File:
                     layer_id=item["BinLayerID"],
                 )
             )
-        return mask_items
+        return BinaryWrapper(mask_items, shape=self._coord_shape)
 
 
 @overload

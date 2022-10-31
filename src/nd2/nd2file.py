@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     import xarray as xr
     from typing_extensions import Literal
 
-    from ._binary import BinaryWrapper
+    from ._binary import BinaryLayers
     from ._sdk.latest import ND2Reader as LatestSDKReader
     from .structures import Position
 
@@ -786,54 +786,42 @@ class ND2File:
         return data
 
     @cached_property
-    def binary_data(self) -> BinaryWrapper | None:
-        """Return binary mask data embedded in the file."""
-        from ._binary import BinaryData, BinaryWrapper, _decode_binary_mask
+    def binary_data(self) -> BinaryLayers | None:
+        """Return binary layers embedded in the file.
 
-        if self.is_legacy:
-            warnings.warn(
-                "`binary_data` is not supported for legacy ND2 files", UserWarning
-            )
-            return None
-        rdr = cast("LatestSDKReader", self._rdr)
+        The returned `BinaryLayers` object is an immutable sequence of `BinaryLayer`
+        objects, one for each binary layer in the file.  Each `BinaryLayer` object in
+        the sequence has a `name` attribute, and a `data` attribute which is list of
+        numpy arrays (or `None` if there was no binary mask for that frame).  The length
+        of the list will be the same as the number of sequence frames in this file
+        (i.e. `self.attributes.sequenceCount`).
 
-        binary_meta = self.custom_data.get("BinaryMetadata_v1")
-        if binary_meta is None:
-            return None
-        try:
-            items: List[dict] = binary_meta["BinaryMetadata_v1"]["BinaryItem"]
-        except KeyError:
-            warnings.warn(
-                "Could not find 'BinaryMetadata_v1->BinaryItem' tag, please open an "
-                "issue with this file at https://github.com/tlambert03/nd2/issues/new",
-            )
-            return None
-        if isinstance(items, dict):
-            items = [items]
+        Both the `BinaryLayers` and individual `BinaryLayer` objects can be cast to a
+        numpy array with `np.asarray()`, or by using the `.asarray()` method
 
-        binseqs = sorted(x for x in rdr._meta_map if "RleZipBinarySequence" in x)
-        mask_items = []
-        for item in items:
-            key = item["FileTag"]
-            _masks: List[np.ndarray | None] = []
-            for bs in binseqs:
-                if key in bs:
-                    data = rdr._get_meta_chunk(bs)[4:]
-                    _masks.append(_decode_binary_mask(data) if data else None)
-            mask_items.append(
-                BinaryData(
-                    data=_masks,
-                    name=item["Name"],
-                    comp_name=item["CompName"],
-                    comp_order=item["CompOrder"],
-                    color_mode=item["ColorMode"],
-                    state=item["State"],
-                    color=item["Color"],
-                    file_tag=key,
-                    layer_id=item["BinLayerID"],
-                )
-            )
-        return BinaryWrapper(mask_items, shape=self._coord_shape)
+        Returns
+        -------
+        BinaryLayers | None
+            The binary layers embedded in the file, or None if there are no binary
+            layers.
+
+        Examples
+        --------
+        >>> f = ND2File("path/to/file.nd2")
+        >>> f.binary_data
+        <BinaryLayers with 4 layers>
+        >>> f.binary_data[0]  # the first binary layer
+        BinaryLayer(name='attached Widefield green (green color)',
+        comp_name='Widefield Green', comp_order=2, color=65280, color_mode=0,
+        state=524288, file_tag='RleZipBinarySequence_1_v1', layer_id=2)
+        >>> f.binary_data[0].data  # list of arrays
+        >>> np.asarray(f.binary_data[0])  # just the first binary mask
+        >>> np.asarray(f.binary_data).shape  # cast all layers to array
+        (4, 3, 4, 5, 32, 32)
+        """
+        from ._binary import BinaryLayers
+
+        return BinaryLayers.from_nd2file(self)
 
 
 @overload

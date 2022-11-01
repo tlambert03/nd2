@@ -51,9 +51,11 @@ my_array = nd2.imread('some_file.nd2', xarray=True, dask=True)  # read file to d
 # or open a file with nd2.ND2File
 f = nd2.ND2File('some_file.nd2')
 
-# ... or you can use it as a context manager
-with nd2.ND2File('some_file.nd2') as f:
+# (you can also use nd2.ND2File() as a context manager)
+with nd2.ND2File('some_file.nd2') as ndfile:
+    print(ndfile.metadata)
     ...
+
 
 # ATTRIBUTES:   # example output
 f.path          # 'some_file.nd2'

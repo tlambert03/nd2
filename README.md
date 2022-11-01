@@ -650,7 +650,7 @@ or an individual `BinaryLayer` to a `numpy.ndarray`:
 
 ```python
 >>> import nd2
->>> nd2file = nd2.ND2Reader('path/to/file.nd2')
+>>> nd2file = nd2.ND2File('path/to/file.nd2')
 >>> binary_layers = nd2file.binary_data
 
 # The output array will have shape

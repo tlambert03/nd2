@@ -1,3 +1,4 @@
+import shutil
 import sys
 from io import BytesIO
 from pathlib import Path
@@ -5,8 +6,8 @@ from zipfile import ZipFile
 
 import requests
 
-TEST_DATA = str(Path(__file__).parent.parent / "tests" / "data")
-URL = "https://www.dropbox.com/s/q57orjfzzagzull/nd2_test_data.zip?dl=1"
+TEST_DATA = Path(__file__).parent.parent / "tests" / "data"
+URL = "https://www.dropbox.com/s/heo9ss4tcsi15x5/nd2_test_data.zip?dl=1"
 
 
 def main():
@@ -26,13 +27,8 @@ def main():
             sys.stdout.write(f'\r[{"=" * done}{" " * (50 - done)}]')
             sys.stdout.flush()
     with ZipFile(f) as zf:
-        zf.extractall(TEST_DATA)
-
-
-# def main(dest: str = TEST_DATA):
-#     with request.urlopen(URL) as resp:
-#         with ZipFile(BytesIO(resp.read())) as zf:
-#             zf.extractall(dest)
+        zf.extractall(str(TEST_DATA))
+    shutil.rmtree(TEST_DATA / "__MACOSX")
 
 
 if __name__ == "__main__":

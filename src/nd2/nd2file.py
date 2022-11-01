@@ -47,6 +47,7 @@ if TYPE_CHECKING:
     import xarray as xr
     from typing_extensions import Literal
 
+    from ._binary import BinaryLayers
     from ._sdk.latest import ND2Reader as LatestSDKReader
     from .structures import Position
 
@@ -729,7 +730,7 @@ class ND2File:
         if "CustomDataV2_0" not in cd:
             return {}
         try:
-            tags: dict = self.custom_data["CustomDataV2_0"]["CustomTagDescription_v1.0"]
+            tags: dict = cd["CustomDataV2_0"]["CustomTagDescription_v1.0"]
         except KeyError:
             warnings.warn(
                 "Could not find 'CustomTagDescription_v1' tag, please open an issue "
@@ -783,6 +784,44 @@ class ND2File:
                 data[header] = _decode_custom_data(raw, _type, tag["Size"])
 
         return data
+
+    @cached_property
+    def binary_data(self) -> BinaryLayers | None:
+        """Return binary layers embedded in the file.
+
+        The returned `BinaryLayers` object is an immutable sequence of `BinaryLayer`
+        objects, one for each binary layer in the file.  Each `BinaryLayer` object in
+        the sequence has a `name` attribute, and a `data` attribute which is list of
+        numpy arrays (or `None` if there was no binary mask for that frame).  The length
+        of the list will be the same as the number of sequence frames in this file
+        (i.e. `self.attributes.sequenceCount`).
+
+        Both the `BinaryLayers` and individual `BinaryLayer` objects can be cast to a
+        numpy array with `np.asarray()`, or by using the `.asarray()` method
+
+        Returns
+        -------
+        BinaryLayers | None
+            The binary layers embedded in the file, or None if there are no binary
+            layers.
+
+        Examples
+        --------
+        >>> f = ND2File("path/to/file.nd2")
+        >>> f.binary_data
+        <BinaryLayers with 4 layers>
+        >>> f.binary_data[0]  # the first binary layer
+        BinaryLayer(name='attached Widefield green (green color)',
+        comp_name='Widefield Green', comp_order=2, color=65280, color_mode=0,
+        state=524288, file_tag='RleZipBinarySequence_1_v1', layer_id=2)
+        >>> f.binary_data[0].data  # list of arrays
+        >>> np.asarray(f.binary_data[0])  # just the first binary mask
+        >>> np.asarray(f.binary_data).shape  # cast all layers to array
+        (4, 3, 4, 5, 32, 32)
+        """
+        from ._binary import BinaryLayers
+
+        return BinaryLayers.from_nd2file(self)
 
 
 @overload

@@ -3,9 +3,12 @@ from __future__ import annotations
 import builtins
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum
-from typing import List, NamedTuple, Optional, Tuple, Union
+from typing import TYPE_CHECKING, List, NamedTuple, Optional, Tuple, Union
 
 from typing_extensions import Literal
+
+if TYPE_CHECKING:
+    pass
 
 # enums
 

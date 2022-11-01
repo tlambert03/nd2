@@ -70,14 +70,16 @@ f.rois              # Dict[int, nd2.structures.ROI]
 f.voxel_size()      # VoxelSize(x=0.65, y=0.65, z=1.0)
 f.text_info         # dict of misc info
 
+f.binary_data       # any binary masks stored in the file.  See below.
+f.custom_data       # bits of unstructured metadata that start with CustomData
+f.recorded_data     # returns a dict of lists (passable to pandas.DataFrame) that
+                    # the tabular "Recorded Data" view from in NIS Elements/Viewer
+                    # with info for each frame in the experiment.
+
 # allll the metadata we can find...
 # no attempt made to standardize or parse it
 # look in here if you're searching for metdata that isn't exposed in the above
 f.unstructured_metadata()
-f.custom_data       # bits of unstructured metadata that start with CustomData
-f.recorded_data   # returns a dict of lists (passable to pandas.DataFrame) that
-                    # the tabular "Recorded Data" view from in NIS Elements/Viewer
-                    # with info for each frame in the experiment.
 
 f.close()           # don't forget to close when done!
 f.closed            # boolean, whether the file is closed
@@ -575,7 +577,7 @@ No attempt is made to parse this data.  It will vary from file to file, but you 
 
 <summary><code>recorded_data</code></summary>
 
-This method returns a `dict` of equal-length sequences.
+This property returns a `dict` of equal-length sequences.
 It matches the tabular data reported in the `Image Properties > Recorded Data` tab of the NIS Viewer.
 
 (There will be a column for each tag in the `CustomDataV2_0` section of `custom_data` above.)
@@ -627,7 +629,49 @@ Out[13]:
 14  12.665469       2.0               100.0              0              0       31452.2       -1801.6        556.68           556.68
 
 ```
+
 </details>
+
+<details>
+
+<summary><code>binary_data</code></summary>
+
+This property returns an `nd2.BinaryLayers` object representing all of the
+binary masks in the nd2 file.
+
+A `nd2.BinaryLayers` object is a sequence of individual `nd2.BinaryLayer`
+objects (one for each binary layer found in the file).  Each `BinaryLayer` in
+the sequence is a named tuple that has, among other things, a `name` attribute,
+and a `data` attribute that is list of numpy arrays (one for each frame in the
+experiment) or `None` if the binary layer had no data in that frame.
+
+The most common use case will be to cast either the entire `BinaryLayers` object
+or an individual `BinaryLayer` to a `numpy.ndarray`:
+
+```python
+>>> import nd2
+>>> nd2file = nd2.ND2Reader('path/to/file.nd2')
+>>> binary_layers = nd2file.binary_data
+
+# The output array will have shape
+# (n_binary_layers, *coord_shape, *frame_shape).
+>>> np.asarray(binary_layers)
+```
+
+For example, if the data in the nd2 file has shape `(nT, nZ, nC, nY, nX)`, and
+there are 4 binary layers, then the output of `np.asarray(nd2file.binary_data)` will
+have shape `(4, nT, nZ, nY, nX)`.  (Note that the `nC` dimension is not present
+in the output array, and the binary layers are always in the first axis).
+
+You can also cast an individual `BinaryLayer` to a numpy array:
+
+```python
+>>> binary_layer = binary_layers[0]
+>>> np.asarray(binary_layer)
+```
+
+</details>
+
 ## alternatives
 
 - [pims_nd2](https://github.com/soft-matter/pims_nd2) - *pims-based reader. ctypes wrapper around the v9.00 (2015) SDK*

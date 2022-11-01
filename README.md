@@ -23,6 +23,14 @@ This library is tested against many nd2 files with the goal of maximizing compat
 pip install nd2
 ```
 
+or from conda:
+
+```sh
+conda install -c conda-forge nd2
+```
+
+### extras
+
 Legacy nd2 (JPEG2000) files are also supported, but require `imagecodecs`.  To install with support for these files use:
 
 ```sh
@@ -43,7 +51,11 @@ my_array = nd2.imread('some_file.nd2', xarray=True, dask=True)  # read file to d
 # or open a file with nd2.ND2File
 f = nd2.ND2File('some_file.nd2')
 
-# attributes:   # example output
+# ... or you can use it as a context manager
+with nd2.ND2File('some_file.nd2') as f:
+    ...
+
+# ATTRIBUTES:   # example output
 f.path          # 'some_file.nd2'
 f.shape         # (10, 2, 256, 256)
 f.ndim          # 4
@@ -51,17 +63,17 @@ f.dtype         # np.dtype('uint16')
 f.size          # 1310720  (total voxel elements)
 f.sizes         # {'T': 10, 'C': 2, 'Y': 256, 'X': 256}
 f.is_rgb        # False (whether the file is rgb)
-# if RGB, sizes will have an additional {'S': 3} component
+                # if the file is RGB, `f.sizes` will have
+                # an additional {'S': 3} component
 
-# array output
-f.asarray()         # in-memory np.ndarray
-np.asarray(f)       # alternative to f.asarray()
+# ARRAY OUTPUTS
+f.asarray()         # in-memory np.ndarray - or use np.asarray(f)
 f.to_dask()         # delayed dask.array.Array
 f.to_xarray()       # in-memory xarray.DataArray, with labeled axes/coords
 f.to_xarray(delayed=True)   # delayed xarray.DataArray
 
                     # see below for examples of these structures
-# metadata          # returns instance of ...
+# METADATA          # returns instance of ...
 f.attributes        # nd2.structures.Attributes
 f.metadata          # nd2.structures.Metadata
 f.frame_metadata(0) # nd2.structures.FrameMetadata (frame-specific meta)
@@ -81,18 +93,14 @@ f.recorded_data     # returns a dict of lists (passable to pandas.DataFrame) tha
 # look in here if you're searching for metdata that isn't exposed in the above
 f.unstructured_metadata()
 
-f.close()           # don't forget to close when done!
+f.close()           # don't forget to close when not using a contet manager!
 f.closed            # boolean, whether the file is closed
-
-# ... or you can use it as a context manager
-with nd2.ND2File('some_file.nd2') as ndfile:
-    print(ndfile.metadata)
-    xarr = ndfile.to_xarray()
 ```
 
 ## Metadata structures
 
-These follow the structure of the nikon SDK outputs.  Here are some example outputs
+These follow the structure of the nikon SDK outputs (where relevant).
+Here are some example outputs
 
 <details>
 
@@ -672,19 +680,6 @@ You can also cast an individual `BinaryLayer` to a numpy array:
 
 </details>
 
-## alternatives
-
-- [pims_nd2](https://github.com/soft-matter/pims_nd2) - *pims-based reader. ctypes wrapper around the v9.00 (2015) SDK*
-- [nd2reader](https://github.com/rbnvrw/nd2reader) - *pims-based reader, using reverse-engineered file headers. mostly tested on NIS Elements 4.30.02*
-- [nd2file](https://github.com/csachs/nd2file) - *another pure-python, chunk map reader, unmaintained?*
-- [pyND2SDK](https://github.com/aarpon/pyND2SDK) - *windows-only cython wrapper around the v9.00 (2015) SDK. not on PyPI*
-
-The motivating factors for this library were:
-
-- support for as many nd2 files as possible, with a large test suite
-- pims-independent delayed reader based on dask
-- axis-associated metadata via xarray
-- combined approach of SDK and direct binary reads
 
 ## Contributing / Development
 
@@ -708,3 +703,17 @@ pytest
 ```
 
 (and feel free to open an issue if that doesn't work!)
+
+## alternatives
+
+- [pims_nd2](https://github.com/soft-matter/pims_nd2) - *pims-based reader. ctypes wrapper around the v9.00 (2015) SDK*
+- [nd2reader](https://github.com/rbnvrw/nd2reader) - *pims-based reader, using reverse-engineered file headers. mostly tested on NIS Elements 4.30.02*
+- [nd2file](https://github.com/csachs/nd2file) - *another pure-python, chunk map reader, unmaintained?*
+- [pyND2SDK](https://github.com/aarpon/pyND2SDK) - *windows-only cython wrapper around the v9.00 (2015) SDK. not on PyPI*
+
+The motivating factors for this library were:
+
+- support for as many nd2 files as possible, with a large test suite
+- pims-independent delayed reader based on dask
+- axis-associated metadata via xarray
+- combined approach of SDK and direct binary reads

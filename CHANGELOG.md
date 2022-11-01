@@ -1,8 +1,20 @@
 # Changelog
 
-## [0.5.0](https://github.com/tlambert03/nd2/tree/0.5.0) (2022-10-29)
+## [0.5.1](https://github.com/tlambert03/nd2/tree/0.5.1) (2022-11-01)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.6...0.5.0)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.5.0...0.5.1)
+
+**Implemented enhancements:**
+
+- feat: Add `ND2File.binary_data` property - extract binary layers from file [\#108](https://github.com/tlambert03/nd2/pull/108) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- ci\(dependabot\): bump pypa/cibuildwheel from 2.11.1 to 2.11.2 [\#109](https://github.com/tlambert03/nd2/pull/109) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v0.5.0](https://github.com/tlambert03/nd2/tree/v0.5.0) (2022-10-29)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.4.6...v0.5.0)
 
 **Implemented enhancements:**
 
@@ -166,7 +178,7 @@
 
 ## [v0.2.0](https://github.com/tlambert03/nd2/tree/v0.2.0) (2022-02-20)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5-1...v0.2.0)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.6...v0.2.0)
 
 **Merged pull requests:**
 
@@ -179,13 +191,13 @@
 - \[pre-commit.ci\] pre-commit autoupdate [\#34](https://github.com/tlambert03/nd2/pull/34) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 - \[pre-commit.ci\] pre-commit autoupdate [\#33](https://github.com/tlambert03/nd2/pull/33) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 
-## [v0.1.5-1](https://github.com/tlambert03/nd2/tree/v0.1.5-1) (2021-11-12)
-
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.6...v0.1.5-1)
-
 ## [v0.1.6](https://github.com/tlambert03/nd2/tree/v0.1.6) (2021-11-12)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5...v0.1.6)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5-1...v0.1.6)
+
+## [v0.1.5-1](https://github.com/tlambert03/nd2/tree/v0.1.5-1) (2021-11-12)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5...v0.1.5-1)
 
 ## [v0.1.5](https://github.com/tlambert03/nd2/tree/v0.1.5) (2021-11-12)
 

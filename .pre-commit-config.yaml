@@ -23,7 +23,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/PyCQA/autoflake
-    rev: v1.6.1
+    rev: v1.7.7
     hooks:
       - id: autoflake
         args: ["--in-place", "--remove-all-unused-imports"]
@@ -34,13 +34,13 @@ repos:
       - id: isort
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.38.2
+    rev: v3.2.0
     hooks:
       - id: pyupgrade
         args: [--py37-plus, --keep-runtime-typing]
 
   - repo: https://github.com/psf/black
-    rev: 22.8.0
+    rev: 22.10.0
     hooks:
       - id: black
 
@@ -54,7 +54,7 @@ repos:
           - flake8-pyprojecttoml @ git+https://github.com/tlambert03/flake8-pyprojecttoml.git@main
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.981
+    rev: v0.982
     hooks:
       - id: mypy
         files: "^src/"

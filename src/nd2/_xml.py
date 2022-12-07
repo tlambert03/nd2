@@ -29,9 +29,7 @@ _TYPEMAP: Dict[Optional[str], Callable] = {
 
 
 def elem2dict(node: "etree._Element") -> Dict[str, Any]:
-    """
-    Convert an lxml.etree node tree into a dict.
-    """
+    """Convert an lxml.etree node tree into a dict."""
     result: Dict[str, Any] = {}
 
     if "value" in node.attrib:

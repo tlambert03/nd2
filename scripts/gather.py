@@ -1,4 +1,4 @@
-"""gather metadata from all files in test/data with all nd readers"""
+"""gather metadata from all files in test/data with all nd readers."""
 import json
 from pathlib import Path
 

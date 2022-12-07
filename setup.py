@@ -53,7 +53,7 @@ setup(
             "c_string_encoding": "utf-8",
         },
     ),
-    install_requires = [
+    install_requires=[
         "resource-backed-dask-array",
         "typing-extensions",
         "numpy>=1.14.5;python_version=='3.7'",
@@ -61,5 +61,5 @@ setup(
         "numpy>=1.19.3;python_version=='3.9'",
         "numpy>=1.21.3;python_version=='3.10'",
         "numpy>=1.23.2;python_version=='3.11'",
-    ]
+    ],
 )

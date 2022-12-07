@@ -1,6 +1,5 @@
-import numpy as np
-
 import nd2
+import numpy as np
 
 
 def test_rescue(single_nd2):

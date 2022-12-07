@@ -9,9 +9,7 @@ from itertools import product
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
-    Optional,
     Sequence,
-    Set,
     Sized,
     SupportsInt,
     Union,
@@ -41,7 +39,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from typing import Any, Dict, List, Tuple
+    from typing import Any
 
     import dask.array.core
     import xarray as xr
@@ -69,11 +67,11 @@ class ND2File:
 
     def __init__(
         self,
-        path: Union[Path, str],
+        path: Path | str,
         *,
         validate_frames: bool = False,
         search_window: int = 100,
-        read_using_sdk: bool = None,
+        read_using_sdk: bool | None = None,
     ) -> None:
         """Open an nd2 file.
 
@@ -109,6 +107,7 @@ class ND2File:
 
     @staticmethod
     def is_supported_file(path) -> bool:
+        """Return True if the file is supported by this reader."""
         return is_supported_file(path)
 
     @property
@@ -160,16 +159,16 @@ class ND2File:
 
     @cached_property
     def attributes(self) -> Attributes:
-        """Core image attributes"""
+        """Core image attributes."""
         return self._rdr.attributes
 
     @cached_property
-    def text_info(self) -> Dict[str, Any]:
+    def text_info(self) -> dict[str, Any]:
         """Misc text info."""
         return self._rdr.text_info()
 
     @cached_property
-    def rois(self) -> Dict[int, ROI]:
+    def rois(self) -> dict[int, ROI]:
         """Return dict of {id: ROI} for all ROIs found in the metadata."""
         if self.is_legacy or ROI_METADATA not in self._rdr._meta_map:  # type: ignore
             return {}
@@ -184,8 +183,8 @@ class ND2File:
         return rois
 
     @cached_property
-    def experiment(self) -> List[ExpLoop]:
-        """Loop information for each nd axis"""
+    def experiment(self) -> list[ExpLoop]:
+        """Loop information for each nd axis."""
         exp = self._rdr.experiment()
 
         # https://github.com/tlambert03/nd2/issues/78
@@ -213,9 +212,9 @@ class ND2File:
         *,
         unnest: bool = False,
         strip_prefix: bool = True,
-        include: Optional[Set[str]] = None,
-        exclude: Optional[Set[str]] = None,
-    ) -> Dict[str, Any]:
+        include: set[str] | None = None,
+        exclude: set[str] | None = None,
+    ) -> dict[str, Any]:
         """Exposes, and attempts to decode, each metadata chunk in the file.
 
         This is provided as a *experimental* fallback in the event that
@@ -256,12 +255,12 @@ class ND2File:
                 "unstructured_metadata not available for legacy files"
             )
 
-        output: Dict[str, Any] = {}
+        output: dict[str, Any] = {}
 
         rdr = cast("LatestSDKReader", self._rdr)
         keys = set(rdr._meta_map)
         if include:
-            _keys: Set[str] = set()
+            _keys: set[str] = set()
             for i in include:
                 if i not in keys:
                     warnings.warn(f"Key {i!r} not found in metadata")
@@ -288,13 +287,11 @@ class ND2File:
         return output
 
     @cached_property
-    def metadata(self) -> Union[Metadata, dict]:
+    def metadata(self) -> Metadata | dict:
         """Various metadata (will be dict if legacy format)."""
         return self._rdr.metadata()
 
-    def frame_metadata(
-        self, seq_index: Union[int, tuple]
-    ) -> Union[FrameMetadata, dict]:
+    def frame_metadata(self, seq_index: int | tuple) -> FrameMetadata | dict:
         """Metadata for specific frame.
 
         This includes the global metadata from the metadata function.
@@ -310,7 +307,6 @@ class ND2File:
         Union[FrameMetadata, dict]
             dict if legacy format, else FrameMetadata
         """
-
         idx = cast(
             int,
             self._seq_index_from_coords(seq_index)
@@ -320,23 +316,23 @@ class ND2File:
         return self._rdr.frame_metadata(idx)
 
     @cached_property
-    def custom_data(self) -> Dict[str, Any]:
+    def custom_data(self) -> dict[str, Any]:
         """Dict of various unstructured custom metadata."""
         return self._rdr._custom_data()
 
     @cached_property
     def ndim(self) -> int:
-        """number of dimensions"""
+        """number of dimensions."""
         return len(self.shape)
 
     @cached_property
-    def shape(self) -> Tuple[int, ...]:
-        """size of each axis"""
+    def shape(self) -> tuple[int, ...]:
+        """size of each axis."""
         return self._coord_shape + self._frame_shape
 
     @cached_property
-    def sizes(self) -> Dict[str, int]:
-        """names and sizes for each axis"""
+    def sizes(self) -> dict[str, int]:
+        """names and sizes for each axis."""
         attrs = self.attributes
         dims = {AXIS._MAP[c[1]]: c[2] for c in self._rdr._coord_info()}
         dims[AXIS.CHANNEL] = (
@@ -355,12 +351,12 @@ class ND2File:
 
     @property
     def is_rgb(self) -> bool:
-        """Whether the image is rgb"""
+        """Whether the image is rgb."""
         return self.components_per_channel in (3, 4)
 
     @property
     def components_per_channel(self) -> int:
-        """Number of components per channel (e.g. 3 for rgb)"""
+        """Number of components per channel (e.g. 3 for rgb)."""
         attrs = cast(Attributes, self.attributes)
         return attrs.componentCount // (attrs.channelCount or 1)
 
@@ -376,7 +372,7 @@ class ND2File:
 
     @cached_property
     def dtype(self) -> np.dtype:
-        """Image data type"""
+        """Image data type."""
         attrs = self.attributes
         d = attrs.pixelDataType[0] if attrs.pixelDataType else "u"
         return np.dtype(f"{d}{attrs.bitsPerComponentInMemory // 8}")
@@ -396,7 +392,7 @@ class ND2File:
         """
         return VoxelSize(*self._rdr.voxel_size())
 
-    def asarray(self, position: Optional[int] = None) -> np.ndarray:
+    def asarray(self, position: int | None = None) -> np.ndarray:
         """Read image into numpy array.
 
         Parameters
@@ -442,9 +438,7 @@ class ND2File:
                         f"Only {self.sizes[AXIS.POSITION]} positions available"
                     )
 
-                ranges: List[Union[range, tuple]] = [
-                    range(x) for x in self._coord_shape
-                ]
+                ranges: list[range | tuple] = [range(x) for x in self._coord_shape]
                 ranges[pidx] = (position,)
                 coords = list(zip(*product(*ranges)))
                 seqs = self._seq_index_from_coords(coords)  # type: ignore
@@ -454,7 +448,7 @@ class ND2File:
         return arr.reshape(final_shape)
 
     def __array__(self) -> np.ndarray:
-        """array protocol"""
+        """array protocol."""
         return self.asarray()
 
     def to_dask(self, wrapper=True, copy=True) -> dask.array.core.Array:
@@ -508,14 +502,12 @@ class ND2File:
 
     _NO_IDX = -1
 
-    def _seq_index_from_coords(
-        self, coords: Sequence
-    ) -> Union[Sequence[int], SupportsInt]:
+    def _seq_index_from_coords(self, coords: Sequence) -> Sequence[int] | SupportsInt:
         if not self._coord_shape:
             return self._NO_IDX
         return np.ravel_multi_index(coords, self._coord_shape)
 
-    def _dask_block(self, copy: bool, block_id: Tuple[int]) -> np.ndarray:
+    def _dask_block(self, copy: bool, block_id: tuple[int]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
             return
         with self._lock:
@@ -543,7 +535,7 @@ class ND2File:
         self,
         delayed: bool = True,
         squeeze: bool = True,
-        position: Optional[int] = None,
+        position: int | None = None,
         copy: bool = True,
     ) -> xr.DataArray:
         """Create labeled xarray representing image.
@@ -603,12 +595,12 @@ class ND2File:
         return x.squeeze() if squeeze else x
 
     @property
-    def _frame_coords(self) -> Set[str]:
+    def _frame_coords(self) -> set[str]:
         return {AXIS.X, AXIS.Y, AXIS.CHANNEL, AXIS.RGB}
 
     @property
-    def _raw_frame_shape(self) -> Tuple[int, int, int, int]:
-        """sizes of each frame coordinate, prior to reshape"""
+    def _raw_frame_shape(self) -> tuple[int, int, int, int]:
+        """sizes of each frame coordinate, prior to reshape."""
         attr = self.attributes
         return (
             attr.heightPx,
@@ -618,13 +610,13 @@ class ND2File:
         )
 
     @property
-    def _frame_shape(self) -> Tuple[int, ...]:
-        """sizes of each frame coordinate, after reshape & squeeze"""
+    def _frame_shape(self) -> tuple[int, ...]:
+        """sizes of each frame coordinate, after reshape & squeeze."""
         return tuple(v for k, v in self.sizes.items() if k in self._frame_coords)
 
     @cached_property
-    def _coord_shape(self) -> Tuple[int, ...]:
-        """sizes of each *non-frame* coordinate"""
+    def _coord_shape(self) -> tuple[int, ...]:
+        """sizes of each *non-frame* coordinate."""
         return tuple(v for k, v in self.sizes.items() if k not in self._frame_coords)
 
     @property
@@ -637,7 +629,7 @@ class ND2File:
         return frame.transpose((2, 0, 1, 3)).squeeze()
 
     def _expand_coords(self, squeeze: bool = True) -> dict:
-        """Return a dict that can be used as the coords argument to xr.DataArray
+        """Return a dict that can be used as the coords argument to xr.DataArray.
 
         Parameters
         ----------
@@ -651,7 +643,7 @@ class ND2File:
         """
         dx, dy, dz = self.voxel_size()
 
-        coords: Dict[str, Sized] = {
+        coords: dict[str, Sized] = {
             AXIS.Y: np.arange(self.attributes.heightPx) * dy,
             AXIS.X: np.arange(self.attributes.widthPx or 1) * dx,
             AXIS.CHANNEL: self._channel_names,
@@ -684,7 +676,7 @@ class ND2File:
             return {k: v for k, v in coords.items() if len(v) > 1}
         return coords
 
-    def _position_names(self, loop: Optional[XYPosLoop] = None) -> List[str]:
+    def _position_names(self, loop: XYPosLoop | None = None) -> list[str]:
         if loop is None:
             for c in self.experiment:
                 if c.type == "XYPosLoop":
@@ -695,7 +687,7 @@ class ND2File:
         return [p.name or f"XYPos:{i}" for i, p in enumerate(loop.parameters.points)]
 
     @property
-    def _channel_names(self) -> List[str]:
+    def _channel_names(self) -> list[str]:
         return self._rdr.channel_names()
 
     def __repr__(self) -> str:
@@ -707,7 +699,7 @@ class ND2File:
         return f"<ND2File at {hex(id(self))}{extra}>"
 
     @cached_property
-    def recorded_data(self) -> Dict[str, Union[np.ndarray, Sequence]]:
+    def recorded_data(self) -> dict[str, np.ndarray | Sequence]:
         """Return tabular data recorded for each frame of the experiment.
 
         This method returns a dict of equal-length sequences (passable to
@@ -743,7 +735,7 @@ class ND2File:
         # FIXME: technically, it is possible to have multiple tags with the same Desc
         # (e.g. for IDs PFS_OFFSET and Z2). In the current implementation, the
         # 2nd tag will overwrite the first one.
-        data: Dict[str, Union[np.ndarray, Sequence]] = {}
+        data: dict[str, np.ndarray | Sequence] = {}
         with contextlib.suppress(KeyError):
             chunk = rdr._get_meta_chunk("CustomData|AcqTimesCache")
             data["Time [s]"] = np.frombuffer(chunk) / 1000
@@ -826,47 +818,47 @@ class ND2File:
 
 @overload
 def imread(
-    file: Union[Path, str],
+    file: Path | str,
     *,
     dask: Literal[False],
     xarray: Literal[False],
     validate_frames: bool = False,
-    read_using_sdk: Optional[bool] = None,
+    read_using_sdk: bool | None = None,
 ) -> np.ndarray:
     ...
 
 
 @overload
 def imread(
-    file: Union[Path, str],
+    file: Path | str,
     *,
     dask: bool = ...,
     xarray: Literal[True],
     validate_frames: bool = False,
-    read_using_sdk: Optional[bool] = None,
+    read_using_sdk: bool | None = None,
 ) -> xr.DataArray:
     ...
 
 
 @overload
 def imread(
-    file: Union[Path, str],
+    file: Path | str,
     *,
     dask: Literal[True],
     xarray: Literal[False],
     validate_frames: bool = False,
-    read_using_sdk: Optional[bool] = None,
+    read_using_sdk: bool | None = None,
 ) -> dask.array.core.Array:
     ...
 
 
 def imread(
-    file: Union[Path, str],
+    file: Path | str,
     *,
     dask: bool = False,
     xarray: bool = False,
     validate_frames: bool = False,
-    read_using_sdk: Optional[bool] = None,
+    read_using_sdk: bool | None = None,
 ):
     """Open `file`, return requested array type, and close `file`.
 
@@ -913,7 +905,7 @@ def imread(
 
 
 @no_type_check
-def _fix_names(xy_exp, points: List[Position]) -> None:
+def _fix_names(xy_exp, points: list[Position]) -> None:
     """Attempt to fix missing XYPosLoop position names."""
     if not isinstance(xy_exp, dict) or xy_exp.get("Type", "") != 2:
         raise ValueError("Invalid XY experiment")

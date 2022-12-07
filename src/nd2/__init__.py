@@ -10,6 +10,7 @@ __all__ = [
     "BinaryLayers",
     "imread",
     "is_supported_file",
+    "is_legacy",
     "ND2File",
     "read_chunkmap",
     "rescue_nd2",
@@ -20,5 +21,5 @@ __all__ = [
 from . import structures
 from ._binary import BinaryLayer, BinaryLayers
 from ._chunkmap import read_chunkmap, rescue_nd2
-from ._util import AXIS, is_supported_file
+from ._util import AXIS, is_legacy, is_supported_file
 from .nd2file import ND2File, imread

@@ -37,6 +37,23 @@ def is_supported_file(
         return fh.read(4) in (NEW_HEADER_MAGIC, OLD_HEADER_MAGIC)
 
 
+def is_legacy(path: "StrOrBytesPath") -> bool:
+    """Return `True` if `path` is a legacy ND2 file.
+
+    Parameters
+    ----------
+    path : Union[str, bytes, PathLike]
+        A path to query
+
+    Returns
+    -------
+    bool
+        Whether the file is a legacy ND2 file.
+    """
+    with open(path, "rb") as fh:
+        return fh.read(4) == OLD_HEADER_MAGIC
+
+
 def get_reader(
     path: str,
     validate_frames: bool = False,

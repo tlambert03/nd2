@@ -141,6 +141,10 @@ class ND2File:
         self.open()
         return self
 
+    def __del__(self) -> None:
+        """Delete file handle on garbage collection."""
+        self.close()
+
     def __exit__(self, *_) -> None:
         self.close()
 

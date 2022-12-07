@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum
-from typing import TYPE_CHECKING, List, NamedTuple, Optional, Tuple, Union
+from typing import TYPE_CHECKING, NamedTuple, Union
 
 from typing_extensions import Literal
 
@@ -36,13 +36,13 @@ class Attributes(NamedTuple):
     heightPx: int
     pixelDataType: str
     sequenceCount: int
-    widthBytes: Optional[int] = None
-    widthPx: Optional[int] = None
-    compressionLevel: Optional[int] = None
-    compressionType: Optional[str] = None
-    tileHeightPx: Optional[int] = None
-    tileWidthPx: Optional[int] = None
-    channelCount: Optional[int] = None
+    widthBytes: int | None = None
+    widthPx: int | None = None
+    compressionLevel: int | None = None
+    compressionType: str | None = None
+    tileHeightPx: int | None = None
+    tileWidthPx: int | None = None
+    channelCount: int | None = None
 
 
 class ImageInfo(NamedTuple):
@@ -122,7 +122,7 @@ class NETimeLoop(_Loop):
 
 @dataclass
 class NETimeLoopParams:
-    periods: List[Period]
+    periods: list[Period]
 
     def __post_init__(self):
         self.periods = [Period(**i) if isinstance(i, dict) else i for i in self.periods]
@@ -149,7 +149,7 @@ class XYPosLoop(_Loop):
 @dataclass
 class XYPosLoopParams:
     isSettingZ: bool
-    points: List[Position]
+    points: list[Position]
 
     def __post_init__(self):
         self.points = [Position(**i) if isinstance(i, dict) else i for i in self.points]
@@ -158,8 +158,8 @@ class XYPosLoopParams:
 @dataclass
 class Position:
     stagePositionUm: StagePosition
-    pfsOffset: Optional[float] = None
-    name: Optional[str] = None
+    pfsOffset: float | None = None
+    name: str | None = None
 
     def __post_init__(self):
         if isinstance(self.stagePositionUm, dict):
@@ -190,7 +190,7 @@ class ZStackLoopParams:
     homeIndex: int
     stepUm: float
     bottomToTop: bool
-    deviceName: Optional[str] = None
+    deviceName: str | None = None
 
 
 ###
@@ -203,8 +203,8 @@ LoopParams = Union[TimeLoopParams, NETimeLoopParams, XYPosLoopParams, ZStackLoop
 
 @dataclass
 class Metadata:
-    contents: Optional[Contents] = None
-    channels: Optional[List[Channel]] = None
+    contents: Contents | None = None
+    channels: list[Channel] | None = None
 
     def __post_init__(self):
         if isinstance(self.contents, dict):
@@ -224,7 +224,7 @@ class Contents:
 @dataclass
 class Channel:
     channel: ChannelMeta
-    loops: Optional[LoopIndices]
+    loops: LoopIndices | None
     microscope: Microscope
     volume: Volume
 
@@ -241,48 +241,48 @@ class ChannelMeta:
     name: str
     index: int
     colorRGB: int  # probably 0xBBGGRR
-    emissionLambdaNm: Optional[float] = None
-    excitationLambdaNm: Optional[float] = None
+    emissionLambdaNm: float | None = None
+    excitationLambdaNm: float | None = None
 
 
 @dataclass
 class LoopIndices:
-    NETimeLoop: Optional[int] = None
-    TimeLoop: Optional[int] = None
-    XYPosLoop: Optional[int] = None
-    ZStackLoop: Optional[int] = None
+    NETimeLoop: int | None = None
+    TimeLoop: int | None = None
+    XYPosLoop: int | None = None
+    ZStackLoop: int | None = None
 
 
 @dataclass
 class Microscope:
-    objectiveMagnification: Optional[float] = None
-    objectiveName: Optional[str] = None
-    objectiveNumericalAperture: Optional[float] = None
-    zoomMagnification: Optional[float] = None
-    immersionRefractiveIndex: Optional[float] = None
-    projectiveMagnification: Optional[float] = None
-    pinholeDiameterUm: Optional[float] = None
-    modalityFlags: List[str] = field(default_factory=list)
+    objectiveMagnification: float | None = None
+    objectiveName: str | None = None
+    objectiveNumericalAperture: float | None = None
+    zoomMagnification: float | None = None
+    immersionRefractiveIndex: float | None = None
+    projectiveMagnification: float | None = None
+    pinholeDiameterUm: float | None = None
+    modalityFlags: list[str] = field(default_factory=list)
 
 
 @dataclass
 class Volume:
-    axesCalibrated: Tuple[bool, bool, bool]
-    axesCalibration: Tuple[float, float, float]
-    axesInterpretation: Tuple[
+    axesCalibrated: tuple[bool, bool, bool]
+    axesCalibration: tuple[float, float, float]
+    axesInterpretation: tuple[
         AxisInterpretation, AxisInterpretation, AxisInterpretation
     ]
     bitsPerComponentInMemory: int
     bitsPerComponentSignificant: int
-    cameraTransformationMatrix: Tuple[float, float, float, float]
+    cameraTransformationMatrix: tuple[float, float, float, float]
     componentCount: int
-    componentDataType: Union[Literal["unsigned"], Literal["float"]]
-    voxelCount: Tuple[int, int, int]
-    componentMaxima: Optional[List[float]] = None
-    componentMinima: Optional[List[float]] = None
-    pixelToStageTransformationMatrix: Optional[
-        Tuple[float, float, float, float, float, float]
-    ] = None
+    componentDataType: Literal["unsigned"] | Literal["float"]
+    voxelCount: tuple[int, int, int]
+    componentMaxima: list[float] | None = None
+    componentMinima: list[float] | None = None
+    pixelToStageTransformationMatrix: tuple[
+        float, float, float, float, float, float
+    ] | None = None
 
     # NIS Microscope Absolute frame in um =
     # pixelToStageTransformationMatrix * (X_in_px,  Y_in_px,  1) + stagePositionUm
@@ -313,7 +313,7 @@ class FrameChannel(Channel):
 @dataclass
 class FrameMetadata:
     contents: Contents
-    channels: List[FrameChannel]
+    channels: list[FrameChannel]
 
     def __post_init__(self):
         self.contents = Contents(**self.contents)
@@ -349,7 +349,7 @@ class XYZPoint(NamedTuple):
 
 class ExtrudedShape(NamedTuple):
     sizeZ: float = 0
-    basePoints: List[XYPoint] = []
+    basePoints: list[XYPoint] = []
 
     @classmethod
     def _from_meta_dict(cls, val: dict) -> ExtrudedShape:
@@ -369,7 +369,7 @@ class ROI:
     id: int
     info: RoiInfo
     guid: str
-    animParams: List[AnimParam] = field(default_factory=list)
+    animParams: list[AnimParam] = field(default_factory=list)
 
     def __post_init__(self):
         self.info = RoiInfo(**self.info)

@@ -10,7 +10,7 @@ import numpy as np
 from typing_extensions import TypedDict
 
 if TYPE_CHECKING:
-    from typing import BinaryIO, Iterator, Literal, Optional, Set, Tuple, Union
+    from typing import BinaryIO, Iterator, Literal
 
     from numpy.typing import DTypeLike
 
@@ -26,7 +26,7 @@ DEFAULT_SHIFT = 4072
 
 
 @contextmanager
-def ensure_handle(obj: Union[str, BinaryIO]) -> Iterator[BinaryIO]:
+def ensure_handle(obj: str | BinaryIO) -> Iterator[BinaryIO]:
     fh = open(obj, "rb") if isinstance(obj, (str, bytes, Path)) else obj
     try:
         yield fh
@@ -42,8 +42,8 @@ ImageMap = Dict[FrameIndex, FrameOffset]
 
 
 class FixedImageMap(TypedDict):
-    bad: Set[FrameIndex]  # frames that could not be found
-    fixed: Set[FrameIndex]  # frames that were bad but fixed
+    bad: set[FrameIndex]  # frames that could not be found
+    fixed: set[FrameIndex]  # frames that were bad but fixed
     # final mapping of frame number to absolute byte offset starting the chunk
     # or None, if the chunk could not be verified
     good: ImageMap
@@ -51,28 +51,28 @@ class FixedImageMap(TypedDict):
 
 @overload
 def read_chunkmap(
-    file: Union[str, BinaryIO],
+    file: str | BinaryIO,
     *,
     validate_frames: Literal[True] = True,
     legacy: bool = False,
     search_window: int = ...,
-) -> Tuple[FixedImageMap, Dict[str, int]]:
+) -> tuple[FixedImageMap, dict[str, int]]:
     ...
 
 
 @overload
 def read_chunkmap(
-    file: Union[str, BinaryIO],
+    file: str | BinaryIO,
     *,
     validate_frames: Literal[False],
     legacy: bool = False,
     search_window: int = ...,
-) -> Tuple[Dict[int, int], Dict[str, int]]:
+) -> tuple[dict[int, int], dict[str, int]]:
     ...
 
 
 def read_chunkmap(
-    file: Union[str, BinaryIO],
+    file: str | BinaryIO,
     *,
     validate_frames=False,
     legacy: bool = False,
@@ -118,8 +118,8 @@ def read_chunkmap(
 
 def read_new_chunkmap(
     fh: BinaryIO, validate_frames: bool = False, search_window: int = 100
-) -> Tuple[Union[ImageMap, FixedImageMap], Dict[str, int]]:
-    """read the map of the chunks at the end of the file
+) -> tuple[ImageMap | FixedImageMap, dict[str, int]]:
+    """Read the map of the chunks at the end of the file.
 
     chunk rules:
     - each data chunk starts with
@@ -133,7 +133,8 @@ def read_new_chunkmap(
     # string appears before the last 8 bytes.
     fh.seek(-40, 2)
     name, chunk = struct.unpack("32sQ", fh.read(40))
-    assert name == CHUNK_MAP_SIGNATURE, f"Not a valid ND2 file: {fh.name}"
+    if name != CHUNK_MAP_SIGNATURE:
+        raise ValueError(f"Not a valid ND2 file: {fh.name}")
 
     # then we get all of the data in the chunkmap
     # this asserts that the chunkmap begins with CHUNK_MAGIC
@@ -143,7 +144,7 @@ def read_new_chunkmap(
     # and record the position associated with each chunkname
     pos = 0
     image_map: ImageMap = {}
-    meta_map: Dict[str, int] = {}
+    meta_map: dict[str, int] = {}
     while True:
         # find the first "!", starting at pos, then go to next byte
         p = chunkmap_data.index(b"!", pos) + 1
@@ -157,7 +158,7 @@ def read_new_chunkmap(
         # Note: one still needs to go to `position` to read the CHUNK_INFO to know
         # the absolute position of the data (excluding the chunk header).  This can
         # be done using `read_chunk(..., position)``
-        position, _ = QQ.unpack(chunkmap_data[p : p + 16])  # noqa
+        position, _ = QQ.unpack(chunkmap_data[p : p + 16])
         if name[:13] == b"ImageDataSeq|":
             image_map[FrameIndex(int(name[13:-1]))] = position
         else:
@@ -173,8 +174,8 @@ def _validate_frames(
     fh: BinaryIO, images: ImageMap, kbrange: int = 100
 ) -> FixedImageMap:
     """Look for invalid frames, and try to find their actual positions."""
-    bad: Set[FrameIndex] = set()
-    fixed: Set[FrameIndex] = set()
+    bad: set[FrameIndex] = set()
+    fixed: set[FrameIndex] = set()
     good: ImageMap = {}
     _lengths = set()
     for fnum, _p in images.items():
@@ -212,12 +213,13 @@ def read_chunk(handle: BinaryIO, position: int):
     handle.seek(position)
     # confirm chunk magic, seek to shift, read for length
     magic, shift, length = CHUNK_INFO.unpack(handle.read(CHUNK_INFO.size))
-    assert magic == CHUNK_MAGIC, "invalid magic %x" % magic
+    if magic != CHUNK_MAGIC:
+        raise ValueError("invalid magic %x" % magic)
     handle.seek(shift, 1)
     return handle.read(length)
 
 
-def iter_chunks(handle) -> Iterator[Tuple[str, int, int]]:
+def iter_chunks(handle) -> Iterator[tuple[str, int, int]]:
     file_size = handle.seek(0, 2)
     handle.seek(0)
     pos = 0
@@ -239,14 +241,14 @@ _default_chunk_start = CHUNK_MAGIC.to_bytes(4, "little")
 
 
 def rescue_nd2(
-    handle: Union[BinaryIO, str],
-    frame_shape: Tuple[int, ...] = (),
+    handle: BinaryIO | str,
+    frame_shape: tuple[int, ...] = (),
     dtype: DTypeLike = "uint16",
-    max_iters: Optional[int] = None,
+    max_iters: int | None = None,
     verbose=True,
     chunk_start: bytes = _default_chunk_start,
 ):
-    """Iterator that yields all discovered frames in a file handle
+    """Iterator that yields all discovered frames in a file handle.
 
     In nd2 files, each "frame" contains XY and all channel info (both true
     channels as well as RGB components).  Frames are laid out as (Y, X, C),
@@ -273,7 +275,8 @@ def rescue_nd2(
         end of the file is reached
     verbose : bool
         whether to print info
-    chunk_start
+    chunk_start : bytes, optional
+        The bytes that start each chunk, by default 0x0ABECEDA.to_bytes(4, "little")
 
     Yields
     ------

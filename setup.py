@@ -42,6 +42,7 @@ sdk = Extension(
 
 
 setup(
+    name="nd2",
     use_scm_version={"write_to": "src/nd2/_version.py"},
     ext_modules=cythonize(
         [sdk],
@@ -52,4 +53,13 @@ setup(
             "c_string_encoding": "utf-8",
         },
     ),
+    install_requires=[
+        "resource-backed-dask-array",
+        "typing-extensions",
+        "numpy>=1.14.5;python_version=='3.7'",
+        "numpy>=1.17.3;python_version=='3.8'",
+        "numpy>=1.19.3;python_version=='3.9'",
+        "numpy>=1.21.3;python_version=='3.10'",
+        "numpy>=1.23.2;python_version=='3.11'",
+    ],
 )

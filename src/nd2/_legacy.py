@@ -1,3 +1,4 @@
+import contextlib
 import re
 import struct
 import threading
@@ -82,7 +83,7 @@ class LegacyND2Reader:
         return exp
 
     def _coord_info(self) -> List[Tuple[int, str, int]]:
-        return [(i, l.type, l.count) for i, l in enumerate(self.experiment())]
+        return [(i, x.type, x.count) for i, x in enumerate(self.experiment())]
 
     def _make_loop(
         self, meta_level: dict, nest_level: int = 0
@@ -247,7 +248,7 @@ class LegacyND2Reader:
                 f"{e}\n"
                 f"Reading legacy format nd2 {self._fh.name!r} requires imagecodecs.\n"
                 "Please install with `pip install imagecodecs`."
-            )
+            ) from e
 
         data = []
         cc = self.attributes.channelCount or 1
@@ -282,10 +283,8 @@ class LegacyND2Reader:
         d = self.text_info().get("description") or ""
         _z = re.search(r"Z Stack Loop: 5\s+-\s+Step\s+([.\d]+)", d)
         if _z:
-            try:
+            with contextlib.suppress(Exception):
                 z = float(_z.groups()[0])
-            except Exception:
-                pass
         if z is None:
             for e in self.experiment():
                 if e.type == "ZStackLoop":
@@ -306,8 +305,8 @@ class LegacyND2Reader:
     def header(self) -> dict:
         try:
             pos = self._chunkmap[b"jp2h"][0]
-        except (KeyError, IndexError):
-            raise KeyError("No valid jp2h header found in file")
+        except (KeyError, IndexError) as e:
+            raise KeyError("No valid jp2h header found in file") from e
         self._fh.seek(pos + I4s.size + 4)  # 4 bytes for "label"
         if self._fh.read(4) != b"ihdr":
             raise KeyError("No valid ihdr header found in jp2h header")
@@ -328,7 +327,8 @@ class LegacyND2Reader:
 def legacy_nd2_chunkmap(fh: BinaryIO) -> Dict[bytes, List[int]]:
     fh.seek(-40, 2)
     sig, map_start = struct.unpack("<32sQ", fh.read())
-    assert sig == b"LABORATORY IMAGING ND BOX MAP 00", "Not a legacy ND2 file"
+    if sig != b"LABORATORY IMAGING ND BOX MAP 00":
+        raise ValueError("Not a legacy ND2 file")
     fh.seek(-map_start, 2)
     n_chunks = int.from_bytes(fh.read(4), "big")
     data = fh.read()

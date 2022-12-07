@@ -8,10 +8,9 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
-from resource_backed_dask_array import ResourceBackedDaskArray
-
 from nd2 import ND2File, imread, structures
 from nd2._util import AXIS
+from resource_backed_dask_array import ResourceBackedDaskArray
 
 DATA = Path(__file__).parent / "data"
 

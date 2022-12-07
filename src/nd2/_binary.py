@@ -4,16 +4,7 @@ from __future__ import annotations
 import io
 import struct
 import warnings
-from typing import (
-    TYPE_CHECKING,
-    Iterator,
-    List,
-    NamedTuple,
-    Sequence,
-    Tuple,
-    cast,
-    overload,
-)
+from typing import TYPE_CHECKING, Iterator, NamedTuple, Sequence, cast, overload
 
 import numpy as np
 
@@ -62,7 +53,7 @@ class BinaryLayer(NamedTuple):
         to reshape the data into a 3D array in `asarray`.
     """
 
-    data: List[np.ndarray | None]
+    data: list[np.ndarray | None]
     name: str
     comp_name: str
     comp_order: int
@@ -71,10 +62,10 @@ class BinaryLayer(NamedTuple):
     state: int
     file_tag: str
     layer_id: int
-    coordinate_shape: Tuple[int, ...]
+    coordinate_shape: tuple[int, ...]
 
     @property
-    def frame_shape(self) -> Tuple[int, ...]:
+    def frame_shape(self) -> tuple[int, ...]:
         """Shape (Y, X) of each mask in `data`."""
         return next((s.shape for s in self.data if s is not None), (0, 0))
 
@@ -128,10 +119,10 @@ class BinaryLayers(Sequence[BinaryLayer]):
         ...
 
     @overload
-    def __getitem__(self, key: slice) -> List[BinaryLayer]:
+    def __getitem__(self, key: slice) -> list[BinaryLayer]:
         ...
 
-    def __getitem__(self, key: int | slice) -> BinaryLayer | List[BinaryLayer]:
+    def __getitem__(self, key: int | slice) -> BinaryLayer | list[BinaryLayer]:
         return self._data[key]
 
     def __iter__(self) -> Iterator[BinaryLayer]:
@@ -173,7 +164,7 @@ class BinaryLayers(Sequence[BinaryLayer]):
         if binary_meta is None:
             return None
         try:
-            items: List[dict] = binary_meta["BinaryMetadata_v1"]["BinaryItem"]
+            items: list[dict] = binary_meta["BinaryMetadata_v1"]["BinaryItem"]
         except KeyError:
             warnings.warn(
                 "Could not find 'BinaryMetadata_v1->BinaryItem' tag, please open an "
@@ -187,7 +178,7 @@ class BinaryLayers(Sequence[BinaryLayer]):
         mask_items = []
         for item in items:
             key = item["FileTag"]
-            _masks: List[np.ndarray | None] = []
+            _masks: list[np.ndarray | None] = []
             for bs in binseqs:
                 if key in bs:
                     data = rdr._get_meta_chunk(bs)[4:]
@@ -243,6 +234,6 @@ def _decode_binary_mask(data: bytes, dtype="uint16") -> np.ndarray:
             (row, nruns) = _unpack(stream, I2)
             for _s in range(nruns):
                 (col, n) = _unpack(stream, I2)
-                output[row, col : col + n] = roi_id  # noqa: E203
+                output[row, col : col + n] = roi_id
 
     return output

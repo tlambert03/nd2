@@ -364,5 +364,7 @@ def test_gc_triggers_cleanup(single_nd2):
     import gc
 
     f: ND2File | None = ND2File(single_nd2)
-    f = None  # noqa: F841
-    gc.collect()
+
+    with pytest.warns(UserWarning, match="ND2File file not closed"):
+        f = None  # noqa: F841
+        gc.collect()

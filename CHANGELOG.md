@@ -1,8 +1,20 @@
 # Changelog
 
-## [0.5.1](https://github.com/tlambert03/nd2/tree/0.5.1) (2022-11-01)
+## [0.5.2](https://github.com/tlambert03/nd2/tree/0.5.2) (2022-12-08)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.5.0...0.5.1)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.5.1...0.5.2)
+
+**Fixed bugs:**
+
+- fix: close handles on object deletion [\#116](https://github.com/tlambert03/nd2/pull/116) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- style: use ruff linter and update pre-commit [\#115](https://github.com/tlambert03/nd2/pull/115) ([tlambert03](https://github.com/tlambert03))
+
+## [v0.5.1](https://github.com/tlambert03/nd2/tree/v0.5.1) (2022-11-01)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.5.0...v0.5.1)
 
 **Implemented enhancements:**
 

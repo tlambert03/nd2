@@ -83,10 +83,10 @@ cdef class ND2Reader:
                     if self.attributes.compressionType is not None and self._wants_read_using_sdk is False:
                         Lim_FileClose(self._fh)
                         raise ValueError("Cannot read compressed nd2 files with `read_using_sdk=False`")
-            except Exception as e:
+            except Exception:
                 Lim_FileClose(self._fh)
                 self._is_open = 0
-                raise e
+                raise
 
             if not self._read_using_sdk:
                 with open(self.path, 'rb') as fh:

@@ -68,28 +68,27 @@ cdef class ND2Reader:
             self._max_frame_index = max(self._frame_map)
 
 
-    cpdef int open(self) except -1:
+    cpdef open(self):
         if not self._is_open:
             self._fh = Lim_FileOpenForReadUtf8(self.path)
             if not self._fh:
                 raise OSError("Could not open file: %s" % self.path)
-            self._is_open = 1
 
-            attrs = self._attributes()
-            if not attrs:
+            try:
+                comp_type = self._attributes().get('compressionType')
+            except Exception:
                 Lim_FileClose(self._fh)
-                self._is_open = 0
-                return -1
+                raise OSError("Unknown error reading attributes in file: %s" % self.path)
 
             if self._wants_read_using_sdk is None:
-                self._read_using_sdk = attrs.get('compressionType') is not None
+                self._read_using_sdk = comp_type is not None
             else:
                 self._read_using_sdk = self._wants_read_using_sdk
-                if attrs.get('compressionType') is not None and self._wants_read_using_sdk is False:
+                if comp_type is not None and self._wants_read_using_sdk is False:
                     Lim_FileClose(self._fh)
                     raise ValueError("Cannot read compressed nd2 files with `read_using_sdk=False`")
 
-
+            self._is_open = 1
             if not self._read_using_sdk:
                 with open(self.path, 'rb') as fh:
                     self._mmap = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)

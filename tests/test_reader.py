@@ -356,3 +356,15 @@ def test_recorded_data() -> None:
             -4155.462732842248,
             3916.7250000000004,
         ]
+
+
+def test_gc_triggers_cleanup(single_nd2):
+    # this test takes advantage of the `no_files_left_open``
+    # fixture in conftest to ensure that the file is closed
+    import gc
+
+    f: ND2File | None = ND2File(single_nd2)
+
+    with pytest.warns(UserWarning, match="ND2File file not closed"):
+        f = None  # noqa: F841
+        gc.collect()

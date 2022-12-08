@@ -141,6 +141,16 @@ class ND2File:
         self.open()
         return self
 
+    def __del__(self) -> None:
+        """Delete file handle on garbage collection."""
+        if not getattr(self, "_closed", True):
+            warnings.warn(
+                "ND2File file not closed before garbage collection. "
+                "Please use `with ND2File(...):` context or call `.close()`.",
+                stacklevel=2,
+            )
+            self._rdr.close()
+
     def __exit__(self, *_) -> None:
         self.close()
 

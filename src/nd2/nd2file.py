@@ -9,7 +9,6 @@ from itertools import product
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     Sequence,
     Sized,
     SupportsInt,
@@ -137,10 +136,6 @@ class ND2File:
     def closed(self) -> bool:
         """Whether the file is closed."""
         return self._closed
-
-    def __iter__(self) -> Iterator[np.ndarray]:
-        for i in range(self._frame_count):
-            yield self._get_frame(i)
 
     def __enter__(self) -> ND2File:
         self.open()

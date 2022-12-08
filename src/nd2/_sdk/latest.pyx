@@ -68,25 +68,27 @@ cdef class ND2Reader:
             self._max_frame_index = max(self._frame_map)
 
 
-    cpdef open(self):
+    cpdef int open(self) except -1:
         if not self._is_open:
             self._fh = Lim_FileOpenForReadUtf8(self.path)
             if not self._fh:
                 raise OSError("Could not open file: %s" % self.path)
             self._is_open = 1
 
-            try:
-                if self._wants_read_using_sdk is None:
-                    self._read_using_sdk = self.attributes.compressionType is not None
-                else:
-                    self._read_using_sdk = self._wants_read_using_sdk
-                    if self.attributes.compressionType is not None and self._wants_read_using_sdk is False:
-                        Lim_FileClose(self._fh)
-                        raise ValueError("Cannot read compressed nd2 files with `read_using_sdk=False`")
-            except Exception:
+            attrs = self._attributes()
+            if not attrs:
                 Lim_FileClose(self._fh)
                 self._is_open = 0
-                raise
+                return -1
+
+            if self._wants_read_using_sdk is None:
+                self._read_using_sdk = attrs.get('compressionType') is not None
+            else:
+                self._read_using_sdk = self._wants_read_using_sdk
+                if attrs.get('compressionType') is not None and self._wants_read_using_sdk is False:
+                    Lim_FileClose(self._fh)
+                    raise ValueError("Cannot read compressed nd2 files with `read_using_sdk=False`")
+
 
             if not self._read_using_sdk:
                 with open(self.path, 'rb') as fh:
@@ -116,6 +118,8 @@ cdef class ND2Reader:
                 raise ValueError("Attempt to get attributes from closed nd2 file")
             cont = self._metadata().get('contents')
             attrs = self._attributes()
+            if len(attrs) < 6:
+                raise ValueError("Unexpected error reading attributes from file with SDK")
             nC = cont.get('channelCount') if cont else attrs.get("componentCount", 1)
             self.__attributes = structures.Attributes(**attrs, channelCount=nC)
         return self.__attributes

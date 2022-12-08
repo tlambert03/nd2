@@ -75,13 +75,18 @@ cdef class ND2Reader:
                 raise OSError("Could not open file: %s" % self.path)
             self._is_open = 1
 
-            if self._wants_read_using_sdk is None:
-                self._read_using_sdk = self.attributes.compressionType is not None
-            else:
-                self._read_using_sdk = self._wants_read_using_sdk
-                if self.attributes.compressionType is not None and self._wants_read_using_sdk is False:
-                    Lim_FileClose(self._fh)
-                    raise ValueError("Cannot read compressed nd2 files with `read_using_sdk=False`")
+            try:
+                if self._wants_read_using_sdk is None:
+                    self._read_using_sdk = self.attributes.compressionType is not None
+                else:
+                    self._read_using_sdk = self._wants_read_using_sdk
+                    if self.attributes.compressionType is not None and self._wants_read_using_sdk is False:
+                        Lim_FileClose(self._fh)
+                        raise ValueError("Cannot read compressed nd2 files with `read_using_sdk=False`")
+            except Exception as e:
+                Lim_FileClose(self._fh)
+                self._is_open = 0
+                raise e
 
             if not self._read_using_sdk:
                 with open(self.path, 'rb') as fh:

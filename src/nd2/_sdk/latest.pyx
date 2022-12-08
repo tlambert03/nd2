@@ -76,14 +76,15 @@ cdef class ND2Reader:
 
             try:
                 attrs = self._attributes()
-                if not len(attrs) >= 6:
-                    Lim_FileClose(self._fh)
-                    raise OSError("Unknown error reading attributes in file: %s" % self.path)
+                comp_type = attrs.get('compressionType')
             except Exception:
                 Lim_FileClose(self._fh)
                 raise OSError("Unknown error reading attributes in file: %s" % self.path)
 
-            comp_type = attrs.get('compressionType')
+            if not len(attrs) >= 6:
+                Lim_FileClose(self._fh)
+                raise OSError("Unknown error reading attributes in file: %s" % self.path)
+
             if self._wants_read_using_sdk is None:
                 self._read_using_sdk = comp_type is not None
             else:

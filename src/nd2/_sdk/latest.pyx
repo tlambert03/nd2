@@ -73,16 +73,27 @@ cdef class ND2Reader:
             self._fh = Lim_FileOpenForReadUtf8(self.path)
             if not self._fh:
                 raise OSError("Could not open file: %s" % self.path)
-            self._is_open = 1
+
+            # https://github.com/tlambert03/nd2/issues/114
+            try:
+                attrs = self._attributes()
+                comp_type = attrs.get('compressionType')
+            except Exception:
+                Lim_FileClose(self._fh)
+                raise OSError("Unknown error reading attributes in file: %s" % self.path)
+            if not len(attrs) >= 6:
+                Lim_FileClose(self._fh)
+                raise OSError("Unknown error reading attributes in file: %s" % self.path)
 
             if self._wants_read_using_sdk is None:
-                self._read_using_sdk = self.attributes.compressionType is not None
+                self._read_using_sdk = comp_type is not None
             else:
                 self._read_using_sdk = self._wants_read_using_sdk
-                if self.attributes.compressionType is not None and self._wants_read_using_sdk is False:
+                if comp_type is not None and self._wants_read_using_sdk is False:
                     Lim_FileClose(self._fh)
                     raise ValueError("Cannot read compressed nd2 files with `read_using_sdk=False`")
 
+            self._is_open = 1
             if not self._read_using_sdk:
                 with open(self.path, 'rb') as fh:
                     self._mmap = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
@@ -111,6 +122,8 @@ cdef class ND2Reader:
                 raise ValueError("Attempt to get attributes from closed nd2 file")
             cont = self._metadata().get('contents')
             attrs = self._attributes()
+            if len(attrs) < 6:
+                raise ValueError("Unexpected error reading attributes from file with SDK")
             nC = cont.get('channelCount') if cont else attrs.get("componentCount", 1)
             self.__attributes = structures.Attributes(**attrs, channelCount=nC)
         return self.__attributes

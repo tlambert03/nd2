@@ -29,6 +29,10 @@ or from conda:
 conda install -c conda-forge nd2
 ```
 
+**Centos Linux**
+
+*Please note that CentOS Linux is only supported in the conda-forge package. `nd2` installed via `pip` will fail to load at runtime.*
+
 ### extras
 
 Legacy nd2 (JPEG2000) files are also supported, but require `imagecodecs`.  To install with support for these files use:

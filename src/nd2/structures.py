@@ -34,12 +34,12 @@ class Attributes(NamedTuple):
     bitsPerComponentSignificant: int
     componentCount: int
     heightPx: int
-    pixelDataType: str
+    pixelDataType: Literal['float', 'unsigned']
     sequenceCount: int
     widthBytes: int | None = None
     widthPx: int | None = None
     compressionLevel: int | None = None
-    compressionType: str | None = None
+    compressionType: Literal["lossless", "lossy", "none"] | None = None
     tileHeightPx: int | None = None
     tileWidthPx: int | None = None
     channelCount: int | None = None

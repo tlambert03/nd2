@@ -135,10 +135,14 @@ class LimFile:
     def experiment(self) -> list[structures.ExpLoop]:
         if not self._experiment:
             k = b"ImageMetadataLV!" if self.version >= (3, 0) else b"ImageMetadata!"
-            exp = self._decode_chunk(k, strip_prefix=False)
-            exp = exp.get("SLxExperiment", exp)
-            loops = load_exp_loop(0, exp)
-            self._experiment = [structures._Loop.create(x) for x in loops]
+            try:
+                exp = self._decode_chunk(k, strip_prefix=False)
+            except KeyError:
+                self._experiment = []
+            else:
+                exp = exp.get("SLxExperiment", exp)
+                loops = load_exp_loop(0, exp)
+                self._experiment = [structures._Loop.create(x) for x in loops]
         return self._experiment
 
 
@@ -152,13 +156,23 @@ def sort_nested_dict(raw: dict) -> dict:
 
 
 if __name__ == "__main__":
+    import sys
     from pathlib import Path
 
     import nd2
+    from rich import print
 
     DATA = Path(__file__).parent.parent.parent.parent / "tests" / "data"
 
-    for p in DATA.glob("*.nd2"):
+    if len(sys.argv) > 1:
+        files = sys.argv[1:]
+        verbose = True
+    else:
+        OK = {"compressed_lossless.nd2", "dims_rgb_t3p2c2z3x64y64.nd2"}
+        files = [str(p) for p in DATA.glob("*.nd2") if p.name not in OK]
+        verbose = False
+
+    for p in files:
         with LimFile(p) as lim:
             try:
                 lim.version
@@ -168,7 +182,16 @@ if __name__ == "__main__":
                 lima = lim.attributes
                 lima = lima._replace(channelCount=ndf.attributes.channelCount)
                 nde = ndf.experiment
-                if nde != []:
-                    lime = lim.experiment()
-                    if lime != nde:
-                        breakpoint()
+                lime = lim.experiment()
+                if lime != nde:
+                    if verbose:
+                        print("---------------------")
+                        print(p, lim.version)
+                        print("lime", lime)
+                        print("nde", nde)
+                        print(ndf.sizes)
+                    else:
+                        print(
+                            f"mismatch {lim.version}",
+                            p,
+                        )

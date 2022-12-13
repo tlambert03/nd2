@@ -36,9 +36,8 @@ def _parse_xy_pos_loop(item: dict, count: int) -> tuple[int, XYPosLoopParams]:
     it_points: dict | list[dict] = item["Points"]
     out_points: list[Position] = []
 
-    for _n, it in (
-        enumerate(it_points, 1) if isinstance(it_points, list) else [it_points]
-    ):
+    _points = it_points if isinstance(it_points, list) else [it_points]
+    for _n, it in enumerate(_points, 1):
         _offset = it.get("dPFSOffset", 0)
         out_points.append(
             Position(

@@ -1,8 +1,6 @@
-from typing import Callable, List
-
 from nd2.structures import (
     LoopParams,
-    LoopTypeString,
+    LoopType,
     NETimeLoopParams,
     Period,
     PeriodDiff,
@@ -12,20 +10,6 @@ from nd2.structures import (
     XYPosLoopParams,
     ZStackLoopParams,
 )
-
-LOOP_TYPES: List[LoopTypeString] = [
-    "Unknown",
-    "TimeLoop",
-    "XYPosLoop",
-    "XYDiscrLoop",
-    "ZStackLoop",
-    "PolarLoop",
-    "SpectLoop",
-    "CustomLoop",
-    "NETimeLoop",
-    "ManTimeLoop",
-    "ZStackLoopAccurate",
-]
 
 
 def _parse_xy_pos_loop(item: dict, count: int) -> tuple[int, XYPosLoopParams]:
@@ -78,6 +62,34 @@ def _parse_z_stack_loop(item: dict, count: int) -> tuple[int, ZStackLoopParams]:
     return count, params
 
 
+def _calc_zstack_home_index(
+    inverted: bool,
+    count: int,
+    type_: int,
+    home_um: float,
+    low_um: float,
+    high_um: float,
+    step_um: float,
+    tol: float = 0.05,
+) -> int:
+    from math import ceil
+
+    home_range_f = abs(low_um - home_um)
+    home_range_i = abs(high_um - home_um)
+
+    if type_ in {2, 3}:
+        hrange = inverted and home_range_i or home_range_f
+    elif type_ in {6, 7}:
+        hrange = inverted and home_range_f or home_range_i
+    else:
+        return (count - 1) // 2
+
+    if step_um <= 0:
+        return min(int((count - 1) * hrange / abs(high_um - low_um)), count - 1)
+    else:
+        return min(int(abs(ceil((hrange - tol * step_um) / step_um))), count - 1)
+
+
 def _parse_time_loop(item: dict, count: int) -> tuple[int, TimeLoopParams | None]:
     count = item.get("uiCount", 0)
     if not count:
@@ -123,14 +135,6 @@ def _parse_ne_time_loop(item: dict, count: int) -> tuple[int, NETimeLoopParams]:
     return count, params
 
 
-_EXP_PARSERS: dict[int, Callable[[dict, int], tuple[int, LoopParams]]] = {
-    1: _parse_time_loop,
-    2: _parse_xy_pos_loop,
-    4: _parse_z_stack_loop,
-    8: _parse_ne_time_loop,
-}
-
-
 def load_exp_loop(level: int, src: dict, dest: list[dict] | None = None) -> list[dict]:
     loop = load_single_exp_loop(src)
     loop_type = loop.get("type")
@@ -165,11 +169,11 @@ def load_single_exp_loop(exp: dict) -> dict:
         breakpoint()
     loop_type = exp.get("eType", 0)
     loop_params: dict = exp.get("uLoopPars", {})
-    if not loop_params or loop_type > len(LOOP_TYPES):
+    if not loop_params or loop_type > max(LoopType):
         return {}
 
     count = 0
-    params: LoopParams = {}
+    params: LoopParams | None = None
     if loop_type == 1:  # time loop
         count, params = _parse_time_loop(loop_params, count)
     elif loop_type == 2:
@@ -186,31 +190,3 @@ def load_single_exp_loop(exp: dict) -> dict:
 
     # TODO: loop_type to string
     return {"type": loop_type, "count": count, "parameters": params}
-
-
-def _calc_zstack_home_index(
-    inverted: bool,
-    count: int,
-    type_: int,
-    home_um: float,
-    low_um: float,
-    high_um: float,
-    step_um: float,
-    tol: float = 0.05,
-) -> int:
-    from math import ceil
-
-    home_range_f = abs(low_um - home_um)
-    home_range_i = abs(high_um - home_um)
-
-    if type_ in {2, 3}:
-        hrange = inverted and home_range_i or home_range_f
-    elif type_ in {6, 7}:
-        hrange = inverted and home_range_f or home_range_i
-    else:
-        return (count - 1) // 2
-
-    if step_um <= 0:
-        return min(int((count - 1) * hrange / abs(high_um - low_um)), count - 1)
-    else:
-        return min(int(abs(ceil((hrange - tol * step_um) / step_um))), count - 1)

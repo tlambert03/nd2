@@ -4,14 +4,14 @@ from io import BufferedReader
 from typing import TYPE_CHECKING, cast
 
 from nd2 import structures
-from nd2._pysdk._structures import load_exp_loop
-from nd2._pysdk._util import (
+from nd2._pysdk._decode import (
     _read_nd2_chunk,
     decode_CLxLiteVariant_json,
     decode_xml,
     get_version,
     load_chunkmap,
 )
+from nd2._pysdk._parse import load_exp_loop
 from typing_extensions import Literal
 
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import TypeAlias
 
-    from ._util import ChunkMap
+    from ._decode import ChunkMap
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]

@@ -6,8 +6,6 @@ import struct
 from io import IOBase
 from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
-from nd2.structures import LoopType
-
 if TYPE_CHECKING:
     from io import BufferedReader
     from os import PathLike
@@ -283,6 +281,46 @@ def _chunk_name_and_dtype(
     return (name, data_type)
 
 
+_XMLCAST: dict[str | None, Callable[[str], Any]] = {
+    "lx_uint32": int,
+    "lx_int32": int,
+    "lx_uint64": int,
+    "lx_int64": int,
+    "double": float,
+    "float": float,
+    "CLxStringW": str,
+    "CLxByteArray": lambda x: [ord(i) for i in x],
+    "bool": bool,
+    None: str,
+}
+
+
+def _variant_to_dict(node: dict[str, Any]) -> Any:
+    if isinstance(node, dict):
+        v = node.pop("@version", "1.0")
+        if v != "1.0":
+            raise ValueError(f"Unknown version of metadata: {v}")
+        if "no_name" in node:
+            node = node["no_name"]
+
+    if isinstance(node, dict):
+        runtype = node.pop("@runtype", None)
+        if runtype == "CLxListVariant" and all(k.startswith("_") for k in list(node)):
+            return [_variant_to_dict(node[k]) for k in list(node)]
+        if "@value" in node:
+            return _XMLCAST.get(runtype, str)(node["@value"])
+
+        return {k: _variant_to_dict(v) for k, v in node.items()}
+    return [_variant_to_dict(i) for i in node] if isinstance(node, list) else node
+
+
+def decode_xml(data: bytes):
+    import xmltodict
+
+    d = xmltodict.parse(data)
+    return _variant_to_dict(d["variant"])
+
+
 # lite variant
 def decode_CLxLiteVariant_json(
     data: bytes | io.BytesIO, strip_prefix: bool = True, _count: int = 1
@@ -303,24 +341,22 @@ def decode_CLxLiteVariant_json(
 
         value: JsonValueType
         if data_type == ELxLiteVariantType.LEVEL:
-            new_count, length = strctIQ.unpack(stream.read(strctIQ.size))
+            item_count, length = strctIQ.unpack(stream.read(strctIQ.size))
             next_data_length = stream.read(length - (stream.tell() - curs))
             val: dict = decode_CLxLiteVariant_json(
-                next_data_length, strip_prefix, new_count
+                next_data_length, strip_prefix, item_count
             )
-            stream.seek(new_count * 8, 1)
-            # TODO
-            t = "Type" if strip_prefix else "eType"
-            a = "ApplicationDesc" if strip_prefix else "wsApplicationDesc"
-            if t in val and a in val:
-                val[t] = LoopType(val[t])
-            value = val
+            stream.seek(item_count * 8, 1)
+            # levels with a single "" key are actually lists
+            value = val[""] if len(val) == 1 and "" in val else val
+
         elif data_type in _PARSERS:
             value = _PARSERS[data_type](stream)
         else:
             value = None
 
-        if name in output:
+        if name == "" and name in output:
+            # nd2 uses empty strings as keys for lists
             if not isinstance(output[name], list):
                 output[name] = [output[name]]
             cast(list, output[name]).append(value)

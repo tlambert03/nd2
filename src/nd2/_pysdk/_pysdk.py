@@ -4,10 +4,11 @@ from io import BufferedReader
 from typing import TYPE_CHECKING, cast
 
 from nd2 import structures
-from nd2._pysdk._structures import loadExperiment
+from nd2._pysdk._structures import load_exp_loop
 from nd2._pysdk._util import (
     _read_nd2_chunk,
     decode_CLxLiteVariant_json,
+    decode_xml,
     get_version,
     load_chunkmap,
 )
@@ -29,7 +30,7 @@ class LimFile:
     _filename: str
     _fh: BufferedReader | None
     _attributes: structures.Attributes | None = None
-    _metadata: structures.Metadata | None = None
+    _experiment: list[structures.ExpLoop] | None = None
     _version: tuple[int, int] | None = None
     _chunkmap: ChunkMap = {}
 
@@ -76,15 +77,21 @@ class LimFile:
 
     def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict:
         data = self._load_chunk(name)
+        if self.version < (3, 0):
+            return decode_xml(data)
         return decode_CLxLiteVariant_json(data, strip_prefix=strip_prefix)
 
     @property
     def attributes(self) -> structures.Attributes:
         if not self._attributes:
             # FIXME: this key will depend on version
-            attrs = self._decode_chunk(b"ImageAttributesLV!", strip_prefix=False)
-            attrs = attrs["SLxImageAttributes"]
-            bpc = attrs["uiBpcInMemory"]
+            k = b"ImageAttributesLV!" if self.version >= (3, 0) else b"ImageAttributes!"
+            attrs = self._decode_chunk(k, strip_prefix=False)
+            attrs = attrs.get("SLxImageAttributes", attrs)  # for v3 only
+            try:
+                bpc = attrs["uiBpcInMemory"]
+            except KeyError:
+                breakpoint()
             _ecomp: int = attrs.get("eCompression", 2)
             comp_type: Literal["lossless", "lossy", "none"] | None
             if 0 <= _ecomp < 2:
@@ -126,36 +133,42 @@ class LimFile:
         return self._attributes
 
     def experiment(self) -> list[structures.ExpLoop]:
-        if not self._metadata:
-            exp = self._decode_chunk(b"ImageMetadataLV!", strip_prefix=False)
-            exp = exp["SLxExperiment"]
-            sequence_count = self.attributes.sequenceCount
-            self._metadata = loadExperiment(exp, sequence_count)
-        return self._metadata
+        if not self._experiment:
+            k = b"ImageMetadataLV!" if self.version >= (3, 0) else b"ImageMetadata!"
+            exp = self._decode_chunk(k, strip_prefix=False)
+            exp = exp.get("SLxExperiment", exp)
+            loops = load_exp_loop(0, exp)
+            self._experiment = [structures._Loop.create(x) for x in loops]
+        return self._experiment
+
+
+def sort_nested_dict(raw: dict) -> dict:
+    if isinstance(raw, dict):
+        return {k: sort_nested_dict(v) for k, v in sorted(raw.items())}
+    elif isinstance(raw, list):
+        return [sort_nested_dict(v) for v in raw]
+    else:
+        return raw
 
 
 if __name__ == "__main__":
-    import sys
-    import time
+    from pathlib import Path
 
-    from rich import print
+    import nd2
 
-    fname = sys.argv[1]
+    DATA = Path(__file__).parent.parent.parent.parent / "tests" / "data"
 
-    t = time.perf_counter()
-    with LimFile(fname) as lim:
-        print("version", lim.version)
-        print(lim.attributes)
-        print(lim.experiment())
-
-    # t2 = time.perf_counter()
-    # print(f"Time: {t2 - t:.4f}s")
-    # print("----------")
-    # t = time.perf_counter()
-    # with nd2.ND2File(fname) as f:
-    #     print(f.attributes)
-    #     print(f.experiment)
-    #     ...
-
-    t2 = time.perf_counter()
-    print(f"Time: {t2 - t:.4f}s")
+    for p in DATA.glob("*.nd2"):
+        with LimFile(p) as lim:
+            try:
+                lim.version
+            except Exception:
+                continue
+            with nd2.ND2File(p) as ndf:
+                lima = lim.attributes
+                lima = lima._replace(channelCount=ndf.attributes.channelCount)
+                nde = ndf.experiment
+                if nde != []:
+                    lime = lim.experiment()
+                    if lime != nde:
+                        breakpoint()

@@ -89,6 +89,15 @@ class _Loop:
 
     @classmethod
     def create(cls, obj: dict) -> ExpLoop:
+        type_ = obj.pop("type")
+        if type_ in ("TimeLoop", LoopType.TimeLoop):
+            return TimeLoop(**obj)
+        elif type_ in ("NETimeLoop", LoopType.NETimeLoop):
+            return NETimeLoop(**obj)
+        elif type_ in ("XYPosLoop", LoopType.XYPosLoop):
+            return XYPosLoop(**obj)
+        elif type_ in ("ZStackLoop", LoopType.ZStackLoop):
+            return ZStackLoop(**obj)
         return globals()[obj["type"]](**obj)
 
 
@@ -180,6 +189,8 @@ class Position:
 
     def __post_init__(self):
         if isinstance(self.stagePositionUm, dict):
+            self.stagePositionUm = StagePosition(*self.stagePositionUm)
+        elif isinstance(self.stagePositionUm, (tuple, list)):
             self.stagePositionUm = StagePosition(*self.stagePositionUm)
 
 

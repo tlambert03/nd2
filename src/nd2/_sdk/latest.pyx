@@ -167,6 +167,7 @@ cdef class ND2Reader:
 
     def experiment(self) -> List[structures.ExpLoop]:
         from ..structures import _Loop
+        print("raw experiment: ", self._experiment())
         return [_Loop.create(i) for i in self._experiment()]
 
     cpdef LIMUINT _seq_count(self):

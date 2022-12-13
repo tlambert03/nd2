@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 from io import BufferedReader
-from typing import TYPE_CHECKING
-from typing_extensions import Literal
+from typing import TYPE_CHECKING, cast
+
 from nd2 import structures
+from nd2._pysdk._structures import loadExperiment
 from nd2._pysdk._util import (
     _read_nd2_chunk,
     decode_CLxLiteVariant_json,
     get_version,
     load_chunkmap,
 )
+from typing_extensions import Literal
 
 if TYPE_CHECKING:
     from os import PathLike
@@ -27,14 +29,13 @@ class LimFile:
     _filename: str
     _fh: BufferedReader | None
     _attributes: structures.Attributes | None = None
-    _raw_metadata: dict
+    _metadata: structures.Metadata | None = None
     _version: tuple[int, int] | None = None
     _chunkmap: ChunkMap = {}
 
     def __init__(self, filename: str) -> None:
         self._filename = filename
         self._fh: BufferedReader | None = None
-        self._raw_metadata = {}
         self._chunkmap = {}
 
     def open(self) -> None:
@@ -80,16 +81,21 @@ class LimFile:
     @property
     def attributes(self) -> structures.Attributes:
         if not self._attributes:
+            # FIXME: this key will depend on version
             attrs = self._decode_chunk(b"ImageAttributesLV!", strip_prefix=False)
             attrs = attrs["SLxImageAttributes"]
             bpc = attrs["uiBpcInMemory"]
             _ecomp: int = attrs.get("eCompression", 2)
+            comp_type: Literal["lossless", "lossy", "none"] | None
             if 0 <= _ecomp < 2:
-                comp_type: Literal["lossless", "lossy", "none"] | None = [
-                    "lossless",
-                    "lossy",
-                    "none",
-                ][_ecomp]
+                comp_type = cast(
+                    'Literal["lossless", "lossy", "none"]',
+                    [
+                        "lossless",
+                        "lossy",
+                        "none",
+                    ][_ecomp],
+                )
                 comp_level = attrs.get("dCompressionParam")
             else:
                 comp_type = None
@@ -119,11 +125,19 @@ class LimFile:
             )
         return self._attributes
 
+    def experiment(self) -> list[structures.ExpLoop]:
+        if not self._metadata:
+            exp = self._decode_chunk(b"ImageMetadataLV!", strip_prefix=False)
+            exp = exp["SLxExperiment"]
+            sequence_count = self.attributes.sequenceCount
+            self._metadata = loadExperiment(exp, sequence_count)
+        return self._metadata
+
 
 if __name__ == "__main__":
     import sys
     import time
-    import nd2
+
     from rich import print
 
     fname = sys.argv[1]
@@ -132,13 +146,16 @@ if __name__ == "__main__":
     with LimFile(fname) as lim:
         print("version", lim.version)
         print(lim.attributes)
+        print(lim.experiment())
 
-    t2 = time.perf_counter()
-    print(f"Time: {t2 - t:.4f}s")
-    print("----------")
-    t = time.perf_counter()
-    with nd2.ND2File(fname) as f:
-        print(f.attributes)
+    # t2 = time.perf_counter()
+    # print(f"Time: {t2 - t:.4f}s")
+    # print("----------")
+    # t = time.perf_counter()
+    # with nd2.ND2File(fname) as f:
+    #     print(f.attributes)
+    #     print(f.experiment)
+    #     ...
 
     t2 = time.perf_counter()
     print(f"Time: {t2 - t:.4f}s")

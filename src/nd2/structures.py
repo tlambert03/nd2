@@ -3,22 +3,33 @@ from __future__ import annotations
 import builtins
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum
-from typing import TYPE_CHECKING, NamedTuple, Union
+from typing import NamedTuple, Union
 
 from typing_extensions import Literal
 
-if TYPE_CHECKING:
-    pass
 
 # enums
 
 
 class LoopType(IntEnum):
-    NETimeLoop = 8
+    Unknown = 0
+    TimeLoop = 1
     XYPosLoop = 2
-    ZStackLoop = 6
-    TimeLoop = 1  # not sure about this
-    Unknown = 4  # not sure about this
+    XYDiscrLoop = 3
+    ZStackLoop = 4
+    PolarLoop = 5
+    SpectLoop = 6
+    CustomLoop = 7
+    NETimeLoop = 8
+    ManTimeLoop = 9
+    ZStackLoopAccurate = 10
+
+    # old values
+    # NETimeLoop = 8
+    # XYPosLoop = 2
+    # ZStackLoop = 6
+    # TimeLoop = 1  # not sure about this
+    # Unknown = 4  # not sure about this
 
 
 class AxisInterpretation(str, Enum):
@@ -34,7 +45,7 @@ class Attributes(NamedTuple):
     bitsPerComponentSignificant: int
     componentCount: int
     heightPx: int
-    pixelDataType: Literal['float', 'unsigned']
+    pixelDataType: Literal["float", "unsigned"]
     sequenceCount: int
     widthBytes: int | None = None
     widthPx: int | None = None
@@ -54,12 +65,18 @@ class ImageInfo(NamedTuple):
 
 # experiment #################
 
-
-LoopTypeString = Union[
-    Literal["TimeLoop"],
-    Literal["NETimeLoop"],
-    Literal["XYPosLoop"],
-    Literal["ZStackLoop"],
+LoopTypeString = Literal[
+    "Unknown",
+    "TimeLoop",
+    "XYPosLoop",
+    "XYDiscrLoop",
+    "ZStackLoop",
+    "PolarLoop",
+    "SpectLoop",
+    "CustomLoop",
+    "NETimeLoop",
+    "ManTimeLoop",
+    "ZStackLoopAccurate",
 ]
 
 

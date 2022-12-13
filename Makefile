@@ -14,6 +14,7 @@ clean:
 	rm -f src/nd2/_sdk/*.so
 	rm -f src/nd2/_sdk/*.c
 	rm -f src/nd2/_sdk/*.cpp
+	rm -f src/nd2/_pysdk/*.so
 
 clobber:
 	make clean

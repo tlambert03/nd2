@@ -4,7 +4,7 @@ import io
 import re
 import struct
 from io import IOBase
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
 from nd2.structures import LoopType
 
@@ -268,7 +268,7 @@ def _chunk_name_and_dtype(
 ) -> tuple[str, int]:
     header = stream.read(strctBB.size)
     if not header:
-        return ("", 0)
+        return ("", -1)
 
     data_type, name_length = strctBB.unpack(header)
     if data_type == ELxLiteVariantType.COMPRESS:
@@ -298,7 +298,7 @@ def decode_CLxLiteVariant_json(
         curs = stream.tell()
 
         name, data_type = _chunk_name_and_dtype(stream, strip_prefix)
-        if not name:
+        if data_type == -1:
             break
 
         value: JsonValueType
@@ -309,11 +309,11 @@ def decode_CLxLiteVariant_json(
                 next_data_length, strip_prefix, new_count
             )
             stream.seek(new_count * 8, 1)
-            # # TODO
-            # t = "Type" if strip_prefix else "eType"
-            # a = "ApplicationDesc" if strip_prefix else "wsApplicationDesc"
-            # if t in val and a in val:
-            #     val[t] = LoopType(val[t])
+            # TODO
+            t = "Type" if strip_prefix else "eType"
+            a = "ApplicationDesc" if strip_prefix else "wsApplicationDesc"
+            if t in val and a in val:
+                val[t] = LoopType(val[t])
             value = val
         elif data_type in _PARSERS:
             value = _PARSERS[data_type](stream)

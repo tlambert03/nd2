@@ -1,12 +1,17 @@
+from enum import Enum
 from typing import TYPE_CHECKING, Sequence, cast
+import re
 
 from nd2.structures import (
     Attributes,
     Channel,
     ChannelMeta,
+    ExpLoop,
+    LoopIndices,
     LoopParams,
     LoopType,
     Metadata,
+    Microscope,
     NETimeLoopParams,
     Period,
     PeriodDiff,
@@ -14,8 +19,11 @@ from nd2.structures import (
     StagePosition,
     TextInfo,
     TimeLoopParams,
+    Volume,
     XYPosLoopParams,
+    ZStackLoop,
     ZStackLoopParams,
+    AxisInterpretation,
 )
 
 if TYPE_CHECKING:
@@ -24,6 +32,52 @@ if TYPE_CHECKING:
     CompressionType = Literal["lossless", "lossy", "none"]
 
 
+#   enum ELxModalityMask : uint64_t
+#   {
+#      LX_ModFluorescence = 0x0000000000000001ULL,
+#      LX_ModBrightfield = 0x0000000000000002ULL,
+#      LX_ModMaskLight = (LX_ModFluorescence | LX_ModBrightfield),
+
+#      LX_ModPhaseContrast = 0x0000000000000010ULL,
+#      LX_ModDIContrast = 0x0000000000000020ULL,
+#      LX_ModMaskContrast = (LX_ModPhaseContrast | LX_ModDIContrast),
+
+#      LX_ModCamera = 0x0000000000000100ULL,
+#      LX_ModLaserScanConfocal = 0x0000000000000200ULL,
+#      LX_ModSpinDiskConfocal = 0x0000000000000400ULL,
+#      LX_ModSweptFieldConfocalSlit = 0x0000000000000800ULL,
+#      LX_ModSweptFieldConfocalPinholes = 0x0000000000001000ULL,
+#      LX_ModDSDConfocal = 0x0000000000002000ULL,
+#      LX_ModSIM = 0x0000000000004000ULL,
+#      LX_ModISIM = 0x0000000000008000ULL,
+#      LX_ModRCM = 0x0000000000000040ULL, // point scan, detected by camera (multiple detections)
+#      LX_ModVCS = 0x0000000000000080ULL, // VideoConfocal super-resolution
+#      LX_ModSora = 0x0000000040000000ULL, // Yokogawa in Super-resolution mode
+#      LX_ModLiveSR = 0x0000000000040000ULL,
+#      LX_ModMaskAcqHWType = (LX_ModCamera | LX_ModLaserScanConfocal | LX_ModSpinDiskConfocal | LX_ModSweptFieldConfocalSlit | LX_ModSweptFieldConfocalPinholes | LX_ModDSDConfocal | LX_ModRCM | LX_ModVCS | LX_ModISIM),
+
+#      LX_ModMultiPhotonFluo = 0x0000000000010000ULL,
+#      LX_ModTIRF = 0x0000000000020000ULL,
+#      LX_ModPMT = 0x0000000000100000ULL,
+#      LX_ModSpectral = 0x0000000000200000ULL,
+#      LX_ModVAAS_IF = 0x0000000000400000ULL,
+#      LX_ModVAAS_NF = 0x0000000000800000ULL,
+#      LX_ModTransmitDetector = 0x0000000001000000ULL,
+#      LX_ModNonDescannedDetector = 0x0000000002000000ULL,
+#      LX_ModVirtualFilter = 0x0000000004000000ULL,
+#      LX_ModGaAsP = 0x0000000008000000ULL,
+#      LX_ModRemainder = 0x0000000010000000ULL,
+#      LX_ModAUX = 0x0000000020000000ULL,
+#      LX_ModMaskDetector = (LX_ModSpectral | LX_ModVAAS_IF | LX_ModVAAS_NF | LX_ModTransmitDetector | LX_ModNonDescannedDetector | LX_ModVirtualFilter | LX_ModAUX),
+
+#      EXCLUDE_LIGHT = 0x00000000000ff000ULL
+#   };
+
+
+class ELxModalityMask(Enum):
+    ...
+
+    
 def _parse_xy_pos_loop(
     item: dict, valid: Sequence[int] = ()
 ) -> tuple[int, XYPosLoopParams]:
@@ -325,6 +379,90 @@ def load_text_info(src: dict) -> TextInfo:
         )
         if src.get(lookup)
     }
+
+
+def load_global_metadata(
+    attrs: Attributes, raw_meta: dict, exp_loops: list[ExpLoop], text_info: TextInfo
+):
+    loops = LoopIndices(**{str(loop.type): i for i, loop in enumerate(exp_loops)})
+
+    axesInterpretation = ["distance", "distance", "distance"]
+    axesCalibrated = [False, False, False]
+    axesCalibration = [1.0, 1.0, 1.0]
+    voxel_count = [attrs.widthPx, attrs.heightPx, 1]  # needs loops
+    if not raw_meta:
+        StagePositionUm = [0.0, 0.0, 0.0]
+        relativeTimeMs = 0.0
+    else:
+        if raw_meta["ePictureXAxis"] == 2:
+            axesInterpretation[0] = "time"
+        if raw_meta["ePictureYAxis"] == 2:
+            axesInterpretation[1] = "time"
+        axesCalibrated[:2] = [raw_meta["bCalibrated"]] * 2
+        axesCalibration[:2] = [raw_meta["dCalibration"]] * 2
+
+        if loops.ZStackLoop is not None:
+            z_loop = cast(ZStackLoop, exp_loops[loops.ZStackLoop])
+            axesCalibration[2] = abs(z_loop.parameters.stepUm)
+            voxel_count[2] = z_loop.count
+        axesCalibrated[2] = bool(axesCalibration[2] > 0)
+
+    axesCalibration = [i if i > 0 else 1.0 for i in axesCalibration]
+
+    cam_matrix = tuple(
+        raw_meta.get(n, 0.0)
+        for n in ("dStgLgCT11", "dStgLgCT12", "dStgLgCT21", "dStgLgCT22")
+    )
+
+    volume = Volume(
+        axesCalibrated=cast("tuple[bool,bool,bool]", tuple(axesCalibrated)),
+        axesCalibration=cast("tuple[float,float,float]", (axesCalibration)),
+        axesInterpretation=cast(
+            "tuple[AxisInterpretation, AxisInterpretation, AxisInterpretation]",
+            tuple(axesInterpretation),
+        ),
+        bitsPerComponentInMemory=attrs.bitsPerComponentInMemory,
+        bitsPerComponentSignificant=attrs.bitsPerComponentSignificant,
+        cameraTransformationMatrix=cast(tuple[float, float, float, float], cam_matrix),
+        componentCount=None,
+        componentDataType=(
+            "float" if attrs.bitsPerComponentSignificant == 32 else "unsigned"
+        ),
+        voxelCount=tuple(voxel_count),
+        componentMaxima=None,
+        componentMinima=None,
+        pixelToStageTransformationMatrix=None,
+    )
+
+    mag = raw_meta.get("dObjectiveMag", 0.0)
+    if mag < 0:
+        optics = text_info.get("optics")
+        if optics:
+            match = re.search(r"\s?(\d+)?x", optics, re.IGNORECASE)
+            if match:
+                mag = float(match[1])
+
+    if "dPinholeRadius" in raw_meta:
+        pinhole_diam: float | None = raw_meta["dPinholeRadius"] * 2
+    else:
+        pinhole_diam = None
+
+    planes = raw_meta.get("sPicturePlanes", {})
+    raw_planes = planes.get("sPlaneNew", {})
+    plane = next(iter(raw_planes.values()), {})
+    if plane:
+
+    microscope = Microscope(
+        objectiveMagnification=mag,
+        objectiveName=raw_meta.get("wsObjectiveName"),
+        objectiveNumericalAperture=raw_meta.get("dObjectiveNA"),
+        zoomMagnification=raw_meta.get("dZoom"),
+        immersionRefractiveIndex=(
+            raw_meta.get("dRefractIndex1") or raw_meta.get("dRefractIndex2")
+        ),
+        pinholeDiameterUm=pinhole_diam,
+    )
+    breakpoint()
 
 
 def load_metadata(src: dict) -> Metadata:

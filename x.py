@@ -35,6 +35,7 @@ for p in files:
             nda = ndf.attributes
             limt = lim.text_info()
             ndt = ndf.text_info
+            limm = lim.global_metadata()
             if lime != nde or lima != nda or limt != ndt:
                 print("---------------------")
                 print(f"{lim.version} {p}")

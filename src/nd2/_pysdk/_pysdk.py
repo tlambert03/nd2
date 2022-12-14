@@ -15,6 +15,7 @@ from nd2._pysdk._parse import (
     load_attributes,
     load_exp_loop,
     load_metadata,
+    load_global_metadata,
     load_text_info,
 )
 
@@ -42,7 +43,8 @@ class LimFile:
     _raw_attributes: dict | None = None
     _raw_experiment: dict | None = None
     _raw_text_info: dict | None = None
-    _raw_metadata: dict | None = None
+    _raw_image_metadata: dict | None = None
+    _global_metadata: dict | None = None
 
     def __init__(self, filename: str) -> None:
         self._filename = filename
@@ -100,7 +102,7 @@ class LimFile:
         if not self._attributes:
             k = b"ImageAttributesLV!" if self.version >= (3, 0) else b"ImageAttributes!"
             attrs = self._decode_chunk(k, strip_prefix=False)
-            attrs =attrs.get("SLxImageAttributes", attrs)  # for v3 only
+            attrs = attrs.get("SLxImageAttributes", attrs)  # for v3 only
             self._raw_attributes = attrs
             self._attributes = load_attributes(attrs)
         return self._attributes
@@ -118,18 +120,25 @@ class LimFile:
                 self._experiment = [structures._Loop.create(x) for x in loops]
         return self._experiment
 
-    def metadata(self) -> structures.Metadata:
-        if not self._metadata:
-
+    def _get_raw_image_metadata(self) -> dict:
+        if not self._raw_image_metadata:
             k = (
                 b"ImageMetadataSeqLV|0!"
                 if self.version >= (3, 0)
                 else b"ImageMetadataSeq|0!"
             )
-            meta = self._decode_chunk(k, strip_prefix=False)
-            meta = meta.get("SLxPictureMetadata", meta)  # for v3 only
-            self._raw_metadata = meta
-            self._metadata = load_metadata(meta)
+            if k not in self.chunkmap:
+                self._raw_image_metadata = {}
+            else:
+                meta = self._decode_chunk(k, strip_prefix=False)
+                meta = meta.get("SLxPictureMetadata", meta)  # for v3 only
+                self._raw_image_metadata = meta
+        return self._raw_image_metadata
+
+    def metadata(self) -> structures.Metadata:
+        if not self._metadata:
+            raw_meta = self._get_raw_image_metadata()
+            self._metadata = load_metadata(raw_meta)
             breakpoint()
         return self._metadata
 
@@ -138,9 +147,18 @@ class LimFile:
             k = b"ImageTextInfoLV!" if self.version >= (3, 0) else b"ImageTextInfo!"
             if k not in self.chunkmap:
                 self._text_info = {}
-            else:   
+            else:
                 info = self._decode_chunk(k, strip_prefix=False)
                 info = info.get("SLxImageTextInfo", info)  # for v3 only
                 self._raw_text_info = info
                 self._text_info = load_text_info(info)
         return self._text_info
+
+    def global_metadata(self) -> dict:
+        if not self._global_metadata:
+            attrs = self.attributes
+            raw_meta = self._get_raw_image_metadata()
+            exp_loops = self.experiment()
+            text_info = self.text_info()
+            self._global_metadata = load_global_metadata(attrs, raw_meta, exp_loops, text_info)
+        return self._global_metadata

@@ -1,7 +1,7 @@
-from cgitb import lookup
 from typing import TYPE_CHECKING, Sequence, cast
 
 from nd2.structures import (
+    Attributes,
     Channel,
     ChannelMeta,
     LoopParams,
@@ -12,10 +12,10 @@ from nd2.structures import (
     PeriodDiff,
     Position,
     StagePosition,
+    TextInfo,
     TimeLoopParams,
     XYPosLoopParams,
     ZStackLoopParams,
-    Attributes,
 )
 
 if TYPE_CHECKING:
@@ -298,28 +298,12 @@ def _get_spectrum(item: dict) -> Spectrum:
 
 
 def _get_single_wavelength(item: dict) -> float:
+    # return the wavelength associated with the max value, or 0.0 if no spectrum
     spectrum = _get_spectrum(item)
-    if not spectrum:
-        return 0.0
-    breakpoint()
-    count: int = item.get("uiCount", 0)
-    point = item.get("pPoint")
-    dPeak = 0.0
-    dFwhmMin = 0.0
-    dFwhmMax = 0.0
-    ...
-
-    breakpoint()
+    return max(spectrum, key=lambda x: x[0])[1] if spectrum else 0.0
 
 
-def _peakAndFwhm(peak: float, fwhmMin: float, fwhmMax: float) -> float:
-    if fwhmMin == fwhmMax:
-        return peak
-    else:
-        return (fwhmMin + fwhmMax) / 2.0
-
-
-def load_text_info(src: dict) -> dict:
+def load_text_info(src: dict) -> TextInfo:
     return {
         key: src[lookup]
         for key, lookup in (

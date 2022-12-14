@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from io import BufferedReader
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from nd2 import structures
 from nd2._pysdk._decode import (
@@ -11,8 +11,12 @@ from nd2._pysdk._decode import (
     get_version,
     load_chunkmap,
 )
-from nd2._pysdk._parse import load_exp_loop, load_attributes, load_metadata, load_text_info
-from typing_extensions import Literal
+from nd2._pysdk._parse import (
+    load_attributes,
+    load_exp_loop,
+    load_metadata,
+    load_text_info,
+)
 
 if TYPE_CHECKING:
     from os import PathLike
@@ -33,8 +37,12 @@ class LimFile:
     _chunkmap: ChunkMap
     _attributes: structures.Attributes | None = None
     _experiment: list[structures.ExpLoop] | None = None
-    _text_info: dict | None = None
+    _text_info: structures.TextInfo | None = None
     _metadata: structures.Metadata | None = None
+    _raw_attributes: dict | None = None
+    _raw_experiment: dict | None = None
+    _raw_text_info: dict | None = None
+    _raw_metadata: dict | None = None
 
     def __init__(self, filename: str) -> None:
         self._filename = filename
@@ -92,7 +100,8 @@ class LimFile:
         if not self._attributes:
             k = b"ImageAttributesLV!" if self.version >= (3, 0) else b"ImageAttributes!"
             attrs = self._decode_chunk(k, strip_prefix=False)
-            attrs = attrs.get("SLxImageAttributes", attrs)  # for v3 only
+            attrs =attrs.get("SLxImageAttributes", attrs)  # for v3 only
+            self._raw_attributes = attrs
             self._attributes = load_attributes(attrs)
         return self._attributes
 
@@ -103,7 +112,8 @@ class LimFile:
                 self._experiment = []
             else:
                 exp = self._decode_chunk(k, strip_prefix=False)
-                exp = exp.get("SLxExperiment", exp)
+                exp = exp.get("SLxExperiment", exp)  # for v3 only
+                self._raw_experiment = exp
                 loops = load_exp_loop(0, exp)
                 self._experiment = [structures._Loop.create(x) for x in loops]
         return self._experiment
@@ -118,11 +128,12 @@ class LimFile:
             )
             meta = self._decode_chunk(k, strip_prefix=False)
             meta = meta.get("SLxPictureMetadata", meta)  # for v3 only
+            self._raw_metadata = meta
             self._metadata = load_metadata(meta)
             breakpoint()
         return self._metadata
 
-    def text_info(self) -> dict:
+    def text_info(self) -> structures.TextInfo:
         if self._text_info is None:
             k = b"ImageTextInfoLV!" if self.version >= (3, 0) else b"ImageTextInfo!"
             if k not in self.chunkmap:
@@ -130,5 +141,6 @@ class LimFile:
             else:   
                 info = self._decode_chunk(k, strip_prefix=False)
                 info = info.get("SLxImageTextInfo", info)  # for v3 only
+                self._raw_text_info = info
                 self._text_info = load_text_info(info)
         return self._text_info

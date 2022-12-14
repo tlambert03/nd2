@@ -5,10 +5,25 @@ from dataclasses import dataclass, field
 from enum import Enum, IntEnum
 from typing import NamedTuple, Union
 
-from typing_extensions import Literal
+from typing_extensions import Literal, TypedDict
 
 
-# enums
+class TextInfo(TypedDict, total=False):
+    imageId: str
+    type: str
+    group: str
+    sampleId: str
+    author: str
+    description: str
+    capturing: str
+    sampling: str
+    location: str
+    date: str
+    conclusion: str
+    info1: str
+    info2: str
+    optics: str
+    appVersion: str
 
 
 class LoopType(IntEnum):

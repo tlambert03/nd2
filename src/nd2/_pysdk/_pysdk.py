@@ -11,7 +11,7 @@ from nd2._pysdk._decode import (
     get_version,
     load_chunkmap,
 )
-from nd2._pysdk._parse import load_exp_loop
+from nd2._pysdk._parse import load_exp_loop, load_attributes, load_metadata
 from typing_extensions import Literal
 
 if TYPE_CHECKING:
@@ -29,10 +29,11 @@ if TYPE_CHECKING:
 class LimFile:
     _filename: str
     _fh: BufferedReader | None
+    _version: tuple[int, int] | None = None
+    _chunkmap: ChunkMap
     _attributes: structures.Attributes | None = None
     _experiment: list[structures.ExpLoop] | None = None
-    _version: tuple[int, int] | None = None
-    _chunkmap: ChunkMap = {}
+    _metadata: structures.Metadata | None = None
 
     def __init__(self, filename: str) -> None:
         self._filename = filename
@@ -57,7 +58,11 @@ class LimFile:
     @property
     def version(self) -> tuple[int, int]:
         if self._version is None:
-            self._version = get_version(self._fh or self._filename)
+            try:
+                self._version = get_version(self._fh or self._filename)
+            except Exception:
+                self._version = (-1, -1)
+                raise
         return self._version
 
     @property
@@ -84,52 +89,10 @@ class LimFile:
     @property
     def attributes(self) -> structures.Attributes:
         if not self._attributes:
-            # FIXME: this key will depend on version
             k = b"ImageAttributesLV!" if self.version >= (3, 0) else b"ImageAttributes!"
             attrs = self._decode_chunk(k, strip_prefix=False)
             attrs = attrs.get("SLxImageAttributes", attrs)  # for v3 only
-            try:
-                bpc = attrs["uiBpcInMemory"]
-            except KeyError:
-                breakpoint()
-            _ecomp: int = attrs.get("eCompression", 2)
-            comp_type: Literal["lossless", "lossy", "none"] | None
-            if 0 <= _ecomp < 2:
-                comp_type = cast(
-                    'Literal["lossless", "lossy", "none"]',
-                    [
-                        "lossless",
-                        "lossy",
-                        "none",
-                    ][_ecomp],
-                )
-                comp_level = attrs.get("dCompressionParam")
-            else:
-                comp_type = None
-                comp_level = None
-
-            tile_width = attrs.get("uiTileWidth", 0)
-            tile_height = attrs.get("uiTileHeight", 0)
-            if (tile_width <= 0 or tile_width == attrs["uiWidth"]) and (
-                tile_height <= 0 or tile_height == attrs["uiHeight"]
-            ):
-                tile_width = tile_height = None
-
-            self._attributes = structures.Attributes(
-                bitsPerComponentInMemory=bpc,
-                bitsPerComponentSignificant=attrs["uiBpcSignificant"],
-                componentCount=attrs["uiComp"],
-                heightPx=attrs["uiHeight"],
-                pixelDataType="float" if bpc == 32 else "unsigned",
-                sequenceCount=attrs["uiSequenceCount"],
-                widthBytes=attrs["uiWidthBytes"],
-                widthPx=attrs["uiWidth"],
-                compressionLevel=comp_level,
-                compressionType=comp_type,
-                tileHeightPx=tile_height,
-                tileWidthPx=tile_width,
-                # channelCount=attrs[""],  # this comes from metadata
-            )
+            self._attributes = load_attributes(attrs)
         return self._attributes
 
     def experiment(self) -> list[structures.ExpLoop]:
@@ -144,61 +107,16 @@ class LimFile:
                 self._experiment = [structures._Loop.create(x) for x in loops]
         return self._experiment
 
+    def metadata(self) -> structures.Metadata:
+        if not self._metadata:
 
-def sort_nested_dict(raw: dict) -> dict:
-    if isinstance(raw, dict):
-        return {k: sort_nested_dict(v) for k, v in sorted(raw.items())}
-    elif isinstance(raw, list):
-        return [sort_nested_dict(v) for v in raw]
-    else:
-        return raw
-
-
-if __name__ == "__main__":
-    import sys
-    from pathlib import Path
-
-    import nd2
-    from rich import print
-
-    DATA = Path(__file__).parent.parent.parent.parent / "tests" / "data"
-
-    if len(sys.argv) > 1:
-        files = sys.argv[1:]
-        verbose = True
-    else:
-        OK = {
-            "compressed_lossless.nd2",
-            "dims_rgb_t3p2c2z3x64y64.nd2",
-            "karl_sample_image.nd2",
-        }
-        files = [str(p) for p in DATA.glob("*.nd2") if p.name not in OK]
-        verbose = True
-
-    for p in files:
-        with LimFile(p) as lim:
-            try:
-                lim.version
-            except Exception:
-                continue
-            with nd2.ND2File(p) as ndf:
-                lima = lim.attributes
-                nda = ndf.attributes
-                lima = lima._replace(channelCount=nda.channelCount)
-                nde = ndf.experiment
-                lime = lim.experiment()
-                nda = ndf.attributes
-                if lime != nde or lima != nda:
-                    print("---------------------")
-                    print(f"{lim.version} {p}")
-                    if verbose:
-                        print("lime", lime)
-                        print("nde", nde)
-                        print(ndf.sizes)
-                    else:
-                        print(
-                            f"mismatch {lim.version}",
-                            p,
-                        )
-                else:
-                    print(f"ok {lim.version}", p)
+            k = (
+                b'ImageMetadataSeqLV|0!'
+                if self.version >= (3, 0)
+                else b"ImageMetadataSeq|0!"
+            )
+            meta = self._decode_chunk(k, strip_prefix=False)
+            meta = meta.get("SLxPictureMetadata", meta)  # for v3 only
+            self._metadata = load_metadata(meta)
+            breakpoint()
+        return self._metadata

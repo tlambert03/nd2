@@ -3,11 +3,10 @@ from __future__ import annotations
 import io
 import re
 import struct
-from io import IOBase
+from io import BufferedReader
 from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
 if TYPE_CHECKING:
-    from io import BufferedReader
     from os import PathLike
     from typing import Final
 
@@ -65,7 +64,7 @@ def get_version(fh: BufferedReader | StrOrBytesPath) -> tuple[int, int]:
     ValueError
         If the file is not a valid ND2 file or the header chunk is corrupt.
     """
-    if not isinstance(fh, IOBase):
+    if not isinstance(fh, BufferedReader):
         with open(fh, "rb") as fh:
             chunk = START_FILE_CHUNK.unpack(fh.read(START_FILE_CHUNK.size))
     else:
@@ -78,7 +77,7 @@ def get_version(fh: BufferedReader | StrOrBytesPath) -> tuple[int, int]:
     if magic != ND2_CHUNK_MAGIC:
         if magic == JP2_MAGIC:
             raise NotImplementedError(f"Legacy ND2 file not yet supported: {fh.name}")
-        raise ValueError(f"Not a valid ND2 file: {fh.name}")
+        raise ValueError(f"Not a valid ND2 file: {fh.name}. (magic: {magic!r})")
     if name_length != 32 or data_length != 64 or name != ND2_FILE_SIGNATURE:
         raise ValueError(f"Corrupt ND2 file header chunk: {fh.name}")
 
@@ -296,22 +295,25 @@ _XMLCAST: dict[str | None, Callable[[str], Any]] = {
 
 
 def _variant_to_dict(node: dict[str, Any]) -> Any:
+    _node: dict | list = node
     if isinstance(node, dict):
         v = node.pop("@version", "1.0")
         if v != "1.0":
             raise ValueError(f"Unknown version of metadata: {v}")
         if "no_name" in node:
-            node = node["no_name"]
+            _node = node["no_name"]
 
-    if isinstance(node, dict):
-        runtype = node.pop("@runtype", None)
-        if runtype == "CLxListVariant" and all(k.startswith("_") for k in list(node)):
-            return [_variant_to_dict(node[k]) for k in list(node)]
-        if "@value" in node:
-            return _XMLCAST.get(runtype, str)(node["@value"])
+    if isinstance(_node, list):
+        return [_variant_to_dict(i) for i in _node]
+    if isinstance(_node, dict):
+        runtype = _node.pop("@runtype", None)
+        if runtype == "CLxListVariant" and all(k.startswith("_") for k in list(_node)):
+            return [_variant_to_dict(_node[k]) for k in list(_node)]
+        if "@value" in _node:
+            return _XMLCAST.get(runtype, str)(_node["@value"])
 
-        return {k: _variant_to_dict(v) for k, v in node.items()}
-    return [_variant_to_dict(i) for i in node] if isinstance(node, list) else node
+        return {k: _variant_to_dict(v) for k, v in _node.items()}
+    return _node
 
 
 def decode_xml(data: bytes):

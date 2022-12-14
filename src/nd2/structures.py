@@ -304,7 +304,7 @@ class Volume:
     bitsPerComponentSignificant: int
     cameraTransformationMatrix: tuple[float, float, float, float]
     componentCount: int
-    componentDataType: Literal["unsigned"] | Literal["float"]
+    componentDataType: Literal["unsigned", "float"]
     voxelCount: tuple[int, int, int]
     componentMaxima: list[float] | None = None
     componentMinima: list[float] | None = None

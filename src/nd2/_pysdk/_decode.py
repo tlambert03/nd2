@@ -289,8 +289,8 @@ _XMLCAST: dict[str | None, Callable[[str], Any]] = {
     "double": float,
     "float": float,
     "CLxStringW": str,
-    "CLxByteArray": lambda x: [ord(i) for i in x],
-    "bool": bool,
+    "CLxByteArray": lambda x: bytearray(x, "utf8"),
+    "bool": lambda x: x.lower() in {"true", "1"},
     None: str,
 }
 

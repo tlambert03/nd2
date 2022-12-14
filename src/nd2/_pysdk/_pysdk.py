@@ -135,11 +135,10 @@ class LimFile:
     def experiment(self) -> list[structures.ExpLoop]:
         if not self._experiment:
             k = b"ImageMetadataLV!" if self.version >= (3, 0) else b"ImageMetadata!"
-            try:
-                exp = self._decode_chunk(k, strip_prefix=False)
-            except KeyError:
+            if k not in self.chunkmap:
                 self._experiment = []
             else:
+                exp = self._decode_chunk(k, strip_prefix=False)
                 exp = exp.get("SLxExperiment", exp)
                 loops = load_exp_loop(0, exp)
                 self._experiment = [structures._Loop.create(x) for x in loops]
@@ -174,7 +173,7 @@ if __name__ == "__main__":
             "karl_sample_image.nd2",
         }
         files = [str(p) for p in DATA.glob("*.nd2") if p.name not in OK]
-        verbose = False
+        verbose = True
 
     for p in files:
         with LimFile(p) as lim:
@@ -184,13 +183,15 @@ if __name__ == "__main__":
                 continue
             with nd2.ND2File(p) as ndf:
                 lima = lim.attributes
-                lima = lima._replace(channelCount=ndf.attributes.channelCount)
+                nda = ndf.attributes
+                lima = lima._replace(channelCount=nda.channelCount)
                 nde = ndf.experiment
                 lime = lim.experiment()
-                if lime != nde:
+                nda = ndf.attributes
+                if lime != nde or lima != nda:
+                    print("---------------------")
+                    print(f"{lim.version} {p}")
                     if verbose:
-                        print("---------------------")
-                        print(p, lim.version)
                         print("lime", lime)
                         print("nde", nde)
                         print(ndf.sizes)
@@ -199,3 +200,5 @@ if __name__ == "__main__":
                             f"mismatch {lim.version}",
                             p,
                         )
+                else:
+                    print(f"ok {lim.version}", p)

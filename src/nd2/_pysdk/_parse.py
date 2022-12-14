@@ -147,10 +147,10 @@ def load_exp_loop(level: int, src: dict, dest: list[dict] | None = None) -> list
     loop_type = loop.get("type")
     loop_count = loop.get("count")
     dest = dest or []
-    if not loop or loop_count == 0 or loop_type == 0:
+    if not loop or loop_count == 0 or loop_type == LoopType.Unknown:
         return dest
 
-    if loop_type == 6:
+    if loop_type == LoopType.SpectLoop:
         level -= 1
     elif not dest or dest[-1]["nestingLevel"] < level:
         loop["nestingLevel"] = level
@@ -166,8 +166,7 @@ def load_exp_loop(level: int, src: dict, dest: list[dict] | None = None) -> list
     if next_level_src:
         items = [next_level_src] if isinstance(next_level_src, dict) else next_level_src
         for item in items:
-            load_exp_loop(level + 1, item, dest)
-
+            dest = load_exp_loop(level + 1, item, dest)
     return dest
 
 

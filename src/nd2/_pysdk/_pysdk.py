@@ -168,7 +168,11 @@ if __name__ == "__main__":
         files = sys.argv[1:]
         verbose = True
     else:
-        OK = {"compressed_lossless.nd2", "dims_rgb_t3p2c2z3x64y64.nd2"}
+        OK = {
+            "compressed_lossless.nd2",
+            "dims_rgb_t3p2c2z3x64y64.nd2",
+            "karl_sample_image.nd2",
+        }
         files = [str(p) for p in DATA.glob("*.nd2") if p.name not in OK]
         verbose = False
 

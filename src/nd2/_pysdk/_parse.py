@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from nd2.structures import (
     LoopParams,
     LoopType,
@@ -12,7 +14,9 @@ from nd2.structures import (
 )
 
 
-def _parse_xy_pos_loop(item: dict, count: int) -> tuple[int, XYPosLoopParams]:
+def _parse_xy_pos_loop(
+    item: dict, valid: Sequence[int] = ()
+) -> tuple[int, XYPosLoopParams]:
     useZ = item.get("bUseZ", False)
     relXY = item.get("bRelativeXY", False)
     refX = item.get("dReferenceX", 0) if relXY else 0
@@ -21,7 +25,7 @@ def _parse_xy_pos_loop(item: dict, count: int) -> tuple[int, XYPosLoopParams]:
     out_points: list[Position] = []
 
     _points = it_points if isinstance(it_points, list) else [it_points]
-    for _n, it in enumerate(_points, 1):
+    for it in _points:
         _offset = it.get("dPFSOffset", 0)
         out_points.append(
             Position(
@@ -35,12 +39,14 @@ def _parse_xy_pos_loop(item: dict, count: int) -> tuple[int, XYPosLoopParams]:
                 name=it.get("pPosName") or it.get("dPosName"),
             )
         )
+    if valid:
+        out_points = [p for p, is_valid in zip(out_points, valid) if is_valid]
 
     params = XYPosLoopParams(isSettingZ=useZ, points=out_points)
     return len(out_points), params
 
 
-def _parse_z_stack_loop(item: dict, count: int) -> tuple[int, ZStackLoopParams]:
+def _parse_z_stack_loop(item: dict) -> tuple[int, ZStackLoopParams]:
     count = item.get("uiCount", 0)
 
     low = item.get("dZLow", 0)
@@ -90,7 +96,7 @@ def _calc_zstack_home_index(
         return min(int(abs(ceil((hrange - tol * step_um) / step_um))), count - 1)
 
 
-def _parse_time_loop(item: dict, count: int) -> tuple[int, TimeLoopParams | None]:
+def _parse_time_loop(item: dict) -> tuple[int, TimeLoopParams | None]:
     count = item.get("uiCount", 0)
     if not count:
         return (0, None)
@@ -108,17 +114,18 @@ def _parse_time_loop(item: dict, count: int) -> tuple[int, TimeLoopParams | None
     return count, params
 
 
-def _parse_ne_time_loop(item: dict, count: int) -> tuple[int, NETimeLoopParams]:
+def _parse_ne_time_loop(item: dict) -> tuple[int, NETimeLoopParams]:
     out_periods: list[Period] = []
     _per: dict | list = item["pPeriod"]
     periods: list[dict] = _per if isinstance(_per, list) else [_per]
     period_valid = [bool(x) for x in item.get("pPeriodValid", [])]
 
+    count = 0
     for it, is_valid in zip(periods, period_valid):
         if not is_valid:
             continue
 
-        c, period_params = _parse_time_loop(it, 0)
+        c, period_params = _parse_time_loop(it)
         if period_params:
             out_periods.append(
                 Period(
@@ -172,21 +179,19 @@ def load_single_exp_loop(exp: dict) -> dict:
     if not loop_params or loop_type > max(LoopType):
         return {}
 
-    count = 0
+    count = loop_params.get("uiCount", 0)
     params: LoopParams | None = None
-    if loop_type == 1:  # time loop
-        count, params = _parse_time_loop(loop_params, count)
-    elif loop_type == 2:
-        count, params = _parse_xy_pos_loop(loop_params, count)
-    elif loop_type == 4:  # z stack loop
-        count, params = _parse_z_stack_loop(loop_params, count)
-    elif loop_type == 6:
-        # spect loop
-        count = loop_params.get("pPlanes", {}).get("uiCount", 0)
-        if not count:
-            count = loop_params.get("uiCount", 0)
-    elif loop_type == 8:  # ne time loop
-        count, params = _parse_ne_time_loop(loop_params, count)
+    if loop_type == LoopType.TimeLoop:
+        count, params = _parse_time_loop(loop_params)
+    elif loop_type == LoopType.XYPosLoop:
+        valid = exp.get("pItemValid", ())
+        count, params = _parse_xy_pos_loop(loop_params, valid)
+    elif loop_type == LoopType.ZStackLoop:
+        count, params = _parse_z_stack_loop(loop_params)
+    elif loop_type == LoopType.SpectLoop:
+        count = loop_params.get("pPlanes", {}).get("uiCount", count)
+    elif loop_type == LoopType.NETimeLoop:
+        count, params = _parse_ne_time_loop(loop_params)
 
     # TODO: loop_type to string
     return {"type": loop_type, "count": count, "parameters": params}

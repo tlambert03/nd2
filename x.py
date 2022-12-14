@@ -33,8 +33,9 @@ for p in files:
             nde = ndf.experiment
             lime = lim.experiment()
             nda = ndf.attributes
-            limm = lim.metadata()
-            if lime != nde or lima != nda:
+            limt = lim.text_info()
+            ndt = ndf.text_info
+            if lime != nde or lima != nda or limt != ndt:
                 print("---------------------")
                 print(f"{lim.version} {p}")
                 if verbose:

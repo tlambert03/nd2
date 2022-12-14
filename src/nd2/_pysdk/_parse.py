@@ -1,3 +1,4 @@
+from cgitb import lookup
 from typing import TYPE_CHECKING, Sequence, cast
 
 from nd2.structures import (
@@ -244,47 +245,8 @@ def _read_wavelengths(plane: dict, compIndex: int) -> tuple[float, float]:
     comp_count = plane.get("uiCompCount")
     emission = 0.0
     excitation = 0.0
-    if comp_count == 3:
-        # {
-        #     //RGB
-        #     switch (compIndex)
-        #     {
-        #     case 0:
-        #        emission = 420.0;
-        #        break;
-        #     case 1:
-        #        emission = 515.0;
-        #        break;
-        #     case 2:
-        #        emission = 590.0;
-        #        break;
-        #     }
 
-        #     auto probeIt = srcPlane.find("pFluorescentProbe_dic");
-        #     if (probeIt != srcPlane.end())
-        #     {
-        #        auto excitationSpectrumIt = probeIt->find("m_ExcitationSpectrum_dic");
-        #        if (excitationSpectrumIt != probeIt->end())
-        #        {
-        #           OpticalFilterSpectrum probeExcitationSpectrum;
-        #           probeExcitationSpectrum.loadFromJson(*excitationSpectrumIt);
-        #           excitation = probeExcitationSpectrum.singleWavelength();
-        #        }
-        #     }
-
-        #     if (0.0 == excitation)
-        #     {
-        #        auto filterPathIt = srcPlane.find("pFilterPath_dic");
-        #        if (filterPathIt != srcPlane.end())
-        #        {
-        #           excitation = closestExcitationWavelength(emission, *filterPathIt);
-        #        }
-        #     }
-        #     if (0.0 == excitation)
-        #        excitation = emission;
-        #  }
-
-        # RGB
+    if comp_count == 3:  # RGB
         if compIndex == 0:
             emission = 420.0
         elif compIndex == 1:
@@ -301,13 +263,19 @@ def _read_wavelengths(plane: dict, compIndex: int) -> tuple[float, float]:
         if excitation == 0.0:
             filter_path = plane.get("pFilterPath")
             if filter_path:
-                breakpoint()
-                excitation = closest_excitation_wavelength(emission, filter_path)
+                excitation = _closest_excitation_wavelength(emission, filter_path)
 
         if excitation == 0.0:
             excitation = emission
 
     return emission, excitation
+
+
+def _closest_excitation_wavelength(emission: float, filter_path: dict) -> float:
+    closest: float = 0
+    if "m_pFilter" in filter_path:
+        breakpoint()
+    return closest
 
     # Tval   Wavel  type
 
@@ -331,19 +299,48 @@ def _get_spectrum(item: dict) -> Spectrum:
 
 def _get_single_wavelength(item: dict) -> float:
     spectrum = _get_spectrum(item)
+    if not spectrum:
+        return 0.0
+    breakpoint()
     count: int = item.get("uiCount", 0)
     point = item.get("pPoint")
-
     dPeak = 0.0
     dFwhmMin = 0.0
     dFwhmMax = 0.0
+    ...
+
     breakpoint()
+
 
 def _peakAndFwhm(peak: float, fwhmMin: float, fwhmMax: float) -> float:
     if fwhmMin == fwhmMax:
         return peak
     else:
         return (fwhmMin + fwhmMax) / 2.0
+
+
+def load_text_info(src: dict) -> dict:
+    return {
+        key: src[lookup]
+        for key, lookup in (
+            ("appVersion", "TextInfoItem_14"),
+            ("author", "TextInfoItem_4"),
+            ("capturing", "TextInfoItem_6"),
+            ("conclusion", "TextInfoItem_10"),
+            ("date", "TextInfoItem_9"),
+            ("description", "TextInfoItem_5"),
+            ("group", "TextInfoItem_2"),
+            ("imageId", "TextInfoItem_0"),
+            ("info1", "TextInfoItem_11"),
+            ("info2", "TextInfoItem_12"),
+            ("location", "TextInfoItem_8"),
+            ("optics", "TextInfoItem_13"),
+            ("sampleId", "TextInfoItem_3"),
+            ("sampling", "TextInfoItem_7"),
+            ("type", "TextInfoItem_1"),
+        )
+        if src.get(lookup)
+    }
 
 
 def load_metadata(src: dict) -> Metadata:
@@ -365,12 +362,13 @@ def load_metadata(src: dict) -> Metadata:
             index=k,
             name=plane.get("sDescription"),
             colorRGB=plane.get("uiColor"),
-            emissionLambdaNm=None,
-            excitationLambdaNm=None,
+            emissionLambdaNm=em,
+            excitationLambdaNm=ex,
         )
+        breakpoint()
         channel = Channel(
             channel=channel_meta,
-            loops=None,
+            loops=...,
             microscope=...,
             volume=...,
         )

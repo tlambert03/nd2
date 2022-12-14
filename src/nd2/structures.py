@@ -257,9 +257,12 @@ class Channel:
     volume: Volume
 
     def __post_init__(self):
-        self.channel = ChannelMeta(**self.channel)
-        self.microscope = Microscope(**self.microscope)
-        self.volume = Volume(**self.volume)
+        if isinstance(self.channel, dict):
+            self.channel = ChannelMeta(**self.channel)
+        if isinstance(self.microscope, dict):
+            self.microscope = Microscope(**self.microscope)
+        if isinstance(self.volume, dict):
+            self.volume = Volume(**self.volume)
         if self.loops:
             self.loops = LoopIndices(**self.loops)
 

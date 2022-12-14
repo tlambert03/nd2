@@ -11,7 +11,7 @@ from nd2._pysdk._decode import (
     get_version,
     load_chunkmap,
 )
-from nd2._pysdk._parse import load_exp_loop, load_attributes, load_metadata
+from nd2._pysdk._parse import load_exp_loop, load_attributes, load_metadata, load_text_info
 from typing_extensions import Literal
 
 if TYPE_CHECKING:
@@ -33,6 +33,7 @@ class LimFile:
     _chunkmap: ChunkMap
     _attributes: structures.Attributes | None = None
     _experiment: list[structures.ExpLoop] | None = None
+    _text_info: dict | None = None
     _metadata: structures.Metadata | None = None
 
     def __init__(self, filename: str) -> None:
@@ -111,7 +112,7 @@ class LimFile:
         if not self._metadata:
 
             k = (
-                b'ImageMetadataSeqLV|0!'
+                b"ImageMetadataSeqLV|0!"
                 if self.version >= (3, 0)
                 else b"ImageMetadataSeq|0!"
             )
@@ -120,3 +121,14 @@ class LimFile:
             self._metadata = load_metadata(meta)
             breakpoint()
         return self._metadata
+
+    def text_info(self) -> dict:
+        if self._text_info is None:
+            k = b"ImageTextInfoLV!" if self.version >= (3, 0) else b"ImageTextInfo!"
+            if k not in self.chunkmap:
+                self._text_info = {}
+            else:   
+                info = self._decode_chunk(k, strip_prefix=False)
+                info = info.get("SLxImageTextInfo", info)  # for v3 only
+                self._text_info = load_text_info(info)
+        return self._text_info

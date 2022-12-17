@@ -14,8 +14,8 @@ from nd2._pysdk._decode import (
 from nd2._pysdk._parse import (
     load_attributes,
     load_exp_loop,
-    load_metadata,
     load_global_metadata,
+    load_metadata,
     load_text_info,
 )
 
@@ -26,6 +26,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
     from ._decode import ChunkMap
+    from ._parse import GlobalMetadata
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]
@@ -44,7 +45,7 @@ class LimFile:
     _raw_experiment: dict | None = None
     _raw_text_info: dict | None = None
     _raw_image_metadata: dict | None = None
-    _global_metadata: dict | None = None
+    _global_metadata: GlobalMetadata | None = None
 
     def __init__(self, filename: str) -> None:
         self._filename = filename
@@ -137,9 +138,10 @@ class LimFile:
 
     def metadata(self) -> structures.Metadata:
         if not self._metadata:
-            raw_meta = self._get_raw_image_metadata()
-            self._metadata = load_metadata(raw_meta)
-            breakpoint()
+            self._metadata = load_metadata(
+                raw_meta=self._get_raw_image_metadata(),
+                global_meta=self.global_metadata(),
+            )
         return self._metadata
 
     def text_info(self) -> structures.TextInfo:
@@ -154,11 +156,12 @@ class LimFile:
                 self._text_info = load_text_info(info)
         return self._text_info
 
-    def global_metadata(self) -> dict:
+    def global_metadata(self) -> GlobalMetadata:
         if not self._global_metadata:
-            attrs = self.attributes
-            raw_meta = self._get_raw_image_metadata()
-            exp_loops = self.experiment()
-            text_info = self.text_info()
-            self._global_metadata = load_global_metadata(attrs, raw_meta, exp_loops, text_info)
+            self._global_metadata = load_global_metadata(
+                attrs=self.attributes,
+                raw_meta=self._get_raw_image_metadata(),
+                exp_loops=self.experiment(),
+                text_info=self.text_info(),
+            )
         return self._global_metadata

@@ -6,7 +6,6 @@ from typing import Any, Sequence
 import numpy as np
 from nd2 import structures
 
-
 class ND2Reader:
     path: str
     _meta_map: dict[str, int]  # map of metadata keys to their byte offset

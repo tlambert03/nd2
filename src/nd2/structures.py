@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import builtins
 from dataclasses import dataclass, field
-from enum import Enum, IntEnum
+from enum import IntEnum
 from typing import NamedTuple, Union
 
 from typing_extensions import Literal, TypedDict
@@ -47,9 +47,7 @@ class LoopType(IntEnum):
     # Unknown = 4  # not sure about this
 
 
-class AxisInterpretation(str, Enum):
-    distance = "distance"
-    time = "time"
+AxisInterpretation = Literal["distance", "time"]
 
 
 # tuples
@@ -332,11 +330,6 @@ class Volume:
 
     # NIS Microscope Absolute frame in um =
     # pixelToStageTransformationMatrix * (X_in_px,  Y_in_px,  1) + stagePositionUm
-
-    def __post_init__(self):
-        self.axesInterpretation = tuple(  # type: ignore
-            AxisInterpretation(i) for i in self.axesInterpretation
-        )
 
 
 @dataclass

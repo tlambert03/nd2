@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from enum import IntEnum
+from struct import Struct
 from typing import TYPE_CHECKING, Sequence, cast
 
 from nd2.structures import (
@@ -38,6 +39,9 @@ if TYPE_CHECKING:
         position: dict
         time: dict
         volume: dict
+
+
+strctd = Struct("d")
 
 
 def _parse_xy_pos_loop(
@@ -257,37 +261,49 @@ def load_attributes(src: dict) -> Attributes:
     )
 
 
+RGB_COLORS: tuple[float, float, float] = (420.0, 515.0, 590.0)
+
+
+def _get_excitation(probe: dict, filter_: dict, plane: dict, compIndex: int) -> float:
+    """Get the excitation wavelength from the probe or filter."""
+    if probe:
+        excitation = _get_spectrum_max(probe.get("m_ExcitationSpectrum", {}))
+    if not excitation and filter_:
+        fspectrum = filter_.get("m_ExcitationSpectrum", {})
+        ppoint = fspectrum.get("pPoint", {})
+        if fspectrum.get("uiCount", 0) > 1 and all(
+            i.get("eType") == 4 for i in ppoint.values()
+        ):
+            excitation = ppoint.get(f"Point{compIndex}", {}).get("dWavelength", 0)
+        if not excitation:
+            excitation = _get_spectrum_max(fspectrum)
+    if not excitation and plane.get("uiCompCount") == 3:
+        excitation = RGB_COLORS[compIndex]
+    return excitation
+
+
+def _get_emission(probe: dict, filter_: dict, plane: dict, compIndex: int) -> float:
+    """Get the emission wavelength from the probe or filter."""
+    if plane.get("uiCompCount") == 3:
+        return RGB_COLORS[compIndex]
+
+    if probe:
+        emission = _get_spectrum_max(probe.get("m_EmissionSpectrum", {}))
+    if not emission and filter_:
+        emission = _get_spectrum_max(filter_.get("m_EmissionSpectrum", {}))
+    return emission
+
+
 def _read_wavelengths(plane: dict, compIndex: int) -> tuple[float, float]:
-    # sourcery skip: avoid-builtin-shadow
-    comp_count = plane.get("uiCompCount")
-    emission: float = 0.0
-    excitation: float = 0.0
     probe: dict = plane.get("pFluorescentProbe", {})
     filter_: dict = plane.get("pFilterPath", {}).get("m_pFilter", {})
     while isinstance(filter_, list):
         filter_ = filter_[0] if filter_ else {}
 
-    # TODO: clean me up
-    if comp_count == 3:  # RGB
-        emission = [420.0, 515.0, 590.0][compIndex]
+    excitation = _get_excitation(probe, filter_, plane, compIndex)
+    emission = _get_emission(probe, filter_, plane, compIndex)
 
-        if probe:
-            excitation = _get_spectrum_max(probe.get("m_ExcitationSpectrum"))
-        if excitation == 0.0:
-            excitation = _closest_excitation_wavelength(emission, filter_)
-
-        if excitation == 0.0:
-            excitation = emission
-    else:
-        if probe:
-            emission = _get_spectrum_max(probe.get("m_EmissionSpectrum"))
-            excitation = _get_spectrum_max(probe.get("m_ExcitationSpectrum"))
-        if emission == 0.0:
-            emission = _get_spectrum_max(filter_.get("m_EmissionSpectrum"))
-        if excitation == 0.0:
-            excitation = _get_spectrum_max(filter_.get("m_ExcitationSpectrum"))
-
-    return emission, excitation
+    return excitation, emission
 
 
 def _closest_excitation_wavelength(emission: float, filter_: dict) -> float:
@@ -428,16 +444,17 @@ def load_global_metadata(
 
 
 def load_metadata(raw_meta: dict, global_meta: GlobalMetadata) -> Metadata:
-    picplanes: dict = raw_meta.get("sPicturePlanes", {})
-    raw_planes: dict = picplanes.get("sPlaneNew", None) or picplanes.get("sPlane", {})
-    raw_sample_settings: dict[str, dict] = picplanes.get("sSampleSetting", {})
-    if len(raw_planes) != picplanes.get("uiCount"):
+    it: dict = raw_meta.get("sPicturePlanes", {})
+    raw_planes: dict = it.get("sPlaneNew", None) or it.get("sPlane", {})
+    raw_sample_settings: dict[str, dict] = it.get("sSampleSetting", {})
+    if len(raw_planes) != it.get("uiCount"):
         raise ValueError("Channel count does not match number of planes")
 
+    pixel_to_stage: list[float] = None
     channels: list[Channel] = []
     for i, plane in enumerate(raw_planes.values()):
         k = plane.get("uiSampleIndex") or i
-        em, ex = _read_wavelengths(plane, i)
+        ex, em = _read_wavelengths(plane, i)
         srcSampleSettings: dict = raw_sample_settings.get(f"a{k}", {})
         channel_meta = ChannelMeta(
             index=k,
@@ -455,37 +472,55 @@ def load_metadata(raw_meta: dict, global_meta: GlobalMetadata) -> Metadata:
             )
         flags = _get_modality_flags(mask, compCount)
         volume = global_meta["volume"].copy()
+        microscope = global_meta["microscope"].copy()
         camera_matrix = volume.get("cameraTransformationMatrix")
         matrix = srcSampleSettings.get("matCameraToStage")
-        # if matrix:
-        #     cols = matrix.get("Columns")
-        #     rows = matrix.get("Rows")
-        #     if cols == 2 and rows == 2:
-        #         volume["cameraTransformationMatrix"] = matrix["Data"][::8]
+        if matrix:
+            cols = matrix.get("Columns")
+            rows = matrix.get("Rows")
+            # matrix["Data"] is a list of int64, we need to recast to float
+            matrix_data = [i[0] for i in strctd.iter_unpack(bytearray(matrix["Data"]))]
 
+            if cols == 2 and rows == 2:
+                volume["cameraTransformationMatrix"] = matrix_data
+
+        _pixel_to_stage = pixel_to_stage
         if camera_matrix:
+            # XXX: Not sure if this is correct, specifically with regards to keeping
+            # pixel_to_stage of previous channels, vs clearing it for each channel.
             m11, m12, m21, m22 = camera_matrix
             devSettings: dict | None = srcSampleSettings.get("pDeviceSetting")
-            if devSettings is not None and "m_iXYUse0" in devSettings:
-                validStageInversions = devSettings["m_iXYUse0"]
-                calX, calY = volume["axesCalibration"][:2]
-                width, height = volume["voxelCount"][:2]
-                if validStageInversions and all(volume["axesCalibrated"][:2]):
-                    invX = devSettings.get("m_iXOrientation0", 0)
-                    invY = devSettings.get("m_iYOrientation0", 0)
-                    volume["pixelToStageTransformationMatrix"] = [
-                        invX * calX * m11,
-                        invX * calY * m12,
-                        -0.5 * (invX * calX * m11 * width + invX * calY * m12 * height),
-                        invY * calX * m21,
-                        invY * calY * m22,
-                        -0.5 * (invY * calX * m21 * width + invY * calY * m22 * height),
-                    ]
+            if devSettings is not None:
+                validStageInversions = devSettings.get("m_iXYUse0")
+                if not validStageInversions:
+                    _pixel_to_stage = None
+                else:
+                    calX, calY = volume["axesCalibration"][:2]
+                    width, height = volume["voxelCount"][:2]
+                    if validStageInversions and all(volume["axesCalibrated"][:2]):
+                        invX = devSettings.get("m_iXOrientation0", 0)
+                        invY = devSettings.get("m_iYOrientation0", 0)
+                        _pixel_to_stage = [
+                            invX * calX * m11,
+                            invX * calY * m12,
+                            -0.5
+                            * (invX * calX * m11 * width + invX * calY * m12 * height),
+                            invY * calX * m21,
+                            invY * calY * m22,
+                            -0.5
+                            * (invY * calX * m21 * width + invY * calY * m22 * height),
+                        ]
+                        if _pixel_to_stage is not None:
+                            pixel_to_stage = _pixel_to_stage
+
+        volume["pixelToStageTransformationMatrix"] = _pixel_to_stage
+        if plane.get("dPinholeDiameter", -1) > 0:
+            microscope["pinholeDiameterUm"] = plane["dPinholeDiameter"]
 
         channel = Channel(
             channel=channel_meta,
             loops=global_meta["loops"] or None,
-            microscope=Microscope(**global_meta["microscope"], modalityFlags=flags),
+            microscope=Microscope(**microscope, modalityFlags=flags),
             volume=Volume(
                 **volume,
                 componentCount=compCount,

@@ -276,7 +276,7 @@ class Channel:
             self.microscope = Microscope(**self.microscope)
         if isinstance(self.volume, dict):
             self.volume = Volume(**self.volume)
-        if self.loops:
+        if isinstance(self.loops, dict):
             self.loops = LoopIndices(**self.loops)
 
 

@@ -10,7 +10,9 @@ from nd2.structures import (
     AxisInterpretation,
     Channel,
     ChannelMeta,
+    Contents,
     ExpLoop,
+    LoopIndices,
     LoopParams,
     LoopType,
     Metadata,
@@ -450,7 +452,7 @@ def load_metadata(raw_meta: dict, global_meta: GlobalMetadata) -> Metadata:
     if len(raw_planes) != it.get("uiCount"):
         raise ValueError("Channel count does not match number of planes")
 
-    pixel_to_stage: list[float] = None
+    pixel_to_stage: list[float] | None = None
     channels: list[Channel] = []
     for i, plane in enumerate(raw_planes.values()):
         k = plane.get("uiSampleIndex") or i
@@ -517,9 +519,10 @@ def load_metadata(raw_meta: dict, global_meta: GlobalMetadata) -> Metadata:
         if plane.get("dPinholeDiameter", -1) > 0:
             microscope["pinholeDiameterUm"] = plane["dPinholeDiameter"]
 
+        loops = LoopIndices(**global_meta["loops"]) if global_meta["loops"] else None
         channel = Channel(
             channel=channel_meta,
-            loops=global_meta["loops"] or None,
+            loops=loops,
             microscope=Microscope(**microscope, modalityFlags=flags),
             volume=Volume(
                 **volume,
@@ -530,8 +533,7 @@ def load_metadata(raw_meta: dict, global_meta: GlobalMetadata) -> Metadata:
         )
         channels.append(channel)
 
-    contents = global_meta["contents"]
-    contents["channelCount"] = len(channels)
+    contents = Contents(**global_meta["contents"], channelCount=len(channels))
     return Metadata(contents=contents, channels=channels)
 
 

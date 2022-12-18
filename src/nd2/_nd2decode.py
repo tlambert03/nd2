@@ -98,11 +98,8 @@ def unnest_experiments(metadata: dict) -> List[Dict[str, Any]]:
             loops.append([unnest_experiments(i)[0] for i in next_level])
             break
         next_level.pop("NextLevelCount", None)
-        next_level.pop("ppNextLevelCount", None)
         loops.append(next_level)
-        next_level = next_level.pop("NextLevelEx", None) or next_level.pop(
-            "ppNextLevelEx", None
-        )
+        next_level = next_level.pop("NextLevelEx", None)
         if next_level is None:
             break
     return loops

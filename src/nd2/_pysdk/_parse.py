@@ -74,7 +74,7 @@ def _parse_xy_pos_loop(
                 ),
                 pfsOffset=_offset if _offset >= 0 else None,
                 # note: the SDK only checks for pPosName
-                name=it.get("pPosName") or it.get("dPosName") or None,
+                name=it.get("pPosName") or it.get("dPosName"),
             )
         )
     if valid:

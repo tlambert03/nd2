@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 import nd2
-from nd2._pysdk._pysdk import LimFile
+from nd2._pysdk._pysdk_BAK import LimFile
 from rich import print
 
 

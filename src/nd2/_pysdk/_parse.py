@@ -227,7 +227,7 @@ def _load_single_exp_loop(exp: dict) -> dict:
     return {"type": loop_type, "count": count, "parameters": params}
 
 
-def load_attributes(src: dict) -> Attributes:
+def load_attributes(src: dict, channel_count: int) -> Attributes:
     """Parse the ImageAttributes[LV]! portion of an nd2 file."""
     bpc = src["uiBpcInMemory"]
     _ecomp: int = src.get("eCompression", 2)
@@ -259,7 +259,7 @@ def load_attributes(src: dict) -> Attributes:
         compressionType=comp_type,
         tileHeightPx=tile_height,
         tileWidthPx=tile_width,
-        # channelCount=attrs[""],  # this comes from metadata
+        channelCount=channel_count,
     )
 
 

@@ -63,13 +63,14 @@ def get_reader(
     with open(path, "rb") as fh:
         magic_num = fh.read(4)
         if magic_num == NEW_HEADER_MAGIC:
-            from ._sdk.latest import ND2Reader
+            # from ._sdk.latest import ND2Reader
+            from ._pysdk._pysdk import ND2Reader
 
             return ND2Reader(
-                path,
-                validate_frames=validate_frames,
-                search_window=search_window,
-                read_using_sdk=read_using_sdk,
+                path
+                # validate_frames=validate_frames,
+                # search_window=search_window,
+                # read_using_sdk=read_using_sdk,
             )
         elif magic_num == OLD_HEADER_MAGIC:
             from ._legacy import LegacyND2Reader

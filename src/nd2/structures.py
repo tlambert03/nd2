@@ -123,6 +123,7 @@ class TimeLoop(_Loop):
     type: Literal["TimeLoop"] = "TimeLoop"
 
     def __post_init__(self):
+        # TODO: make superclass do this
         if isinstance(self.parameters, dict):
             self.parameters = TimeLoopParams(**self.parameters)
 
@@ -345,8 +346,10 @@ class FrameChannel(Channel):
 
     def __post_init__(self):
         super().__post_init__()
-        self.position = Position(**self.position)
-        self.time = TimeStamp(**self.time)
+        if isinstance(self.position, dict):
+            self.position = Position(**self.position)
+        if isinstance(self.time, dict):
+            self.time = TimeStamp(**self.time)
 
 
 @dataclass
@@ -355,8 +358,11 @@ class FrameMetadata:
     channels: list[FrameChannel]
 
     def __post_init__(self):
-        self.contents = Contents(**self.contents)
-        self.channels = [FrameChannel(**i) for i in self.channels]
+        if isinstance(self.contents, dict):
+            self.contents = Contents(**self.contents)
+        self.channels = [
+            FrameChannel(**i) if isinstance(i, dict) else i for i in self.channels
+        ]
 
 
 class Coordinate(NamedTuple):

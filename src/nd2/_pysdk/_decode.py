@@ -69,6 +69,7 @@ def get_version(fh: BufferedReader | StrOrBytesPath) -> tuple[int, int]:
             chunk = START_FILE_CHUNK.unpack(fh.read(START_FILE_CHUNK.size))
     else:
         # leave it open if it came in open
+        fh.seek(0)
         chunk = START_FILE_CHUNK.unpack(fh.read(START_FILE_CHUNK.size))
 
     magic, name_length, data_length, name, data = cast("StartFileChunk", chunk)

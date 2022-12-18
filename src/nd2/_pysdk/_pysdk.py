@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import mmap
+import os
+import warnings
 from io import BufferedReader
 from typing import TYPE_CHECKING, cast
 
@@ -16,6 +18,7 @@ from nd2._pysdk._decode import (
 from nd2._pysdk._parse import (
     load_attributes,
     load_exp_loop,
+    load_frame_metadata,
     load_global_metadata,
     load_metadata,
     load_text_info,
@@ -59,12 +62,14 @@ class ND2Reader:
         self._raw_frame_shape_: tuple[int, ...] | None = None
         self._dtype_: np.dtype | None = None
         self._strides_: tuple[int, ...] | None = None
+        self._frame_times: list[float] | None = None
 
         self.open()
 
     def open(self) -> None:
-        self._fh = open(self._filename, "rb")
-        self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
+        if self._fh is None:
+            self._fh = open(self._filename, "rb")
+            self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
 
     def close(self) -> None:
         if self._fh is not None:
@@ -153,7 +158,7 @@ class ND2Reader:
                 self._raw_image_metadata = meta
         return self._raw_image_metadata
 
-    def global_metadata(self) -> GlobalMetadata:
+    def _cached_global_metadata(self) -> GlobalMetadata:
         if not self._global_metadata:
             self._global_metadata = load_global_metadata(
                 attrs=self.attributes,
@@ -161,15 +166,26 @@ class ND2Reader:
                 exp_loops=self.experiment(),
                 text_info=self.text_info(),
             )
+            if self._global_metadata["time"]["absoluteJulianDayNumber"] < 1:
+                julian_day = os.stat(self._filename).st_ctime / 86400.0 + 2440587.5
+                self._global_metadata["time"]["absoluteJulianDayNumber"] = julian_day
+
         return self._global_metadata
 
     def metadata(self) -> structures.Metadata:
         if not self._metadata:
             self._metadata = load_metadata(
                 raw_meta=self._get_raw_image_metadata(),
-                global_meta=self.global_metadata(),
+                global_meta=self._cached_global_metadata(),
             )
         return self._metadata
+
+    def frame_metadata(self, seq_index: int) -> structures.FrameMetadata:
+        frame_time = self._cached_frame_times()[seq_index]
+        global_meta = self._cached_global_metadata()
+        return load_frame_metadata(
+            global_meta, self.metadata(), self.experiment(), frame_time, seq_index
+        )
 
     def text_info(self) -> structures.TextInfo:
         if self._text_info is None:
@@ -196,8 +212,18 @@ class ND2Reader:
                 self._experiment = [structures._Loop.create(x) for x in loops]
         return self._experiment
 
-    def frame_metadata(self, seq_index: int) -> structures.FrameMetadata:
-        ...
+    def _cached_frame_times(self) -> list[float]:
+        """Returns frame times in milliseconds."""
+        if self._frame_times is None:
+            try:
+                acq_times = self._load_chunk(b"CustomData|AcqTimesCache!")
+                times = np.frombuffer(acq_times, dtype=np.float64).tolist()
+                self._frame_times = times[: self._seq_count()]  # limit to valid frames
+            except Exception as e:
+                warnings.warn(f"Failed to load frame times: {e}")
+                self._frame_times = []
+
+        return self._frame_times
 
     def voxel_size(self) -> tuple[float, float, float]:
         meta = self.metadata()
@@ -211,13 +237,6 @@ class ND2Reader:
         return [c.channel.name for c in self.metadata().channels or []]
 
     # -----------
-
-    @property
-    def _meta_map(self) -> dict[str, int]:
-        return self.chunkmap
-
-    def _custom_data(self) -> dict[str, Any]:
-        ...
 
     def _coord_info(self) -> list[tuple[int, str, int]]:
         return [(i, x.type, x.count) for i, x in enumerate(self.experiment())]
@@ -235,7 +254,7 @@ class ND2Reader:
         if offset is None:
             return self._missing_frame(index)
 
-        if self.attributes.compressionType == 'lossless':
+        if self.attributes.compressionType == "lossless":
             return self._read_compressed_frame(index)
 
         try:
@@ -250,18 +269,18 @@ class ND2Reader:
             # If the chunkmap is wrong, and the mmap isn't long enough
             # for the requested offset & size, a TypeError is raised.
             return self._missing_frame(index)
-    
+
     def _read_compressed_frame(self, index: int) -> np.ndarray:
         import zlib
+
         print("reading compressed frame", index)
-        ch = self._load_chunk(f'ImageDataSeq|{index}!'.encode())
+        ch = self._load_chunk(f"ImageDataSeq|{index}!".encode())
         return np.ndarray(
             shape=self._actual_frame_shape(),
             dtype=self._dtype(),
             buffer=zlib.decompress(ch[8:]),
             strides=self._strides,
         )
-
 
     def _missing_frame(self, index: int = 0) -> np.ndarray:
         # TODO: add other modes for filling missing data
@@ -320,3 +339,21 @@ class ND2Reader:
             attr.channelCount or 1,
             attr.componentCount // (attr.channelCount or 1),
         )
+
+    def _get_meta_chunk(self, key: str) -> bytes:
+        # deprecated
+        return self._load_chunk((key + "!").encode())
+
+    @property
+    def _meta_map(self) -> dict[str, int]:
+        # deprecated
+        return {k.decode()[:-1]: v for k, (v, _) in self.chunkmap.items()}
+
+    def _custom_data(self) -> dict[str, Any]:
+        from nd2._xml import parse_xml_block
+
+        return {
+            k.decode()[14:-1]: parse_xml_block(self._load_chunk(k))
+            for k in self.chunkmap
+            if k.startswith(b"CustomDataVar|")
+        }

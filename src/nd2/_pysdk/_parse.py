@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import re
+from dataclasses import asdict
 from enum import IntEnum
 from struct import Struct
 from typing import TYPE_CHECKING, Sequence, cast
 
+import numpy as np
 from nd2.structures import (
     Attributes,
     AxisInterpretation,
@@ -12,6 +14,8 @@ from nd2.structures import (
     ChannelMeta,
     Contents,
     ExpLoop,
+    FrameChannel,
+    FrameMetadata,
     LoopIndices,
     LoopParams,
     LoopType,
@@ -24,8 +28,10 @@ from nd2.structures import (
     StagePosition,
     TextInfo,
     TimeLoopParams,
+    TimeStamp,
     Volume,
     XYPosLoopParams,
+    ZStackLoop,
     ZStackLoopParams,
 )
 
@@ -68,7 +74,7 @@ def _parse_xy_pos_loop(
                 ),
                 pfsOffset=_offset if _offset >= 0 else None,
                 # note: the SDK only checks for pPosName
-                name=it.get("pPosName") or it.get("dPosName"),
+                name=it.get("pPosName") or it.get("dPosName") or None,
             )
         )
     if valid:
@@ -535,6 +541,53 @@ def load_metadata(raw_meta: dict, global_meta: GlobalMetadata) -> Metadata:
 
     contents = Contents(**global_meta["contents"], channelCount=len(channels))
     return Metadata(contents=contents, channels=channels)
+
+
+def load_frame_metadata(
+    global_meta: GlobalMetadata,
+    meta: Metadata,
+    exp_loops: list[ExpLoop],
+    frame_time: float,
+    seq_index: int,
+) -> FrameMetadata:  # sourcery skip: extract-method
+
+    xy_loop_idx = global_meta["loops"].get("XYPosLoop", -1)
+    z_loop_idx = global_meta["loops"].get("ZStackLoop", -1)
+    if 0 <= xy_loop_idx < len(exp_loops):
+        params = cast("XYPosLoopParams", exp_loops[xy_loop_idx].parameters)
+        point: Position = params.points[seq_index]
+        name = point.name
+        x, y, z = point.stagePositionUm
+        if not params.isSettingZ:
+            z = global_meta["position"]["stagePositionUm"][2]
+    else:
+        name = None
+        x, y, z = global_meta["position"]["stagePositionUm"]
+
+    if np.isfinite(frame_time):
+        julian_day = global_meta["time"].get("absoluteJulianDayNumber", 0)
+        time = TimeStamp(
+            absoluteJulianDayNumber=julian_day + frame_time / 86_400_000,
+            relativeTimeMs=frame_time,
+        )
+    else:
+        time = TimeStamp(**global_meta["time"])
+
+    if 0 <= z_loop_idx < len(exp_loops):
+        # Not sure about this, but it's matching the output of the SDK
+        zparams = cast(ZStackLoop, exp_loops[z_loop_idx])
+        home = zparams.parameters.homeIndex or 0
+        step = zparams.parameters.stepUm or 1
+        z -= home * step
+
+    frame_channels = []
+    for channel in meta.channels or []:
+        position = Position(name=name, stagePositionUm=StagePosition(x, y, z))
+        frame_channel = FrameChannel(**asdict(channel), time=time, position=position)
+        frame_channels.append(frame_channel)
+
+    contents = cast(Contents, meta.contents)
+    return FrameMetadata(contents=contents, channels=frame_channels)
 
 
 def _get_modality_flags(modality_mask: int, component_count: int) -> list[str]:

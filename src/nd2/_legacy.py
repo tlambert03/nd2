@@ -201,7 +201,7 @@ class LegacyND2Reader:
     # def sizes(self):
     #     attrs = cast(Attributes, self.attributes)
 
-    def text_info(self) -> dict:
+    def text_info(self) -> strct.TextInfo:
         d = self._get_xml_dict(b"TINF")
         for i in d.get("TextInfoItem", []):
             txt = i.get("Text", "")

@@ -6,7 +6,9 @@ if TYPE_CHECKING:
     from os import PathLike
 
     from ._legacy import LegacyND2Reader
-    from ._sdk.latest import ND2Reader
+
+    # from ._sdk.latest import ND2Reader
+    from ._pysdk._pysdk import ND2Reader
 
     StrOrBytesPath = Union[str, bytes, PathLike[str], PathLike[bytes]]
 

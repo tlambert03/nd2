@@ -105,7 +105,7 @@ class LimFile:
             attrs = self._decode_chunk(k, strip_prefix=False)
             attrs = attrs.get("SLxImageAttributes", attrs)  # for v3 only
             self._raw_attributes = attrs
-            self._attributes = load_attributes(attrs)
+            self._attributes = load_attributes(attrs, 1)
         return self._attributes
 
     def experiment(self) -> list[structures.ExpLoop]:

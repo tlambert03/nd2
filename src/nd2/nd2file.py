@@ -28,6 +28,7 @@ from .structures import (
     ExpLoop,
     FrameMetadata,
     Metadata,
+    TextInfo,
     XYPosLoop,
     ZStackLoop,
 )
@@ -173,7 +174,7 @@ class ND2File:
         return self._rdr.attributes
 
     @cached_property
-    def text_info(self) -> dict[str, Any]:
+    def text_info(self) -> TextInfo:
         """Misc text info."""
         return self._rdr.text_info()
 

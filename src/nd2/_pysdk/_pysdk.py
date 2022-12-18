@@ -238,6 +238,18 @@ class ND2Reader:
 
     # -----------
 
+    def _coords_from_seq_index(self, seq_index: int) -> tuple[int, ...]:
+        """Convert a sequence index to a coordinate tuple."""
+        coords: list[int] = []
+        for loop in self.experiment():
+            coords.append(seq_index % loop.count)
+            seq_index //= loop.count
+
+        return tuple(coords)
+
+    def _coord_size(self) -> int:
+        return len(self.experiment())
+
     def _coord_info(self) -> list[tuple[int, str, int]]:
         return [(i, x.type, x.count) for i, x in enumerate(self.experiment())]
 

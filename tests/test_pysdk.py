@@ -23,9 +23,9 @@ def test_new_pysdk(new_nd2: Path):
         "text_info": nd.text_info(),
         "experiment": [asdict(x) for x in nd.experiment()],
         "coord_info": nd._coord_info(),
-        # "coords_from_seq_index": nd._coords_from_seq_index(0),
+        "coords_from_seq_index": nd._coords_from_seq_index(0),
         "seq_count": nd._seq_count(),
-        # "coord_size": nd._coord_size(),
+        "coord_size": nd._coord_size(),
         # "data": nd._read_image(0)[..., :3, :3].squeeze().tolist(),
     }
     mytime = time.perf_counter() - start
@@ -43,6 +43,7 @@ def test_new_pysdk(new_nd2: Path):
 
 
 def _clear_names(exp):
+    # The SDK has a bug in position name fetching... we do it better, so don't check it
     if isinstance(exp, list):
         for item in exp:
             if item["type"] == "XYPosLoop":

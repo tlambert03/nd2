@@ -21,16 +21,16 @@ def test_metadata_extraction(new_nd2: Path):
         assert nd.path == str(new_nd2)
         assert not nd.closed
 
-        # assert isinstance(nd._rdr._seq_count(), int)
+        assert isinstance(nd._rdr._seq_count(), int)
         assert isinstance(nd.attributes, structures.Attributes)
 
         # TODO: deal with typing when metadata is completely missing
         assert isinstance(nd.metadata, structures.Metadata)
-        # assert isinstance(nd.frame_metadata(0), structures.FrameMetadata)
+        assert isinstance(nd.frame_metadata(0), structures.FrameMetadata)
         assert isinstance(nd.experiment, list)
         assert isinstance(nd.text_info, dict)
         assert isinstance(nd.sizes, dict)
-        # assert isinstance(nd.custom_data, dict)
+        assert isinstance(nd.custom_data, dict)
         assert isinstance(nd.shape, tuple)
         assert isinstance(nd.size, int)
         assert isinstance(nd.closed, bool)
@@ -296,20 +296,13 @@ def test_with_without_sdk(small_nd2s: Path):
         ary1 = withsdk.asarray()
         dsk1 = withsdk.to_dask()
         np.testing.assert_array_equal(ary1, dsk1)
-        compressed = bool(withsdk.attributes.compressionType)
 
-    if not compressed:
-        with ND2File(small_nd2s, read_using_sdk=False) as nosdk:
-            ary2 = nosdk.asarray()
-            dsk2 = nosdk.to_dask()
-            np.testing.assert_array_equal(ary2, dsk2)
-            if not nosdk.attributes.compressionType:
-                np.testing.assert_array_equal(ary1, ary2)
-    else:
-        with pytest.raises(
-            ValueError, match="compressed nd2 files with `read_using_sdk=False`"
-        ):
-            imread(small_nd2s, read_using_sdk=False)
+    with ND2File(small_nd2s, read_using_sdk=False) as nosdk:
+        ary2 = nosdk.asarray()
+        dsk2 = nosdk.to_dask()
+        np.testing.assert_array_equal(ary2, dsk2)
+        if not nosdk.attributes.compressionType:
+            np.testing.assert_array_equal(ary1, ary2)
 
 
 def test_extra_width_bytes():

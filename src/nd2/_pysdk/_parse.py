@@ -216,6 +216,7 @@ def _load_single_exp_loop(exp: dict) -> dict:
         return {}
 
     count = loop_params.get("uiCount", 0)
+    breakpoint()
     params: LoopParams | None = None
     if loop_type == LoopType.TimeLoop:
         count, params = _parse_time_loop(loop_params)

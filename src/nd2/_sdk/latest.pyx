@@ -240,10 +240,10 @@ cdef class ND2Reader:
             )
 
     def _custom_data(self) -> dict:
-        from .._xml import parse_xml_block
+        from .._xml import parse_variant_xml
 
         return {
-            k[14:]: parse_xml_block(self._get_meta_chunk(k))
+            k[14:]: parse_variant_xml(self._get_meta_chunk(k))
             for k, v in self._meta_map.items()
             if k.startswith("CustomDataVar|")
         }

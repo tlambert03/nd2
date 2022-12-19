@@ -7,7 +7,6 @@ from nd2 import structures
 from nd2._pysdk._decode import (
     _read_nd2_chunk,
     decode_CLxLiteVariant_json,
-    decode_xml,
     get_version,
     load_chunkmap,
 )
@@ -95,7 +94,8 @@ class LimFile:
     def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict:
         data = self._load_chunk(name)
         if self.version < (3, 0):
-            return decode_xml(data)
+            from nd2._xml import parse_variant_xml
+            return parse_variant_xml(data)
         return decode_CLxLiteVariant_json(data, strip_prefix=strip_prefix)
 
     @property
@@ -119,6 +119,7 @@ class LimFile:
                 self._raw_experiment = exp
                 loops = load_exp_loop(0, exp)
                 self._experiment = [structures._Loop.create(x) for x in loops]
+                breakpoint()
         return self._experiment
 
     def _get_raw_image_metadata(self) -> dict:

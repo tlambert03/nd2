@@ -8,10 +8,10 @@ from typing import TYPE_CHECKING, cast
 
 import numpy as np
 from nd2 import structures
+from nd2._xml import parse_variant_xml
 from nd2._pysdk._decode import (
     _read_nd2_chunk,
     decode_CLxLiteVariant_json,
-    decode_xml,
     get_version,
     load_chunkmap,
 )
@@ -128,9 +128,13 @@ class ND2Reader:
         return _read_nd2_chunk(self._fh, offset)
 
     def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict:
+        from ._decode import decode_xml
         data = self._load_chunk(name)
         if self.version < (3, 0):
-            return decode_xml(data)
+            # a = decode_xml(data)
+            # b = parse_variant_xml(data)
+            # breakpoint()
+            return parse_variant_xml(data)
         return decode_CLxLiteVariant_json(data, strip_prefix=strip_prefix)
 
     @property
@@ -285,7 +289,6 @@ class ND2Reader:
     def _read_compressed_frame(self, index: int) -> np.ndarray:
         import zlib
 
-        print("reading compressed frame", index)
         ch = self._load_chunk(f"ImageDataSeq|{index}!".encode())
         return np.ndarray(
             shape=self._actual_frame_shape(),
@@ -362,10 +365,9 @@ class ND2Reader:
         return {k.decode()[:-1]: v for k, (v, _) in self.chunkmap.items()}
 
     def _custom_data(self) -> dict[str, Any]:
-        from nd2._xml import parse_xml_block
-
-        return {
-            k.decode()[14:-1]: parse_xml_block(self._load_chunk(k))
+        cd = {
+            k.decode()[14:-1]: parse_variant_xml(self._load_chunk(k))
             for k in self.chunkmap
             if k.startswith(b"CustomDataVar|")
         }
+        return cd

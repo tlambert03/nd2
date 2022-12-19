@@ -2,14 +2,29 @@ import contextlib
 import re
 import struct
 import threading
+import warnings
 from pathlib import Path
-from typing import BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import Any, BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
+from nd2.structures import (
+    Attributes,
+    ExpLoop,
+    PeriodDiff,
+    Position,
+    StagePosition,
+    TextInfo,
+    TimeLoop,
+    TimeLoopParams,
+    XYPosLoop,
+    XYPosLoopParams,
+    ZStackLoop,
+    ZStackLoopParams,
+    LoopType,
+)
 
-from . import structures as strct
 from ._util import VoxelSize, dims_from_description
-from ._xml import parse_xml_block
+from ._xml import parse_variant_xml
 
 try:
     from functools import cached_property
@@ -57,7 +72,7 @@ class LegacyND2Reader:
     def ddim(self) -> dict:
         return dims_from_description(self.text_info().get("description"))
 
-    def experiment(self) -> List[strct.ExpLoop]:
+    def experiment(self) -> List[ExpLoop]:
         meta = self._metadata
         exp = []
         if "LoopNo00" in meta:
@@ -85,13 +100,11 @@ class LegacyND2Reader:
     def _coord_info(self) -> List[Tuple[int, str, int]]:
         return [(i, x.type, x.count) for i, x in enumerate(self.experiment())]
 
-    def _make_loop(
-        self, meta_level: dict, nest_level: int = 0
-    ) -> Optional[strct.ExpLoop]:
+    def _make_loop(self, meta_level: dict, nest_level: int = 0) -> Optional[ExpLoop]:
         """converts an old style metadata loop dict to a new ExpLoop structure."""
         type_ = meta_level.get("Type")
         params: dict = meta_level["LoopPars"]
-        if type_ == 2:  # XYPosLoop
+        if type_ == LoopType.XYPosLoop:
             poscount = len(params["PosX"])
             # empirically, it appears that some files list more positions in the
             # metadata than are actually recorded in the textinfo -> description.
@@ -101,23 +114,21 @@ class LegacyND2Reader:
             for i in range(count):
                 idx = f"{poscount-i-1:05}"
                 points.append(
-                    strct.Position(
+                    Position(
                         pfsOffset=params["PFSOffset"][idx],
-                        stagePositionUm=strct.StagePosition(
+                        stagePositionUm=StagePosition(
                             x=params["PosX"][idx],
                             y=params["PosY"][idx],
                             z=params["PosZ"][idx],
                         ),
                     )
                 )
-            return strct.XYPosLoop(
+            return XYPosLoop(
                 nestingLevel=nest_level,
                 count=count,
-                parameters=strct.XYPosLoopParams(
-                    isSettingZ=params["UseZ"], points=points
-                ),
+                parameters=XYPosLoopParams(isSettingZ=params["UseZ"], points=points),
             )
-        if type_ == 8:  # TimeLoop
+        if type_ == LoopType.NETimeLoop:
             # XXX strangely, I've seen files that seem to have a mult-phase
             # NETimeLoop, but use one of the Period...
             # try to find one that matches the dims in the description
@@ -131,37 +142,37 @@ class LegacyND2Reader:
             # XXX: this is definitely error prone.
             if per is None:
                 per = next(iter(params["Period"].values()))
-            return strct.TimeLoop(
+            return TimeLoop(
                 count=per["Count"],
                 nestingLevel=nest_level,
-                parameters=strct.TimeLoopParams(
+                parameters=TimeLoopParams(
                     startMs=per["Start"],
                     periodMs=per["Period"],
                     durationMs=per["Duration"],
-                    periodDiff=strct.PeriodDiff(
+                    periodDiff=PeriodDiff(
                         avg=per.get("AvgPeriodDiff"),
                         max=per.get("MaxPeriodDiff"),
                         min=per.get("MinPeriodDiff"),
                     ),
                 ),
             )
-        if type_ == 4:
-            return strct.ZStackLoop(
+        if type_ == LoopType.ZStackLoop:
+            return ZStackLoop(
                 count=params["Count"],
                 nestingLevel=nest_level,
-                parameters=strct.ZStackLoopParams(
+                parameters=ZStackLoopParams(
                     homeIndex=params["ZHome"],
                     stepUm=params["ZStep"],
                     bottomToTop=params["ZLow"] < params["ZHigh"],
                 ),
             )
-        if type_ == 6:  # channel
+        if type_ == LoopType.SpectLoop:
             return None
 
         raise ValueError(f"unrecognized type: {type_}")
 
     @cached_property
-    def attributes(self) -> strct.Attributes:
+    def attributes(self) -> Attributes:
         head = self.header
         bpcim = head["bits_per_component"]
         bpcs = self._advanced_image_attributes.get("SignificantBits", bpcim)
@@ -174,7 +185,7 @@ class LegacyND2Reader:
         except Exception:
             compCount = nC = 1
 
-        return strct.Attributes(
+        return Attributes(
             bitsPerComponentInMemory=bpcim,
             bitsPerComponentSignificant=bpcs,
             componentCount=compCount,
@@ -187,12 +198,13 @@ class LegacyND2Reader:
             channelCount=nC,
         )
 
-    def _get_xml_dict(self, key: bytes, index=0) -> dict:
-        try:
-            bxml = self._read_chunk(self._chunkmap[key][index])
-            return parse_xml_block(bxml)
-        except KeyError:
+    def _get_xml_dict(self, key: bytes, index=0) -> dict[str, Any]:
+        if key not in self._chunkmap:
+            warnings.warn(f"no metadata key {key!r} in file")
             return {}
+
+        bxml = self._read_chunk(self._chunkmap[key][index])
+        return parse_variant_xml(bxml, strip_prefix=True)
 
     @cached_property
     def events(self) -> dict:
@@ -201,13 +213,11 @@ class LegacyND2Reader:
     # def sizes(self):
     #     attrs = cast(Attributes, self.attributes)
 
-    def text_info(self) -> strct.TextInfo:
+    def text_info(self) -> TextInfo:
+        from ._pysdk._parse import load_text_info
+
         d = self._get_xml_dict(b"TINF")
-        for i in d.get("TextInfoItem", []):
-            txt = i.get("Text", "")
-            if txt.startswith("Metadata:"):
-                return {"description": txt}
-        return {}
+        return load_text_info(d["TextInfo"])
 
     @cached_property
     def _advanced_image_attributes(self) -> dict:
@@ -216,15 +226,12 @@ class LegacyND2Reader:
     @cached_property
     def _metadata(self) -> dict:
         meta = self._get_xml_dict(b"AIM1") or self._get_xml_dict(b"AIMD")
-        version = ""
-        meta.pop("UnknownData", None)
-        while len(meta) == 1:
-            key, val = meta.popitem()
-            if "_V" in key:
-                version = key.split("_V")[1]
-            meta = val
-            meta.pop("UnknownData", None)
-        meta["Version"] = version
+        key, variant = meta.popitem()
+        try:
+            meta = cast(dict, variant[0]["Metadata"])
+        except (KeyError, IndexError) as e:
+            raise ValueError(f"unexpected metadata variant: {variant}") from e
+        meta["Version"] = key.split("_V")[1] if "_V" in key else ""
         return meta
 
     def metadata(self) -> dict:

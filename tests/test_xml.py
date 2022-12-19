@@ -1,50 +1,49 @@
-from nd2._xml import parse_xml_block
+from nd2._xml import parse_variant_xml
+from pathlib import Path
+from nd2 import ND2File
+
+XML = (Path(__file__).parent / "data" / "variant.xml").read_bytes()
 
 
-def test_parse_xml() -> None:
-    bXML = b"""
-    <?xml version="1.0" encoding="UTF-8"?>
-    <variant version="1.0">
-        <CustomTagDescription_v1.0 runtype="CLxListVariant">
-            <Tag0 runtype="CLxListVariant">
-                <ID runtype="CLxStringW" value="CameraTemp1"/>
-                <Type runtype="lx_int32" value="3"/>
-                <Group runtype="lx_int32" value="0"/>
-                <Size runtype="lx_int32" value="21"/>
-                <Desc runtype="CLxStringW" value="Camera Temperature"/>
-                <Unit runtype="CLxStringW" value="\xc2\xb0C"/>
-            </Tag0>
-            <Tag1 runtype="CLxListVariant">
-                <ID runtype="CLxStringW" value="Camera_ExposureTime1"/>
-                <Type runtype="lx_int32" value="3"/>
-                <Group runtype="lx_int32" value="0"/>
-                <Size runtype="lx_int32" value="21"/>
-                <Desc runtype="CLxStringW" value="Exposure Time"/>
-                <Unit runtype="CLxStringW" value="ms"/>
-            </Tag1>
-        </CustomTagDescription_v1.0>
-    </variant>
-    """
+# def test_parse_xml() -> None:
+#     result = parse_variant_xml(XML)
+#     assert list(result) == [
+#         "eType",
+#         "wsApplicationDesc",
+#         "wsUserDesc",
+#         "aMeasProbesBase64",
+#         "uLoopPars",
+#         "pItemValid",
+#         "sAutoFocusBeforeLoop",
+#         "wsCommandBeforeLoop",
+#         "wsCommandBeforeCapture",
+#         "wsCommandAfterCapture",
+#         "wsCommandAfterLoop",
+#         "bControlShutter",
+#         "bUsePFS",
+#         "uiRepeatCount",
+#         "ppNextLevelEx",
+#         "bControlLight",
+#         "pLargeImage",
+#         "sParallelExperiment",
+#     ]
 
-    EXPECT = {
-        "CustomTagDescription_v1.0": {
-            "Tag0": {
-                "ID": "CameraTemp1",
-                "Type": 3,
-                "Group": 0,
-                "Size": 21,
-                "Desc": "Camera Temperature",
-                "Unit": "°C",
-            },
-            "Tag1": {
-                "ID": "Camera_ExposureTime1",
-                "Type": 3,
-                "Group": 0,
-                "Size": 21,
-                "Desc": "Exposure Time",
-                "Unit": "ms",
-            },
-        }
-    }
 
-    assert parse_xml_block(bXML) == EXPECT
+from nd2._pysdk._decode import decode_xml
+from nd2._xml import parse_variant_xml
+from rich import print
+
+def test_metadata_extraction(new_nd2: Path):
+    with ND2File(new_nd2) as f:
+        if f._rdr.version >= (3, 0):
+            return
+
+        data = f._rdr._load_chunk(b"ImageMetadataSeq|0!")
+        good = decode_xml(data)
+        bad = parse_variant_xml(data)
+        gp = good['sPicturePlanes']['sPlane']['a0']['pFilterPath']['m_pFilter']
+        bp = bad['sPicturePlanes']['sPlane']['a0']['pFilterPath']['m_pFilter']
+        if good != bad:
+            import dictdiffer
+            diffs = list(dictdiffer.diff(good, bad))
+            assert good == bad

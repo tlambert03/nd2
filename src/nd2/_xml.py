@@ -1,78 +1,117 @@
+from __future__ import annotations
+
 import re
-from functools import partial
-from typing import Any, Callable, Dict, Optional
+import warnings
+from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
-try:
-    from lxml import etree
-except ImportError:
-    import xml.etree.ElementTree as etree  # type: ignore
+if TYPE_CHECKING:
+    import xml.etree.ElementTree
+
+    import lxml.etree
+
+    Element = Union[xml.etree.ElementTree.Element, lxml.etree._Element]
+    Parser = Callable[[bytes], Element]
+    Value = Union[float, str, int, bytearray, bool, dict[str, "Value"], list["Value"]]
+    XML: Parser
+
+else:
+    try:
+        from lxml.etree import XML  # faster if it's available
+    except ImportError:
+        from xml.etree.ElementTree import XML
+
+LOWER = re.compile("^[a-z_]+")
 
 
-def parse_xml_block(bxml: bytes) -> Dict[str, Any]:
-    node = etree.XML(bxml.split(b"?>", 1)[-1])
-    return elem2dict(node)
+def _float_or_nan(x: str) -> float:
+    try:
+        return float(x)
+    except ValueError:
+        return float("nan")
 
 
-lower = re.compile("^[a-z_]+")
-_TYPEMAP: Dict[Optional[str], Callable] = {
-    "bool": bool,
-    "lx_uint32": int,
-    "lx_uint64": int,
+# functions to cast CLxvariants to python types
+_XMLCAST: dict[str | None, Callable[[str], float | str | int | bytearray | bool]] = {
+    "bool": lambda x: x.lower() in {"true", "1"},
+    "CLxByteArray": lambda x: bytearray(x, "utf8"),
+    "CLxStringW": str,
+    "double": _float_or_nan,
+    "float": _float_or_nan,
     "lx_int32": int,
     "lx_int64": int,
-    "double": float,
-    "CLxStringW": str,
-    "CLxByteArray": partial(bytes, encoding="utf-8"),
+    "lx_uint32": int,
+    "lx_uint64": int,
     "unknown": str,
     None: str,
 }
 
 
-def elem2dict(node: "etree._Element") -> Dict[str, Any]:
-    """Convert an lxml.etree node tree into a dict."""
-    result: Dict[str, Any] = {}
+def parse_variant_xml(
+    bxml: bytes,
+    parser: Parser = XML,
+    strip_variant: bool = True,
+    strip_prefix: bool = False,
+) -> dict[str, Value]:
+    """Return a dict of the xml data.
 
-    if "value" in node.attrib:
-        type_ = _TYPEMAP[node.attrib.get("runtype")]
-        try:
-            return type_(node.attrib["value"])
-        except ValueError:
-            return node.attrib["value"]
+    If strip_variant is True, the top level variant tag will be stripped if present.
+    """
+    node = parser(bxml.split(b"?>", 1)[-1])  # strip xml header
+    variant_dict = elem2dict(node, strip_prefix)
 
-    attrs = node.attrib
-    attrs.pop("runtype", None)
-    attrs.pop("version", None)
-    result.update(node.attrib)
+    if strip_variant and len(variant_dict) == 1:
+        if "variant" in variant_dict:
+            return cast("dict[str, Value]", variant_dict["variant"])
 
-    # [<Element CustomTagDescription_v1.0 at 0x12a29ac40>]
-    for element in node:
-        # Remove namespace prefix
-        key = element.tag.split("}")[1] if "}" in element.tag else element.tag
-        key = lower.sub("", key) or key
+        k = next(iter(variant_dict))
+        inner = variant_dict[k]
+        if isinstance(inner, dict) and len(inner) == 1 and "variant" in inner:
+            variant_dict = {k: inner["variant"]}
+    return variant_dict
 
-        # Process element as tree element if the inner XML contains non-whitespace
-        # content
-        if element.text and element.text.strip():
-            value = element.text
-        else:
-            value = elem2dict(element)
-        if key in result:
-            if type(result[key]) is list:
-                result[key].append(value)
-            else:
-                result[key] = [result[key], value]
-        # elif key in {"no_name", "variant"}:
-        #     result.update(value)
-        else:
-            result[key] = value
 
-    if isinstance(result, dict):
-        if "variant" in result and not isinstance(result["variant"], list):
-            result = result["variant"]
-        if set(result.keys()) == {"no_name"} and not isinstance(
-            result["no_name"], list
-        ):
-            result = result["no_name"]
-    # if node.tag not in {"no_name", "variant"}:
-    #     result = {node.tag: result}
-    return result
+def _list_variant(node: Element, key: str, strip_prefix: bool) -> dict[str, Value]:
+    if len(node) == 1 and node[0].tag == "no_name":
+        node = node[0]
+
+    if all(getattr(child, "tag", "").startswith("_") for child in node):
+        # when all children are prefixed with '_' ('_00', '_01'):
+        # return a list of the inner values
+        _l: list[dict[str, Value]] = [elem2dict(c, strip_prefix) for c in node]
+        return {key: [i.popitem()[1] for i in _l]}
+
+    _resultd = {}
+    for child in node:
+        _resultd.update(elem2dict(child, strip_prefix))
+    return {key: _resultd}
+
+
+def elem2dict(node: Element, strip_prefix: bool = False) -> dict[str, Value]:
+    """Convert an lxml.etree or ElementTree.node into a dict."""
+    runtype = node.attrib.get("runtype")
+
+    if strip_prefix and node.tag != "no_name":
+        key = LOWER.sub("", node.tag) or node.tag
+    else:
+        key = node.tag
+
+    if runtype == "CLxListVariant":
+        return _list_variant(node, key, strip_prefix)
+    elif len(node) == 0:
+        if node.tag == "TextInfoItem":  # legacy nd2s
+            idx = node.attrib["Index"]
+            return {f"TextInfoItem_{idx}": node.attrib["Text"]}
+        return {key: _XMLCAST[runtype](node.attrib["value"])}
+    else:
+        result: dict[str, Any] = {}
+        for element in node:
+            item = elem2dict(element, strip_prefix)
+            duplicates = [i for i in item if i in result]
+            # if any(duplicates):
+            #     warnings.warn("duplicate keys in xml: " + ", ".join(duplicates))
+            result.update(item)
+
+    if len(result) == 1 and "no_name" in result:
+        result = result["no_name"]
+
+    return result if key == "no_name" else {key: result}

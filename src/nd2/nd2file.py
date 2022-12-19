@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     from typing_extensions import Literal
 
     from ._binary import BinaryLayers
-    from ._sdk.latest import ND2Reader as LatestSDKReader
+    from ._pysdk._pysdk import ND2Reader as LatestSDKReader
     from .structures import Position
 
 
@@ -733,7 +733,7 @@ class ND2File:
         if "CustomDataV2_0" not in cd:
             return {}
         try:
-            tags: dict = cd["CustomDataV2_0"]["CustomTagDescription_v1.0"]
+            tags: list = cd["CustomDataV2_0"]["CustomTagDescription_v1.0"]
         except KeyError:
             warnings.warn(
                 "Could not find 'CustomTagDescription_v1' tag, please open an issue "
@@ -742,14 +742,25 @@ class ND2File:
             return {}
 
         # tags will be a dict of dicts: eg:
-        # {'Tag0': {'ID': 'X', 'Type': 3, 'Group': 1, 'Size': 5000, 'Desc': 'X Coord', 'Unit': 'µm'}}  # noqa
+        # [
+        #     {
+        #         "Tag0": [
+        #             {"ID": "Camera_ExposureTime1"},
+        #             {"Type": 3},
+        #             {"Group": 0},
+        #             {"Size": 1},
+        #             {"Desc": "Exposure Time"},
+        #             {"Unit": "ms"},
+        #         ]
+        #     },
+        #     ...
+        # ]
         # FIXME: technically, it is possible to have multiple tags with the same Desc
         # (e.g. for IDs PFS_OFFSET and Z2). In the current implementation, the
         # 2nd tag will overwrite the first one.
         data: dict[str, np.ndarray | Sequence] = {}
         with contextlib.suppress(KeyError):
-            chunk = rdr._get_meta_chunk("CustomData|AcqTimesCache")
-            data["Time [s]"] = np.frombuffer(chunk) / 1000
+            data["Time [s]"] = [x / 1000 for x in rdr._cached_frame_times()]
 
         try:
             z_idx = [AXIS._MAP[c[1]] for c in self._rdr._coord_info()].index(AXIS.Z)
@@ -772,7 +783,12 @@ class ND2File:
                 ]
             )
 
-        for tag in tags.values():
+        print(self._rdr.version, type(tags))
+
+        for _tag in tags:
+            tag = {}
+            for v in _tag.popitem()[1]:
+                tag.update(v)
             header = f"{tag['Desc']}"
             if tag["Unit"]:
                 header += f" [{tag['Unit']}]"

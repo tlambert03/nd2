@@ -2,10 +2,9 @@ import sys
 from pathlib import Path
 
 import nd2
-from nd2._pysdk import _pysdk 
+from nd2._pysdk import _pysdk
 from nd2._sdk.latest import ND2Reader
 from rich import print
-
 
 DATA = Path(__file__).parent / "tests" / "data"
 

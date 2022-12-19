@@ -10,6 +10,7 @@ import numpy as np
 from nd2.structures import (
     Attributes,
     ExpLoop,
+    LoopType,
     PeriodDiff,
     Position,
     StagePosition,
@@ -20,7 +21,6 @@ from nd2.structures import (
     XYPosLoopParams,
     ZStackLoop,
     ZStackLoopParams,
-    LoopType,
 )
 
 from ._util import VoxelSize, dims_from_description

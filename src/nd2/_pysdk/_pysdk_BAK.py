@@ -95,6 +95,7 @@ class LimFile:
         data = self._load_chunk(name)
         if self.version < (3, 0):
             from nd2._xml import parse_variant_xml
+
             return parse_variant_xml(data)
         return decode_CLxLiteVariant_json(data, strip_prefix=strip_prefix)
 

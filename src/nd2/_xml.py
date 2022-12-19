@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import warnings
 from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
 if TYPE_CHECKING:

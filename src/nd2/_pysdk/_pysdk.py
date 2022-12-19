@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, cast
 
 import numpy as np
 from nd2 import structures
-from nd2._xml import parse_variant_xml
 from nd2._pysdk._decode import (
     _read_nd2_chunk,
     decode_CLxLiteVariant_json,
@@ -23,6 +22,7 @@ from nd2._pysdk._parse import (
     load_metadata,
     load_text_info,
 )
+from nd2._xml import parse_variant_xml
 
 if TYPE_CHECKING:
     from os import PathLike
@@ -129,6 +129,7 @@ class ND2Reader:
 
     def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict:
         from ._decode import decode_xml
+
         data = self._load_chunk(name)
         if self.version < (3, 0):
             # a = decode_xml(data)

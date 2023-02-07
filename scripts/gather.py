@@ -101,7 +101,6 @@ def get_pims_stats(file) -> dict:
 
 
 if __name__ == "__main__":
-
     D = {}
     for _f in Path("tests/data").glob("*.nd2"):
         f = str(_f)

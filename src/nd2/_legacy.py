@@ -278,7 +278,6 @@ class LegacyND2Reader:
         return (zs, xys, ts, cs)
 
     def voxel_size(self) -> VoxelSize:
-
         z: Optional[float] = None
         d = self.text_info().get("description") or ""
         _z = re.search(r"Z Stack Loop: 5\s+-\s+Step\s+([.\d]+)", d)

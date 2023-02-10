@@ -112,10 +112,9 @@ extend-select = [
     "E",    # style errors
     "F",    # flakes
     "D",    # pydocstyle
-    "I", # isort
-    "U",    # pyupgrade
-    # "N",  # pep8-naming
-    "S",  # bandit
+    "I",    # isort
+    "UP",   # pyupgrade
+    "S",    # bandit
     "C",    # flake8-comprehensions
     "B",    # flake8-bugbear
     "A001", # flake8-builtins
@@ -131,6 +130,7 @@ extend-ignore = [
     "D212", # Multi-line docstring summary should start at the first line
     "D213", # Multi-line docstring summary should start at the second line
     "D400", # First line should end with a period
+    "D401", # First line should be in imperative mood
     "D413", # Missing blank line after last section
     "D416", # Section name should end with a colon
     "C901", # Function is too complex
@@ -138,7 +138,7 @@ extend-ignore = [
 
 [tool.ruff.per-file-ignores]
 "tests/*.py" = ["D", "S"]
-"scripts/*.py" = ["D"]
+"scripts/*.py" = ["D", "S"]
 
 # https://docs.pytest.org/en/6.2.x/customize.html
 [tool.pytest.ini_options]

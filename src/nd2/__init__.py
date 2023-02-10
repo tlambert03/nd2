@@ -1,3 +1,5 @@
+"""nd2: A Python library for reading and writing ND2 files."""
+
 try:
     from ._version import version as __version__
 except ImportError:

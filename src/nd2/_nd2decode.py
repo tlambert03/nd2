@@ -37,7 +37,6 @@ def decode_metadata(data: bytes, strip_prefix=True, _count: int = 1) -> Dict[str
 
     stream = io.BytesIO(data)
     for _ in range(_count):
-
         curs = stream.tell()
         header = stream.read(2)
         if not header:

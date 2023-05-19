@@ -155,7 +155,9 @@ class BinaryLayers(Sequence[BinaryLayer]):
         """Extract binary layers from an ND2 file."""
         if nd2file.is_legacy:
             warnings.warn(
-                "`binary_data` is not supported for legacy ND2 files", UserWarning
+                "`binary_data` is not supported for legacy ND2 files",
+                UserWarning,
+                stacklevel=2,
             )
             return None
         rdr = cast("LatestSDKReader", nd2file._rdr)
@@ -169,6 +171,7 @@ class BinaryLayers(Sequence[BinaryLayer]):
             warnings.warn(
                 "Could not find 'BinaryMetadata_v1->BinaryItem' tag, please open an "
                 "issue with this file at https://github.com/tlambert03/nd2/issues/new",
+                stacklevel=2,
             )
             return None
         if isinstance(items, dict):
@@ -223,7 +226,8 @@ def _decode_binary_mask(data: bytes, dtype="uint16") -> np.ndarray:
     if v != 3:
         warnings.warn(
             f"Expected first byte to be 3 but got {v}. "
-            "Please submit this file :) https://github.com/tlambert03/nd2/issues/."
+            "Please submit this file :) https://github.com/tlambert03/nd2/issues/.",
+            stacklevel=2,
         )
 
     output = np.zeros((nrows, ncols), dtype=dtype)

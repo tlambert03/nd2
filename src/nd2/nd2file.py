@@ -273,7 +273,7 @@ class ND2File:
             _keys: set[str] = set()
             for i in include:
                 if i not in keys:
-                    warnings.warn(f"Key {i!r} not found in metadata")
+                    warnings.warn(f"Key {i!r} not found in metadata", stacklevel=2)
                 else:
                     _keys.add(i)
             keys = _keys
@@ -723,7 +723,9 @@ class ND2File:
         """
         if self.is_legacy:
             warnings.warn(
-                "`recorded_data` is not supported for legacy ND2 files", UserWarning
+                "`recorded_data` is not supported for legacy ND2 files",
+                UserWarning,
+                stacklevel=2,
             )
             return {}
         rdr = cast("LatestSDKReader", self._rdr)
@@ -737,6 +739,7 @@ class ND2File:
             warnings.warn(
                 "Could not find 'CustomTagDescription_v1' tag, please open an issue "
                 "with this nd2 file at https://github.com/tlambert03/nd2/issues/new",
+                stacklevel=2,
             )
             return {}
 
@@ -780,7 +783,8 @@ class ND2File:
             if _type == 1:
                 warnings.warn(
                     f"{header!r} column skipped: "
-                    "(parsing string data is not yet implemented)"
+                    "(parsing string data is not yet implemented)",
+                    stacklevel=2,
                 )
             else:
                 data[header] = _decode_custom_data(raw, _type, tag["Size"])

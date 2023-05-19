@@ -158,5 +158,5 @@ def _decode_custom_data(
     elif type == 1:
         return [""] * count
     else:
-        warnings.warn(f"Unknown custom data type: {type!r}")
+        warnings.warn(f"Unknown custom data type: {type!r}", stacklevel=2)
         return [None] * count

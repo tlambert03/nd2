@@ -18,11 +18,8 @@ name = "nd2"
 description = "Yet another nd2 (Nikon NIS Elements) file reader"
 readme = "README.md"
 requires-python = ">=3.7,<3.12"
-license = {text = "BSD 3-Clause License"}
-authors = [
-  {email = "talley.lambert@gmail.com"},
-  {name = "Talley Lambert"},
-]
+license = { text = "BSD 3-Clause License" }
+authors = [{ email = "talley.lambert@gmail.com" }, { name = "Talley Lambert" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: BSD License",
@@ -45,10 +42,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-legacy = [
-    "imagecodecs",
-    "wurlitzer",
-]
+legacy = ["imagecodecs", "wurlitzer"]
 test = [
     "lxml; python_version<'3.11'",
     "aicsimageio; python_version<'3.11'",
@@ -91,8 +85,10 @@ zip-safe = false
 include-package-data = true
 
 [tool.setuptools.packages.find]
-where = ["src"]  # list of folders that contain the packages (["."] by default)
-include = ["nd2*"]  # package names should match these glob patterns (["*"] by default)
+where = ["src"] # list of folders that contain the packages (["."] by default)
+include = [
+    "nd2*",
+] # package names should match these glob patterns (["*"] by default)
 
 # https://github.com/pypa/setuptools_scm/#pyprojecttoml-usage
 [tool.setuptools_scm]
@@ -122,7 +118,9 @@ extend-select = [
 ]
 extend-ignore = [
     # these should be fixed
-    "D101", "D105", "D103",
+    "D101",
+    "D105",
+    "D103",
     ###
     "D100", # Missing docstring in public module
     "D107", # Missing docstring in __init__
@@ -149,7 +147,7 @@ filterwarnings = [
     "error",
     "ignore:The distutils package is deprecated::",
     "ignore:The distutils.sysconfig module is deprecated::",
-    "ignore:distutils Version classes are deprecated:"
+    "ignore:distutils Version classes are deprecated:",
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html
@@ -189,17 +187,15 @@ skip = ["tests"]
 # https://github.com/mgedmin/check-manifest#configuration
 [tool.check-manifest]
 ignore = [
-  ".cruft.json",
-  ".flake8",
-  ".github_changelog_generator",
-  ".pre-commit-config.yaml",
-  "tests/**/*",
-  "tox.ini",
-  "src/nd2/_version.py"
+    ".cruft.json",
+    ".flake8",
+    ".github_changelog_generator",
+    ".pre-commit-config.yaml",
+    "tests/**/*",
+    "tox.ini",
+    "src/nd2/_version.py",
 ]
-ignore-bad-ideas = [
-    "*.so"
-]
+ignore-bad-ideas = ["*.so"]
 
 [tool.cibuildwheel]
 # Skip 32-bit builds & PyPy wheels on all platforms
@@ -218,6 +214,8 @@ repair-wheel-command = [
 
 [tool.cibuildwheel.linux]
 before-all = [
-    "apt-get update && apt-get install -y libtiff5-dev",
+    'echo "deb http://archive.debian.org/debian stretch main" > /etc/apt/sources.list',
+    "apt-get update",
+    "apt-get install -y --allow-downgrades liblzma5=5.2.2-1.2+b1 liblzma-dev=5.2.2-1.2+b1 libtiff5-dev=4.0.8-2+deb9u5",
     "cp {project}/src/sdk/Linux/x86_64/lib/* /lib",
 ]

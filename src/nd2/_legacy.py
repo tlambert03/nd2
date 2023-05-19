@@ -100,8 +100,10 @@ class LegacyND2Reader:
     def _coord_info(self) -> List[Tuple[int, str, int]]:
         return [(i, x.type, x.count) for i, x in enumerate(self.experiment())]
 
-    def _make_loop(self, meta_level: dict, nest_level: int = 0) -> Optional[ExpLoop]:
-        """converts an old style metadata loop dict to a new ExpLoop structure."""
+    def _make_loop(
+        self, meta_level: dict, nest_level: int = 0
+    ) -> Optional[ExpLoop]:
+        """Converts an old style metadata loop dict to a new ExpLoop structure."""
         type_ = meta_level.get("Type")
         params: dict = meta_level["LoopPars"]
         if type_ == LoopType.XYPosLoop:
@@ -285,7 +287,6 @@ class LegacyND2Reader:
         return (zs, xys, ts, cs)
 
     def voxel_size(self) -> VoxelSize:
-
         z: Optional[float] = None
         d = self.text_info().get("description") or ""
         _z = re.search(r"Z Stack Loop: 5\s+-\s+Step\s+([.\d]+)", d)

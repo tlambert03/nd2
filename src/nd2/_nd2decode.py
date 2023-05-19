@@ -37,7 +37,6 @@ def decode_metadata(data: bytes, strip_prefix=True, _count: int = 1) -> Dict[str
 
     stream = io.BytesIO(data)
     for _ in range(_count):
-
         curs = stream.tell()
         header = stream.read(2)
         if not header:
@@ -159,5 +158,5 @@ def _decode_custom_data(
     elif type == 1:
         return [""] * count
     else:
-        warnings.warn(f"Unknown custom data type: {type!r}")
+        warnings.warn(f"Unknown custom data type: {type!r}", stacklevel=2)
         return [None] * count

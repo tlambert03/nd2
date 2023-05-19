@@ -122,7 +122,7 @@ class ND2File:
         return self._is_legacy
 
     def open(self) -> None:
-        """open file for reading."""
+        """Open file for reading."""
         if self.closed:
             self._rdr.open()
             self._closed = False
@@ -274,7 +274,7 @@ class ND2File:
             _keys: set[str] = set()
             for i in include:
                 if i not in keys:
-                    warnings.warn(f"Key {i!r} not found in metadata")
+                    warnings.warn(f"Key {i!r} not found in metadata", stacklevel=2)
                 else:
                     _keys.add(i)
             keys = _keys
@@ -333,17 +333,17 @@ class ND2File:
 
     @cached_property
     def ndim(self) -> int:
-        """number of dimensions."""
+        """Number of dimensions."""
         return len(self.shape)
 
     @cached_property
     def shape(self) -> tuple[int, ...]:
-        """size of each axis."""
+        """Size of each axis."""
         return self._coord_shape + self._frame_shape
 
     @cached_property
     def sizes(self) -> dict[str, int]:
-        """names and sizes for each axis."""
+        """Names and sizes for each axis."""
         attrs = self.attributes
         dims = {AXIS._MAP[c[1]]: c[2] for c in self._rdr._coord_info()}
         dims[AXIS.CHANNEL] = (
@@ -459,7 +459,7 @@ class ND2File:
         return arr.reshape(final_shape)
 
     def __array__(self) -> np.ndarray:
-        """array protocol."""
+        """Array protocol."""
         return self.asarray()
 
     def to_dask(self, wrapper=True, copy=True) -> dask.array.core.Array:
@@ -611,7 +611,7 @@ class ND2File:
 
     @property
     def _raw_frame_shape(self) -> tuple[int, int, int, int]:
-        """sizes of each frame coordinate, prior to reshape."""
+        """Sizes of each frame coordinate, prior to reshape."""
         attr = self.attributes
         return (
             attr.heightPx,
@@ -622,12 +622,12 @@ class ND2File:
 
     @property
     def _frame_shape(self) -> tuple[int, ...]:
-        """sizes of each frame coordinate, after reshape & squeeze."""
+        """Sizes of each frame coordinate, after reshape & squeeze."""
         return tuple(v for k, v in self.sizes.items() if k in self._frame_coords)
 
     @cached_property
     def _coord_shape(self) -> tuple[int, ...]:
-        """sizes of each *non-frame* coordinate."""
+        """Sizes of each *non-frame* coordinate."""
         return tuple(v for k, v in self.sizes.items() if k not in self._frame_coords)
 
     @property
@@ -724,7 +724,9 @@ class ND2File:
         """
         if self.is_legacy:
             warnings.warn(
-                "`recorded_data` is not supported for legacy ND2 files", UserWarning
+                "`recorded_data` is not supported for legacy ND2 files",
+                UserWarning,
+                stacklevel=2,
             )
             return {}
         rdr = cast("LatestSDKReader", self._rdr)
@@ -738,6 +740,7 @@ class ND2File:
             warnings.warn(
                 "Could not find 'CustomTagDescription_v1' tag, please open an issue "
                 "with this nd2 file at https://github.com/tlambert03/nd2/issues/new",
+                stacklevel=2,
             )
             return {}
 
@@ -797,7 +800,8 @@ class ND2File:
             if _type == 1:
                 warnings.warn(
                     f"{header!r} column skipped: "
-                    "(parsing string data is not yet implemented)"
+                    "(parsing string data is not yet implemented)",
+                    stacklevel=2,
                 )
             else:
                 data[header] = _decode_custom_data(raw, _type, tag["Size"])

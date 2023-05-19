@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 import numpy as np
+
 from nd2 import structures
 
 class ND2Reader:

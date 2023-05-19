@@ -21,7 +21,7 @@ def getinfo(path: Path):
 
 def get_bioformats_info():
     with ProcessPoolExecutor() as exc:
-        data = {a: b for a, b in exc.map(getinfo, DATA.glob("*nd2"))}
+        data = dict(exc.map(getinfo, DATA.glob("*nd2")))
 
     with open(DATA / "bf_shapes.json", "w") as fh:
         import json

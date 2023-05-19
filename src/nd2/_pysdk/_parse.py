@@ -7,6 +7,7 @@ from struct import Struct
 from typing import TYPE_CHECKING, Sequence, cast
 
 import numpy as np
+
 from nd2.structures import (
     Attributes,
     AxisInterpretation,
@@ -238,7 +239,7 @@ def load_attributes(src: dict, channel_count: int) -> Attributes:
     """Parse the ImageAttributes[LV]! portion of an nd2 file."""
     bpc = src["uiBpcInMemory"]
     _ecomp: int = src.get("eCompression", 2)
-    comp_type: "CompressionType" | None
+    comp_type: CompressionType | None
     if 0 <= _ecomp < 2:
         comp_type = cast("CompressionType", ["lossless", "lossy", "none"][_ecomp])
         comp_level = src.get("dCompressionParam")
@@ -551,7 +552,6 @@ def load_frame_metadata(
     frame_time: float,
     seq_index: int,
 ) -> FrameMetadata:  # sourcery skip: extract-method
-
     xy_loop_idx = global_meta["loops"].get("XYPosLoop", -1)
     z_loop_idx = global_meta["loops"].get("ZStackLoop", -1)
     if 0 <= xy_loop_idx < len(exp_loops):

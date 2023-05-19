@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
+
 from nd2.structures import (
     Attributes,
     ExpLoop,
@@ -100,9 +101,7 @@ class LegacyND2Reader:
     def _coord_info(self) -> List[Tuple[int, str, int]]:
         return [(i, x.type, x.count) for i, x in enumerate(self.experiment())]
 
-    def _make_loop(
-        self, meta_level: dict, nest_level: int = 0
-    ) -> Optional[ExpLoop]:
+    def _make_loop(self, meta_level: dict, nest_level: int = 0) -> Optional[ExpLoop]:
         """Converts an old style metadata loop dict to a new ExpLoop structure."""
         type_ = meta_level.get("Type")
         params: dict = meta_level["LoopPars"]

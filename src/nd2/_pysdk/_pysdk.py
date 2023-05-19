@@ -7,6 +7,7 @@ from io import BufferedReader
 from typing import TYPE_CHECKING, cast
 
 import numpy as np
+
 from nd2 import structures
 from nd2._pysdk._decode import (
     _read_nd2_chunk,
@@ -128,8 +129,6 @@ class ND2Reader:
         return _read_nd2_chunk(self._fh, offset)
 
     def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict:
-        from ._decode import decode_xml
-
         data = self._load_chunk(name)
         if self.version < (3, 0):
             # a = decode_xml(data)

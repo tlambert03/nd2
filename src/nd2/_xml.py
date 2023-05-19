@@ -105,7 +105,7 @@ def elem2dict(node: Element, strip_prefix: bool = False) -> dict[str, Value]:
         result: dict[str, Any] = {}
         for element in node:
             item = elem2dict(element, strip_prefix)
-            duplicates = [i for i in item if i in result]
+            [i for i in item if i in result]
             # if any(duplicates):
             #     warnings.warn("duplicate keys in xml: " + ", ".join(duplicates))
             result.update(item)

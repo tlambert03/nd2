@@ -335,7 +335,6 @@ def decode_CLxLiteVariant_json(
     stream = data if isinstance(data, io.BytesIO) else io.BytesIO(data)
 
     for _ in range(_count):
-
         curs = stream.tell()
 
         name, data_type = _chunk_name_and_dtype(stream, strip_prefix)

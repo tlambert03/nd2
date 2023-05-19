@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, Optional
 try:
     from lxml import etree
 except ImportError:
-    import xml.etree.ElementTree as etree  # type: ignore
+    import xml.etree.ElementTree as etree
 
 
 def parse_xml_block(bxml: bytes) -> Dict[str, Any]:

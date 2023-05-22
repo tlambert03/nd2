@@ -401,8 +401,8 @@ class AnimParam:
     centerY: float = 0
     centerZ: float = 0
     rotationZ: float = 0
-    boxShape: BoxShape = BoxShape()
-    extrudedShape: ExtrudedShape = ExtrudedShape()
+    boxShape: BoxShape = field(default_factory=BoxShape)
+    extrudedShape: ExtrudedShape = field(default_factory=ExtrudedShape)
 
     def __post_init__(self):
         if isinstance(self.boxShape, dict):

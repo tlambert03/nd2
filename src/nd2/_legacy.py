@@ -88,7 +88,7 @@ class LegacyND2Reader:
     def _make_loop(
         self, meta_level: dict, nest_level: int = 0
     ) -> Optional[strct.ExpLoop]:
-        """converts an old style metadata loop dict to a new ExpLoop structure."""
+        """Converts an old style metadata loop dict to a new ExpLoop structure."""
         type_ = meta_level.get("Type")
         params: dict = meta_level["LoopPars"]
         if type_ == 2:  # XYPosLoop

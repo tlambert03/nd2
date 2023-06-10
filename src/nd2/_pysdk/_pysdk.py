@@ -224,7 +224,7 @@ class ND2Reader:
                 times = np.frombuffer(acq_times, dtype=np.float64).tolist()
                 self._frame_times = times[: self._seq_count()]  # limit to valid frames
             except Exception as e:
-                warnings.warn(f"Failed to load frame times: {e}")
+                warnings.warn(f"Failed to load frame times: {e}", stacklevel=2)
                 self._frame_times = []
 
         return self._frame_times
@@ -371,3 +371,32 @@ class ND2Reader:
             if k.startswith(b"CustomDataVar|")
         }
         return cd
+
+    # probably a temporary method, for testing
+    def _raw_meta(self) -> dict:
+        k = b"ImageAttributesLV!" if self.version >= (3, 0) else b"ImageAttributes!"
+        attrs = self._decode_chunk(k, strip_prefix=False) if k in self.chunkmap else {}
+        attrs = attrs.get("SLxImageAttributes", attrs)
+
+        k = b"ImageTextInfoLV!" if self.version >= (3, 0) else b"ImageTextInfo!"
+        ti = self._decode_chunk(k, strip_prefix=False) if k in self.chunkmap else {}
+        ti = ti.get("SLxImageTextInfo", ti)
+
+        k = b"ImageMetadataLV!" if self.version >= (3, 0) else b"ImageMetadata!"
+        exp = self._decode_chunk(k, strip_prefix=False) if k in self.chunkmap else {}
+        exp = exp.get("SLxExperiment", exp)
+
+        k = (
+            b"ImageMetadataSeqLV|0!"
+            if self.version >= (3, 0)
+            else b"ImageMetadataSeq|0!"
+        )
+        meta = self._decode_chunk(k, strip_prefix=False) if k in self.chunkmap else {}
+        meta = meta.get("SLxPictureMetadata", meta)
+
+        return {
+            "Attributes": attrs,
+            "Experiment": exp,
+            "Metadata": meta,
+            "TextInfo": ti,
+        }

@@ -185,7 +185,10 @@ lower = re.compile("^[_a-z]*")
 
 
 def _unpack_bool(stream: io.BytesIO) -> bool:
-    return bool(strctB.unpack(stream.read(strctB.size))[0])
+    data = stream.read(strctB.size)
+    # strangely enough, sometimes this value is something other than 0 or 1
+    # `dims_p1z5t3c2y32x32.nd2` for example has a value of 116
+    return strctB.unpack(data)[0] == 1
 
 
 def _unpack_int32(stream: io.BytesIO) -> int:
@@ -350,13 +353,18 @@ def decode_CLxLiteVariant_json(
             )
             stream.seek(item_count * 8, 1)
             # levels with a single "" key are actually lists
-            value = val[""] if len(val) == 1 and "" in val else val
+            if len(val) == 1 and "" in val:
+                value = val[""]
+                if not isinstance(value, list):
+                    value = [value]
+                value = {f"i{n:010}": x for n, x in enumerate(value)}
+            else:
+                value = val
 
         elif data_type in _PARSERS:
             value = _PARSERS[data_type](stream)
         else:
             value = None
-
         if name == "" and name in output:
             # nd2 uses empty strings as keys for lists
             if not isinstance(output[name], list):

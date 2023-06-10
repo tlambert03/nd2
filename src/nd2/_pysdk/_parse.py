@@ -63,7 +63,7 @@ def _parse_xy_pos_loop(
     it_points: dict | list[dict] = item["Points"]
     out_points: list[Position] = []
 
-    _points = it_points if isinstance(it_points, list) else [it_points]
+    _points = it_points if isinstance(it_points, list) else it_points.values()
     for it in _points:
         _offset = it.get("dPFSOffset", 0)
         out_points.append(
@@ -189,7 +189,6 @@ def load_exp_loop(level: int, src: dict, dest: list[dict] | None = None) -> list
     dest = dest or []
     if not loop or loop_count == 0 or loop_type == LoopType.Unknown:
         return dest
-
     if loop_type == LoopType.SpectLoop:
         level -= 1
     elif not dest or dest[-1]["nestingLevel"] < level:
@@ -202,11 +201,11 @@ def load_exp_loop(level: int, src: dict, dest: list[dict] | None = None) -> list
             if prev["count"] < loop_count:
                 dest[-1] = loop
 
-    next_level_src = src.get("ppNextLevelEx")
+    next_level_src: dict = src.get("ppNextLevelEx", {})
     if next_level_src:
-        items = [next_level_src] if isinstance(next_level_src, dict) else next_level_src
-        for item in items:
+        for item in next_level_src.values():
             dest = load_exp_loop(level + 1, item, dest)
+
     return dest
 
 
@@ -278,7 +277,14 @@ def _get_excitation(probe: dict, filter_: dict, plane: dict, compIndex: int) -> 
     if probe:
         excitation = _get_spectrum_max(probe.get("m_ExcitationSpectrum", {}))
     if not excitation and filter_:
-        fspectrum = filter_.get("m_ExcitationSpectrum", {})
+        fspectrum: dict = next(
+            (
+                v["m_ExcitationSpectrum"]
+                for v in filter_.values()
+                if "m_ExcitationSpectrum" in v
+            ),
+            {},
+        )
         ppoint = fspectrum.get("pPoint", {})
         if fspectrum.get("uiCount", 0) > 1 and all(
             i.get("eType") == 4 for i in ppoint.values()
@@ -299,7 +305,10 @@ def _get_emission(probe: dict, filter_: dict, plane: dict, compIndex: int) -> fl
     if probe:
         emission = _get_spectrum_max(probe.get("m_EmissionSpectrum", {}))
     if not emission and filter_:
-        emission = _get_spectrum_max(filter_.get("m_EmissionSpectrum", {}))
+        for v in filter_.values():
+            emission = _get_spectrum_max(v.get("m_EmissionSpectrum", {}))
+            if emission:
+                break
     return emission
 
 

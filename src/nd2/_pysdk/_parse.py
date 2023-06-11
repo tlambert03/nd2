@@ -156,25 +156,30 @@ def _parse_ne_time_loop(item: dict) -> tuple[int, NETimeLoopParams]:
     out_periods: list[Period] = []
     _per = cast("dict[str, dict]", item["pPeriod"])
     periods: Iterable[dict] = _per.values()
-    period_valid = [bool(x) for x in item.get("pPeriodValid", [])]
+    valid: list[int] | dict[str, bool] = item.get("pPeriodValid", [])
+    if isinstance(valid, dict):
+        valid = [valid[k] for k in sorted(valid)]
+    elif not isinstance(valid, list):
+        raise TypeError(f"invalid type for pPeriodValid: {type(valid)}")
+    period_valid = [bool(x) for x in valid]
 
     count = 0
     for it, is_valid in zip(periods, period_valid):
         if not is_valid:
             continue
 
-        c, period_params = _parse_time_loop(it)
+        c_, period_params = _parse_time_loop(it)
         if period_params:
             out_periods.append(
                 Period(
-                    count=c,
+                    count=c_,
                     startMs=period_params.startMs,
                     periodMs=period_params.periodMs,
                     durationMs=period_params.durationMs,
                     periodDiff=period_params.periodDiff,
                 )
             )
-            count += c
+            count += c_
 
     params = NETimeLoopParams(periods=out_periods)
     return count, params
@@ -214,6 +219,11 @@ def _load_single_exp_loop(exp: dict) -> dict:
     loop_params: dict = exp.get("uLoopPars", {})
     if not loop_params or loop_type > max(LoopType):
         return {}
+
+    # FIXME: sometimes it's a dict with a single i000000 key?
+    # this only happens with version < (3, 0)
+    if len(loop_params) == 1:
+        loop_params = next(iter(loop_params.values()))
 
     count = loop_params.get("uiCount", 0)
     params: LoopParams | None = None

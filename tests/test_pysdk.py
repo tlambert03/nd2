@@ -1,5 +1,4 @@
 import json
-import time
 from dataclasses import asdict
 from pathlib import Path
 
@@ -13,29 +12,20 @@ JSON.mkdir(exist_ok=True)
 def test_new_pysdk(new_nd2: Path):
     EXPECT = json.loads((JSON / f"{new_nd2.stem}.json").read_text())
 
-    start = time.perf_counter()
-    nd = ND2Reader(new_nd2)
-    nd.open()
-    if nd.version < (3, 0):
-        nd.close()
-        return
+    with ND2Reader(new_nd2) as nd:
+        d = {
+            "attributes": nd.attributes._asdict(),
+            "metadata": asdict(nd.metadata()),
+            "frame_metadata": asdict(nd.frame_metadata(0)),
+            "text_info": nd.text_info(),
+            "experiment": [asdict(x) for x in nd.experiment()],
+            "coord_info": nd._coord_info(),
+            "coords_from_seq_index": nd._coords_from_seq_index(0),
+            "seq_count": nd._seq_count(),
+            "coord_size": nd._coord_size(),
+            # "data": nd._read_image(0)[..., :3, :3].squeeze().tolist(),
+        }
 
-    d = {
-        "attributes": nd.attributes._asdict(),
-        "metadata": asdict(nd.metadata()),
-        "frame_metadata": asdict(nd.frame_metadata(0)),
-        "text_info": nd.text_info(),
-        "experiment": [asdict(x) for x in nd.experiment()],
-        "coord_info": nd._coord_info(),
-        "coords_from_seq_index": nd._coords_from_seq_index(0),
-        "seq_count": nd._seq_count(),
-        "coord_size": nd._coord_size(),
-        # "data": nd._read_image(0)[..., :3, :3].squeeze().tolist(),
-    }
-    mytime = time.perf_counter() - start
-    nd.close()
-
-    print("\n    time", mytime, EXPECT["time"])
     d = json.loads(json.dumps(d))
 
     for k in d:

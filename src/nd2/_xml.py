@@ -111,7 +111,6 @@ def elem2dict(node: Element, strip_prefix: bool = False) -> dict[str, Value]:
             return {key: obj}
         if len(obj) == 1:
             return next(iter(obj.values()))
-        breakpoint()
         return obj
 
     #######

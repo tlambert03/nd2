@@ -334,13 +334,6 @@ def _read_wavelengths(plane: dict, compIndex: int) -> tuple[float, float]:
     return excitation, emission
 
 
-def _closest_excitation_wavelength(emission: float, filter_: dict) -> float:
-    closest: float = 0
-    return closest
-
-    # Tval   Wavel  type
-
-
 Spectrum = list[tuple[float, float, int]]
 # types:
 #    eSptInvalid = 0,

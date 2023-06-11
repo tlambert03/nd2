@@ -20,7 +20,7 @@ from typing import (
 
 import numpy as np
 
-from ._nd2decode import _decode_custom_data, decode_metadata, unnest_experiments
+from ._nd2decode import decode_metadata, unnest_experiments
 from ._util import AXIS, VoxelSize, get_reader, is_supported_file
 from .structures import (
     ROI,
@@ -30,7 +30,6 @@ from .structures import (
     Metadata,
     TextInfo,
     XYPosLoop,
-    ZStackLoop,
 )
 
 try:
@@ -729,85 +728,7 @@ class ND2File:
                 stacklevel=2,
             )
             return {}
-        rdr = cast("LatestSDKReader", self._rdr)
-
-        cd = self.custom_data
-        if "CustomDataV2_0" not in cd:
-            return {}
-        try:
-            breakpoint()
-            tags: list = cd["CustomDataV2_0"]["CustomTagDescription_v1.0"]
-        except KeyError:
-            warnings.warn(
-                "Could not find 'CustomTagDescription_v1' tag, please open an issue "
-                "with this nd2 file at https://github.com/tlambert03/nd2/issues/new",
-                stacklevel=2,
-            )
-            return {}
-
-        # tags will be a dict of dicts: eg:
-        # [
-        #     {
-        #         "Tag0": [
-        #             {"ID": "Camera_ExposureTime1"},
-        #             {"Type": 3},
-        #             {"Group": 0},
-        #             {"Size": 1},
-        #             {"Desc": "Exposure Time"},
-        #             {"Unit": "ms"},
-        #         ]
-        #     },
-        #     ...
-        # ]
-        # FIXME: technically, it is possible to have multiple tags with the same Desc
-        # (e.g. for IDs PFS_OFFSET and Z2). In the current implementation, the
-        # 2nd tag will overwrite the first one.
-        data: dict[str, np.ndarray | Sequence] = {}
-        with contextlib.suppress(KeyError):
-            data["Time [s]"] = [x / 1000 for x in rdr._cached_frame_times()]
-
-        try:
-            z_idx = [AXIS._MAP[c[1]] for c in self._rdr._coord_info()].index(AXIS.Z)
-        except ValueError:
-            pass
-        else:
-            # TODO: this is probably slow... and could definitely be improved
-            z_loop = cast("ZStackLoop", self.experiment[z_idx])
-            z_positions = [
-                z_loop.parameters.stepUm * (i - z_loop.parameters.homeIndex)
-                for i in range(z_loop.count)
-            ]
-            if not z_loop.parameters.bottomToTop:
-                z_positions = list(reversed(z_positions))
-
-            data["Z-Series"] = np.array(
-                [
-                    z_positions[rdr._coords_from_seq_index(i)[z_idx]]
-                    for i in range(self.attributes.sequenceCount)
-                ]
-            )
-
-        print(self._rdr.version, type(tags))
-
-        for _tag in tags:
-            tag = {}
-            for v in _tag.popitem()[1]:
-                tag.update(v)
-            header = f"{tag['Desc']}"
-            if tag["Unit"]:
-                header += f" [{tag['Unit']}]"
-            raw = rdr._get_meta_chunk(f"CustomData|{tag['ID']}")
-            _type = tag["Type"]
-            if _type == 1:
-                warnings.warn(
-                    f"{header!r} column skipped: "
-                    "(parsing string data is not yet implemented)",
-                    stacklevel=2,
-                )
-            else:
-                data[header] = _decode_custom_data(raw, _type, tag["Size"])
-
-        return data
+        return cast("LatestSDKReader", self._rdr).recorded_data()
 
     @cached_property
     def binary_data(self) -> BinaryLayers | None:

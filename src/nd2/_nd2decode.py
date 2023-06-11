@@ -1,11 +1,8 @@
 import io
 import re
 import struct
-import warnings
 from functools import partial
-from typing import Any, Callable, Dict, List, Sequence, Union, cast
-
-import numpy as np
+from typing import Any, Callable, Dict, List, cast
 
 from .structures import LoopType
 
@@ -145,18 +142,3 @@ _PARSER: Dict[int, Callable] = {
     8: _unpack_string,
     9: _unpack_list,
 }
-
-
-def _decode_custom_data(
-    data: bytes, type: int, count: int
-) -> Union[np.ndarray, Sequence]:
-    """Decode data sequences from `CustomData|TagID` sections in the metadata."""
-    if type == 3:
-        return np.frombuffer(data, dtype=np.float64, count=count)
-    elif type == 2:
-        return np.frombuffer(data, dtype=np.int32, count=count)
-    elif type == 1:
-        return [""] * count
-    else:
-        warnings.warn(f"Unknown custom data type: {type!r}", stacklevel=2)
-        return [None] * count

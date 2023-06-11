@@ -7,6 +7,7 @@ from io import BufferedReader
 from typing import TYPE_CHECKING, cast
 
 import numpy as np
+from git import Sequence
 
 from nd2 import structures
 from nd2._clx_lite import json_from_clx_lite_variant
@@ -396,3 +397,84 @@ class ND2Reader:
             "Metadata": meta,
             "TextInfo": ti,
         }
+
+    def recorded_data(self) -> dict[str, np.ndarray | Sequence]:
+        """Return tabular data recorded for each frame of the experiment.
+
+        This method returns a dict of equal-length sequences (passable to
+        pd.DataFrame()). It matches the tabular data reported in the Image Properties >
+        Recorded Data tab of the NIS Viewer.
+
+        (There will be a column for each tag in the `CustomDataV2_0` section of
+        `ND2File.custom_data`)
+
+        Legacy ND2 files are not supported.
+        """
+        k = b"CustomDataVar|CustomDataV2_0!"
+        if k not in self.chunkmap:
+            return {}
+
+        cd = cast("dict", json_from_clx_variant(self._load_chunk(k)))
+        if "CustomTagDescription_v1.0" not in cd:
+            warnings.warn(
+                "Could not find 'CustomTagDescription_v1' tag, please open an issue "
+                "with this nd2 file at https://github.com/tlambert03/nd2/issues/new",
+                stacklevel=2,
+            )
+            return {}
+
+        data: dict[str, np.ndarray | Sequence] = {}
+        frame_times = self._cached_frame_times()
+        if frame_times:
+            data["Time [s]"] = [x / 1000 for x in frame_times]
+
+        experiment = self.experiment()
+        for i, loop in enumerate(experiment):
+            if not isinstance(loop, structures.ZStackLoop):
+                continue
+
+            z_loop = loop
+            z_positions = [
+                z_loop.parameters.stepUm * (i - z_loop.parameters.homeIndex)
+                for i in range(z_loop.count)
+            ]
+            if not z_loop.parameters.bottomToTop:
+                z_positions = list(reversed(z_positions))
+
+            def _seq_z_pos(seq_index: int, z_idx=i, z_positions=z_positions) -> float:
+                """Convert a sequence index to a coordinate tuple."""
+                for n, _loop in enumerate(experiment):
+                    if n == z_idx:
+                        return z_positions[seq_index % _loop.count]
+                    seq_index //= _loop.count
+                raise ValueError("Invalid sequence index or z_idx")
+
+            seq_count = self.attributes.sequenceCount
+            data["Z-Series"] = np.array([_seq_z_pos(i) for i in range(seq_count)])
+
+        # tags will be a dict of dicts: eg:
+        # {
+        #     'Tag0': {'ID': 'Camera_ExposureTime1', 'Type': 3, ... },
+        #     'Tag1': {'ID': 'PFS_OFFSET', 'Type': 2, 'Group': 0, 'Size': 1, ...},
+        #     'Tag2': {'ID': 'PFS_STATUS', 'Type': 2, 'Group': 0, 'Size': 1, ...},
+        # }
+        # FIXME: technically, it is possible to have multiple tags with the same Desc
+        # (e.g. for IDs PFS_OFFSET and Z2). In the current implementation, the
+        # 2nd tag will overwrite the first one.
+        for tag in cd["CustomTagDescription_v1.0"].values():
+            if tag["Type"] == 1:
+                warnings.warn(
+                    f"{tag['Desc']!r} column skipped: "
+                    "(parsing string data is not yet implemented)",
+                    stacklevel=2,
+                )
+                continue
+            col_header = f"{tag['Desc']}"
+            if tag["Unit"]:
+                col_header += f" [{tag['Unit']}]"
+
+            buffer = self._load_chunk(f"CustomData|{tag['ID']}!".encode())
+            dtype = {3: np.float64, 2: np.int32}[tag["Type"]]
+            data[col_header] = np.frombuffer(buffer, dtype=dtype, count=tag["Size"])
+
+        return data

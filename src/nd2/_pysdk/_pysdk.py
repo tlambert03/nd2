@@ -357,7 +357,7 @@ class ND2Reader:
 
     def _get_meta_chunk(self, key: str) -> bytes:
         # deprecated
-        return self._load_chunk((key + "!").encode())
+        return self._load_chunk(f"{key}!".encode())
 
     @property
     def _meta_map(self) -> dict[str, int]:
@@ -365,12 +365,11 @@ class ND2Reader:
         return {k.decode()[:-1]: v for k, (v, _) in self.chunkmap.items()}
 
     def _custom_data(self) -> dict[str, Any]:
-        cd = {
+        return {
             k.decode()[14:-1]: parse_variant_xml(self._load_chunk(k))
             for k in self.chunkmap
             if k.startswith(b"CustomDataVar|")
         }
-        return cd
 
     # probably a temporary method, for testing
     def _raw_meta(self) -> dict:

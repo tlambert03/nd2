@@ -99,8 +99,9 @@ def elem2dict(node: Element, strip_prefix: bool = False) -> dict[str, Value]:
     else:
         obj = {}
         for i, child in enumerate(node):
-            if not child.attrib.get("runtype"):
-                raise ValueError(f"UNEXPECTED no runtype for {child.tag}")
+            # if not child.attrib.get("runtype"):
+            #     breakpoint()
+            #     raise ValueError(f"UNEXPECTED no runtype for {child.tag}")
             val = elem2dict(child, strip_prefix)
             if list(val) in (["no_name"], [None], [""]):
                 val = {f"i{i:010}": next(iter(val.values()))}

@@ -58,7 +58,8 @@ def parse_variant_xml(
     node = parser(bxml.split(b"?>", 1)[-1])  # strip xml header
     variant_dict = elem2dict(node, strip_prefix)
 
-    if strip_variant and len(variant_dict) == 1:
+    # FIXME: variant_dict should ALWAYS be a dict... this is a hack
+    if strip_variant and isinstance(variant_dict, dict) and len(variant_dict) == 1:
         if "variant" in variant_dict:
             return cast("dict[str, Value]", variant_dict["variant"])
 
@@ -111,7 +112,7 @@ def elem2dict(node: Element, strip_prefix: bool = False) -> dict[str, Value]:
         if runtype:
             return {key: obj}
         if len(obj) == 1:
-            return next(iter(obj.values()))
+            return obj.popitem()[1]
         return obj
 
     #######

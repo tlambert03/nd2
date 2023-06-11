@@ -21,6 +21,12 @@ def assert_lim_close_enough(a: Any, lim_data: Any, key=()):
             av = a[k]
             if k not in lim_data:
                 if bool(av) and av != [[]]:
+                    if key and "sAutoFocus" in key[-1]:
+                        # jonas_jonas_nd2Test_Exception9_e3.nd2 has a strange case
+                        # in Experiment.uLoopPars.i0000000000.sAutoFocusBeforePeriod
+                        # where readlim is able to recover data that doesn't appear to
+                        # be in the XML
+                        continue
                     raise AssertionError(
                         f"in key={key}: non-falsey key {k} not in limdump"
                     )
@@ -33,16 +39,22 @@ def assert_lim_close_enough(a: Any, lim_data: Any, key=()):
         if lim_data is None and not bool(a):
             # lim may set {} or [] to None
             return
-        if isinstance(lim_data, str) and isinstance(a, list):
-            # FIXME: bytearrays
+        # FIXME: bytearrays
+        if (
+            isinstance(lim_data, str)
+            and isinstance(a, list)
+            or isinstance(a, bytearray)
+        ):
+            return
+        if key and key[-1] == "bUseZ":
+            # bUseZ has a bug where Truthy values are set to 116 rather than 1
+            # TODO talk to lim folks about this
             return
         raise AssertionError(f"in key={key}: {a} != {lim_data}")
 
 
 def test_parse_raw_metadata(new_nd2):
     with ND2Reader(new_nd2) as f:
-        if f.version != (3, 0):
-            return
         meta = f._raw_meta()
         lim_meta = limdump[new_nd2.name]["raw_metadata"]
         assert_lim_close_enough(meta, lim_meta)

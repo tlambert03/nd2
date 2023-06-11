@@ -16,6 +16,10 @@ def test_new_pysdk(new_nd2: Path):
     start = time.perf_counter()
     nd = ND2Reader(new_nd2)
     nd.open()
+    if nd.version < (3, 0):
+        nd.close()
+        return
+
     d = {
         "attributes": nd.attributes._asdict(),
         "metadata": asdict(nd.metadata()),

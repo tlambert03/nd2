@@ -4,7 +4,7 @@ import re
 from dataclasses import asdict
 from enum import IntEnum
 from struct import Struct
-from typing import TYPE_CHECKING, Sequence, cast
+from typing import TYPE_CHECKING, Iterable, Sequence, cast
 
 import numpy as np
 
@@ -60,11 +60,10 @@ def _parse_xy_pos_loop(
     relXY = item.get("bRelativeXY", False)
     refX = item.get("dReferenceX", 0) if relXY else 0
     refY = item.get("dReferenceY", 0) if relXY else 0
-    it_points: dict | list[dict] = item["Points"]
+    it_points: dict[str, dict] = item["Points"]
     out_points: list[Position] = []
 
-    _points = it_points if isinstance(it_points, list) else it_points.values()
-    for it in _points:
+    for it in it_points.values():
         _offset = it.get("dPFSOffset", 0)
         out_points.append(
             Position(
@@ -155,8 +154,8 @@ def _parse_time_loop(item: dict) -> tuple[int, TimeLoopParams | None]:
 
 def _parse_ne_time_loop(item: dict) -> tuple[int, NETimeLoopParams]:
     out_periods: list[Period] = []
-    _per: dict | list = item["pPeriod"]
-    periods: list[dict] = _per if isinstance(_per, list) else [_per]
+    _per = cast("dict[str, dict]", item["pPeriod"])
+    periods: Iterable[dict] = _per.values()
     period_valid = [bool(x) for x in item.get("pPeriodValid", [])]
 
     count = 0
@@ -187,6 +186,7 @@ def load_exp_loop(level: int, src: dict, dest: list[dict] | None = None) -> list
     loop_type = loop.get("type")
     loop_count = loop.get("count")
     dest = dest or []
+
     if not loop or loop_count == 0 or loop_type == LoopType.Unknown:
         return dest
     if loop_type == LoopType.SpectLoop:

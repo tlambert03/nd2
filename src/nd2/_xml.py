@@ -41,7 +41,7 @@ _XMLCAST: dict[str | None, Callable[[str], float | str | int | bytearray | bool]
     "lx_uint32": int,
     "lx_uint64": int,
     "unknown": str,
-    None: str,
+    # None: str,
 }
 
 
@@ -87,12 +87,34 @@ def _list_variant(node: Element, key: str, strip_prefix: bool) -> dict[str, Valu
 
 def elem2dict(node: Element, strip_prefix: bool = False) -> dict[str, Value]:
     """Convert an lxml.etree or ElementTree.node into a dict."""
+    # sourcery skip: remove-unnecessary-else
     runtype = node.attrib.get("runtype")
-
     if strip_prefix and node.tag != "no_name":
         key = LOWER.sub("", node.tag) or node.tag
     else:
         key = node.tag
+
+    if runtype in _XMLCAST:
+        return {key: _XMLCAST[runtype](node.attrib["value"])}
+    else:
+        obj = {}
+        for i, child in enumerate(node):
+            if not child.attrib.get("runtype"):
+                raise ValueError(f"UNEXPECTED no runtype for {child.tag}")
+            val = elem2dict(child, strip_prefix)
+            if list(val) in (["no_name"], [None], [""]):
+                val = {f"i{i:010}": next(iter(val.values()))}
+            if val == {"i0000000000": ""}:
+                continue
+            obj.update(val)
+        if runtype:
+            return {key: obj}
+        if len(obj) == 1:
+            return next(iter(obj.values()))
+        breakpoint()
+        return obj
+
+    #######
 
     if runtype == "CLxListVariant":
         return _list_variant(node, key, strip_prefix)
@@ -100,7 +122,8 @@ def elem2dict(node: Element, strip_prefix: bool = False) -> dict[str, Value]:
         if node.tag == "TextInfoItem":  # legacy nd2s
             idx = node.attrib["Index"]
             return {f"TextInfoItem_{idx}": node.attrib["Text"]}
-        return {key: _XMLCAST[runtype](node.attrib["value"])}
+        else:
+            return {key: _XMLCAST[runtype](node.attrib["value"])}
     else:
         result: dict[str, Any] = {}
         for element in node:

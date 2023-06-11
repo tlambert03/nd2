@@ -186,9 +186,12 @@ lower = re.compile("^[_a-z]*")
 
 def _unpack_bool(stream: io.BytesIO) -> bool:
     data = stream.read(strctB.size)
+    return bool(strctB.unpack(data)[0])
     # strangely enough, sometimes this value is something other than 0 or 1
     # `dims_p1z5t3c2y32x32.nd2` for example has a value of 116
-    return strctB.unpack(data)[0] == 1
+    # this results in a case where readlimfile dumps a boolean of False
+    # but LIMFILE_EXPORT json experiment (in JsonBridge.cpp) dumps a boolean of True
+    # return strctB.unpack(data)[0] == 1
 
 
 def _unpack_int32(stream: io.BytesIO) -> int:

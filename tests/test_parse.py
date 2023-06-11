@@ -5,10 +5,10 @@ from typing import Any
 from nd2._pysdk._pysdk import ND2Reader
 
 TESTS = Path(__file__).parent
-limdump = json.loads((TESTS / "readlim_output.json").read_text())
+READLIM_OUTPUT = json.loads((TESTS / "readlim_output.json").read_text())
 
 
-def assert_lim_close_enough(a: Any, lim_data: Any, key=()):
+def _assert_lim_close_enough(a: Any, lim_data: Any, key=()):
     # sourcery skip: assign-if-exp, reintroduce-else
     if isinstance(a, dict) and isinstance(lim_data, dict):
         if a == lim_data:
@@ -34,7 +34,7 @@ def assert_lim_close_enough(a: Any, lim_data: Any, key=()):
             bv = lim_data[k]
             if bv is None and bool(av):
                 raise AssertionError(f"in key={key}: key {k} is None in limdump")
-            assert_lim_close_enough(av, bv, (*key, k))
+            _assert_lim_close_enough(av, bv, (*key, k))
     elif a != lim_data:
         if lim_data is None and not bool(a):
             # lim may set {} or [] to None
@@ -53,8 +53,8 @@ def assert_lim_close_enough(a: Any, lim_data: Any, key=()):
         raise AssertionError(f"in key={key}: {a} != {lim_data}")
 
 
-def test_parse_raw_metadata(new_nd2):
+def test_parse_raw_metadata(new_nd2: Path):
     with ND2Reader(new_nd2) as f:
         meta = f._raw_meta()
-        lim_meta = limdump[new_nd2.name]["raw_metadata"]
-        assert_lim_close_enough(meta, lim_meta)
+        lim_meta = READLIM_OUTPUT[new_nd2.name]["raw_metadata"]
+        _assert_lim_close_enough(meta, lim_meta)

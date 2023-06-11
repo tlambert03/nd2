@@ -9,9 +9,10 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 
 from nd2 import structures
-from nd2._pysdk._decode import (
+from nd2._clx_lite import json_from_clx_lite_variant
+from nd2._clx_xml import json_from_clx_variant
+from nd2._pysdk._chunk_decode import (
     _read_nd2_chunk,
-    decode_CLxLiteVariant_json,
     get_version,
     load_chunkmap,
 )
@@ -23,7 +24,6 @@ from nd2._pysdk._parse import (
     load_metadata,
     load_text_info,
 )
-from nd2._xml import parse_variant_xml
 
 if TYPE_CHECKING:
     from os import PathLike
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import TypeAlias
 
-    from ._decode import ChunkMap
+    from ._chunk_decode import ChunkMap
     from ._parse import GlobalMetadata
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
@@ -131,11 +131,8 @@ class ND2Reader:
     def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict:
         data = self._load_chunk(name)
         if self.version < (3, 0):
-            # a = decode_xml(data)
-            # b = parse_variant_xml(data)
-            # breakpoint()
-            return parse_variant_xml(data)
-        return decode_CLxLiteVariant_json(data, strip_prefix=strip_prefix)
+            return json_from_clx_variant(data, strip_prefix=strip_prefix)
+        return json_from_clx_lite_variant(data, strip_prefix=strip_prefix)
 
     @property
     def version(self) -> tuple[int, int]:
@@ -366,7 +363,7 @@ class ND2Reader:
 
     def _custom_data(self) -> dict[str, Any]:
         return {
-            k.decode()[14:-1]: parse_variant_xml(self._load_chunk(k))
+            k.decode()[14:-1]: json_from_clx_variant(self._load_chunk(k))
             for k in self.chunkmap
             if k.startswith(b"CustomDataVar|")
         }

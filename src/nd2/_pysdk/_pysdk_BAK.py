@@ -4,10 +4,10 @@ from io import BufferedReader
 from typing import TYPE_CHECKING
 
 from nd2 import structures
-from nd2._pysdk._decode import (
+from nd2._pysdk._chunk_decode import (
     _read_nd2_chunk,
-    decode_CLxLiteVariant_json,
     get_version,
+    json_from_clx_lite_variant,
     load_chunkmap,
 )
 from nd2._pysdk._parse import (
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
     from typing_extensions import TypeAlias
 
-    from ._decode import ChunkMap
+    from ._chunk_decode import ChunkMap
     from ._parse import GlobalMetadata
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
@@ -94,10 +94,10 @@ class LimFile:
     def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict:
         data = self._load_chunk(name)
         if self.version < (3, 0):
-            from nd2._xml import parse_variant_xml
+            from nd2._clx_xml import json_from_clx_variant
 
-            return parse_variant_xml(data)
-        return decode_CLxLiteVariant_json(data, strip_prefix=strip_prefix)
+            return json_from_clx_variant(data)
+        return json_from_clx_lite_variant(data, strip_prefix=strip_prefix)
 
     @property
     def attributes(self) -> structures.Attributes:

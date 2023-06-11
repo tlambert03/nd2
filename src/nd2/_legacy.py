@@ -24,8 +24,8 @@ from nd2.structures import (
     ZStackLoopParams,
 )
 
+from ._clx_xml import json_from_clx_variant
 from ._util import VoxelSize, dims_from_description
-from ._xml import parse_variant_xml
 
 try:
     from functools import cached_property
@@ -201,11 +201,11 @@ class LegacyND2Reader:
 
     def _get_xml_dict(self, key: bytes, index=0) -> dict[str, Any]:
         if key not in self._chunkmap:
-            warnings.warn(f"no metadata key {key!r} in file")
+            warnings.warn(f"no metadata key {key!r} in file", stacklevel=2)
             return {}
 
         bxml = self._read_chunk(self._chunkmap[key][index])
-        return parse_variant_xml(bxml, strip_prefix=True)
+        return json_from_clx_variant(bxml, strip_prefix=True)
 
     @cached_property
     def events(self) -> dict:

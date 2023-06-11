@@ -1,51 +1,40 @@
 from pathlib import Path
+from typing import cast
 
-from nd2 import ND2File
-from nd2._xml import parse_variant_xml
+from nd2._clx_xml import json_from_clx_variant
 
 XML = (Path(__file__).parent / "data" / "variant.xml").read_bytes()
 
 
-# def test_parse_xml() -> None:
-#     result = parse_variant_xml(XML)
-#     assert list(result) == [
-#         "eType",
-#         "wsApplicationDesc",
-#         "wsUserDesc",
-#         "aMeasProbesBase64",
-#         "uLoopPars",
-#         "pItemValid",
-#         "sAutoFocusBeforeLoop",
-#         "wsCommandBeforeLoop",
-#         "wsCommandBeforeCapture",
-#         "wsCommandAfterCapture",
-#         "wsCommandAfterLoop",
-#         "bControlShutter",
-#         "bUsePFS",
-#         "uiRepeatCount",
-#         "ppNextLevelEx",
-#         "bControlLight",
-#         "pLargeImage",
-#         "sParallelExperiment",
-#     ]
+def test_parse_xml() -> None:
+    result = cast(dict, json_from_clx_variant(XML))
+    assert list(result) == [
+        "eType",
+        "wsApplicationDesc",
+        "wsUserDesc",
+        "aMeasProbesBase64",
+        "uLoopPars",
+        "pItemValid",
+        "sAutoFocusBeforeLoop",
+        "wsCommandBeforeLoop",
+        "wsCommandBeforeCapture",
+        "wsCommandAfterCapture",
+        "wsCommandAfterLoop",
+        "bControlShutter",
+        "bUsePFS",
+        "uiRepeatCount",
+        "ppNextLevelEx",
+        "bControlLight",
+        "pLargeImage",
+        "sParallelExperiment",
+    ]
 
 
-from nd2._pysdk._decode import decode_xml
-from nd2._xml import parse_variant_xml
-
-
-def test_metadata_extraction(new_nd2: Path):
-    with ND2File(new_nd2) as f:
-        if f._rdr.version >= (3, 0):
-            return
-
-        data = f._rdr._load_chunk(b"ImageMetadataSeq|0!")
-        good = decode_xml(data)
-        bad = parse_variant_xml(data)
-        good["sPicturePlanes"]["sPlane"]["a0"]["pFilterPath"]["m_pFilter"]
-        bad["sPicturePlanes"]["sPlane"]["a0"]["pFilterPath"]["m_pFilter"]
-        if good != bad:
-            import dictdiffer
-
-            list(dictdiffer.diff(good, bad))
-            assert good == bad
+def test_parse_variant_xml():
+    variant = Path(__file__).parent / "data" / "variant_CustomDataV2_0.xml"
+    xml = variant.read_bytes()
+    data = json_from_clx_variant(xml, strip_variant=False)
+    assert "variant" in data
+    variant_dict = data["variant"]
+    assert isinstance(variant_dict, dict)
+    assert "CustomTagDescription_v1.0" in variant_dict

@@ -25,6 +25,7 @@ if __name__ == "__main__":
             try:
                 v = lim.version
             except Exception:
+                print(f"error {lim.version}", p)
                 continue
             lima = lim.attributes
             with ND2Reader(p) as ndf:

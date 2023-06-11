@@ -735,6 +735,7 @@ class ND2File:
         if "CustomDataV2_0" not in cd:
             return {}
         try:
+            breakpoint()
             tags: list = cd["CustomDataV2_0"]["CustomTagDescription_v1.0"]
         except KeyError:
             warnings.warn(

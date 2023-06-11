@@ -40,4 +40,3 @@ def test_new_sdk(new_nd2: Path):
         frame = nd._read_image(midframe)
         assert isinstance(frame, np.ndarray)
         assert frame.shape == (a["heightPx"], a["widthPx"], a["componentCount"])
-

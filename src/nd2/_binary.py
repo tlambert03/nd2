@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Iterator, NamedTuple, Sequence, cast, overload
 import numpy as np
 
 if TYPE_CHECKING:
-    from ._sdk.latest import ND2Reader as LatestSDKReader
+    from ._pysdk._pysdk import ND2Reader as LatestSDKReader
     from .nd2file import ND2File
 
 I7 = struct.Struct("<" + "I" * 7)
@@ -162,29 +162,30 @@ class BinaryLayers(Sequence[BinaryLayer]):
             return None
         rdr = cast("LatestSDKReader", nd2file._rdr)
 
-        binary_meta = nd2file.custom_data.get("BinaryMetadata_v1")
-        if binary_meta is None:
+        binary_meta = rdr._decoded_custom_data_chunk(
+            b"BinaryMetadata_v1!", strip_prefix=True
+        )
+
+        if not binary_meta:
             return None
         try:
-            items: list[dict] = binary_meta["BinaryMetadata_v1"]["BinaryItem"]
+            items: dict = binary_meta["BinaryMetadata_v1"]
         except KeyError:
             warnings.warn(
-                "Could not find 'BinaryMetadata_v1->BinaryItem' tag, please open an "
+                "Could not find 'BinaryMetadata_v1' tag, please open an "
                 "issue with this file at https://github.com/tlambert03/nd2/issues/new",
                 stacklevel=2,
             )
             return None
-        if isinstance(items, dict):
-            items = [items]
 
         binseqs = sorted(x for x in rdr._meta_map if "RleZipBinarySequence" in x)
         mask_items = []
-        for item in items:
+        for _, item in sorted(items.items()):
             key = item["FileTag"]
             _masks: list[np.ndarray | None] = []
             for bs in binseqs:
                 if key in bs:
-                    data = rdr._get_meta_chunk(bs)[4:]
+                    data = rdr._load_chunk(f"{bs}!".encode())[4:]
                     _masks.append(_decode_binary_mask(data) if data else None)
             mask_items.append(
                 BinaryLayer(

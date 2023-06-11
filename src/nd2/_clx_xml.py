@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import warnings
 from typing import TYPE_CHECKING, Callable, Union
 
 if TYPE_CHECKING:
@@ -112,11 +113,16 @@ def _node_name_value(
         value = {}
         for i, child in enumerate(node):
             cname, cval = _node_name_value(child, strip_prefix)
-            if cname in ("no_name", None, ""):
+            # NOTE: "no_name" is the standard name for a list-type node
+            # "BinaryItem" is a special case found in the BinaryMetadata_v1 tag...
+            # without special handling, you would only get the last item in the list
+            if cname in ("no_name", None, "", "BinaryItem"):
                 if not cval:
                     # skip empty nodes ... the sdk does this too
                     continue
                 cname = f"i{i:010}"
+            if cname in value:
+                warnings.warn(f"Duplicate key {cname} in {name}", stacklevel=2)
             value[cname] = cval
 
     return name, value

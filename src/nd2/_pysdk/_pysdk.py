@@ -398,6 +398,17 @@ class ND2Reader:
             "TextInfo": ti,
         }
 
+    # TODO: merge with decode_chunk
+    def _decoded_custom_data_chunk(
+        self, key: bytes, default: Any = None, strip_prefix: bool = False
+    ) -> dict:
+        k = b"CustomDataVar|" + key
+        if k not in self.chunkmap:
+            return default
+
+        bytes_ = self._load_chunk(k)
+        return cast("dict", json_from_clx_variant(bytes_, strip_prefix=strip_prefix))
+
     def recorded_data(self) -> dict[str, np.ndarray | Sequence]:
         """Return tabular data recorded for each frame of the experiment.
 
@@ -410,11 +421,10 @@ class ND2Reader:
 
         Legacy ND2 files are not supported.
         """
-        k = b"CustomDataVar|CustomDataV2_0!"
-        if k not in self.chunkmap:
+        cd = self._decoded_custom_data_chunk(b"CustomDataV2_0!", {})
+        if not cd:
             return {}
 
-        cd = cast("dict", json_from_clx_variant(self._load_chunk(k)))
         if "CustomTagDescription_v1.0" not in cd:
             warnings.warn(
                 "Could not find 'CustomTagDescription_v1' tag, please open an issue "

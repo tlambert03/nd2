@@ -48,7 +48,8 @@ if __name__ == "__main__":
 
     DATA = Path(__file__).parent.parent / "tests" / "data"
 
-    if _paths := sys.argv[1:]:
+    _paths = sys.argv[1:]
+    if _paths:
         paths = [Path(p) for p in _paths]
     elif DATA.exists():
         paths = list(DATA.glob("*.nd2"))

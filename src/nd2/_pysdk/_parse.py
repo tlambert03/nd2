@@ -376,17 +376,14 @@ def _read_wavelengths(plane: dict, compIndex: int) -> tuple[float, float]:
     return excitation, emission
 
 
-Spectrum = list[tuple[float, float, int]]
-# types:
-#    eSptInvalid = 0,
-#    eSptPoint = 1,
-#    eSptRaisingEdge = 2,
-#    eSptFallingEdge = 3,
-#    eSptPeak = 4,
-#    eSptRange = 5
-
-
-def _get_spectrum(item: dict) -> Spectrum:
+def _get_spectrum(item: dict) -> list[tuple[float, float, int]]:
+    # types:
+    #    eSptInvalid = 0,
+    #    eSptPoint = 1,
+    #    eSptRaisingEdge = 2,
+    #    eSptFallingEdge = 3,
+    #    eSptPeak = 4,
+    #    eSptRange = 5
     return [
         (p.get("dTValue", 0.0), p.get("dWavelength", 0.0), p.get("eType", 0))
         for p in cast("dict[str, dict]", item.get("pPoint", {})).values()

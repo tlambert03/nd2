@@ -1,3 +1,10 @@
+"""XML parsing utilities for legacy ND2 files.
+
+Todo:
+----
+all of this logic is duplicated in _clx_xml.py.
+_legacy.py just needs some slight updates to deal with different parsing results.
+"""
 import re
 from functools import partial
 from typing import Any, Callable, Dict, Optional

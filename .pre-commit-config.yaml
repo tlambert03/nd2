@@ -5,8 +5,6 @@ ci:
 
 default_install_hook_types: [pre-commit, commit-msg]
 
-exclude: src/sdk
-
 repos:
 
   - repo: https://github.com/compilerla/conventional-pre-commit

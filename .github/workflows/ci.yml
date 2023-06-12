@@ -17,10 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-      - run: pip install check-manifest && check-manifest
+      - run: pipx run check-manifest
 
   test:
     name: ${{ matrix.platform }} (${{ matrix.python-version }})
@@ -61,8 +58,6 @@ jobs:
       - name: Build
         # -e seems necessary for coverage to work
         run: pip install -e .[test]
-        env:
-          CYTHON_TRACE: "1"
 
       - name: Test
         run: pytest -v --cov=nd2 --cov-report=xml --cov-report=term

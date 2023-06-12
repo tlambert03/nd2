@@ -27,7 +27,7 @@ def _get_version(path):
     raise RuntimeError("Not an ND2 file")
 
 
-def get_nd2_stats(path: Path) -> tuple[str, dict]:
+def get_nd2_stats(path: Path) -> "tuple[str, dict]":
     data = {"ver": _get_version(path)}
 
     with nd2.ND2File(path) as nd:

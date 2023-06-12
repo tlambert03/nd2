@@ -1,6 +1,8 @@
-"""Run using:
+"""Dumps info about nd2 files in tests directory.
 
-python scripts/nd2_describe.py > tests/samples_metadata.json
+Run using:
+
+    python scripts/nd2_describe.py > tests/samples_metadata.json
 """
 import struct
 from dataclasses import asdict

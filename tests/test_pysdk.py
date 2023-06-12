@@ -2,8 +2,8 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from nd2._pysdk._pysdk import ND2Reader
 from nd2 import ND2File
+from nd2._pysdk._pysdk import ND2Reader
 
 DATA = Path(__file__).parent / "data"
 JSON = DATA / "json"
@@ -36,9 +36,10 @@ def test_new_pysdk(new_nd2: Path):
             _clear_names(EXPECT[k])
         assert d[k] == EXPECT[k], f"Key {k} does not match"
 
+
 def test_pysdk_with_legacy(old_nd2: Path):
     EXPECT = json.loads((JSON / f"{old_nd2.stem}.json").read_text())
-        
+
     with ND2File(old_nd2) as nd:
         d = {
             "attributes": nd.attributes._asdict(),
@@ -56,7 +57,6 @@ def test_pysdk_with_legacy(old_nd2: Path):
 
     for k in d:
         assert d[k] == EXPECT[k], f"Key {k} does not match"
-
 
 
 def _clear_names(exp):

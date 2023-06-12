@@ -62,18 +62,18 @@ def _parse_xy_pos_loop(
     refY = item.get("dReferenceY", 0) if relXY else 0
     out_points: list[Position] = []
 
-    if 'Points' in item:
+    if "Points" in item:
         it_points: Iterable[dict] = item["Points"].values()
     else:
         # legacy
         it_points = [
             {
-                'dPosX': item['dPosX'][key],
-                'dPosY': item['dPosY'][key],
-                'dPosZ': item['dPosZ'][key],
+                "dPosX": item["dPosX"][key],
+                "dPosY": item["dPosY"][key],
+                "dPosZ": item["dPosZ"][key],
                 # 'pPosName': pos_names[key],
             }
-            for key in item['dPosX']
+            for key in item["dPosX"]
         ]
 
     for it in it_points:
@@ -196,6 +196,7 @@ def _parse_ne_time_loop(item: dict) -> tuple[int, NETimeLoopParams]:
 
     params = NETimeLoopParams(periods=out_periods)
     return count, params
+
 
 # class ExpLoop(TypedDict):
 #     ppNextLevelEx

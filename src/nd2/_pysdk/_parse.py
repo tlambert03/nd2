@@ -60,10 +60,23 @@ def _parse_xy_pos_loop(
     relXY = item.get("bRelativeXY", False)
     refX = item.get("dReferenceX", 0) if relXY else 0
     refY = item.get("dReferenceY", 0) if relXY else 0
-    it_points: dict[str, dict] = item["Points"]
     out_points: list[Position] = []
 
-    for it in it_points.values():
+    if 'Points' in item:
+        it_points: Iterable[dict] = item["Points"].values()
+    else:
+        # legacy
+        it_points = [
+            {
+                'dPosX': item['dPosX'][key],
+                'dPosY': item['dPosY'][key],
+                'dPosZ': item['dPosZ'][key],
+                # 'pPosName': pos_names[key],
+            }
+            for key in item['dPosX']
+        ]
+
+    for it in it_points:
         _offset = it.get("dPFSOffset", 0)
         out_points.append(
             Position(
@@ -183,6 +196,34 @@ def _parse_ne_time_loop(item: dict) -> tuple[int, NETimeLoopParams]:
 
     params = NETimeLoopParams(periods=out_periods)
     return count, params
+
+# class ExpLoop(TypedDict):
+#     ppNextLevelEx
+#     eType
+#     uLoopPars
+
+#     pItemValid
+#     wsApplicationDesc
+#     wsUserDesc
+#     aMeasProbesBase64
+#     wsCameraName
+#     sAutoFocusBeforeLoop
+#     sParallelExperiment
+#     wsCommandBeforeLoop
+#     wsCommandBeforeCapture
+#     wsCommandAfterCapture
+#     wsCommandAfterLoop
+#     bControlShutter
+#     bControlLight
+#     bUsePFS
+#     bUseWatterSupply
+#     bUseHWSequencer
+#     bUseTiRecipe
+#     bUseIntenzityCorrection
+#     bUseTriggeredAcquisition
+#     bKeepObject
+#     uiRepeatCount
+#     uiNextLevelCount
 
 
 def load_exp_loop(level: int, src: dict, dest: list[dict] | None = None) -> list[dict]:

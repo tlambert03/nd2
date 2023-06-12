@@ -116,7 +116,7 @@ def _node_name_value(
             # NOTE: "no_name" is the standard name for a list-type node
             # "BinaryItem" is a special case found in the BinaryMetadata_v1 tag...
             # without special handling, you would only get the last item in the list
-            if cname in ("no_name", None, "", "BinaryItem"):
+            if cname in ("no_name", None, "", "BinaryItem", "TextInfoItem"):
                 if not cval:
                     # skip empty nodes ... the sdk does this too
                     continue

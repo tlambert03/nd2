@@ -11,6 +11,7 @@ import numpy as np
 from nd2.structures import (
     Attributes,
     ExpLoop,
+    _Loop,
     LoopType,
     PeriodDiff,
     Position,
@@ -74,103 +75,118 @@ class LegacyND2Reader:
         return dims_from_description(self.text_info().get("description"))
 
     def experiment(self) -> List[ExpLoop]:
-        meta = self._metadata
-        exp = []
-        if "LoopNo00" in meta:
-            # old style:
-            for i, (k, v) in enumerate(meta.items()):
-                if k != "Version":
-                    loop = self._make_loop(v, i)
-                    if loop:
-                        exp.append(loop)
-        else:
-            i = 0
-            while meta:
-                # ugh... another hack for weird metadata
-                if len(meta) == 1:
-                    meta = list(meta.values())[0]
-                    if meta and isinstance(meta, list):
-                        meta = meta[0]
-                loop = self._make_loop(meta, i)
-                if loop:
-                    exp.append(loop)
-                meta = meta.get("NextLevelEx")  # type: ignore
-                i += 1
-        return exp
+        from ._pysdk._parse import load_exp_loop
+
+        loops = load_exp_loop(0, self._metadata)
+        return [_Loop.create(x) for x in loops]
+
+        # exp = []
+        # breakpoint()
+        # if "LoopNo00" in meta:
+        #     # old style:
+        #     for i, (k, v) in enumerate(meta.items()):
+        #         if k != "Version":
+        #             loop = self._make_loop(v, i)
+        #             if loop:
+        #                 exp.append(loop)
+        # else:
+        #     i = 0
+        #     while meta:
+        #         # ugh... another hack for weird metadata
+        #         if len(meta) == 1:
+        #             meta = list(meta.values())[0]
+        #             if meta and isinstance(meta, list):
+        #                 meta = meta[0]
+
+        #         loop = self._make_loop(meta, i)
+        #         if loop:
+        #             exp.append(loop)
+        #         meta = meta.get("NextLevelEx")  # type: ignore
+        #         breakpoint()
+        #         # FIXME: hack ... and almost certainly losing data
+        #         if meta and "i0000000000" in meta:
+        #             meta = meta["i0000000000"]
+        #         i += 1
+        # return exp
 
     def _coord_info(self) -> List[Tuple[int, str, int]]:
         return [(i, x.type, x.count) for i, x in enumerate(self.experiment())]
 
-    def _make_loop(self, meta_level: dict, nest_level: int = 0) -> Optional[ExpLoop]:
-        """Converts an old style metadata loop dict to a new ExpLoop structure."""
-        type_ = meta_level.get("Type")
-        params: dict = meta_level["LoopPars"]
-        if type_ == LoopType.XYPosLoop:
-            poscount = len(params["PosX"])
-            # empirically, it appears that some files list more positions in the
-            # metadata than are actually recorded in the textinfo -> description.
-            # NIS viewer seems to agree more with the description
-            count = self.ddim.get("S") or params["Count"]
-            points = []
-            for i in range(count):
-                idx = f"{poscount-i-1:05}"
-                points.append(
-                    Position(
-                        pfsOffset=params["PFSOffset"][idx],
-                        stagePositionUm=StagePosition(
-                            x=params["PosX"][idx],
-                            y=params["PosY"][idx],
-                            z=params["PosZ"][idx],
-                        ),
-                    )
-                )
-            return XYPosLoop(
-                nestingLevel=nest_level,
-                count=count,
-                parameters=XYPosLoopParams(isSettingZ=params["UseZ"], points=points),
-            )
-        if type_ == LoopType.NETimeLoop:
-            # XXX strangely, I've seen files that seem to have a mult-phase
-            # NETimeLoop, but use one of the Period...
-            # try to find one that matches the dims in the description
-            count = self.ddim.get("T")
-            per = None
-            if count is not None:
-                for p in params["Period"].values():
-                    if p["Count"] == count:
-                        per = p
-            # otherwise take the first period
-            # XXX: this is definitely error prone.
-            if per is None:
-                per = next(iter(params["Period"].values()))
-            return TimeLoop(
-                count=per["Count"],
-                nestingLevel=nest_level,
-                parameters=TimeLoopParams(
-                    startMs=per["Start"],
-                    periodMs=per["Period"],
-                    durationMs=per["Duration"],
-                    periodDiff=PeriodDiff(
-                        avg=per.get("AvgPeriodDiff"),
-                        max=per.get("MaxPeriodDiff"),
-                        min=per.get("MinPeriodDiff"),
-                    ),
-                ),
-            )
-        if type_ == LoopType.ZStackLoop:
-            return ZStackLoop(
-                count=params["Count"],
-                nestingLevel=nest_level,
-                parameters=ZStackLoopParams(
-                    homeIndex=params["ZHome"],
-                    stepUm=params["ZStep"],
-                    bottomToTop=params["ZLow"] < params["ZHigh"],
-                ),
-            )
-        if type_ == LoopType.SpectLoop:
-            return None
+    # def _make_loop(self, meta_level: dict, nest_level: int = 0) -> Optional[ExpLoop]:
+    #     """Converts an old style metadata loop dict to a new ExpLoop structure."""
+    #     type_ = meta_level.get("Type")
+    #     params: dict = meta_level["LoopPars"]
 
-        raise ValueError(f"unrecognized type: {type_}")
+    #     # usually it's a dict with a single i000000 key?
+    #     if list(params) == ["i0000000000"]:
+    #         params = params["i0000000000"]
+
+    #     if type_ == LoopType.XYPosLoop:
+    #         poscount = len(params["PosX"])
+    #         # empirically, it appears that some files list more positions in the
+    #         # metadata than are actually recorded in the textinfo -> description.
+    #         # NIS viewer seems to agree more with the description
+    #         count = self.ddim.get("S") or params["Count"]
+    #         points = []
+    #         for i in range(count):
+    #             idx = f"{poscount-i-1:05}"
+    #             points.append(
+    #                 Position(
+    #                     pfsOffset=params["PFSOffset"][idx],
+    #                     stagePositionUm=StagePosition(
+    #                         x=params["PosX"][idx],
+    #                         y=params["PosY"][idx],
+    #                         z=params["PosZ"][idx],
+    #                     ),
+    #                 )
+    #             )
+    #         return XYPosLoop(
+    #             nestingLevel=nest_level,
+    #             count=count,
+    #             parameters=XYPosLoopParams(isSettingZ=params["UseZ"], points=points),
+    #         )
+    #     if type_ == LoopType.NETimeLoop:
+    #         # XXX strangely, I've seen files that seem to have a mult-phase
+    #         # NETimeLoop, but use one of the Period...
+    #         # try to find one that matches the dims in the description
+    #         count = self.ddim.get("T")
+    #         per = None
+    #         if count is not None:
+    #             for p in params["Period"].values():
+    #                 if p["Count"] == count:
+    #                     per = p
+    #         # otherwise take the first period
+    #         # XXX: this is definitely error prone.
+    #         if per is None:
+    #             per = next(iter(params["Period"].values()))
+    #         return TimeLoop(
+    #             count=per["Count"],
+    #             nestingLevel=nest_level,
+    #             parameters=TimeLoopParams(
+    #                 startMs=per["Start"],
+    #                 periodMs=per["Period"],
+    #                 durationMs=per["Duration"],
+    #                 periodDiff=PeriodDiff(
+    #                     avg=per.get("AvgPeriodDiff"),
+    #                     max=per.get("MaxPeriodDiff"),
+    #                     min=per.get("MinPeriodDiff"),
+    #                 ),
+    #             ),
+    #         )
+    #     if type_ == LoopType.ZStackLoop:
+    #         return ZStackLoop(
+    #             count=params["Count"],
+    #             nestingLevel=nest_level,
+    #             parameters=ZStackLoopParams(
+    #                 homeIndex=params["ZHome"],
+    #                 stepUm=params["ZStep"],
+    #                 bottomToTop=params["ZLow"] < params["ZHigh"],
+    #             ),
+    #         )
+    #     if type_ == LoopType.SpectLoop:
+    #         return None
+
+    #     raise ValueError(f"unrecognized type: {type_}")
 
     @cached_property
     def attributes(self) -> Attributes:
@@ -180,7 +196,8 @@ class LegacyND2Reader:
         widthPx = head.get("columns")
 
         try:
-            picplanes = self._get_xml_dict(b"VIMD", 0)["PicturePlanes"]
+            data = self._get_xml_dict(b"VIMD", 0, strip_variant=True)
+            picplanes = data["PicturePlanes"]
             nC = picplanes["Count"]
             compCount = picplanes["CompCount"]
         except Exception:
@@ -199,13 +216,27 @@ class LegacyND2Reader:
             channelCount=nC,
         )
 
-    def _get_xml_dict(self, key: bytes, index=0) -> dict[str, Any]:
+    def _get_xml_dict(
+        self,
+        key: bytes,
+        index=0,
+        strip_variant: bool = False,
+        strip_prefix: bool = True,
+    ) -> dict[str, Any]:
         if key not in self._chunkmap:
-            warnings.warn(f"no metadata key {key!r} in file", stacklevel=2)
+            # warnings.warn(f"no metadata key {key!r} in file", stacklevel=2)
             return {}
 
         bxml = self._read_chunk(self._chunkmap[key][index])
-        return json_from_clx_variant(bxml, strip_prefix=True)
+        d = json_from_clx_variant(bxml, strip_prefix=strip_prefix)
+        if strip_variant and isinstance(d, dict) and len(d) == 1:
+            [(_, variant)] = d.items()
+            if isinstance(variant, dict) and list(variant) == ["variant"]:
+                variant = variant["variant"]
+            if isinstance(variant, dict) and list(variant) == ["i0000000000"]:
+                variant = variant["i0000000000"]
+            return variant
+        return d
 
     @cached_property
     def events(self) -> dict:
@@ -218,7 +249,7 @@ class LegacyND2Reader:
         from ._pysdk._parse import load_text_info
 
         d = self._get_xml_dict(b"TINF")
-        return load_text_info(d["TextInfo"])
+        return load_text_info(d["TextInfo"]) if d else {}
 
     @cached_property
     def _advanced_image_attributes(self) -> dict:
@@ -226,12 +257,11 @@ class LegacyND2Reader:
 
     @cached_property
     def _metadata(self) -> dict:
-        meta = self._get_xml_dict(b"AIM1") or self._get_xml_dict(b"AIMD")
+        k = b"AIM1" if b"AIM1" in self._chunkmap else b"AIMD"
+        meta: dict = self._get_xml_dict(k, strip_prefix=False)
         key, variant = meta.popitem()
-        try:
-            meta = cast(dict, variant[0]["Metadata"])
-        except (KeyError, IndexError) as e:
-            raise ValueError(f"unexpected metadata variant: {variant}") from e
+        _meta = variant["variant"].popitem()[1]
+        meta = _meta.get("vMetadata", _meta)
         meta["Version"] = key.split("_V")[1] if "_V" in key else ""
         return meta
 
@@ -301,7 +331,7 @@ class LegacyND2Reader:
         return VoxelSize(xy, xy, z or 1)
 
     def channel_names(self) -> List[str]:
-        xml = self._get_xml_dict(b"VIMD", 0)
+        xml = self._get_xml_dict(b"VIMD", strip_variant=True)
         return [p["OpticalConfigName"] for p in xml["PicturePlanes"]["Plane"].values()]
 
     def time_stamps(self) -> List[str]:

@@ -42,6 +42,25 @@ def test_metadata_extraction(new_nd2: Path):
     assert nd.closed
 
 
+def test_metadata_extraction_legacy(old_nd2):
+    assert ND2File.is_supported_file(old_nd2)
+    with ND2File(old_nd2) as nd:
+        assert nd.path == str(old_nd2)
+        assert not nd.closed
+
+        assert isinstance(nd.attributes, structures.Attributes)
+
+        # # TODO: deal with typing when metadata is completely missing
+        # assert isinstance(nd.metadata, structures.Metadata)
+        assert isinstance(nd.experiment, list)
+        assert isinstance(nd.text_info, dict)
+        xarr = nd.to_xarray()
+        assert isinstance(xarr, xr.DataArray)
+        assert isinstance(xarr.data, da.Array)
+
+    assert nd.closed
+
+
 def test_read_safety(new_nd2: Path):
     with ND2File(new_nd2) as nd:
         for i in range(nd._frame_count):
@@ -124,25 +143,6 @@ def test_xarray_legacy(old_nd2):
         assert isinstance(xarr, xr.DataArray)
         assert isinstance(xarr.data, da.Array)
         assert isinstance(nd.to_xarray(squeeze=False), xr.DataArray)
-
-
-def test_metadata_extraction_legacy(old_nd2):
-    assert ND2File.is_supported_file(old_nd2)
-    with ND2File(old_nd2) as nd:
-        assert nd.path == str(old_nd2)
-        assert not nd.closed
-
-        assert isinstance(nd.attributes, structures.Attributes)
-
-        # # TODO: deal with typing when metadata is completely missing
-        # assert isinstance(nd.metadata, structures.Metadata)
-        assert isinstance(nd.experiment, list)
-        assert isinstance(nd.text_info, dict)
-        xarr = nd.to_xarray()
-        assert isinstance(xarr, xr.DataArray)
-        assert isinstance(xarr.data, da.Array)
-
-    assert nd.closed
 
 
 def test_missing():

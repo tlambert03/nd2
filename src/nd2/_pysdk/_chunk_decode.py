@@ -1,3 +1,4 @@
+"""FIXME: this has a lot of code duplication with _chunkmap.py."""
 from __future__ import annotations
 
 import struct
@@ -9,9 +10,19 @@ if TYPE_CHECKING:
     from typing import Final
 
     StrOrBytesPath = str | bytes | PathLike[str] | PathLike[bytes]
+
     StartFileChunk = tuple[int, int, int, bytes, bytes]
+    #              = (magic, name_length, data_length, name, data)
+
     ChunkMapItem = tuple[int, int]  # (offset, size)
     ChunkMap = dict[bytes, ChunkMapItem]
+    # a Chunkmap is mapping of chunk names (bytes) to (offset, size) pairs.
+    # {
+    #   b'ImageTextInfoLV!': (13041664, 2128),
+    #   b'ImageTextInfo!': (13037568, 1884),
+    #   b'ImageMetadataSeq|0!': (237568, 33412),
+    #   ...
+    # }
 
 # fmt: off
 ND2_FILE_SIGNATURE:     Final = b"ND2 FILE SIGNATURE CHUNK NAME01!"  # len 32
@@ -24,10 +35,11 @@ JP2_MAGIC:              Final = 0x0C000000
 # fmt: on
 
 QQ = struct.Struct("QQ")
-# 2 x uint64_t
 # used for (offset, size) in chunkmap
+# 2 x uint64_t
 
-CHUNK_HEADER = struct.Struct("IIQ")  # beginning of every chunk an ND2 file
+CHUNK_HEADER = struct.Struct("IIQ")
+# beginning of every chunk an ND2 file
 # uint32_t magic
 # uint32_t nameLen
 # uint64_t dataLen
@@ -37,8 +49,8 @@ START_FILE_CHUNK = struct.Struct(f"{CHUNK_HEADER.format}32s64s")
 # char name[32]
 # char data[64]
 
-# the last 40 bytes of the file, containing the signature and locatio of chunkmap
 SIG_CHUNKMAP_LOC = struct.Struct("32sQ")
+# the last 40 bytes of the file, containing the signature and locatio of chunkmap
 # char name[32]
 # uint64_t offset
 
@@ -74,7 +86,7 @@ def get_version(fh: BufferedReader | StrOrBytesPath) -> tuple[int, int]:
     # sanity checks
     if magic != ND2_CHUNK_MAGIC:
         if magic == JP2_MAGIC:
-            raise NotImplementedError(f"Legacy ND2 file not yet supported: {fh.name}")
+            return (1, 0)  # legacy JP2 files are version 1.0
         raise ValueError(f"Not a valid ND2 file: {fh.name}. (magic: {magic!r})")
     if name_length != 32 or data_length != 64 or name != ND2_FILE_SIGNATURE:
         raise ValueError(f"Corrupt ND2 file header chunk: {fh.name}")
@@ -83,14 +95,19 @@ def get_version(fh: BufferedReader | StrOrBytesPath) -> tuple[int, int]:
     return (int(chr(data[3])), int(chr(data[5])))
 
 
-def load_chunkmap(fh: BufferedReader) -> ChunkMap:
+def get_chunkmap(fh: BufferedReader) -> ChunkMap:
     """Read the map of the chunks at the end of an ND2 file.
 
-    chunk rules:
-    - each data chunk starts with
-      - 4 bytes: CHUNK_MAGIC -> 0x0ABECEDA (big endian: 0xDACEBE0A)
-      - 4 bytes: length of the chunk header (this section contains the chunk name...)
-      - 8 bytes: length of chunk following the header, up to the next CHUNK_MAGIC
+    A Chunkmap is mapping of chunk names (bytes) to (offset, size) pairs.
+
+    ```python
+    {
+      b'ImageTextInfoLV!': (13041664, 2128),
+      b'ImageTextInfo!': (13037568, 1884),
+      b'ImageMetadataSeq|0!': (237568, 33412),
+      ...
+    }
+    ```
 
     Parameters
     ----------
@@ -143,6 +160,12 @@ def load_chunkmap(fh: BufferedReader) -> ChunkMap:
 def _read_nd2_chunk(fh: BufferedReader, start_position: int) -> bytes:
     """Read a single chunk in an ND2 file at `start_position`.
 
+    chunk rules:
+    - each data chunk starts with
+      - 4 bytes: CHUNK_MAGIC -> 0x0ABECEDA (big endian: 0xDACEBE0A)
+      - 4 bytes: length of the chunk header (this section contains the chunk name...)
+      - 8 bytes: length of chunk following the header, up to the next CHUNK_MAGIC
+
     Parameters
     ----------
     fh : BufferedReader
@@ -161,9 +184,10 @@ def _read_nd2_chunk(fh: BufferedReader, start_position: int) -> bytes:
         If the file is not a valid ND2 file or the chunk is corrupt.
     """
     fh.seek(start_position)
+
     magic, name_length, data_length = CHUNK_HEADER.unpack(fh.read(CHUNK_HEADER.size))
-    # confirm chunk magic, seek to shift, read for length
     if magic != ND2_CHUNK_MAGIC:
         raise ValueError(f"Invalid chunk header magic: {magic:x}")
-    fh.seek(name_length, 1)
-    return fh.read(data_length)
+
+    fh.seek(name_length, 1)  # seek over name_length
+    return fh.read(data_length)  # then read data_length bytes

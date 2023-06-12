@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variant version="1.0">
+    <CustomTagDescription_v1.0 runtype="CLxListVariant">
+        <Tag0 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="CameraTemp1"/>
+            <Type runtype="lx_int32" value="3"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="Camera 1 Temperature"/>
+            <Unit runtype="CLxStringW" value="\xc2\xb0C"/>
+        </Tag0>
+        <Tag1 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="Camera_CH1LaserPower"/>
+            <Type runtype="lx_int32" value="3"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="Laser Power; 1.channel"/>
+            <Unit runtype="CLxStringW" value="%"/>
+        </Tag1>
+        <Tag2 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="Camera_CH1PMTHighVoltage"/>
+            <Type runtype="lx_int32" value="2"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="High Voltage; 1.channel"/>
+            <Unit runtype="CLxStringW" value=""/>
+        </Tag2>
+        <Tag3 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="Camera_CH2LaserPower"/>
+            <Type runtype="lx_int32" value="3"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="Laser Power; 2.channel"/>
+            <Unit runtype="CLxStringW" value="%"/>
+        </Tag3>
+        <Tag4 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="Camera_CH2PMTHighVoltage"/>
+            <Type runtype="lx_int32" value="2"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="High Voltage; 2.channel"/>
+            <Unit runtype="CLxStringW" value=""/>
+        </Tag4>
+        <Tag5 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="Camera_CH3LaserPower"/>
+            <Type runtype="lx_int32" value="3"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="Laser Power; 3.channel"/>
+            <Unit runtype="CLxStringW" value="%"/>
+        </Tag5>
+        <Tag6 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="Camera_CH3PMTHighVoltage"/>
+            <Type runtype="lx_int32" value="2"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="High Voltage; 3.channel"/>
+            <Unit runtype="CLxStringW" value=""/>
+        </Tag6>
+        <Tag7 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="Camera_CH4LaserPower"/>
+            <Type runtype="lx_int32" value="3"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="Laser Power; 4.channel"/>
+            <Unit runtype="CLxStringW" value="%"/>
+        </Tag7>
+        <Tag8 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="Camera_CH4PMTHighVoltage"/>
+            <Type runtype="lx_int32" value="2"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="High Voltage; 4.channel"/>
+            <Unit runtype="CLxStringW" value=""/>
+        </Tag8>
+        <Tag9 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="Camera_ExposureTime1"/>
+            <Type runtype="lx_int32" value="3"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="Camera 1 Exposure Time"/>
+            <Unit runtype="CLxStringW" value="ms"/>
+        </Tag9>
+        <Tag10 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="Camera_TDPMTHighVoltage"/>
+            <Type runtype="lx_int32" value="2"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="High Voltage; TD"/>
+            <Unit runtype="CLxStringW" value=""/>
+        </Tag10>
+        <Tag11 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="PFS_OFFSET"/>
+            <Type runtype="lx_int32" value="2"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="PFS Offset"/>
+            <Unit runtype="CLxStringW" value=""/>
+        </Tag11>
+        <Tag12 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="PFS_STATUS"/>
+            <Type runtype="lx_int32" value="2"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="PFS Status"/>
+            <Unit runtype="CLxStringW" value=""/>
+        </Tag12>
+        <Tag13 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="X"/>
+            <Type runtype="lx_int32" value="3"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="X Coord"/>
+            <Unit runtype="CLxStringW" value="\xc2\xb5m"/>
+        </Tag13>
+        <Tag14 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="Y"/>
+            <Type runtype="lx_int32" value="3"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="Y Coord"/>
+            <Unit runtype="CLxStringW" value="\xc2\xb5m"/>
+        </Tag14>
+        <Tag15 runtype="CLxListVariant">
+            <ID runtype="CLxStringW" value="Z1"/>
+            <Type runtype="lx_int32" value="3"/>
+            <Size runtype="lx_int32" value="30"/>
+            <Desc runtype="CLxStringW" value="Ti ZDrive"/>
+            <Unit runtype="CLxStringW" value="\xc2\xb5m"/>
+        </Tag15>
+    </CustomTagDescription_v1.0>
+</variant>

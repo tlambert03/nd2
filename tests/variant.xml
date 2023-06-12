@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<variant version="1.0">
+    <no_name runtype="RLxExperiment">
+        <eType runtype="lx_uint32" value="1"/>
+        <wsApplicationDesc runtype="CLxStringW" value=""/>
+        <wsUserDesc runtype="CLxStringW" value=""/>
+        <aMeasProbesBase64 runtype="CLxByteArray" value="AAA="/>
+        <uLoopPars runtype="CLxListVariant">
+            <no_name runtype="RLxExperiment.RLxExpTimeLoop">
+                <uiCount runtype="lx_uint32" value="25"/>
+                <dStart runtype="double" value="0"/>
+                <dPeriod runtype="double" value="20000"/>
+                <dDuration runtype="double" value="1800000"/>
+                <dMinPeriodDiff runtype="double" value="19986.1874295473"/>
+                <dMaxPeriodDiff runtype="double" value="20006.6311615705"/>
+                <dAvgPeriodDiff runtype="double" value="19998.9721460243"/>
+                <sAutoFocusBeforePeriod runtype="RLxExperiment.RLxExpAutoFocus">
+                    <eType runtype="lx_uint32" value="0"/>
+                    <dStep runtype="double" value="0"/>
+                    <dRange runtype="double" value="0"/>
+                    <dPrecision runtype="double" value="0"/>
+                    <dSpeed runtype="double" value="0"/>
+                    <dCoeff_0 runtype="double" value="0"/>
+                    <dCoeff_1 runtype="double" value="0"/>
+                    <dCoeff_2 runtype="double" value="0"/>
+                    <dCoeff_3 runtype="double" value="0"/>
+                </sAutoFocusBeforePeriod>
+                <sAutoFocusBeforeCapture runtype="RLxExperiment.RLxExpAutoFocus">
+                    <eType runtype="lx_uint32" value="0"/>
+                    <dStep runtype="double" value="0"/>
+                    <dRange runtype="double" value="0"/>
+                    <dPrecision runtype="double" value="0"/>
+                    <dSpeed runtype="double" value="0"/>
+                    <dCoeff_0 runtype="double" value="0"/>
+                    <dCoeff_1 runtype="double" value="0"/>
+                    <dCoeff_2 runtype="double" value="0"/>
+                    <dCoeff_3 runtype="double" value="0"/>
+                </sAutoFocusBeforeCapture>
+                <uiLoopType runtype="lx_uint32" value="0"/>
+                <uiGroup runtype="lx_uint32" value="0"/>
+            </no_name>
+        </uLoopPars>
+        <pItemValid runtype="CLxListVariant"></pItemValid>
+        <sAutoFocusBeforeLoop runtype="RLxExperiment.RLxExpAutoFocus">
+            <eType runtype="lx_uint32" value="0"/>
+            <dStep runtype="double" value="0.3"/>
+            <dRange runtype="double" value="3"/>
+            <dPrecision runtype="double" value="0"/>
+            <dSpeed runtype="double" value="10"/>
+            <dCoeff_0 runtype="double" value="0"/>
+            <dCoeff_1 runtype="double" value="0"/>
+            <dCoeff_2 runtype="double" value="0"/>
+            <dCoeff_3 runtype="double" value="0"/>
+        </sAutoFocusBeforeLoop>
+        <wsCommandBeforeLoop runtype="CLxStringW" value=""/>
+        <wsCommandBeforeCapture runtype="CLxStringW" value=""/>
+        <wsCommandAfterCapture runtype="CLxStringW" value=""/>
+        <wsCommandAfterLoop runtype="CLxStringW" value=""/>
+        <bControlShutter runtype="bool" value="true"/>
+        <bUsePFS runtype="bool" value="false"/>
+        <uiRepeatCount runtype="lx_uint32" value="1"/>
+        <ppNextLevelEx runtype="CLxListVariant">
+            <no_name runtype="RLxExperiment">
+                <eType runtype="lx_uint32" value="6"/>
+                <wsApplicationDesc runtype="CLxStringW" value=""/>
+                <wsUserDesc runtype="CLxStringW" value=""/>
+                <aMeasProbesBase64 runtype="CLxByteArray" value="AAA="/>
+                <uLoopPars runtype="CLxListVariant">
+                    <no_name runtype="RLxExperiment.RLxExpSpectLoop">
+                        <uiCount runtype="lx_uint32" value="2"/>
+                        <pPlaneDesc runtype="CLxListVariant">
+                            <_00 runtype="RLxPicturePlaneDescV1_1">
+                                <uiCompCount runtype="lx_uint32" value="1"/>
+                                <sOpticalConfigName runtype="CLxStringW" value="GFP_new"/>
+                                <sOpticalConfigFull runtype="CLxListVariant">
+                                    <no_name runtype="unknown" value=""/>
+                                </sOpticalConfigFull>
+                                <eModality runtype="lx_uint32" value="0"/>
+                                <pFluorescentProbe runtype="RLxFluorescentProbe">
+                                    <m_sName runtype="CLxStringW" value=""/>
+                                    <m_uiColor runtype="lx_uint32" value="16777215"/>
+                                    <m_ExcitationSpectrum runtype="RLxOpticalFilterSpectrum">
+                                        <uiCount runtype="lx_uint32" value="0"/>
+                                        <pPoint runtype="CLxListVariant">
+                                            <Point0 runtype="RLxOFSpectrumPoint">
+                                                <eType runtype="lx_uint32" value="0"/>
+                                                <uiWavelength runtype="lx_uint32" value="0"/>
+                                                <dWavelength runtype="double" value="0"/>
+                                                <dTValue runtype="double" value="0"/>
+                                            </Point0>
+                                        </pPoint>
+                                        <bPoints runtype="bool" value="false"/>
+                                    </m_ExcitationSpectrum>
+                                    <m_EmissionSpectrum runtype="RLxOpticalFilterSpectrum">
+                                        <uiCount runtype="lx_uint32" value="0"/>
+                                        <pPoint runtype="CLxListVariant">
+                                            <Point0 runtype="RLxOFSpectrumPoint">
+                                                <eType runtype="lx_uint32" value="0"/>
+                                                <uiWavelength runtype="lx_uint32" value="0"/>
+                                                <dWavelength runtype="double" value="0"/>
+                                                <dTValue runtype="double" value="0"/>
+                                            </Point0>
+                                        </pPoint>
+                                        <bPoints runtype="bool" value="false"/>
+                                    </m_EmissionSpectrum>
+                                </pFluorescentProbe>
+                                <pFilterPath runtype="RLxOpticalFilterPath">
+                                    <m_sDescr runtype="CLxStringW" value=""/>
+                                    <m_uiCount runtype="lx_uint32" value="1"/>
+                                    <m_pFilter runtype="CLxListVariant">
+                                        <no_name runtype="RLxOpticalFilter">
+                                            <m_sName runtype="CLxStringW" value="GFP_new"/>
+                                            <m_ePlacement runtype="lx_uint32" value="3"/>
+                                            <m_eNature runtype="lx_uint32" value="0"/>
+                                            <m_eSpctType runtype="lx_uint32" value="1"/>
+                                            <m_uiColor runtype="lx_uint32" value="65336"/>
+                                            <m_ExcitationSpectrum runtype="RLxOpticalFilterSpectrum">
+                                                <uiCount runtype="lx_uint32" value="1"/>
+                                                <pPoint runtype="CLxListVariant">
+                                                    <Point0 runtype="RLxOFSpectrumPoint">
+                                                        <eType runtype="lx_uint32" value="4"/>
+                                                        <uiWavelength runtype="lx_uint32" value="0"/>
+                                                        <dWavelength runtype="double" value="488"/>
+                                                        <dTValue runtype="double" value="0"/>
+                                                    </Point0>
+                                                </pPoint>
+                                                <bPoints runtype="bool" value="false"/>
+                                            </m_ExcitationSpectrum>
+                                            <m_EmissionSpectrum runtype="RLxOpticalFilterSpectrum">
+                                                <uiCount runtype="lx_uint32" value="1"/>
+                                                <pPoint runtype="CLxListVariant">
+                                                    <Point0 runtype="RLxOFSpectrumPoint">
+                                                        <eType runtype="lx_uint32" value="4"/>
+                                                        <uiWavelength runtype="lx_uint32" value="0"/>
+                                                        <dWavelength runtype="double" value="520"/>
+                                                        <dTValue runtype="double" value="0"/>
+                                                    </Point0>
+                                                </pPoint>
+                                                <bPoints runtype="bool" value="false"/>
+                                            </m_EmissionSpectrum>
+                                            <m_MirrorSpectrum runtype="RLxOpticalFilterSpectrum">
+                                                <uiCount runtype="lx_uint32" value="1"/>
+                                                <pPoint runtype="CLxListVariant">
+                                                    <Point0 runtype="RLxOFSpectrumPoint">
+                                                        <eType runtype="lx_uint32" value="0"/>
+                                                        <uiWavelength runtype="lx_uint32" value="0"/>
+                                                        <dWavelength runtype="double" value="520"/>
+                                                        <dTValue runtype="double" value="0"/>
+                                                    </Point0>
+                                                </pPoint>
+                                                <bPoints runtype="bool" value="false"/>
+                                            </m_MirrorSpectrum>
+                                            <m_wcTiName runtype="CLxStringW" value=""/>
+                                        </no_name>
+                                    </m_pFilter>
+                                </pFilterPath>
+                                <sCameraSetting runtype="RLxCameraSetting">
+                                    <sCameraName runtype="CLxStringW" value=""/>
+                                    <dExposure runtype="double" value="-1"/>
+                                    <iOffset runtype="lx_int32" value="-1"/>
+                                    <dGain runtype="double" value="-1"/>
+                                    <dGamma runtype="double" value="-1"/>
+                                    <dExposureRed runtype="double" value="-1"/>
+                                    <iOffsetRed runtype="lx_int32" value="-1"/>
+                                    <dGainRed runtype="double" value="-1"/>
+                                    <dGammaRed runtype="double" value="-1"/>
+                                    <dExposureGreen runtype="double" value="-1"/>
+                                    <iOffsetGreen runtype="lx_int32" value="-1"/>
+                                    <dGainGreen runtype="double" value="-1"/>
+                                    <dGammaGreen runtype="double" value="-1"/>
+                                    <dExposureBlue runtype="double" value="-1"/>
+                                    <iOffsetBlue runtype="lx_int32" value="-1"/>
+                                    <dGainBlue runtype="double" value="-1"/>
+                                    <dGammaBlue runtype="double" value="-1"/>
+                                    <sCameraFormatName runtype="CLxStringW" value=""/>
+                                    <dCamChipSizeX runtype="double" value="-1"/>
+                                    <dCamChipSizeY runtype="double" value="-1"/>
+                                    <uiCamPxlCountX runtype="lx_uint32" value="4294967295"/>
+                                    <uiCamPxlCountY runtype="lx_uint32" value="4294967295"/>
+                                    <dCamBinningX runtype="double" value="1"/>
+                                    <dCamBinningY runtype="double" value="1"/>
+                                    <rcCamChipSrc runtype="RLxIRect">
+                                        <left runtype="lx_int32" value="0"/>
+                                        <top runtype="lx_int32" value="0"/>
+                                        <right runtype="lx_int32" value="0"/>
+                                        <bottom runtype="lx_int32" value="0"/>
+                                    </rcCamChipSrc>
+                                    <bFlippedUpDown runtype="bool" value="false"/>
+                                    <bFlippedLeftRight runtype="bool" value="false"/>
+                                    <sSpecSettings runtype="CLxStringW" value=""/>
+                                </sCameraSetting>
+                                <dLampVoltage runtype="double" value="0"/>
+                                <dFadingCorr runtype="double" value="0"/>
+                                <uiColor runtype="lx_uint32" value="65336"/>
+                                <sDescription runtype="CLxStringW" value="GFP_new"/>
+                                <dAcqTime runtype="double" value="0"/>
+                            </_00>
+                            <_01 runtype="RLxPicturePlaneDescV1_1">
+                                <uiCompCount runtype="lx_uint32" value="1"/>
+                                <sOpticalConfigName runtype="CLxStringW" value="RFP_new"/>
+                                <sOpticalConfigFull runtype="CLxListVariant">
+                                    <no_name runtype="unknown" value=""/>
+                                </sOpticalConfigFull>
+                                <eModality runtype="lx_uint32" value="0"/>
+                                <pFluorescentProbe runtype="RLxFluorescentProbe">
+                                    <m_sName runtype="CLxStringW" value=""/>
+                                    <m_uiColor runtype="lx_uint32" value="16777215"/>
+                                    <m_ExcitationSpectrum runtype="RLxOpticalFilterSpectrum">
+                                        <uiCount runtype="lx_uint32" value="0"/>
+                                        <pPoint runtype="CLxListVariant">
+                                            <Point0 runtype="RLxOFSpectrumPoint">
+                                                <eType runtype="lx_uint32" value="0"/>
+                                                <uiWavelength runtype="lx_uint32" value="0"/>
+                                                <dWavelength runtype="double" value="0"/>
+                                                <dTValue runtype="double" value="0"/>
+                                            </Point0>
+                                        </pPoint>
+                                        <bPoints runtype="bool" value="false"/>
+                                    </m_ExcitationSpectrum>
+                                    <m_EmissionSpectrum runtype="RLxOpticalFilterSpectrum">
+                                        <uiCount runtype="lx_uint32" value="0"/>
+                                        <pPoint runtype="CLxListVariant">
+                                            <Point0 runtype="RLxOFSpectrumPoint">
+                                                <eType runtype="lx_uint32" value="0"/>
+                                                <uiWavelength runtype="lx_uint32" value="0"/>
+                                                <dWavelength runtype="double" value="0"/>
+                                                <dTValue runtype="double" value="0"/>
+                                            </Point0>
+                                        </pPoint>
+                                        <bPoints runtype="bool" value="false"/>
+                                    </m_EmissionSpectrum>
+                                </pFluorescentProbe>
+                                <pFilterPath runtype="RLxOpticalFilterPath">
+                                    <m_sDescr runtype="CLxStringW" value=""/>
+                                    <m_uiCount runtype="lx_uint32" value="1"/>
+                                    <m_pFilter runtype="CLxListVariant">
+                                        <no_name runtype="RLxOpticalFilter">
+                                            <m_sName runtype="CLxStringW" value="RFP_new"/>
+                                            <m_ePlacement runtype="lx_uint32" value="3"/>
+                                            <m_eNature runtype="lx_uint32" value="0"/>
+                                            <m_eSpctType runtype="lx_uint32" value="1"/>
+                                            <m_uiColor runtype="lx_uint32" value="65336"/>
+                                            <m_ExcitationSpectrum runtype="RLxOpticalFilterSpectrum">
+                                                <uiCount runtype="lx_uint32" value="1"/>
+                                                <pPoint runtype="CLxListVariant">
+                                                    <Point0 runtype="RLxOFSpectrumPoint">
+                                                        <eType runtype="lx_uint32" value="4"/>
+                                                        <uiWavelength runtype="lx_uint32" value="0"/>
+                                                        <dWavelength runtype="double" value="488"/>
+                                                        <dTValue runtype="double" value="0"/>
+                                                    </Point0>
+                                                </pPoint>
+                                                <bPoints runtype="bool" value="false"/>
+                                            </m_ExcitationSpectrum>
+                                            <m_EmissionSpectrum runtype="RLxOpticalFilterSpectrum">
+                                                <uiCount runtype="lx_uint32" value="1"/>
+                                                <pPoint runtype="CLxListVariant">
+                                                    <Point0 runtype="RLxOFSpectrumPoint">
+                                                        <eType runtype="lx_uint32" value="4"/>
+                                                        <uiWavelength runtype="lx_uint32" value="0"/>
+                                                        <dWavelength runtype="double" value="520"/>
+                                                        <dTValue runtype="double" value="0"/>
+                                                    </Point0>
+                                                </pPoint>
+                                                <bPoints runtype="bool" value="false"/>
+                                            </m_EmissionSpectrum>
+                                            <m_MirrorSpectrum runtype="RLxOpticalFilterSpectrum">
+                                                <uiCount runtype="lx_uint32" value="1"/>
+                                                <pPoint runtype="CLxListVariant">
+                                                    <Point0 runtype="RLxOFSpectrumPoint">
+                                                        <eType runtype="lx_uint32" value="0"/>
+                                                        <uiWavelength runtype="lx_uint32" value="0"/>
+                                                        <dWavelength runtype="double" value="520"/>
+                                                        <dTValue runtype="double" value="0"/>
+                                                    </Point0>
+                                                </pPoint>
+                                                <bPoints runtype="bool" value="false"/>
+                                            </m_MirrorSpectrum>
+                                            <m_wcTiName runtype="CLxStringW" value=""/>
+                                        </no_name>
+                                    </m_pFilter>
+                                </pFilterPath>
+                                <sCameraSetting runtype="RLxCameraSetting">
+                                    <sCameraName runtype="CLxStringW" value=""/>
+                                    <dExposure runtype="double" value="-1"/>
+                                    <iOffset runtype="lx_int32" value="-1"/>
+                                    <dGain runtype="double" value="-1"/>
+                                    <dGamma runtype="double" value="-1"/>
+                                    <dExposureRed runtype="double" value="-1"/>
+                                    <iOffsetRed runtype="lx_int32" value="-1"/>
+                                    <dGainRed runtype="double" value="-1"/>
+                                    <dGammaRed runtype="double" value="-1"/>
+                                    <dExposureGreen runtype="double" value="-1"/>
+                                    <iOffsetGreen runtype="lx_int32" value="-1"/>
+                                    <dGainGreen runtype="double" value="-1"/>
+                                    <dGammaGreen runtype="double" value="-1"/>
+                                    <dExposureBlue runtype="double" value="-1"/>
+                                    <iOffsetBlue runtype="lx_int32" value="-1"/>
+                                    <dGainBlue runtype="double" value="-1"/>
+                                    <dGammaBlue runtype="double" value="-1"/>
+                                    <sCameraFormatName runtype="CLxStringW" value=""/>
+                                    <dCamChipSizeX runtype="double" value="-1"/>
+                                    <dCamChipSizeY runtype="double" value="-1"/>
+                                    <uiCamPxlCountX runtype="lx_uint32" value="4294967295"/>
+                                    <uiCamPxlCountY runtype="lx_uint32" value="4294967295"/>
+                                    <dCamBinningX runtype="double" value="1"/>
+                                    <dCamBinningY runtype="double" value="1"/>
+                                    <rcCamChipSrc runtype="RLxIRect">
+                                        <left runtype="lx_int32" value="0"/>
+                                        <top runtype="lx_int32" value="0"/>
+                                        <right runtype="lx_int32" value="0"/>
+                                        <bottom runtype="lx_int32" value="0"/>
+                                    </rcCamChipSrc>
+                                    <bFlippedUpDown runtype="bool" value="false"/>
+                                    <bFlippedLeftRight runtype="bool" value="false"/>
+                                    <sSpecSettings runtype="CLxStringW" value=""/>
+                                </sCameraSetting>
+                                <dLampVoltage runtype="double" value="0"/>
+                                <dFadingCorr runtype="double" value="0"/>
+                                <uiColor runtype="lx_uint32" value="255"/>
+                                <sDescription runtype="CLxStringW" value="RFP_new"/>
+                                <dAcqTime runtype="double" value="0"/>
+                            </_01>
+                        </pPlaneDesc>
+                        <pAutoFocus runtype="CLxListVariant">
+                            <_00 runtype="RLxExperiment.RLxExpAutoFocus">
+                                <eType runtype="lx_uint32" value="0"/>
+                                <dStep runtype="double" value="0.3"/>
+                                <dRange runtype="double" value="3"/>
+                                <dPrecision runtype="double" value="0"/>
+                                <dSpeed runtype="double" value="10"/>
+                                <dCoeff_0 runtype="double" value="0"/>
+                                <dCoeff_1 runtype="double" value="0"/>
+                                <dCoeff_2 runtype="double" value="0"/>
+                                <dCoeff_3 runtype="double" value="0"/>
+                            </_00>
+                            <_01 runtype="RLxExperiment.RLxExpAutoFocus">
+                                <eType runtype="lx_uint32" value="0"/>
+                                <dStep runtype="double" value="0.3"/>
+                                <dRange runtype="double" value="3"/>
+                                <dPrecision runtype="double" value="0"/>
+                                <dSpeed runtype="double" value="10"/>
+                                <dCoeff_0 runtype="double" value="0"/>
+                                <dCoeff_1 runtype="double" value="0"/>
+                                <dCoeff_2 runtype="double" value="0"/>
+                                <dCoeff_3 runtype="double" value="0"/>
+                            </_01>
+                        </pAutoFocus>
+                        <szCommandBeforeCapture runtype="CLxListVariant">
+                            <_00 runtype="CLxStringW" value=""/>
+                            <_01 runtype="CLxStringW" value=""/>
+                        </szCommandBeforeCapture>
+                        <szCommandAfterCapture runtype="CLxListVariant">
+                            <_00 runtype="CLxStringW" value=""/>
+                            <_01 runtype="CLxStringW" value=""/>
+                        </szCommandAfterCapture>
+                    </no_name>
+                </uLoopPars>
+                <pItemValid runtype="CLxListVariant"></pItemValid>
+                <sAutoFocusBeforeLoop runtype="RLxExperiment.RLxExpAutoFocus">
+                    <eType runtype="lx_uint32" value="0"/>
+                    <dStep runtype="double" value="0"/>
+                    <dRange runtype="double" value="0"/>
+                    <dPrecision runtype="double" value="0"/>
+                    <dSpeed runtype="double" value="0"/>
+                    <dCoeff_0 runtype="double" value="0"/>
+                    <dCoeff_1 runtype="double" value="0"/>
+                    <dCoeff_2 runtype="double" value="0"/>
+                    <dCoeff_3 runtype="double" value="0"/>
+                </sAutoFocusBeforeLoop>
+                <wsCommandBeforeLoop runtype="CLxStringW" value=""/>
+                <wsCommandBeforeCapture runtype="CLxStringW" value=""/>
+                <wsCommandAfterCapture runtype="CLxStringW" value=""/>
+                <wsCommandAfterLoop runtype="CLxStringW" value=""/>
+                <bControlShutter runtype="bool" value="true"/>
+                <bUsePFS runtype="bool" value="false"/>
+                <uiRepeatCount runtype="lx_uint32" value="1"/>
+                <ppNextLevelEx runtype="CLxListVariant">
+                    <no_name runtype="RLxExperiment">
+                        <eType runtype="lx_uint32" value="4"/>
+                        <wsApplicationDesc runtype="CLxStringW" value=""/>
+                        <wsUserDesc runtype="CLxStringW" value=""/>
+                        <aMeasProbesBase64 runtype="CLxByteArray" value="AAA="/>
+                        <uLoopPars runtype="CLxListVariant">
+                            <no_name runtype="RLxExperiment.RLxExpZStackLoop">
+                                <uiCount runtype="lx_uint32" value="29"/>
+                                <dZLow runtype="double" value="-14"/>
+                                <dZLowPFSOffset runtype="double" value="0"/>
+                                <dZHigh runtype="double" value="14"/>
+                                <dZHighPFSOffset runtype="double" value="0"/>
+                                <dZHome runtype="double" value="0"/>
+                                <dZStep runtype="double" value="1"/>
+                                <bAbsolute runtype="bool" value="false"/>
+                                <bTriggeredPiezo runtype="bool" value="false"/>
+                                <iType runtype="lx_int32" value="2"/>
+                                <bZInverted runtype="bool" value="true"/>
+                                <dReferencePosition runtype="double" value="0"/>
+                                <sZDevice runtype="CLxStringW" value="NI671x,
+NI673x Z Drive"/>
+                                <sCommandBeforeCapture runtype="CLxStringW" value=""/>
+                                <sCommandAfterCapture runtype="CLxStringW" value=""/>
+                            </no_name>
+                        </uLoopPars>
+                        <pItemValid runtype="CLxListVariant"></pItemValid>
+                        <sAutoFocusBeforeLoop runtype="RLxExperiment.RLxExpAutoFocus">
+                            <eType runtype="lx_uint32" value="0"/>
+                            <dStep runtype="double" value="0"/>
+                            <dRange runtype="double" value="0"/>
+                            <dPrecision runtype="double" value="0"/>
+                            <dSpeed runtype="double" value="0"/>
+                            <dCoeff_0 runtype="double" value="0"/>
+                            <dCoeff_1 runtype="double" value="0"/>
+                            <dCoeff_2 runtype="double" value="0"/>
+                            <dCoeff_3 runtype="double" value="0"/>
+                        </sAutoFocusBeforeLoop>
+                        <wsCommandBeforeLoop runtype="CLxStringW" value=""/>
+                        <wsCommandBeforeCapture runtype="CLxStringW" value=""/>
+                        <wsCommandAfterCapture runtype="CLxStringW" value=""/>
+                        <wsCommandAfterLoop runtype="CLxStringW" value=""/>
+                        <bControlShutter runtype="bool" value="true"/>
+                        <bUsePFS runtype="bool" value="false"/>
+                        <uiRepeatCount runtype="lx_uint32" value="1"/>
+                        <ppNextLevelEx runtype="CLxListVariant"></ppNextLevelEx>
+                        <bControlLight runtype="bool" value="false"/>
+                        <pLargeImage runtype="CLxListVariant"></pLargeImage>
+                        <sParallelExperiment runtype="CLxListVariant"></sParallelExperiment>
+                    </no_name>
+                    <no_name runtype="RLxExperiment">
+                        <eType runtype="lx_uint32" value="4"/>
+                        <wsApplicationDesc runtype="CLxStringW" value=""/>
+                        <wsUserDesc runtype="CLxStringW" value=""/>
+                        <aMeasProbesBase64 runtype="CLxByteArray" value="AAA="/>
+                        <uLoopPars runtype="CLxListVariant">
+                            <no_name runtype="RLxExperiment.RLxExpZStackLoop">
+                                <uiCount runtype="lx_uint32" value="1"/>
+                                <dZLow runtype="double" value="0"/>
+                                <dZLowPFSOffset runtype="double" value="0"/>
+                                <dZHigh runtype="double" value="0"/>
+                                <dZHighPFSOffset runtype="double" value="0"/>
+                                <dZHome runtype="double" value="0"/>
+                                <dZStep runtype="double" value="1"/>
+                                <bAbsolute runtype="bool" value="false"/>
+                                <bTriggeredPiezo runtype="bool" value="false"/>
+                                <iType runtype="lx_int32" value="2"/>
+                                <bZInverted runtype="bool" value="true"/>
+                                <dReferencePosition runtype="double" value="0"/>
+                                <sZDevice runtype="CLxStringW" value="NI671x,
+NI673x Z Drive"/>
+                                <sCommandBeforeCapture runtype="CLxStringW" value=""/>
+                                <sCommandAfterCapture runtype="CLxStringW" value=""/>
+                            </no_name>
+                        </uLoopPars>
+                        <pItemValid runtype="CLxListVariant"></pItemValid>
+                        <sAutoFocusBeforeLoop runtype="RLxExperiment.RLxExpAutoFocus">
+                            <eType runtype="lx_uint32" value="0"/>
+                            <dStep runtype="double" value="0"/>
+                            <dRange runtype="double" value="0"/>
+                            <dPrecision runtype="double" value="0"/>
+                            <dSpeed runtype="double" value="0"/>
+                            <dCoeff_0 runtype="double" value="0"/>
+                            <dCoeff_1 runtype="double" value="0"/>
+                            <dCoeff_2 runtype="double" value="0"/>
+                            <dCoeff_3 runtype="double" value="0"/>
+                        </sAutoFocusBeforeLoop>
+                        <wsCommandBeforeLoop runtype="CLxStringW" value=""/>
+                        <wsCommandBeforeCapture runtype="CLxStringW" value=""/>
+                        <wsCommandAfterCapture runtype="CLxStringW" value=""/>
+                        <wsCommandAfterLoop runtype="CLxStringW" value=""/>
+                        <bControlShutter runtype="bool" value="true"/>
+                        <bUsePFS runtype="bool" value="false"/>
+                        <uiRepeatCount runtype="lx_uint32" value="1"/>
+                        <ppNextLevelEx runtype="CLxListVariant"></ppNextLevelEx>
+                        <bControlLight runtype="bool" value="false"/>
+                        <pLargeImage runtype="CLxListVariant"></pLargeImage>
+                        <sParallelExperiment runtype="CLxListVariant"></sParallelExperiment>
+                    </no_name>
+                </ppNextLevelEx>
+                <bControlLight runtype="bool" value="false"/>
+                <pLargeImage runtype="CLxListVariant"></pLargeImage>
+                <sParallelExperiment runtype="CLxListVariant"></sParallelExperiment>
+            </no_name>
+        </ppNextLevelEx>
+        <bControlLight runtype="bool" value="false"/>
+        <pLargeImage runtype="CLxListVariant"></pLargeImage>
+        <sParallelExperiment runtype="CLxListVariant"></sParallelExperiment>
+    </no_name>
+</variant>

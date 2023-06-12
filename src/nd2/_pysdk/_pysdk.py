@@ -4,10 +4,9 @@ import mmap
 import os
 import warnings
 from io import BufferedReader
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Sequence, cast
 
 import numpy as np
-from git import Sequence
 
 from nd2 import structures
 from nd2._clx_lite import json_from_clx_lite_variant

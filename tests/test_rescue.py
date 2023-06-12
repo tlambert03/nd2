@@ -10,7 +10,9 @@ def broken_nd2(tmp_path, single_nd2):
 
     # single_nd2 has 352256 bytes
     # break the file by removing N bytes at offset Q
-    new_data = data[:287000] + data[288000:]
+    Q = 287000
+    N = 2000
+    new_data = data[:Q] + data[(Q + N) :]
     assert len(new_data) < len(data)
 
     # write the broken file

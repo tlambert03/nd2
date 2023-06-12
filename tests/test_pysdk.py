@@ -47,10 +47,10 @@ def test_pysdk_with_legacy(old_nd2: Path):
             # "frame_metadata": nd.frame_metadata(0),
             "text_info": nd.text_info,
             # "experiment": [asdict(x) for x in nd.experiment],
-            # "coord_info": nd._rdr._coord_info(),
-            # "events": nd._rdr.events,
+            "coord_info": nd._rdr._coord_info(),
             "_advanced_image_attributes": nd._rdr._advanced_image_attributes,
             "calibration": nd._rdr.calibration,
+            # "events": nd._rdr.events,  # it's ok that this is different
         }
 
     d = json.loads(json.dumps(d, default=str))

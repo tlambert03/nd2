@@ -97,6 +97,9 @@ def _node_name_value(
         The XML node.
     strip_prefix : bool, optional
         If True, strip the lowercase "type" prefix from the tag names, by default False.
+    include_attrs: bool, optional
+        If True, include the node attributes in the value, by default False.
+        (This is only used for legacy XML.)
 
     Returns
     -------

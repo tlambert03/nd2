@@ -3,7 +3,7 @@ import re
 import struct
 import threading
 from pathlib import Path
-from typing import Any, BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import Any, BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
 
@@ -231,8 +231,9 @@ class LegacyND2Reader:
                 variant = variant["variant"]
             if isinstance(variant, dict) and list(variant) == ["i0000000000"]:
                 variant = variant["i0000000000"]
-            return variant
-        return d
+            d = variant
+        # CHECKME
+        return cast("dict", d)
 
     @cached_property
     def events(self) -> dict:
@@ -320,10 +321,6 @@ class LegacyND2Reader:
     def channel_names(self) -> List[str]:
         xml = self._get_xml_dict(b"VIMD", strip_variant=True)
         return [p["OpticalConfigName"] for p in xml["PicturePlanes"]["Plane"].values()]
-
-    # def time_stamps(self) -> List[str]:
-    #     xml = self._get_xml_dict(b"VIMD", strip_variant=True)
-    #     return [p["OpticalConfigName"] for p in xml["PicturePlanes"]["Plane"].values()]
 
     @cached_property
     def header(self) -> dict:

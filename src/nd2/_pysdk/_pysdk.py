@@ -132,7 +132,7 @@ class ND2Reader:
     def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict:
         data = self._load_chunk(name)
         if self.version < (3, 0):
-            return json_from_clx_variant(data, strip_prefix=strip_prefix)
+            return cast("dict", json_from_clx_variant(data, strip_prefix=strip_prefix))
         return json_from_clx_lite_variant(data, strip_prefix=strip_prefix)
 
     @property
@@ -322,7 +322,7 @@ class ND2Reader:
         return self._dtype_
 
     @property
-    def _strides(self) -> tuple[int, ...]:
+    def _strides(self) -> tuple[int, ...] | None:
         if self._strides_ is None:
             a = self.attributes
             widthP = a.widthPx

@@ -173,7 +173,7 @@ class ND2File:
         return self._rdr.attributes
 
     @cached_property
-    def text_info(self) -> TextInfo:
+    def text_info(self) -> TextInfo | dict:
         """Misc text info."""
         return self._rdr.text_info()
 

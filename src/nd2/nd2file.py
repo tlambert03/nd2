@@ -88,18 +88,25 @@ class ND2File:
             When validate_frames is true, this is the search window (in KB) that will
             be used to try to find the actual chunk position. by default 100 KB
         read_using_sdk : Optional[bool]
+            DEPRECATED.  No longer does anything.
             If `True`, use the SDK to read the file. If `False`, inspects the chunkmap
             and reads from a `numpy.memmap`. If `None` (the default), uses the SDK if
             the file is compressed, otherwise uses the memmap. Note: using
             `read_using_sdk=False` on a compressed file will result in a ValueError.
 
         """
+        if read_using_sdk is not None:
+            warnings.warn(
+                "The `read_using_sdk` argument is deprecated and will be removed in "
+                "a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
         self._path = str(path)
         self._rdr = get_reader(
             self._path,
             validate_frames=validate_frames,
             search_window=search_window,
-            read_using_sdk=read_using_sdk,
         )
         self._closed = False
         self._is_legacy = "Legacy" in type(self._rdr).__name__
@@ -835,6 +842,7 @@ def imread(
         This comes at a slight performance penalty at file open, but may "rescue"
         some corrupt files. by default False.
     read_using_sdk : Optional[bool]
+        DEPRECATED: no longer used.
         If `True`, use the SDK to read the file. If `False`, inspects the chunkmap and
         reads from a `numpy.memmap`. If `None` (the default), uses the SDK if the file
         is compressed, otherwise uses the memmap.

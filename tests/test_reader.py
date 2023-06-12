@@ -291,20 +291,6 @@ def test_compressed():
     assert np.array_equal(data[:, 100:104, 100:104], expected)
 
 
-def test_with_without_sdk(small_nd2s: Path):
-    with ND2File(small_nd2s, read_using_sdk=True) as withsdk:
-        ary1 = withsdk.asarray()
-        dsk1 = withsdk.to_dask()
-        np.testing.assert_array_equal(ary1, dsk1)
-
-    with ND2File(small_nd2s, read_using_sdk=False) as nosdk:
-        ary2 = nosdk.asarray()
-        dsk2 = nosdk.to_dask()
-        np.testing.assert_array_equal(ary2, dsk2)
-        if not nosdk.attributes.compressionType:
-            np.testing.assert_array_equal(ary1, ary2)
-
-
 def test_extra_width_bytes():
     expected = [
         [203, 195, 193, 197],
@@ -315,12 +301,6 @@ def test_extra_width_bytes():
 
     im = imread(str(DATA / "jonas_JJ1473_control_24h_JJ1473_control_24h_03.nd2"))
     np.testing.assert_array_equal(im[0, 0, :4, :4], expected)
-
-    im = imread(
-        str(DATA / "jonas_JJ1473_control_24h_JJ1473_control_24h_03.nd2"),
-        read_using_sdk=True,
-    )
-    assert np.array_equal(im[0, 0, :4, :4], expected)
 
 
 def test_recorded_data() -> None:

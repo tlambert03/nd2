@@ -2,27 +2,16 @@ import contextlib
 import re
 import struct
 import threading
-import warnings
 from pathlib import Path
-from typing import Any, BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
 from nd2.structures import (
     Attributes,
     ExpLoop,
-    _Loop,
-    LoopType,
-    PeriodDiff,
-    Position,
-    StagePosition,
     TextInfo,
-    TimeLoop,
-    TimeLoopParams,
-    XYPosLoop,
-    XYPosLoopParams,
-    ZStackLoop,
-    ZStackLoopParams,
+    _Loop,
 )
 
 from ._clx_xml import json_from_clx_variant
@@ -77,7 +66,15 @@ class LegacyND2Reader:
     def experiment(self) -> List[ExpLoop]:
         from ._pysdk._parse import load_exp_loop
 
-        loops = load_exp_loop(0, self._metadata)
+        if "LoopNo00" in self._metadata:
+            # old style:
+            loops = []
+            for i, (k, v) in enumerate(self._metadata.items()):
+                if k.startswith("Loop"):
+                    loops.extend(load_exp_loop(i, v))
+        else:
+            loops = load_exp_loop(0, self._metadata)
+
         return [_Loop.create(x) for x in loops]
 
         # exp = []
@@ -301,20 +298,6 @@ class LegacyND2Reader:
             **self._get_xml_dict(b"VIMD", index),
         }
 
-    def _scan_vimd(self):
-        zs = set()
-        xys = set()
-        ts = set()
-        cs = set()
-        for i in range(len(self._chunkmap[b"VIMD"])):
-            xml = self._get_xml_dict(b"VIMD", i)
-            ts.add(xml["TimeMSec"])
-            xys.add((xml["XPos"], xml["YPos"]))
-            for p in xml["PicturePlanes"]["Plane"].values():
-                cs.add(p["OpticalConfigName"])
-                zs.add(p["OpticalConfigFull"]["ZPosition0"])
-        return (zs, xys, ts, cs)
-
     def voxel_size(self) -> VoxelSize:
         z: Optional[float] = None
         d = self.text_info().get("description") or ""
@@ -327,16 +310,16 @@ class LegacyND2Reader:
                 if e.type == "ZStackLoop":
                     z = e.parameters.stepUm
                     break
-        xy = self._get_xml_dict(b"VIMD", 0).get("Calibration") or 1
+        xy = self._get_xml_dict(b"VIMD", 0, strip_variant=True).get("Calibration") or 1
         return VoxelSize(xy, xy, z or 1)
 
     def channel_names(self) -> List[str]:
         xml = self._get_xml_dict(b"VIMD", strip_variant=True)
         return [p["OpticalConfigName"] for p in xml["PicturePlanes"]["Plane"].values()]
 
-    def time_stamps(self) -> List[str]:
-        xml = self._get_xml_dict(b"VIMD", 0)
-        return [p["OpticalConfigName"] for p in xml["PicturePlanes"]["Plane"].values()]
+    # def time_stamps(self) -> List[str]:
+    #     xml = self._get_xml_dict(b"VIMD", strip_variant=True)
+    #     return [p["OpticalConfigName"] for p in xml["PicturePlanes"]["Plane"].values()]
 
     @cached_property
     def header(self) -> dict:
@@ -377,37 +360,3 @@ def legacy_nd2_chunkmap(fh: BinaryIO) -> Dict[bytes, List[int]]:
         else:
             d[lim_type].append(offset)
     return dict(d)
-
-
-# def jp2_chunkmap(fh: io.BufferedReader) -> Dict[bytes, List[Tuple[int, int]]]:
-#     """Retrieve chunk positions and shape from jpeg 2000 (legacy ND2) format
-
-#     https://www.file-recovery.com/jp2-signature-format.htm
-
-#     ISO/IEC 15444
-
-#     The JPEG 2000 file format specification was based on the QuickTime
-#     container format specification. A JPEG 2000 file is always big-endian.
-
-#     JPEG 2000 files consist of consecutive chunks. Each chunk has 8 byte header:
-#     4-byte chunk size (big-endian, high byte first) and 4-byte chunk type -
-#     one of pre-defined signatures: "jP " or "jP2 ".
-
-#     """
-#     out = DefaultDict(list)
-#     for box_type, pos, length in iter_jp2_chunks(fh):
-#         out[box_type].append((pos, length))
-#     return dict(out)
-
-
-# def iter_jp2_chunks(fh: io.BufferedReader) -> Iterator[Tuple[bytes, int, int]]:
-#     file_size = fh.seek(0, 2)
-#     fh.seek(0)
-#     pos = 0
-#     while True:
-#         length, box_type = I4s.unpack(fh.read(I4s.size))
-#         yield box_type, pos, length
-#         pos += length
-#         if pos >= file_size:
-#             break
-#         fh.seek(pos)  # jump to next box

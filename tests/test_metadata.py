@@ -13,6 +13,7 @@ with open("tests/samples_metadata.json") as f:
 
 @pytest.mark.parametrize("path", EXPECTED, ids=lambda x: f'{x}_{EXPECTED[x]["ver"]}')
 def test_metadata_integrity(path: str):
+    """Test that the current API matches the expected output for sample data."""
     target = Path("tests/data") / path
     name, stats = get_nd2_stats(target)
 

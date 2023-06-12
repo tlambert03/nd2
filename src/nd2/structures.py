@@ -125,6 +125,8 @@ class TimeLoop(_Loop):
     def __post_init__(self):
         # TODO: make superclass do this
         if isinstance(self.parameters, dict):
+            if "periodDiff" not in self.parameters:
+                self.parameters["periodDiff"] = None
             self.parameters = TimeLoopParams(**self.parameters)
 
 

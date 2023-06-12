@@ -10,7 +10,6 @@ import numpy as np
 from nd2.structures import (
     Attributes,
     ExpLoop,
-    TextInfo,
     _Loop,
 )
 
@@ -242,11 +241,14 @@ class LegacyND2Reader:
     # def sizes(self):
     #     attrs = cast(Attributes, self.attributes)
 
-    def text_info(self) -> TextInfo:
-        from ._pysdk._parse import load_text_info
-
-        d = self._get_xml_dict(b"TINF")
-        return load_text_info(d["TextInfo"]) if d else {}
+    def text_info(self) -> dict:
+        d = self._get_xml_dict(b"TINF", strip_variant=True)
+        for k, i in d.items():
+            if k.startswith("i0"):
+                txt = i.get("Text", "")
+                if txt.startswith("Metadata:"):
+                    return {"description": txt}
+        return {}
 
     @cached_property
     def _advanced_image_attributes(self) -> dict:

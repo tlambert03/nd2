@@ -74,7 +74,8 @@ def json_from_clx_variant(
         likely case where a scalar is returned.)
     """
     node = parser(bxml.split(b"?>", 1)[-1])  # strip xml header
-    name, val = _node_name_value(node, strip_prefix)
+    is_legacy = node.attrib.get("_VERSION") == "1.000000"
+    name, val = _node_name_value(node, strip_prefix, include_attrs=is_legacy)
 
     # the special case of a single <variant><no_name>...</no_name></variant>
     # this is mostly here for Attributes, Experiment, Metadata, and TextInfo
@@ -86,7 +87,7 @@ def json_from_clx_variant(
 
 
 def _node_name_value(
-    node: Element, strip_prefix: bool = False
+    node: Element, strip_prefix: bool = False, include_attrs: bool = False
 ) -> tuple[str, JsonValue]:
     """Return the name and value of an XML node.
 
@@ -110,9 +111,9 @@ def _node_name_value(
     if runtype in _XMLCAST:
         value: JsonValue = _XMLCAST[runtype](node.attrib["value"])
     else:
-        value = {}
+        value = dict(node.attrib) if include_attrs else {}
         for i, child in enumerate(node):
-            cname, cval = _node_name_value(child, strip_prefix)
+            cname, cval = _node_name_value(child, strip_prefix, include_attrs)
             # NOTE: "no_name" is the standard name for a list-type node
             # "BinaryItem" is a special case found in the BinaryMetadata_v1 tag...
             # without special handling, you would only get the last item in the list

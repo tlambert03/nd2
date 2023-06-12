@@ -237,7 +237,7 @@ class LegacyND2Reader:
 
     @cached_property
     def events(self) -> dict:
-        return self._get_xml_dict(b"IEVE")
+        return self._get_xml_dict(b"IEVE", strip_variant=True)
 
     # def sizes(self):
     #     attrs = cast(Attributes, self.attributes)
@@ -250,7 +250,9 @@ class LegacyND2Reader:
 
     @cached_property
     def _advanced_image_attributes(self) -> dict:
-        return self._get_xml_dict(b"ARTT").get("AdvancedImageAttributes", {})
+        return self._get_xml_dict(b"ARTT", strip_variant=True).get(
+            "AdvancedImageAttributes", {}
+        )
 
     @cached_property
     def _metadata(self) -> dict:
@@ -267,7 +269,7 @@ class LegacyND2Reader:
 
     @property
     def calibration(self) -> dict:
-        return self._get_xml_dict(b"ACAL")
+        return self._get_xml_dict(b"ACAL", strip_variant=True)
 
     def _read_chunk(self, pos) -> bytes:
         with self.lock:

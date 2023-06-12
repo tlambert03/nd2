@@ -27,7 +27,7 @@ def test_metadata_integrity(path: str):
         assert stats[key] == EXPECTED[name][key], f"{key} mismatch"
 
 
-def _clear_names(*exps: dict | list):
+def _clear_names(*exps):
     for exp in exps:
         for item in exp:
             if item["type"] == "XYPosLoop":

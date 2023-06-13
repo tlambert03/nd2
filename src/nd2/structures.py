@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import NamedTuple, Union
 
-from typing_extensions import Literal, TypedDict
+from typing_extensions import Literal, TypeAlias, TypedDict
 
 
 class TextInfo(TypedDict, total=False):
@@ -39,15 +39,8 @@ class LoopType(IntEnum):
     ManTimeLoop = 9
     ZStackLoopAccurate = 10
 
-    # old values
-    # NETimeLoop = 8
-    # XYPosLoop = 2
-    # ZStackLoop = 6
-    # TimeLoop = 1  # not sure about this
-    # Unknown = 4  # not sure about this
 
-
-AxisInterpretation = Literal["distance", "time"]
+AxisInterpretation: TypeAlias = Literal["distance", "time"]
 
 
 # tuples

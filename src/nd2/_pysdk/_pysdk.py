@@ -13,8 +13,8 @@ from nd2._clx_lite import json_from_clx_lite_variant
 from nd2._clx_xml import json_from_clx_variant
 from nd2._pysdk._chunk_decode import (
     _read_nd2_chunk,
+    get_chunkmap,
     get_version,
-    load_chunkmap,
 )
 from nd2._pysdk._parse import (
     load_attributes,
@@ -92,7 +92,7 @@ class ND2Reader:
         if not self._chunkmap:
             if self._fh is None:
                 raise OSError("File not open")
-            self._chunkmap = load_chunkmap(self._fh)
+            self._chunkmap = get_chunkmap(self._fh)
         return self._chunkmap
 
     @property

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import mmap
 import threading
 import warnings
@@ -20,7 +19,6 @@ from typing import (
 
 import numpy as np
 
-from ._nd2decode import decode_metadata, unnest_experiments
 from ._util import AXIS, VoxelSize, get_reader, is_supported_file
 from .structures import (
     ROI,
@@ -202,35 +200,15 @@ class ND2File:
     @cached_property
     def experiment(self) -> list[ExpLoop]:
         """Loop information for each nd axis."""
-        exp = self._rdr.experiment()
-
-        # https://github.com/tlambert03/nd2/issues/78
-        # the SDK doesn't always do a good job of pulling position names from metadata
-        # here, we try to extract it manually.  Might be error prone, so currently
-        # we just ignore errors.
-        if not self.is_legacy and IMG_METADATA in self._rdr._meta_map:  # type: ignore
-            for n, item in enumerate(exp):
-                if isinstance(item, XYPosLoop):
-                    names = {
-                        tuple(p.stagePositionUm): p.name for p in item.parameters.points
-                    }
-                    if not any(names.values()):
-                        _exp = self.unstructured_metadata(
-                            include={IMG_METADATA}, unnest=True
-                        )[IMG_METADATA]
-                        if n >= len(_exp):
-                            continue
-                        with contextlib.suppress(Exception):
-                            _fix_names(_exp[n], item.parameters.points)
-        return exp
+        return self._rdr.experiment()
 
     def unstructured_metadata(
         self,
         *,
-        unnest: bool = False,
         strip_prefix: bool = True,
         include: set[str] | None = None,
         exclude: set[str] | None = None,
+        unnest: bool | None = None,
     ) -> dict[str, Any]:
         """Exposes, and attempts to decode, each metadata chunk in the file.
 
@@ -246,10 +224,6 @@ class ND2File:
 
         Parameters
         ----------
-        unnest : bool, optional
-            If `True` the nested `NextLevelEx` keys of each Experiment loop level will
-            be flattened into a list, and the return type will be `list`. by default
-            `False`.
         strip_prefix : bool, optional
             Whether to strip the type information from the front of the keys in the
             dict. For example, if `True`: `uiModeFQ` becomes `ModeFQ` and `bUsePFS`
@@ -259,6 +233,8 @@ class ND2File:
             all metadata sections found in the file are included.
         exclude : Optional[Set[str]], optional
             If provided, exclude the specified keys from the output. by default `None`
+        unnest : bool, optional
+            DEPRECATED.  No longer does anything.
 
         Returns
         -------
@@ -270,6 +246,13 @@ class ND2File:
         if self.is_legacy:
             raise NotImplementedError(
                 "unstructured_metadata not available for legacy files"
+            )
+        from ._clx_lite import json_from_clx_lite_variant
+
+        if unnest is not None:
+            warnings.warn(
+                "The unnest parameter is deprecated, and no longer has any effect.",
+                stacklevel=2,
             )
 
         output: dict[str, Any] = {}
@@ -294,9 +277,9 @@ class ND2File:
                     # probably xml
                     decoded: Any = meta.decode("utf-8")
                 else:
-                    decoded = decode_metadata(meta, strip_prefix=strip_prefix)
-                    if key == IMG_METADATA and unnest:
-                        decoded = unnest_experiments(decoded)
+                    decoded = json_from_clx_lite_variant(
+                        meta, strip_prefix=strip_prefix
+                    )
             except Exception:
                 decoded = meta
 

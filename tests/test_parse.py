@@ -1,11 +1,23 @@
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 from nd2._pysdk._pysdk import ND2Reader
 
-TESTS = Path(__file__).parent
-READLIM_OUTPUT = json.loads((TESTS / "readlim_output.json").read_text())
+
+@lru_cache(maxsize=None)
+def readlim_output():
+    TESTS = Path(__file__).parent
+    return json.loads((TESTS / "readlim_output.json").read_text())
+
+
+def test_parse_raw_metadata(new_nd2: Path):
+    expected = readlim_output()
+    with ND2Reader(new_nd2) as f:
+        meta = f._raw_meta()
+        lim_meta = expected[new_nd2.name]["raw_metadata"]
+        _assert_lim_close_enough(meta, lim_meta)
 
 
 def _assert_lim_close_enough(a: Any, lim_data: Any, key=()):
@@ -51,10 +63,3 @@ def _assert_lim_close_enough(a: Any, lim_data: Any, key=()):
             # TODO talk to lim folks about this
             return
         raise AssertionError(f"in key={key}: {a} != {lim_data}")
-
-
-def test_parse_raw_metadata(new_nd2: Path):
-    with ND2Reader(new_nd2) as f:
-        meta = f._raw_meta()
-        lim_meta = READLIM_OUTPUT[new_nd2.name]["raw_metadata"]
-        _assert_lim_close_enough(meta, lim_meta)

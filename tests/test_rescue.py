@@ -26,6 +26,20 @@ def test_rescue(broken_nd2, single_nd2, capsys):
     # TODO: we could potentially put more of this logic into convenience functions
     # we can't do too much magic about guessing shape and dtype since some files
     # may not have that information intact
+    from nd2._pysdk._chunk_decode import get_chunkmap
+
+    with pytest.raises(ValueError, match="appears to be corrupt. Expected "):
+        with open(broken_nd2, "rb") as f2:
+            cm2 = get_chunkmap(f2)
+
+    with pytest.raises(ValueError, match="Also looked in the surrounding 1000 bytes"):
+        with open(broken_nd2, "rb") as f2:
+            cm2 = get_chunkmap(f2, error_radius=1000)
+
+    with open(single_nd2, "rb") as f1, open(broken_nd2, "rb") as f2:
+        cm1 = get_chunkmap(f1)
+        cm2 = get_chunkmap(f2, error_radius=100_000)
+    assert cm1 == cm2
 
     frame_shape = (32, 32, 2, 1)
     final_shape = (3, 2, 32, 32)
@@ -40,7 +54,6 @@ def test_rescue(broken_nd2, single_nd2, capsys):
     # test that broken file is the same as the real file
     np.testing.assert_array_equal(real_read, raw_read)
 
-    #
     crop = raw_read[:2, :2, 10:12, 10:12].flatten()
     expect = [99, 98, 102, 100, 99, 96, 97, 98, 100, 99, 100, 100, 94, 99, 98, 98]
     np.testing.assert_array_equal(crop, expect)

@@ -12,9 +12,9 @@ from nd2 import structures
 from nd2._clx_lite import json_from_clx_lite_variant
 from nd2._clx_xml import json_from_clx_variant
 from nd2._pysdk._chunk_decode import (
-    _read_nd2_chunk,
     get_chunkmap,
     get_version,
+    read_nd2_chunk,
 )
 from nd2._pysdk._parse import (
     load_attributes,
@@ -126,7 +126,7 @@ class ND2Reader:
             raise OSError("File not open")
         offset, _ = self.chunkmap[name]
         # TODO: there's a possibility of speed up here since we're rereading the header
-        return _read_nd2_chunk(self._fh, offset)
+        return read_nd2_chunk(self._fh, offset)
 
     def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict:
         data = self._load_chunk(name)

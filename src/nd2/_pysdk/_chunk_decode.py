@@ -25,9 +25,12 @@ if TYPE_CHECKING:
     # }
 
 # fmt: off
+# this appears at the beginning of the file, as the "name" in the StartFileChunk
 ND2_FILE_SIGNATURE:     Final = b"ND2 FILE SIGNATURE CHUNK NAME01!"  # len 32
-ND2_FILEMAP_SIGNATURE:  Final = b"ND2 FILEMAP SIGNATURE NAME 0001!"
+# should appear at the very end of the file
 ND2_CHUNKMAP_SIGNATURE: Final = b"ND2 CHUNK MAP SIGNATURE 0000001!"
+# should be the name at the beginning of the chunkmap section
+ND2_FILEMAP_SIGNATURE:  Final = b"ND2 FILEMAP SIGNATURE NAME 0001!"
 CHUNK_ALIGNMENT:        Final = 4096
 CHUNK_NAME_RESERVE:     Final = 20
 ND2_CHUNK_MAGIC:        Final = 0x0ABECEDA
@@ -44,13 +47,16 @@ CHUNK_HEADER = struct.Struct("IIQ")
 # uint32_t nameLen
 # uint64_t dataLen
 
+# magic    nameLen  <-   dataLen   ->
+# DACEBE0A 20100000 D00F0000 00000000
+
 START_FILE_CHUNK = struct.Struct(f"{CHUNK_HEADER.format}32s64s")
 # ChunkHeader header
 # char name[32]
 # char data[64]
 
 SIG_CHUNKMAP_LOC = struct.Struct("32sQ")
-# the last 40 bytes of the file, containing the signature and locatio of chunkmap
+# the last 40 bytes of the file, containing the signature and location of chunkmap
 # char name[32]
 # uint64_t offset
 
@@ -95,7 +101,7 @@ def get_version(fh: BufferedReader | StrOrBytesPath) -> tuple[int, int]:
     return (int(chr(data[3])), int(chr(data[5])))
 
 
-def get_chunkmap(fh: BufferedReader) -> ChunkMap:
+def get_chunkmap(fh: BufferedReader, error_radius: int | None = None) -> ChunkMap:
     """Read the map of the chunks at the end of an ND2 file.
 
     A Chunkmap is mapping of chunk names (bytes) to (offset, size) pairs.
@@ -113,6 +119,10 @@ def get_chunkmap(fh: BufferedReader) -> ChunkMap:
     ----------
     fh : BufferedReader
         An open nd2 file.  File is assumed to be a valid ND2 file.  (use `get_version`)
+    error_radius : int, optional
+        If b"ND2 FILEMAP SIGNATURE NAME 0001!" is not found at expected location and
+        `error_radius` is not None, then an area of +/- `error_radius` bytes will be
+        searched for the signature.
 
     Returns
     -------
@@ -124,14 +134,17 @@ def get_chunkmap(fh: BufferedReader) -> ChunkMap:
     ValueError
         If the file is not a valid ND2 file or the chunkmap is corrupt.
     """
+    # the last (32,8) bytes of the file contain the (signature, location) of chunkmap
     fh.seek(-40, 2)
-    sig, chunkmap_location = SIG_CHUNKMAP_LOC.unpack(fh.read(SIG_CHUNKMAP_LOC.size))
+    sig, location = SIG_CHUNKMAP_LOC.unpack(fh.read(SIG_CHUNKMAP_LOC.size))
     if sig != ND2_CHUNKMAP_SIGNATURE:
         raise ValueError(f"Invalid ChunkMap signature {sig!r} in file {fh.name!r}")
 
-    # then we get all of the data in the chunkmap
-    # this asserts that the chunkmap begins with CHUNK_MAGIC
-    chunkmap_data = _read_nd2_chunk(fh, chunkmap_location)
+    # get all of the data in the chunkmap
+    chunkmap_data = _robustly_read_named_chunk(
+        fh, location, search_radius=error_radius, expect_name=ND2_FILEMAP_SIGNATURE
+    )
+
     current_position = 0
     chunk_map: ChunkMap = {}
     while True:
@@ -157,11 +170,12 @@ def get_chunkmap(fh: BufferedReader) -> ChunkMap:
     return chunk_map
 
 
-def _read_nd2_chunk(fh: BufferedReader, start_position: int) -> bytes:
+def read_nd2_chunk(
+    fh: BufferedReader, start_position: int, expect_name: bytes | None = None
+) -> bytes:
     """Read a single chunk in an ND2 file at `start_position`.
 
-    chunk rules:
-    - each data chunk starts with
+    Each data chunk starts with:
       - 4 bytes: CHUNK_MAGIC -> 0x0ABECEDA (big endian: 0xDACEBE0A)
       - 4 bytes: length of the chunk header (this section contains the chunk name...)
       - 8 bytes: length of chunk following the header, up to the next CHUNK_MAGIC
@@ -172,6 +186,8 @@ def _read_nd2_chunk(fh: BufferedReader, start_position: int) -> bytes:
         An open nd2 file.  File is assumed to be a valid ND2 file.  (use `get_version`)
     start_position : int
         The position in the file to start reading the chunk.
+    expect_name : bytes | None
+        If not None, the chunk name must match this value.
 
     Returns
     -------
@@ -181,13 +197,69 @@ def _read_nd2_chunk(fh: BufferedReader, start_position: int) -> bytes:
     Raises
     ------
     ValueError
-        If the file is not a valid ND2 file or the chunk is corrupt.
+        If the first 4 bytes are not 0x0ABECEDA or if `expect_name` is provided and
+        the chunk name does not match.
     """
     fh.seek(start_position)
-
     magic, name_length, data_length = CHUNK_HEADER.unpack(fh.read(CHUNK_HEADER.size))
     if magic != ND2_CHUNK_MAGIC:
         raise ValueError(f"Invalid chunk header magic: {magic:x}")
-
-    fh.seek(name_length, 1)  # seek over name_length
+    if expect_name is None:
+        fh.seek(name_length, 1)  # seek over name_length
+    else:
+        name = fh.read(name_length)
+        if not name.startswith(expect_name):
+            _name = name.decode("utf-8", "replace").replace("\x00", "")
+            raise ValueError(
+                f"Expected chunk name {expect_name!r} at {start_position}"
+                f" but found {_name!r}"
+            )
     return fh.read(data_length)  # then read data_length bytes
+
+
+def _robustly_read_named_chunk(
+    fh: BufferedReader,
+    start_position: int,
+    expect_name: bytes = ND2_FILEMAP_SIGNATURE,
+    search_radius: int | None = None,
+) -> bytes:
+    """Read nd2 chunk at start_position ND2 file, with error robustness.
+
+    Same logic as _read_nd2_chunk, but allows for a search radius around the
+    expected location of the chunkmap if a chunk named `expect_name` is not found at
+    the expected location.
+
+    Parameters
+    ----------
+    fh : BufferedReader
+        An open nd2 file.  File is assumed to be a valid ND2 file.
+    start_position : int
+        The position in the file to start reading the chunk.
+    expect_name : bytes
+        The name of the chunk to expect at `start_position` + 16 bytes.
+    search_radius : int | None
+        If not None, and `expect_name` is not found at `start_position` + 16 bytes,
+        search for `expect_name` in the surrounding `search_radius` bytes.
+    """
+    try:
+        return read_nd2_chunk(fh, start_position, expect_name=expect_name)
+    except ValueError as e:
+        err_msg = (
+            f"File {fh.name!r} appears to be corrupt. Expected "
+            f"{expect_name!r} at position "
+            f"{start_position} but did not find it."
+        )
+        if search_radius is not None:
+            # if we didn't find the expect_name name, look in surrounding area
+            new_start = start_position - search_radius
+            fh.seek(new_start)
+            data = fh.read(search_radius * 2)
+            try:
+                idx = data.index(expect_name)
+            except ValueError:
+                err_msg += f" (Also looked in the surrounding {search_radius} bytes)"
+            else:
+                fixed_position = new_start + idx - CHUNK_HEADER.size
+                return read_nd2_chunk(fh, fixed_position)
+
+        raise ValueError(err_msg) from e

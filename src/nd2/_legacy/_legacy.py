@@ -3,7 +3,7 @@ import re
 import struct
 import threading
 from pathlib import Path
-from typing import BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import Any, BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -50,7 +50,7 @@ class LegacyND2Reader:
         self.open()
         return self
 
-    def __exit__(self, *_) -> None:
+    def __exit__(self, *_: Any) -> None:
         self.close()
 
     @cached_property
@@ -187,7 +187,7 @@ class LegacyND2Reader:
             channelCount=nC,
         )
 
-    def _get_xml_dict(self, key: bytes, index=0) -> dict:
+    def _get_xml_dict(self, key: bytes, index: int = 0) -> dict:
         try:
             bxml = self._read_chunk(self._chunkmap[key][index])
             return parse_xml_block(bxml)
@@ -234,7 +234,7 @@ class LegacyND2Reader:
     def calibration(self) -> dict:
         return self._get_xml_dict(b"ACAL")
 
-    def _read_chunk(self, pos) -> bytes:
+    def _read_chunk(self, pos: int) -> bytes:
         with self.lock:
             self._fh.seek(pos)
             length, box_type = I4s.unpack(self._fh.read(I4s.size))
@@ -262,20 +262,6 @@ class LegacyND2Reader:
             **self._get_xml_dict(b"VCAL", index),
             **self._get_xml_dict(b"VIMD", index),
         }
-
-    def _scan_vimd(self):
-        zs = set()
-        xys = set()
-        ts = set()
-        cs = set()
-        for i in range(len(self._chunkmap[b"VIMD"])):
-            xml = self._get_xml_dict(b"VIMD", i)
-            ts.add(xml["TimeMSec"])
-            xys.add((xml["XPos"], xml["YPos"]))
-            for p in xml["PicturePlanes"]["Plane"].values():
-                cs.add(p["OpticalConfigName"])
-                zs.add(p["OpticalConfigFull"]["ZPosition0"])
-        return (zs, xys, ts, cs)
 
     def voxel_size(self) -> VoxelSize:
         z: Optional[float] = None
@@ -344,7 +330,7 @@ def legacy_nd2_chunkmap(fh: BinaryIO) -> Dict[bytes, List[int]]:
 DIMSIZE = re.compile(r"(\w+)'?\((\d+)\)")
 
 
-def _dims_from_description(desc) -> dict:
+def _dims_from_description(desc: str | None) -> dict:
     if not desc:
         return {}
     match = re.search(r"Dimensions:\s?([^\r]+)\r?\n", desc)

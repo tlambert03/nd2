@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from datetime import datetime
 from typing import IO, TYPE_CHECKING, Any, Callable, NamedTuple, Union
@@ -17,8 +19,8 @@ VERSION = re.compile(r"^ND2 FILE SIGNATURE CHUNK NAME01!Ver([\d\.]+)$")
 
 
 def is_supported_file(
-    path: "StrOrBytesPath", open_: Callable[["StrOrBytesPath", str], IO[Any]] = open
-):
+    path: StrOrBytesPath, open_: Callable[[StrOrBytesPath, str], IO[Any]] = open
+) -> bool:
     """Return `True` if `path` can be opened as an nd2 file.
 
     Parameters
@@ -37,7 +39,7 @@ def is_supported_file(
         return fh.read(4) in (NEW_HEADER_MAGIC, OLD_HEADER_MAGIC)
 
 
-def is_legacy(path: "StrOrBytesPath") -> bool:
+def is_legacy(path: StrOrBytesPath) -> bool:
     """Return `True` if `path` is a legacy ND2 file.
 
     Parameters
@@ -58,7 +60,7 @@ def get_reader(
     path: str,
     validate_frames: bool = False,
     search_window: int = 100,
-) -> Union["ND2Reader", "LegacyND2Reader"]:
+) -> ND2Reader | LegacyND2Reader:
     with open(path, "rb") as fh:
         magic_num = fh.read(4)
         if magic_num == NEW_HEADER_MAGIC:

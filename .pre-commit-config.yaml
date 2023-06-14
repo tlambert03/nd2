@@ -42,4 +42,4 @@ repos:
       - id: mypy
         files: "^src/"
         exclude: scripts
-        additional_dependencies: [numpy]
+        additional_dependencies: [numpy, lxml-stubs]

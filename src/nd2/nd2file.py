@@ -469,7 +469,7 @@ class ND2File:
 
         chunks = [(1,) * x for x in self._coord_shape]
         chunks += [(x,) for x in self._frame_shape]
-        dask_arr = map_blocks(  # type: ignore
+        dask_arr = map_blocks(
             self._dask_block,
             copy=copy,
             chunks=chunks,
@@ -480,8 +480,8 @@ class ND2File:
 
             # this subtype allows the dask array to re-open the underlying
             # nd2 file on compute.
-            return ResourceBackedDaskArray.from_array(dask_arr, self)  # type: ignore
-        return dask_arr  # type: ignore
+            return ResourceBackedDaskArray.from_array(dask_arr, self)
+        return dask_arr
 
     _NO_IDX = -1
 
@@ -552,9 +552,9 @@ class ND2File:
         if not squeeze:
             for missing_dim in set(coords).difference(dims):
                 dims.insert(0, missing_dim)
-            missing_axes = len(dims) - data.ndim  # type: ignore
+            missing_axes = len(dims) - data.ndim
             if missing_axes > 0:
-                data = data[(np.newaxis,) * missing_axes]  # type: ignore
+                data = data[(np.newaxis,) * missing_axes]
 
         if position is not None and not delayed and AXIS.POSITION in coords:
             # if it's delayed, we do this using isel below instead.

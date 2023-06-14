@@ -83,7 +83,7 @@ class ND2Reader:
             self._mmap.close()
             self._mmap = None
 
-    def __enter__(self):
+    def __enter__(self) -> ND2Reader:
         self.open()
         return self
 
@@ -320,7 +320,7 @@ class ND2Reader:
     def _bytes_per_pixel(self) -> int:
         return self.attributes.bitsPerComponentInMemory // 8
 
-    def _dtype(self):
+    def _dtype(self) -> np.dtype:
         if self._dtype_ is None:
             a = self.attributes
             d = a.pixelDataType[0] if a.pixelDataType else "u"
@@ -350,11 +350,11 @@ class ND2Reader:
                     )
         return self._strides_
 
-    def _actual_frame_shape(self):
+    def _actual_frame_shape(self) -> tuple[int, ...]:
         attr = self.attributes
         return (
             attr.heightPx,
-            attr.widthPx,
+            attr.widthPx or 1,
             attr.channelCount or 1,
             attr.componentCount // (attr.channelCount or 1),
         )
@@ -406,11 +406,11 @@ class ND2Reader:
 
     # TODO: merge with decode_chunk
     def _decoded_custom_data_chunk(
-        self, key: bytes, default: Any = None, strip_prefix: bool = False
+        self, key: bytes, strip_prefix: bool = False
     ) -> dict:
         k = b"CustomDataVar|" + key
         if k not in self.chunkmap:
-            return default
+            return {}
 
         bytes_ = self._load_chunk(k)
         return cast("dict", json_from_clx_variant(bytes_, strip_prefix=strip_prefix))
@@ -427,7 +427,7 @@ class ND2Reader:
 
         Legacy ND2 files are not supported.
         """
-        cd = self._decoded_custom_data_chunk(b"CustomDataV2_0!", {})
+        cd = self._decoded_custom_data_chunk(b"CustomDataV2_0!")
         if not cd:
             return {}
 
@@ -457,11 +457,13 @@ class ND2Reader:
             if not z_loop.parameters.bottomToTop:
                 z_positions = list(reversed(z_positions))
 
-            def _seq_z_pos(seq_index: int, z_idx=i, z_positions=z_positions) -> float:
+            def _seq_z_pos(
+                seq_index: int, z_idx: int = i, _zp: list[float] = z_positions
+            ) -> float:
                 """Convert a sequence index to a coordinate tuple."""
                 for n, _loop in enumerate(experiment):
                     if n == z_idx:
-                        return z_positions[seq_index % _loop.count]
+                        return _zp[seq_index % _loop.count]
                     seq_index //= _loop.count
                 raise ValueError("Invalid sequence index or z_idx")
 

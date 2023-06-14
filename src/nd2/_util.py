@@ -86,15 +86,15 @@ def is_new_format(path: str) -> bool:
         return fh.read(4) == NEW_HEADER_MAGIC
 
 
-def jdn_to_datetime_local(jdn):
+def jdn_to_datetime_local(jdn: float) -> datetime:
     return datetime.fromtimestamp((jdn - 2440587.5) * 86400.0)
 
 
-def jdn_to_datetime_utc(jdn):
+def jdn_to_datetime_utc(jdn: float) -> datetime:
     return datetime.utcfromtimestamp((jdn - 2440587.5) * 86400.0)
 
 
-def rgb_int_to_tuple(rgb):
+def rgb_int_to_tuple(rgb: int) -> tuple[int, int, int]:
     return ((rgb & 255), (rgb >> 8 & 255), (rgb >> 16 & 255))
 
 

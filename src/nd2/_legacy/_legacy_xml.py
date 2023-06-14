@@ -5,23 +5,25 @@ Todo:
 all of this logic is duplicated in _clx_xml.py.
 _legacy.py just needs some slight updates to deal with different parsing results.
 """
+from __future__ import annotations
+
 import re
 from functools import partial
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable
 
 try:
     from lxml import etree
 except ImportError:
-    import xml.etree.ElementTree as etree
+    import xml.etree.ElementTree as etree  # type: ignore
 
 
-def parse_xml_block(bxml: bytes) -> Dict[str, Any]:
+def parse_xml_block(bxml: bytes) -> dict[str, Any]:
     node = etree.XML(bxml.split(b"?>", 1)[-1])
-    return elem2dict(node)
+    return elem2dict(node)  # type: ignore
 
 
 lower = re.compile("^[a-z_]+")
-_TYPEMAP: Dict[Optional[str], Callable] = {
+_TYPEMAP: dict[str | bytes | None, Callable] = {
     "bool": bool,
     "lx_uint32": int,
     "lx_uint64": int,
@@ -35,9 +37,9 @@ _TYPEMAP: Dict[Optional[str], Callable] = {
 }
 
 
-def elem2dict(node: "etree._Element") -> Dict[str, Any]:
+def elem2dict(node: etree._Element) -> Any:
     """Convert an lxml.etree node tree into a dict."""
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
 
     if "value" in node.attrib:
         type_ = _TYPEMAP[node.attrib.get("runtype")]
@@ -47,9 +49,9 @@ def elem2dict(node: "etree._Element") -> Dict[str, Any]:
             return node.attrib["value"]
 
     attrs = node.attrib
-    attrs.pop("runtype", None)
-    attrs.pop("version", None)
-    result.update(node.attrib)
+    attrs.pop("runtype", "")
+    attrs.pop("version", "")
+    result.update(node.attrib)  # type: ignore
 
     # [<Element CustomTagDescription_v1.0 at 0x12a29ac40>]
     for element in node:
@@ -60,7 +62,7 @@ def elem2dict(node: "etree._Element") -> Dict[str, Any]:
         # Process element as tree element if the inner XML contains non-whitespace
         # content
         if element.text and element.text.strip():
-            value = element.text
+            value: str | dict = element.text
         else:
             value = elem2dict(element)
         if key in result:

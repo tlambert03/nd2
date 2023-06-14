@@ -34,19 +34,19 @@ def _unpack_bool(stream: io.BytesIO) -> bool:
 
 
 def _unpack_int32(stream: io.BytesIO) -> int:
-    return strcti.unpack(stream.read(strcti.size))[0]
+    return int(strcti.unpack(stream.read(strcti.size))[0])
 
 
 def _unpack_uint32(stream: io.BytesIO) -> int:
-    return strctI.unpack(stream.read(strctI.size))[0]
+    return int(strctI.unpack(stream.read(strctI.size))[0])
 
 
 def _unpack_int64(stream: io.BytesIO) -> int:
-    return strctq.unpack(stream.read(strctq.size))[0]
+    return int(strctq.unpack(stream.read(strctq.size))[0])
 
 
 def _unpack_uint64(stream: io.BytesIO) -> int:
-    return strctQ.unpack(stream.read(strctQ.size))[0]
+    return int(strctQ.unpack(stream.read(strctQ.size))[0])
 
 
 def _unpack_double(stream: io.BytesIO) -> float:
@@ -55,7 +55,7 @@ def _unpack_double(stream: io.BytesIO) -> float:
 
 def _unpack_void_pointer(stream: io.BytesIO) -> int:
     # TODO: i think nd2 will actually return a encodeBase64 string
-    return strctQ.unpack(stream.read(strctQ.size))[0]
+    return strctQ.unpack(stream.read(strctQ.size))[0]  # type: ignore
 
 
 def _unpack_string(data: io.BytesIO) -> str:

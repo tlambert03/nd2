@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import asdict
-from enum import IntEnum
 from struct import Struct
 from typing import TYPE_CHECKING, Iterable, Sequence, cast
 
@@ -33,99 +32,22 @@ from nd2.structures import (
     ZStackLoopParams,
 )
 
-if TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+from ._sdk_types import ELxModalityMask
 
+if TYPE_CHECKING:
     from nd2.structures import AxisInterpretation, ExpLoop, LoopParams
 
-    CompressionType = Literal["lossless", "lossy", "none"]
-
-    class RawMetaDict(TypedDict, total=False):
-        ePictureXAxis: int
-        ePictureYAxis: int
-        bCalibrated: bool
-        dCalibration: float
-        dStgLgCT11: float
-        dStgLgCT12: float
-        dStgLgCT21: float
-        dStgLgCT22: float
-        dObjectiveMag: float
-        dProjectiveMag: float
-        dPinholeRadius: float
-        dObjectiveNA: float
-        dZoom: float
-        dRefractIndex1: float
-        dRefractIndex2: float
-        wsObjectiveName: str
-        dXPos: float
-        dYPos: float
-        dZPos: float
-        dTimeMSec: float
-        dTimeAbsolute: float
-        sPicturePlanes: PicturePlanesDict
-
-    class PicturePlanesDict(TypedDict, total=False):
-        eRepresentation: int
-        sDescription: str
-        # only one of these two Plane keys will likely be present
-        sPlane: dict[str, PlaneDict]
-        sPlaneNew: dict[str, PlaneDict]
-        sSampleSetting: dict[str, dict]
-        uiCompCount: int
-        uiCount: int
-        uiSampleCount: int
-
-    class PlaneDict(TypedDict, total=False):
-        uiCompCount: int
-        uiSampleIndex: int
-        uiModalityMask: int
-        pFluorescentProbe: FluorescentProbeDict
-        pFilterPath: dict
-        dLampVoltage: float
-        dFadingCorr: float
-        uiColor: int
-        sDescription: str
-        dAcqTime: float
-        dPinholeDiameter: float
-        iChannelSeriesIndex: int
-        dObjCalibration1to1: float
-        # 'sizeObjFullChip.cx': int
-        # 'sizeObjFullChip.cy': int
-
-    class FluorescentProbeDict(TypedDict, total=False):
-        m_sName: str
-        m_uiColor: int
-        m_ExcitationSpectrum: SpectrumDict
-        m_EmissionSpectrum: SpectrumDict
-
-    class SpectrumDict(TypedDict, total=False):
-        uiCount: int
-        # pPoint keys are likely strings of the form 'Point0', 'Point1', ...
-        pPoint: dict[str, SpectrumPointDict]
-        bPoints: bool
-
-    class SpectrumPointDict(TypedDict, total=False):
-        eType: int
-        # eSptInvalid = 0,
-        # eSptPoint = 1,
-        # eSptRaisingEdge = 2,
-        # eSptFallingEdge = 3,
-        # eSptPeak = 4,
-        # eSptRange = 5
-        dWavelength: float  # this is usually the one with the value
-        uiWavelength: int
-        dTValue: float
-
-    class ContentsDict(TypedDict):
-        frameCount: int
-
-    class GlobalMetadata(TypedDict):
-        contents: ContentsDict
-        loops: dict
-        microscope: dict
-        position: dict
-        time: dict
-        volume: dict
+    from ._sdk_types import (
+        CompressionType,
+        FilterDict,
+        FluorescentProbeDict,
+        GlobalMetadata,
+        PicturePlanesDict,
+        PlaneDict,
+        RawAttributesDict,
+        RawMetaDict,
+        SpectrumDict,
+    )
 
 
 strctd = Struct("d")
@@ -363,34 +285,34 @@ def _load_single_exp_loop(exp: dict) -> dict:
     return {"type": loop_type, "count": count, "parameters": params}
 
 
-def load_attributes(src: dict, channel_count: int) -> Attributes:
+def load_attributes(raw_attrs: RawAttributesDict, channel_count: int) -> Attributes:
     """Parse the ImageAttributes[LV]! portion of an nd2 file."""
-    bpc = src["uiBpcInMemory"]
-    _ecomp: int = src.get("eCompression", 2)
+    bpc = raw_attrs["uiBpcInMemory"]
+    _ecomp: int = raw_attrs.get("eCompression", 2)
     comp_type: CompressionType | None
     if 0 <= _ecomp < 2:
         comp_type = cast("CompressionType", ["lossless", "lossy", "none"][_ecomp])
-        comp_level = src.get("dCompressionParam")
+        comp_level = raw_attrs.get("dCompressionParam")
     else:
         comp_type = None
         comp_level = None
 
-    tile_width = src.get("uiTileWidth", 0)
-    tile_height = src.get("uiTileHeight", 0)
-    if (tile_width <= 0 or tile_width == src["uiWidth"]) and (
-        tile_height <= 0 or tile_height == src["uiHeight"]
+    tile_width: int = raw_attrs.get("uiTileWidth", 0)
+    tile_height = raw_attrs.get("uiTileHeight", 0)
+    if (tile_width <= 0 or tile_width == raw_attrs["uiWidth"]) and (
+        tile_height <= 0 or tile_height == raw_attrs["uiHeight"]
     ):
-        tile_width = tile_height = None
+        tile_width = tile_height = None  # type: ignore
 
     return Attributes(
         bitsPerComponentInMemory=bpc,
-        bitsPerComponentSignificant=src["uiBpcSignificant"],
-        componentCount=src["uiComp"],
-        heightPx=src["uiHeight"],
+        bitsPerComponentSignificant=raw_attrs["uiBpcSignificant"],
+        componentCount=raw_attrs["uiComp"],
+        heightPx=raw_attrs["uiHeight"],
         pixelDataType="float" if bpc == 32 else "unsigned",
-        sequenceCount=src["uiSequenceCount"],
-        widthBytes=src["uiWidthBytes"],
-        widthPx=src["uiWidth"],
+        sequenceCount=raw_attrs["uiSequenceCount"],
+        widthBytes=raw_attrs["uiWidthBytes"],
+        widthPx=raw_attrs["uiWidth"],
         compressionLevel=comp_level,
         compressionType=comp_type,
         tileHeightPx=tile_height,
@@ -403,20 +325,13 @@ RGB_COLORS: tuple[float, float, float] = (420.0, 515.0, 590.0)
 
 
 def _get_excitation(
-    probe: FluorescentProbeDict, filter_: dict, plane: PlaneDict, compIndex: int
+    probe: FluorescentProbeDict, filter_: FilterDict, plane: PlaneDict, compIndex: int
 ) -> float:
     """Get the excitation wavelength from the probe or filter."""
     if probe:
         excitation = _get_spectrum_max(probe.get("m_ExcitationSpectrum", {}))
     if not excitation and filter_:
-        fspectrum: SpectrumDict = next(
-            (
-                v["m_ExcitationSpectrum"]
-                for v in filter_.values()
-                if "m_ExcitationSpectrum" in v
-            ),
-            {},
-        )
+        fspectrum = filter_.get("m_ExcitationSpectrum", {})
         ppoint = fspectrum.get("pPoint", {})
         if fspectrum.get("uiCount", 0) > 1 and all(
             i.get("eType") == 4 for i in ppoint.values()
@@ -430,7 +345,7 @@ def _get_excitation(
 
 
 def _get_emission(
-    probe: FluorescentProbeDict, filter_: dict, plane: PlaneDict, compIndex: int
+    probe: FluorescentProbeDict, filter_: FilterDict, plane: PlaneDict, compIndex: int
 ) -> float:
     """Get the emission wavelength from the probe or filter."""
     if plane.get("uiCompCount") == 3:
@@ -439,18 +354,16 @@ def _get_emission(
     if probe:
         emission = _get_spectrum_max(probe.get("m_EmissionSpectrum", {}))
     if not emission and filter_:
-        for v in filter_.values():
-            emission = _get_spectrum_max(v.get("m_EmissionSpectrum", {}))
-            if emission:
-                break
+        emission = _get_spectrum_max(filter_.get("m_EmissionSpectrum", {}))
     return emission
 
 
 def _read_wavelengths(plane: PlaneDict, compIndex: int) -> tuple[float, float]:
     probe: FluorescentProbeDict = plane.get("pFluorescentProbe", {})
-    filter_: dict = plane.get("pFilterPath", {}).get("m_pFilter", {})
-    while isinstance(filter_, list):
-        filter_ = filter_[0] if filter_ else {}
+    filters: dict = plane.get("pFilterPath", {}).get("m_pFilter", {})
+
+    # FIXME: always taking the first value?
+    filter_: FilterDict = next(iter(filters.values()), {})
 
     excitation = _get_excitation(probe, filter_, plane, compIndex)
     emission = _get_emission(probe, filter_, plane, compIndex)
@@ -612,10 +525,10 @@ def load_metadata(raw_meta: RawMetaDict, global_meta: GlobalMetadata) -> Metadat
         mask = plane.get("uiModalityMask", None)
         if mask is None:
             modality = plane.get("eModality", None)
-            mask = _MODALITY_MASK_MAP.get(
-                modality, ELxModalityMask.fluorescence | ELxModalityMask.camera
-            )
-        flags = _get_modality_flags(mask, compCount)
+            default_modality = ELxModalityMask.fluorescence | ELxModalityMask.camera
+            mask = ELxModalityMask.get(modality, default_modality)
+
+        flags = ELxModalityMask.flags(mask, compCount)
         volume = global_meta["volume"].copy()
         microscope = global_meta["microscope"].copy()
         camera_matrix = volume.get("cameraTransformationMatrix")
@@ -726,137 +639,3 @@ def load_frame_metadata(
 
     contents = cast(Contents, meta.contents)
     return FrameMetadata(contents=contents, channels=frame_channels)
-
-
-def _get_modality_flags(modality_mask: int, component_count: int) -> list[str]:
-    if not _modality_mask_valid(modality_mask):
-        return ["brightfield"] if component_count == 3 else ["fluorescence"]
-    return [e.name for e in ELxModalityMask if e & modality_mask]
-
-
-def _modality_mask_valid(mask: int) -> bool:
-    # sourcery skip: remove-unnecessary-cast
-    return bool(mask & MaskCombo.LX_ModMaskLight != 0)
-
-
-class ELxModalityMask(IntEnum):
-    fluorescence = 0x0000000000000001
-    brightfield = 0x0000000000000002
-    phaseContrast = 0x0000000000000010
-    diContrast = 0x0000000000000020
-    camera = 0x0000000000000100
-    laserScanConfocal = 0x0000000000000200
-    spinningDiskConfocal = 0x0000000000000400
-    sweptFieldConfocalSlit = 0x0000000000000800
-    sweptFieldConfocalPinhole = 0x0000000000001000
-    dsdConfocal = 0x0000000000002000
-    SIM = 0x0000000000004000
-    iSIM = 0x0000000000008000
-    RCM = 0x0000000000000040  # point scan detected by camera (multiple detection)
-    VCS = 0x0000000000000080  # VideoConfocal super-resolution
-    sora = 0x0000000040000000  # Yokogawa in Super-resolution mode
-    liveSR = 0x0000000000040000
-    multiphoton = 0x0000000000010000
-    TIRF = 0x0000000000020000
-    pmt = 0x0000000000100000
-    spectral = 0x0000000000200000
-    vaasIF = 0x0000000000400000
-    vaasNF = 0x0000000000800000
-    transmitDetector = 0x0000000001000000
-    nonDescannedDetector = 0x0000000002000000
-    virtualFilter = 0x0000000004000000
-    gaasp = 0x0000000008000000
-    remainder = 0x0000000010000000
-    aux = 0x0000000020000000
-
-
-class MaskCombo(IntEnum):
-    EXCLUDE_LIGHT = 0x00000000000FF000
-    LX_ModMaskLight = ELxModalityMask.fluorescence | ELxModalityMask.brightfield
-    LX_ModMaskContrast = ELxModalityMask.phaseContrast | ELxModalityMask.diContrast
-    LX_ModMaskAcqHWType = (
-        ELxModalityMask.camera
-        | ELxModalityMask.laserScanConfocal
-        | ELxModalityMask.spinningDiskConfocal
-        | ELxModalityMask.sweptFieldConfocalSlit
-        | ELxModalityMask.sweptFieldConfocalPinhole
-        | ELxModalityMask.dsdConfocal
-        | ELxModalityMask.RCM
-        | ELxModalityMask.VCS
-        | ELxModalityMask.iSIM
-    )
-    LX_ModMaskDetector = (
-        ELxModalityMask.spectral
-        | ELxModalityMask.vaasIF
-        | ELxModalityMask.vaasNF
-        | ELxModalityMask.transmitDetector
-        | ELxModalityMask.nonDescannedDetector
-        | ELxModalityMask.virtualFilter
-        | ELxModalityMask.aux
-    )
-
-
-class ELxModality(IntEnum):
-    eModWidefieldFluo = 0
-    eModBrightfield = 1
-    eModLaserScanConfocal = 2
-    eModSpinDiskConfocal = 3
-    eModSweptFieldConfocal = 4
-    eModMultiPhotonFluo = 5
-    eModPhaseContrast = 6
-    eModDIContrast = 7
-    eModSpectralConfocal = 8
-    eModVAASConfocal = 9
-    eModVAASConfocalIF = 10
-    eModVAASConfocalNF = 11
-    eModDSDConfocal = 12
-    eModMaxValue = 12
-
-
-_MODALITY_MASK_MAP: dict[int, int] = {
-    ELxModality.eModWidefieldFluo: (
-        ELxModalityMask.fluorescence | ELxModalityMask.camera
-    ),
-    ELxModality.eModBrightfield: ELxModalityMask.brightfield | ELxModalityMask.camera,
-    ELxModality.eModLaserScanConfocal: (
-        ELxModalityMask.fluorescence | ELxModalityMask.laserScanConfocal
-    ),
-    ELxModality.eModSpinDiskConfocal: (
-        ELxModalityMask.fluorescence | ELxModalityMask.spinningDiskConfocal
-    ),
-    ELxModality.eModSweptFieldConfocal: (
-        ELxModalityMask.fluorescence | ELxModalityMask.sweptFieldConfocalSlit
-    ),
-    ELxModality.eModMultiPhotonFluo: (
-        ELxModalityMask.fluorescence
-        | ELxModalityMask.multiphoton
-        | ELxModalityMask.laserScanConfocal
-    ),
-    ELxModality.eModPhaseContrast: (
-        ELxModalityMask.brightfield | ELxModalityMask.phaseContrast
-    ),
-    ELxModality.eModDIContrast: (
-        ELxModalityMask.brightfield | ELxModalityMask.diContrast
-    ),
-    ELxModality.eModSpectralConfocal: (
-        ELxModalityMask.fluorescence
-        | ELxModalityMask.spectral
-        | ELxModalityMask.laserScanConfocal
-    ),
-    ELxModality.eModVAASConfocal: (
-        ELxModalityMask.fluorescence
-        | ELxModalityMask.vaasNF
-        | ELxModalityMask.laserScanConfocal
-    ),
-    ELxModality.eModVAASConfocalIF: (
-        ELxModalityMask.fluorescence
-        | ELxModalityMask.vaasIF
-        | ELxModalityMask.laserScanConfocal
-    ),
-    ELxModality.eModVAASConfocalNF: (
-        ELxModalityMask.fluorescence
-        | ELxModalityMask.vaasNF
-        | ELxModalityMask.laserScanConfocal
-    ),
-    ELxModality.eModDSDConfocal: (ELxModalityMask.dsdConfocal),
-}

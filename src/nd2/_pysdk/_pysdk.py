@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
     from ._chunk_decode import ChunkMap
-    from ._parse import GlobalMetadata, RawMetaDict
+    from ._sdk_types import GlobalMetadata, RawAttributesDict, RawMetaDict
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]
@@ -57,7 +57,7 @@ class ND2Reader:
         self._experiment: list[structures.ExpLoop] | None = None
         self._text_info: structures.TextInfo | None = None
         self._metadata: structures.Metadata | None = None
-        self._raw_attributes: dict | None = None
+        self._raw_attributes: RawAttributesDict | None = None
         self._raw_experiment: dict | None = None
         self._raw_text_info: dict | None = None
         self._raw_image_metadata: RawMetaDict | None = None
@@ -118,10 +118,10 @@ class ND2Reader:
             k = b"ImageAttributesLV!" if self.version >= (3, 0) else b"ImageAttributes!"
             attrs = self._decode_chunk(k, strip_prefix=False)
             attrs = attrs.get("SLxImageAttributes", attrs)  # for v3 only
-            self._raw_attributes = attrs
+            self._raw_attributes = cast("RawAttributesDict", attrs)
             raw_meta = self._get_raw_image_metadata()  # ugly
             n_channels = raw_meta.get("sPicturePlanes", {}).get("uiCount", 1)
-            self._attributes = load_attributes(attrs, n_channels)
+            self._attributes = load_attributes(self._raw_attributes, n_channels)
         return self._attributes
 
     def _load_chunk(self, name: bytes) -> bytes:

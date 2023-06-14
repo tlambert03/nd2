@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
     from ._chunk_decode import ChunkMap
-    from ._parse import GlobalMetadata
+    from ._parse import GlobalMetadata, RawMetaDict
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]
@@ -60,7 +60,7 @@ class ND2Reader:
         self._raw_attributes: dict | None = None
         self._raw_experiment: dict | None = None
         self._raw_text_info: dict | None = None
-        self._raw_image_metadata: dict | None = None
+        self._raw_image_metadata: RawMetaDict | None = None
         self._global_metadata: GlobalMetadata | None = None
         self._frame_offsets_: dict[int, int] | None = None
         self._raw_frame_shape_: tuple[int, ...] | None = None
@@ -120,7 +120,7 @@ class ND2Reader:
             attrs = attrs.get("SLxImageAttributes", attrs)  # for v3 only
             self._raw_attributes = attrs
             raw_meta = self._get_raw_image_metadata()  # ugly
-            n_channels = cast(int, raw_meta.get("sPicturePlanes", {}).get("uiCount", 1))
+            n_channels = raw_meta.get("sPicturePlanes", {}).get("uiCount", 1)
             self._attributes = load_attributes(attrs, n_channels)
         return self._attributes
 
@@ -151,7 +151,7 @@ class ND2Reader:
                 raise
         return self._version
 
-    def _get_raw_image_metadata(self) -> dict:
+    def _get_raw_image_metadata(self) -> RawMetaDict:
         if not self._raw_image_metadata:
             k = (
                 b"ImageMetadataSeqLV|0!"
@@ -163,7 +163,7 @@ class ND2Reader:
             else:
                 meta = self._decode_chunk(k, strip_prefix=False)
                 meta = meta.get("SLxPictureMetadata", meta)  # for v3 only
-                self._raw_image_metadata = meta
+                self._raw_image_metadata = cast("RawMetaDict", meta)
         return self._raw_image_metadata
 
     def _cached_global_metadata(self) -> GlobalMetadata:

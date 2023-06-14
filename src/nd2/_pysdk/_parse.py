@@ -10,15 +10,12 @@ import numpy as np
 
 from nd2.structures import (
     Attributes,
-    AxisInterpretation,
     Channel,
     ChannelMeta,
     Contents,
-    ExpLoop,
     FrameChannel,
     FrameMetadata,
     LoopIndices,
-    LoopParams,
     LoopType,
     Metadata,
     Microscope,
@@ -39,10 +36,91 @@ from nd2.structures import (
 if TYPE_CHECKING:
     from typing_extensions import Literal, TypedDict
 
+    from nd2.structures import AxisInterpretation, ExpLoop, LoopParams
+
     CompressionType = Literal["lossless", "lossy", "none"]
 
+    class RawMetaDict(TypedDict, total=False):
+        ePictureXAxis: int
+        ePictureYAxis: int
+        bCalibrated: bool
+        dCalibration: float
+        dStgLgCT11: float
+        dStgLgCT12: float
+        dStgLgCT21: float
+        dStgLgCT22: float
+        dObjectiveMag: float
+        dProjectiveMag: float
+        dPinholeRadius: float
+        dObjectiveNA: float
+        dZoom: float
+        dRefractIndex1: float
+        dRefractIndex2: float
+        wsObjectiveName: str
+        dXPos: float
+        dYPos: float
+        dZPos: float
+        dTimeMSec: float
+        dTimeAbsolute: float
+        sPicturePlanes: PicturePlanesDict
+
+    class PicturePlanesDict(TypedDict, total=False):
+        eRepresentation: int
+        sDescription: str
+        # only one of these two Plane keys will likely be present
+        sPlane: dict[str, PlaneDict]
+        sPlaneNew: dict[str, PlaneDict]
+        sSampleSetting: dict[str, dict]
+        uiCompCount: int
+        uiCount: int
+        uiSampleCount: int
+
+    class PlaneDict(TypedDict, total=False):
+        uiCompCount: int
+        uiSampleIndex: int
+        uiModalityMask: int
+        pFluorescentProbe: FluorescentProbeDict
+        pFilterPath: dict
+        dLampVoltage: float
+        dFadingCorr: float
+        uiColor: int
+        sDescription: str
+        dAcqTime: float
+        dPinholeDiameter: float
+        iChannelSeriesIndex: int
+        dObjCalibration1to1: float
+        # 'sizeObjFullChip.cx': int
+        # 'sizeObjFullChip.cy': int
+
+    class FluorescentProbeDict(TypedDict, total=False):
+        m_sName: str
+        m_uiColor: int
+        m_ExcitationSpectrum: SpectrumDict
+        m_EmissionSpectrum: SpectrumDict
+
+    class SpectrumDict(TypedDict, total=False):
+        uiCount: int
+        # pPoint keys are likely strings of the form 'Point0', 'Point1', ...
+        pPoint: dict[str, SpectrumPointDict]
+        bPoints: bool
+
+    class SpectrumPointDict(TypedDict, total=False):
+        eType: int
+        # eSptInvalid = 0,
+        # eSptPoint = 1,
+        # eSptRaisingEdge = 2,
+        # eSptFallingEdge = 3,
+        # eSptPeak = 4,
+        # eSptRange = 5
+        dWavelength: float  # this is usually the one with the value
+        uiWavelength: int
+        dTValue: float
+
+    class ContentsDict(TypedDict):
+        frameCount: int
+
     class GlobalMetadata(TypedDict):
-        contents: dict
+        contents: ContentsDict
         loops: dict
         microscope: dict
         position: dict
@@ -324,12 +402,14 @@ def load_attributes(src: dict, channel_count: int) -> Attributes:
 RGB_COLORS: tuple[float, float, float] = (420.0, 515.0, 590.0)
 
 
-def _get_excitation(probe: dict, filter_: dict, plane: dict, compIndex: int) -> float:
+def _get_excitation(
+    probe: FluorescentProbeDict, filter_: dict, plane: PlaneDict, compIndex: int
+) -> float:
     """Get the excitation wavelength from the probe or filter."""
     if probe:
         excitation = _get_spectrum_max(probe.get("m_ExcitationSpectrum", {}))
     if not excitation and filter_:
-        fspectrum: dict = next(
+        fspectrum: SpectrumDict = next(
             (
                 v["m_ExcitationSpectrum"]
                 for v in filter_.values()
@@ -349,7 +429,9 @@ def _get_excitation(probe: dict, filter_: dict, plane: dict, compIndex: int) -> 
     return excitation
 
 
-def _get_emission(probe: dict, filter_: dict, plane: dict, compIndex: int) -> float:
+def _get_emission(
+    probe: FluorescentProbeDict, filter_: dict, plane: PlaneDict, compIndex: int
+) -> float:
     """Get the emission wavelength from the probe or filter."""
     if plane.get("uiCompCount") == 3:
         return RGB_COLORS[compIndex]
@@ -364,8 +446,8 @@ def _get_emission(probe: dict, filter_: dict, plane: dict, compIndex: int) -> fl
     return emission
 
 
-def _read_wavelengths(plane: dict, compIndex: int) -> tuple[float, float]:
-    probe: dict = plane.get("pFluorescentProbe", {})
+def _read_wavelengths(plane: PlaneDict, compIndex: int) -> tuple[float, float]:
+    probe: FluorescentProbeDict = plane.get("pFluorescentProbe", {})
     filter_: dict = plane.get("pFilterPath", {}).get("m_pFilter", {})
     while isinstance(filter_, list):
         filter_ = filter_[0] if filter_ else {}
@@ -376,7 +458,7 @@ def _read_wavelengths(plane: dict, compIndex: int) -> tuple[float, float]:
     return excitation, emission
 
 
-def _get_spectrum(item: dict) -> list[tuple[float, float, int]]:
+def _get_spectrum(item: SpectrumDict) -> list[tuple[float, float, int]]:
     # types:
     #    eSptInvalid = 0,
     #    eSptPoint = 1,
@@ -386,11 +468,11 @@ def _get_spectrum(item: dict) -> list[tuple[float, float, int]]:
     #    eSptRange = 5
     return [
         (p.get("dTValue", 0.0), p.get("dWavelength", 0.0), p.get("eType", 0))
-        for p in cast("dict[str, dict]", item.get("pPoint", {})).values()
+        for p in item.get("pPoint", {}).values()
     ]
 
 
-def _get_spectrum_max(item: dict | None) -> float:
+def _get_spectrum_max(item: SpectrumDict | None) -> float:
     # return the wavelength associated with the max value, or 0.0 if no spectrum
     if not item:
         return 0.0
@@ -425,7 +507,10 @@ def load_text_info(src: dict) -> TextInfo:
 
 
 def load_global_metadata(
-    attrs: Attributes, raw_meta: dict, exp_loops: list[ExpLoop], text_info: TextInfo
+    attrs: Attributes,
+    raw_meta: RawMetaDict,
+    exp_loops: list[ExpLoop],
+    text_info: TextInfo,
 ) -> GlobalMetadata:
     axesInterpretation: list[AxisInterpretation] = ["distance", "distance", "distance"]
     axesCalibrated: list[bool] = [False, False, False]
@@ -503,11 +588,11 @@ def load_global_metadata(
     }
 
 
-def load_metadata(raw_meta: dict, global_meta: GlobalMetadata) -> Metadata:
-    it: dict = raw_meta.get("sPicturePlanes", {})
-    raw_planes: dict = it.get("sPlaneNew", None) or it.get("sPlane", {})
-    raw_sample_settings: dict[str, dict] = it.get("sSampleSetting", {})
-    if len(raw_planes) != it.get("uiCount"):
+def load_metadata(raw_meta: RawMetaDict, global_meta: GlobalMetadata) -> Metadata:
+    pplanes: PicturePlanesDict = raw_meta.get("sPicturePlanes", {})
+    raw_planes: dict = pplanes.get("sPlaneNew", None) or pplanes.get("sPlane", {})
+    raw_sample_settings: dict[str, dict] = pplanes.get("sSampleSetting", {})
+    if len(raw_planes) != pplanes.get("uiCount"):
         raise ValueError("Channel count does not match number of planes")
 
     pixel_to_stage: list[float] | None = None
@@ -557,6 +642,8 @@ def load_metadata(raw_meta: dict, global_meta: GlobalMetadata) -> Metadata:
                 else:
                     calX, calY = volume["axesCalibration"][:2]
                     width, height = volume["voxelCount"][:2]
+
+                    # sourcery skip: hoist-if-from-if
                     if validStageInversions and all(volume["axesCalibrated"][:2]):
                         invX = devSettings.get("m_iXOrientation0", 0)
                         invY = devSettings.get("m_iYOrientation0", 0)

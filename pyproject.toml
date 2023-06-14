@@ -162,11 +162,8 @@ omit = ["tests"]
 # https://github.com/mgedmin/check-manifest#configuration
 [tool.check-manifest]
 ignore = [
-    ".cruft.json",
-    ".flake8",
     ".github_changelog_generator",
     ".pre-commit-config.yaml",
     "tests/**/*",
-    "tox.ini",
     "src/nd2/_version.py",
 ]

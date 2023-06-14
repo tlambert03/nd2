@@ -47,8 +47,6 @@ CHUNK_HEADER = struct.Struct("IIQ")
 # uint32_t nameLen
 # uint64_t dataLen
 
-# magic    nameLen  <-   dataLen   ->
-# DACEBE0A 20100000 D00F0000 00000000
 
 START_FILE_CHUNK = struct.Struct(f"{CHUNK_HEADER.format}32s64s")
 # ChunkHeader header
@@ -179,6 +177,10 @@ def read_nd2_chunk(
       - 4 bytes: CHUNK_MAGIC -> 0x0ABECEDA (big endian: 0xDACEBE0A)
       - 4 bytes: length of the chunk header (this section contains the chunk name...)
       - 8 bytes: length of chunk following the header, up to the next CHUNK_MAGIC
+
+    For example:
+        magic    name_len <-  data_len   -> <- NameChunk (name_len long) ...
+        DACEBE0A 20100000 D00F0000 00000000 004E4432 20434855 4E4B204D 41...
 
     Parameters
     ----------

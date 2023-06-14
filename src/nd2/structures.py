@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import NamedTuple, Union
+from typing import NamedTuple, Union, cast
 
 from typing_extensions import Literal, TypeAlias, TypedDict
 
@@ -104,7 +104,7 @@ class _Loop:
             return XYPosLoop(**obj)
         elif type_ in ("ZStackLoop", LoopType.ZStackLoop):
             return ZStackLoop(**obj)
-        return globals()[obj["type"]](**obj)
+        return cast("ExpLoop", globals()[obj["type"]](**obj))
 
 
 #####
@@ -115,7 +115,7 @@ class TimeLoop(_Loop):
     parameters: TimeLoopParams
     type: Literal["TimeLoop"] = "TimeLoop"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # TODO: make superclass do this
         if isinstance(self.parameters, dict):
             if "periodDiff" not in self.parameters:
@@ -130,7 +130,7 @@ class TimeLoopParams:
     durationMs: float
     periodDiff: PeriodDiff
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.periodDiff, dict):
             self.periodDiff = PeriodDiff(**self.periodDiff)
 
@@ -150,7 +150,7 @@ class NETimeLoop(_Loop):
     parameters: NETimeLoopParams
     type: Literal["NETimeLoop"] = "NETimeLoop"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.parameters, dict):
             self.parameters = NETimeLoopParams(**self.parameters)
 
@@ -159,7 +159,7 @@ class NETimeLoop(_Loop):
 class NETimeLoopParams:
     periods: list[Period]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.periods = [Period(**i) if isinstance(i, dict) else i for i in self.periods]
 
 
@@ -176,7 +176,7 @@ class XYPosLoop(_Loop):
     parameters: XYPosLoopParams
     type: Literal["XYPosLoop"] = "XYPosLoop"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.parameters, dict):
             self.parameters = XYPosLoopParams(**self.parameters)
 
@@ -186,7 +186,7 @@ class XYPosLoopParams:
     isSettingZ: bool
     points: list[Position]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.points = [Position(**i) if isinstance(i, dict) else i for i in self.points]
 
 
@@ -196,7 +196,7 @@ class Position:
     pfsOffset: float | None = None
     name: str | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.stagePositionUm, dict):
             self.stagePositionUm = StagePosition(*self.stagePositionUm)
         elif isinstance(self.stagePositionUm, (tuple, list)):
@@ -217,7 +217,7 @@ class ZStackLoop(_Loop):
     parameters: ZStackLoopParams
     type: Literal["ZStackLoop"] = "ZStackLoop"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.parameters, dict):
             self.parameters = ZStackLoopParams(**self.parameters)
 
@@ -243,7 +243,7 @@ class Metadata:
     contents: Contents | None = None
     channels: list[Channel] | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.contents, dict):
             self.contents = Contents(**self.contents)
         if self.channels:
@@ -265,7 +265,7 @@ class Channel:
     microscope: Microscope
     volume: Volume
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.channel, dict):
             self.channel = ChannelMeta(**self.channel)
         if isinstance(self.microscope, dict):
@@ -339,7 +339,7 @@ class FrameChannel(Channel):
     position: Position
     time: TimeStamp
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         if isinstance(self.position, dict):
             self.position = Position(**self.position)
@@ -352,7 +352,7 @@ class FrameMetadata:
     contents: Contents
     channels: list[FrameChannel]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.contents, dict):
             self.contents = Contents(**self.contents)
         self.channels = [
@@ -361,7 +361,7 @@ class FrameMetadata:
 
 
 class Coordinate(NamedTuple):
-    index: int
+    index: int  # type: ignore
     type: str
     size: int
 
@@ -411,9 +411,10 @@ class ROI:
     guid: str
     animParams: list[AnimParam] = field(default_factory=list)
 
-    def __post_init__(self):
-        self.info = RoiInfo(**self.info)
-        self.animParams = [AnimParam(**i) for i in self.animParams]
+    def __post_init__(self) -> None:
+        if isinstance(self.info, dict):
+            self.info = RoiInfo(**self.info)
+        self.animParams = [AnimParam(**i) for i in self.animParams]  # type: ignore
 
     @classmethod
     def _from_meta_dict(cls, val: dict) -> ROI:
@@ -423,9 +424,9 @@ class ROI:
         ]
         return cls(
             id=val["Id"],
-            info={_lower0(k): v for k, v in val["Info"].items()},
+            info={_lower0(k): v for k, v in val["Info"].items()},  # type: ignore
             guid=val.get("GUID", ""),
-            animParams=anim_params,
+            animParams=anim_params,  # type: ignore
         )
 
 
@@ -442,7 +443,7 @@ class AnimParam:
     boxShape: BoxShape = field(default_factory=BoxShape)
     extrudedShape: ExtrudedShape = field(default_factory=ExtrudedShape)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.boxShape, dict):
             self.boxShape = BoxShape(
                 **{_lower0(k): v for k, v in self.boxShape.items()}
@@ -504,7 +505,7 @@ class RoiInfo:
     gradientStimulationLo: float = 0.0
     gradientStimulationHi: float = 0.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # coerce types
         for key, anno in self.__annotations__.items():
             if key == "shapeType":

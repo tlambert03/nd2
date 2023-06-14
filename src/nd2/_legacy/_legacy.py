@@ -1,15 +1,25 @@
+from __future__ import annotations
+
 import contextlib
 import re
 import struct
 import threading
-from pathlib import Path
-from typing import BinaryIO, DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    BinaryIO,
+    DefaultDict,
+)
 
 import numpy as np
 
 from .. import structures as strct
 from .._util import AXIS, VoxelSize
 from ._legacy_xml import parse_xml_block
+
+if TYPE_CHECKING:
+    from collections import defaultdict
+    from pathlib import Path
 
 try:
     from functools import cached_property
@@ -25,7 +35,7 @@ IHDR = struct.Struct(">iihBB")  # yxc-dtype in jpeg 2000
 class LegacyND2Reader:
     _fh: BinaryIO
 
-    def __init__(self, path: Union[Path, str]):
+    def __init__(self, path: Path | str):
         self._path = str(path)
         self._fh = open(self._path, mode="rb")
         length, box_type = I4s.unpack(self._fh.read(I4s.size))
@@ -46,18 +56,18 @@ class LegacyND2Reader:
     def closed(self) -> bool:
         return self._fh.closed
 
-    def __enter__(self) -> "LegacyND2Reader":
+    def __enter__(self) -> LegacyND2Reader:
         self.open()
         return self
 
-    def __exit__(self, *_) -> None:
+    def __exit__(self, *_: Any) -> None:
         self.close()
 
     @cached_property
     def ddim(self) -> dict:
         return _dims_from_description(self.text_info().get("description"))
 
-    def experiment(self) -> List[strct.ExpLoop]:
+    def experiment(self) -> list[strct.ExpLoop]:
         meta = self._metadata
         exp = []
         if "LoopNo00" in meta:
@@ -82,12 +92,10 @@ class LegacyND2Reader:
                 i += 1
         return exp
 
-    def _coord_info(self) -> List[Tuple[int, str, int]]:
+    def _coord_info(self) -> list[tuple[int, str, int]]:
         return [(i, x.type, x.count) for i, x in enumerate(self.experiment())]
 
-    def _make_loop(
-        self, meta_level: dict, nest_level: int = 0
-    ) -> Optional[strct.ExpLoop]:
+    def _make_loop(self, meta_level: dict, nest_level: int = 0) -> strct.ExpLoop | None:
         """Converts an old style metadata loop dict to a new ExpLoop structure."""
         type_ = meta_level.get("Type")
         params: dict = meta_level["LoopPars"]
@@ -187,7 +195,7 @@ class LegacyND2Reader:
             channelCount=nC,
         )
 
-    def _get_xml_dict(self, key: bytes, index=0) -> dict:
+    def _get_xml_dict(self, key: bytes, index: int = 0) -> dict:
         try:
             bxml = self._read_chunk(self._chunkmap[key][index])
             return parse_xml_block(bxml)
@@ -234,7 +242,7 @@ class LegacyND2Reader:
     def calibration(self) -> dict:
         return self._get_xml_dict(b"ACAL")
 
-    def _read_chunk(self, pos) -> bytes:
+    def _read_chunk(self, pos: int) -> bytes:
         with self.lock:
             self._fh.seek(pos)
             length, box_type = I4s.unpack(self._fh.read(I4s.size))
@@ -263,22 +271,8 @@ class LegacyND2Reader:
             **self._get_xml_dict(b"VIMD", index),
         }
 
-    def _scan_vimd(self):
-        zs = set()
-        xys = set()
-        ts = set()
-        cs = set()
-        for i in range(len(self._chunkmap[b"VIMD"])):
-            xml = self._get_xml_dict(b"VIMD", i)
-            ts.add(xml["TimeMSec"])
-            xys.add((xml["XPos"], xml["YPos"]))
-            for p in xml["PicturePlanes"]["Plane"].values():
-                cs.add(p["OpticalConfigName"])
-                zs.add(p["OpticalConfigFull"]["ZPosition0"])
-        return (zs, xys, ts, cs)
-
     def voxel_size(self) -> VoxelSize:
-        z: Optional[float] = None
+        z: float | None = None
         d = self.text_info().get("description") or ""
         _z = re.search(r"Z Stack Loop: 5\s+-\s+Step\s+([.\d]+)", d)
         if _z:
@@ -292,11 +286,11 @@ class LegacyND2Reader:
         xy = self._get_xml_dict(b"VIMD", 0).get("Calibration") or 1
         return VoxelSize(xy, xy, z or 1)
 
-    def channel_names(self) -> List[str]:
+    def channel_names(self) -> list[str]:
         xml = self._get_xml_dict(b"VIMD", 0)
         return [p["OpticalConfigName"] for p in xml["PicturePlanes"]["Plane"].values()]
 
-    def time_stamps(self) -> List[str]:
+    def time_stamps(self) -> list[str]:
         xml = self._get_xml_dict(b"VIMD", 0)
         return [p["OpticalConfigName"] for p in xml["PicturePlanes"]["Plane"].values()]
 
@@ -323,7 +317,7 @@ class LegacyND2Reader:
         return {}
 
 
-def legacy_nd2_chunkmap(fh: BinaryIO) -> Dict[bytes, List[int]]:
+def legacy_nd2_chunkmap(fh: BinaryIO) -> dict[bytes, list[int]]:
     fh.seek(-40, 2)
     sig, map_start = struct.unpack("<32sQ", fh.read())
     if sig != b"LABORATORY IMAGING ND BOX MAP 00":
@@ -331,7 +325,7 @@ def legacy_nd2_chunkmap(fh: BinaryIO) -> Dict[bytes, List[int]]:
     fh.seek(-map_start, 2)
     n_chunks = int.from_bytes(fh.read(4), "big")
     data = fh.read()
-    d: DefaultDict[bytes, List[int]] = DefaultDict(list)
+    d: defaultdict[bytes, list[int]] = DefaultDict(list)
     for i in range(n_chunks):
         box_type, lim_type, offset = JP2_MAP_CHUNK.unpack_from(data, i * 16)
         if box_type in {b"jP  ", b"ftyp", b"jp2h"}:
@@ -344,7 +338,7 @@ def legacy_nd2_chunkmap(fh: BinaryIO) -> Dict[bytes, List[int]]:
 DIMSIZE = re.compile(r"(\w+)'?\((\d+)\)")
 
 
-def _dims_from_description(desc) -> dict:
+def _dims_from_description(desc: str | None) -> dict:
     if not desc:
         return {}
     match = re.search(r"Dimensions:\s?([^\r]+)\r?\n", desc)

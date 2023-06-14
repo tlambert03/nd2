@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import warnings
-from typing import TYPE_CHECKING, Callable, Union
+from typing import TYPE_CHECKING, Any, Callable, Union
 
 if TYPE_CHECKING:
     import xml.etree.ElementTree
@@ -32,7 +32,7 @@ def _float_or_nan(x: str) -> float:
 
 
 # functions to cast CLxvariants to python types
-_XMLCAST: dict[str | None, Callable[[str], Scalar]] = {
+_XMLCAST: dict[str | None | bytes, Callable[[Any], Scalar]] = {
     "bool": lambda x: x.lower() in {"true", "1"},
     "CLxByteArray": lambda x: bytearray(x, "utf8"),
     "CLxStringW": str,
@@ -112,11 +112,14 @@ def _node_name_value(
 
     runtype = node.attrib.get("runtype")
     if runtype in _XMLCAST:
-        value: JsonValue = _XMLCAST[runtype](node.attrib["value"])
+        val = node.attrib.get("value")
+        value: JsonValue = _XMLCAST[runtype](val)
     else:
-        value = dict(node.attrib) if include_attrs else {}
+        value = dict(node.attrib) if include_attrs else {}  # type: ignore
         for i, child in enumerate(node):
-            cname, cval = _node_name_value(child, strip_prefix, include_attrs)
+            cname, cval = _node_name_value(
+                child, strip_prefix, include_attrs  # type: ignore
+            )
             # NOTE: "no_name" is the standard name for a list-type node
             # "BinaryItem" is a special case found in the BinaryMetadata_v1 tag...
             # without special handling, you would only get the last item in the list

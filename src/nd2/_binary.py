@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Iterator, NamedTuple, Sequence, cast, overload
 import numpy as np
 
 if TYPE_CHECKING:
+    from numpy.typing import DTypeLike
+
     from ._pysdk._pysdk import ND2Reader as LatestSDKReader
     from .nd2file import ND2File
 
@@ -89,7 +91,9 @@ class BinaryLayer(NamedTuple):
             i if i is not None else np.zeros(frame_shape, dtype="uint16")
             for i in self.data
         ]
-        return np.stack(d).reshape(self.coordinate_shape + frame_shape)
+        return cast(
+            "np.ndarray", np.stack(d).reshape(self.coordinate_shape + frame_shape)
+        )
 
     def __repr__(self) -> str:
         """Return a nicely formatted string."""
@@ -205,11 +209,11 @@ class BinaryLayers(Sequence[BinaryLayer]):
         return cls(mask_items)
 
 
-def _unpack(stream: io.BufferedIOBase, strct: struct.Struct):
+def _unpack(stream: io.BufferedIOBase, strct: struct.Struct) -> tuple:
     return strct.unpack(stream.read(strct.size))
 
 
-def _decode_binary_mask(data: bytes, dtype="uint16") -> np.ndarray:
+def _decode_binary_mask(data: bytes, dtype: DTypeLike = "uint16") -> np.ndarray:
     # this receives data as would be extracted from a
     # `CustomDataSeq|RleZipBinarySequence...` section in the metadata
     # data = f._rdr._get_meta_chunk('CustomDataSeq|RleZipBinarySequence_1_v1|0')[:4]

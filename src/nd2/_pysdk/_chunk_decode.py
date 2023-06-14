@@ -276,7 +276,7 @@ def _robustly_read_named_chunk(
         raise ValueError(err_msg) from e
 
 
-def iter_chunks(handle) -> Iterator[tuple[str, int, int]]:
+def iter_chunks(handle: BufferedReader) -> Iterator[tuple[str, int, int]]:
     file_size = handle.seek(0, 2)
     handle.seek(0)
     pos = 0
@@ -302,9 +302,9 @@ def rescue_nd2(
     frame_shape: tuple[int, ...] = (),
     dtype: DTypeLike = "uint16",
     max_iters: int | None = None,
-    verbose=True,
+    verbose: bool = True,
     chunk_start: bytes = _default_chunk_start,
-):
+) -> Iterator[np.ndarray]:
     """Iterator that yields all discovered frames in a file handle.
 
     In nd2 files, each "frame" contains XY and all channel info (both true

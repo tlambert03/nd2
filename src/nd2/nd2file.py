@@ -27,6 +27,7 @@ if TYPE_CHECKING:
 
     from ._binary import BinaryLayers
     from ._pysdk._pysdk import ND2Reader as LatestSDKReader
+    from ._util import StrOrBytesPath
     from .structures import (
         Attributes,
         ExpLoop,
@@ -92,12 +93,12 @@ class ND2File:
         self._lock = threading.RLock()
 
     @staticmethod
-    def is_supported_file(path) -> bool:
+    def is_supported_file(path: StrOrBytesPath) -> bool:
         """Return True if the file is supported by this reader."""
         return is_supported_file(path)
 
     @property
-    def path(self):
+    def path(self) -> str:
         """Path of the image."""
         return self._path
 
@@ -137,16 +138,16 @@ class ND2File:
             )
             self._rdr.close()
 
-    def __exit__(self, *_) -> None:
+    def __exit__(self, *_: Any) -> None:
         self.close()
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, Any]:
         state = self.__dict__.copy()
         del state["_rdr"]
         del state["_lock"]
         return state
 
-    def __setstate__(self, d):
+    def __setstate__(self, d: dict[str, Any]) -> None:
         self.__dict__ = d
         self._lock = threading.RLock()
         self._rdr = get_reader(self._path)
@@ -339,7 +340,7 @@ class ND2File:
     @property
     def components_per_channel(self) -> int:
         """Number of components per channel (e.g. 3 for rgb)."""
-        attrs = cast("Attributes", self.attributes)
+        attrs = self.attributes
         return attrs.componentCount // (attrs.channelCount or 1)
 
     @property
@@ -433,7 +434,7 @@ class ND2File:
         """Array protocol."""
         return self.asarray()
 
-    def to_dask(self, wrapper=True, copy=True) -> dask.array.core.Array:
+    def to_dask(self, wrapper: bool = True, copy: bool = True) -> dask.array.core.Array:
         """Create dask array (delayed reader) representing image.
 
         This generally works well, but it remains to be seen whether performance
@@ -464,7 +465,7 @@ class ND2File:
         -------
         dask.array.core.Array
         """
-        from dask.array import map_blocks
+        from dask.array.core import map_blocks
 
         chunks = [(1,) * x for x in self._coord_shape]
         chunks += [(x,) for x in self._frame_shape]
@@ -487,7 +488,7 @@ class ND2File:
     def _seq_index_from_coords(self, coords: Sequence) -> Sequence[int] | SupportsInt:
         if not self._coord_shape:
             return self._NO_IDX
-        return np.ravel_multi_index(coords, self._coord_shape)
+        return np.ravel_multi_index(coords, self._coord_shape)  # type: ignore
 
     def _dask_block(self, copy: bool, block_id: tuple[int]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
@@ -784,7 +785,7 @@ def imread(
     xarray: bool = False,
     validate_frames: bool = False,
     read_using_sdk: bool | None = None,
-):
+) -> np.ndarray | xr.DataArray | dask.array.core.Array:
     """Open `file`, return requested array type, and close `file`.
 
     Parameters

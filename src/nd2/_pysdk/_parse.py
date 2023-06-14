@@ -647,7 +647,8 @@ def _get_modality_flags(modality_mask: int, component_count: int) -> list[str]:
     return [e.name for e in ELxModalityMask if e & modality_mask]
 
 
-def _modality_mask_valid(mask) -> bool:
+def _modality_mask_valid(mask: int) -> bool:
+    # sourcery skip: remove-unnecessary-cast
     return bool(mask & MaskCombo.LX_ModMaskLight != 0)
 
 

@@ -12,6 +12,7 @@ from nd2 import structures
 from nd2._clx_lite import json_from_clx_lite_variant
 from nd2._clx_xml import json_from_clx_variant
 from nd2._pysdk._chunk_decode import (
+    _robustly_read_named_chunk,
     get_chunkmap,
     get_version,
     read_nd2_chunk,
@@ -41,13 +42,15 @@ if TYPE_CHECKING:
 
 class ND2Reader:
     def __init__(
-        self,
-        path: str | Path,
+        self, path: str | Path, validate_frames: bool = False, search_window: int = 100
     ) -> None:
         self._filename = path
         self._fh: BufferedReader | None = None
         self._mmap: mmap.mmap | None = None
         self._chunkmap: ChunkMap = {}
+        self._error_radius: int | None = (
+            search_window * 1000 if validate_frames else None
+        )
 
         self._version: tuple[int, int] | None = None
         self._attributes: structures.Attributes | None = None
@@ -92,7 +95,7 @@ class ND2Reader:
         if not self._chunkmap:
             if self._fh is None:
                 raise OSError("File not open")
-            self._chunkmap = get_chunkmap(self._fh)
+            self._chunkmap = get_chunkmap(self._fh, error_radius=self._error_radius)
         return self._chunkmap
 
     @property
@@ -126,7 +129,11 @@ class ND2Reader:
             raise OSError("File not open")
         offset, _ = self.chunkmap[name]
         # TODO: there's a possibility of speed up here since we're rereading the header
-        return read_nd2_chunk(self._fh, offset)
+        if self._error_radius is None:
+            return read_nd2_chunk(self._fh, offset)
+        return _robustly_read_named_chunk(
+            self._fh, offset, expect_name=name, search_radius=self._error_radius
+        )
 
     def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict:
         data = self._load_chunk(name)

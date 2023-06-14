@@ -52,8 +52,13 @@ def test_rescue(broken_nd2, single_nd2, capsys):
     with nd2.ND2File(single_nd2, validate_frames=True) as rdr:
         real_read = rdr.asarray()
 
+    with nd2.ND2File(broken_nd2, validate_frames=True) as rdr:
+        _ = rdr._rdr.chunkmap  # should not raise
+        broken_read = rdr.asarray()
+
     # test that broken file is the same as the real file
     np.testing.assert_array_equal(real_read, raw_read)
+    np.testing.assert_array_equal(broken_read, raw_read)
 
     crop = raw_read[:2, :2, 10:12, 10:12].flatten()
     expect = [99, 98, 102, 100, 99, 96, 97, 98, 100, 99, 100, 100, 94, 99, 98, 98]

@@ -65,9 +65,9 @@ def get_reader(
             from ._pysdk._pysdk import ND2Reader
 
             return ND2Reader(
-                path
-                # validate_frames=validate_frames,
-                # search_window=search_window,
+                path,
+                validate_frames=validate_frames,
+                search_window=search_window,
             )
         elif magic_num == OLD_HEADER_MAGIC:
             from ._legacy._legacy import LegacyND2Reader

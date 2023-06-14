@@ -205,7 +205,9 @@ def read_nd2_chunk(
     fh.seek(start_position)
     magic, name_length, data_length = CHUNK_HEADER.unpack(fh.read(CHUNK_HEADER.size))
     if magic != ND2_CHUNK_MAGIC:
-        raise ValueError(f"Invalid chunk header magic: {magic:x}")
+        raise ValueError(
+            f"Invalid nd2 chunk header '{magic:x}' at pos {start_position}"
+        )
     if expect_name is None:
         fh.seek(name_length, 1)  # seek over name_length
     else:

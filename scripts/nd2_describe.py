@@ -9,7 +9,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 import nd2
-from nd2._chunkmap import iter_chunks
+from nd2._pysdk._chunk_decode import iter_chunks
 
 
 def _get_version(path):

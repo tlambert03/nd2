@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import mmap
 import threading
 import warnings
 from enum import Enum
@@ -37,6 +36,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
+    import mmap
     from typing import Any
 
     import dask.array.core

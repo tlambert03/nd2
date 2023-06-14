@@ -3,7 +3,6 @@ from __future__ import annotations
 import mmap
 import os
 import warnings
-from io import BufferedReader
 from typing import TYPE_CHECKING, Sequence, cast
 
 import numpy as np
@@ -27,6 +26,7 @@ from nd2._pysdk._parse import (
 )
 
 if TYPE_CHECKING:
+    from io import BufferedReader
     from os import PathLike
     from pathlib import Path
     from typing import Any

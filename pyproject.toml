@@ -33,6 +33,7 @@ test = [
     "psutil",
     "pytest-cov",
     "pytest>=6.0",
+    "pytest-pretty",
     "wurlitzer",
     "xarray",
 ]
@@ -90,6 +91,7 @@ select = [
     "B",    # flake8-bugbear
     "A001", # flake8-builtins
     "RUF",  # ruff-specific rules
+    "TCH",  # flake8-type-checking
 ]
 ignore = [
     # these should be fixed

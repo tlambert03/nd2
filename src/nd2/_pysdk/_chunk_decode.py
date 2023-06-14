@@ -1,13 +1,20 @@
 """FIXME: this has a lot of code duplication with _chunkmap.py."""
 from __future__ import annotations
 
+import mmap
 import struct
+from contextlib import contextmanager
 from io import BufferedReader
-from typing import TYPE_CHECKING, cast
+from pathlib import Path
+from typing import TYPE_CHECKING, Iterator, cast
+
+import numpy as np
 
 if TYPE_CHECKING:
     from os import PathLike
-    from typing import Final
+    from typing import BinaryIO, Final
+
+    from numpy.typing import DTypeLike
 
     StrOrBytesPath = str | bytes | PathLike[str] | PathLike[bytes]
 
@@ -267,3 +274,138 @@ def _robustly_read_named_chunk(
                 return read_nd2_chunk(fh, fixed_position)
 
         raise ValueError(err_msg) from e
+
+
+def iter_chunks(handle) -> Iterator[tuple[str, int, int]]:
+    file_size = handle.seek(0, 2)
+    handle.seek(0)
+    pos = 0
+    while True:
+        magic, shift, length = CHUNK_HEADER.unpack(handle.read(CHUNK_HEADER.size))
+        if magic:
+            try:
+                name = handle.read(shift).split(b"\x00", 1)[0].decode("utf-8")
+            except UnicodeDecodeError:
+                name = "?"
+            yield (name, pos + +CHUNK_HEADER.size + shift, length)
+        pos += CHUNK_HEADER.size + shift + length
+        if pos >= file_size:
+            break
+        handle.seek(pos)
+
+
+_default_chunk_start = ND2_CHUNK_MAGIC.to_bytes(4, "little")
+
+
+def rescue_nd2(
+    handle: BinaryIO | str,
+    frame_shape: tuple[int, ...] = (),
+    dtype: DTypeLike = "uint16",
+    max_iters: int | None = None,
+    verbose=True,
+    chunk_start: bytes = _default_chunk_start,
+):
+    """Iterator that yields all discovered frames in a file handle.
+
+    In nd2 files, each "frame" contains XY and all channel info (both true
+    channels as well as RGB components).  Frames are laid out as (Y, X, C),
+    and the `frame_shape` should match the expected frame size.  If
+    `frame_shape` is not provided, a guess will be made about the vector shape
+    of each frame, but it may be incorrect.
+
+    Parameters
+    ----------
+    handle : Union[BinaryIO,str]
+        Filepath string, or binary file handle (For example
+        `handle = open('some.nd2', 'rb')`)
+    frame_shape : Tuple[int, ...], optional
+        expected shape of each frame, by default a 1 dimensional array will
+        be yielded for each frame, which can be reshaped later if desired.
+        NOTE: nd2 frames are generally ordered as
+        (height, width, true_channels, rgbcomponents).
+        So unlike numpy, which would use (channels, Y, X), you should use
+        (Y, X, channels)
+    dtype : np.dtype, optional
+        Data type, by default np.uint16
+    max_iters : Optional[int], optional
+        A maximum number of frames to yield, by default will yield until the
+        end of the file is reached
+    verbose : bool
+        whether to print info
+    chunk_start : bytes, optional
+        The bytes that start each chunk, by default 0x0ABECEDA.to_bytes(4, "little")
+
+    Yields
+    ------
+    np.ndarray
+        each discovered frame in the file
+
+    Examples
+    --------
+    >>> with open('some_bad.nd2', 'rb') as fh:
+    >>>     frames = rescue_nd2(fh, (512, 512, 4), 'uint16')
+    >>>     ary = np.stack(frames)
+
+    You will likely want to reshape `ary` after that.
+    """
+    dtype = np.dtype(dtype)
+    with ensure_handle(handle) as _fh:
+        mm = mmap.mmap(_fh.fileno(), 0, access=mmap.ACCESS_READ)
+
+        offset = 0
+        iters = 0
+        while True:
+            # search for the next part of the file starting with CHUNK_START
+            offset = mm.find(chunk_start, offset)
+            if offset < 0:
+                if verbose:
+                    print("End of file.")
+                return
+
+            # location at the end of the chunk header
+            end_hdr = offset + CHUNK_HEADER.size
+
+            # find the next "!"
+            # In nd2 files, each data chunk starts with the
+            # string "ImageDataSeq|N" ... where N is the frame index
+            next_bang = mm.find(b"!", end_hdr)
+            if next_bang > 0 and (0 < next_bang - end_hdr < 128):
+                # if we find the "!"... make sure we have an ImageDataSeq
+                chunk_name = mm[end_hdr:next_bang]
+                if chunk_name.startswith(b"ImageDataSeq|"):
+                    if verbose:
+                        print(f"Found image {iters} at offset {offset}")
+                    # Now, read the actual data
+                    _, shift, length = CHUNK_HEADER.unpack(mm[offset:end_hdr])
+                    # convert to numpy array and yield
+                    # (can't remember why the extra 8 bytes)
+                    try:
+                        shape = frame_shape or ((length - 8) // dtype.itemsize,)
+                        yield np.ndarray(
+                            shape=shape,
+                            dtype=dtype,
+                            buffer=mm,
+                            offset=end_hdr + shift + 8,
+                        )
+                    except TypeError as e:
+                        # buffer is likely too small
+                        if verbose:
+                            print(f"Error at offset {offset}: {e}")
+                    iters += 1
+            elif verbose:
+                print(f"Found chunk at offset {offset} with no image data")
+
+            offset += 1
+            if max_iters and iters >= max_iters:
+                return
+
+
+@contextmanager
+def ensure_handle(obj: str | BinaryIO) -> Iterator[BinaryIO]:
+    fh = open(obj, "rb") if isinstance(obj, (str, bytes, Path)) else obj
+    try:
+        yield fh
+    finally:
+        # close it if we were the one to open it
+        if not hasattr(obj, "fileno"):
+            fh.close()

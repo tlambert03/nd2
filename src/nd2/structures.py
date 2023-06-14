@@ -2,28 +2,45 @@ from __future__ import annotations
 
 import builtins
 from dataclasses import dataclass, field
-from enum import Enum, IntEnum
-from typing import TYPE_CHECKING, NamedTuple, Union
+from enum import IntEnum
+from typing import NamedTuple, Union
 
-from typing_extensions import Literal
+from typing_extensions import Literal, TypeAlias, TypedDict
 
-if TYPE_CHECKING:
-    pass
 
-# enums
+class TextInfo(TypedDict, total=False):
+    imageId: str
+    type: str
+    group: str
+    sampleId: str
+    author: str
+    description: str
+    capturing: str
+    sampling: str
+    location: str
+    date: str
+    conclusion: str
+    info1: str
+    info2: str
+    optics: str
+    appVersion: str
 
 
 class LoopType(IntEnum):
-    NETimeLoop = 8
+    Unknown = 0
+    TimeLoop = 1
     XYPosLoop = 2
-    ZStackLoop = 6
-    TimeLoop = 1  # not sure about this
-    Unknown = 4  # not sure about this
+    XYDiscrLoop = 3
+    ZStackLoop = 4
+    PolarLoop = 5
+    SpectLoop = 6
+    CustomLoop = 7
+    NETimeLoop = 8
+    ManTimeLoop = 9
+    ZStackLoopAccurate = 10
 
 
-class AxisInterpretation(str, Enum):
-    distance = "distance"
-    time = "time"
+AxisInterpretation: TypeAlias = Literal["distance", "time"]
 
 
 # tuples
@@ -34,12 +51,12 @@ class Attributes(NamedTuple):
     bitsPerComponentSignificant: int
     componentCount: int
     heightPx: int
-    pixelDataType: str
+    pixelDataType: Literal["float", "unsigned"]
     sequenceCount: int
     widthBytes: int | None = None
     widthPx: int | None = None
     compressionLevel: int | None = None
-    compressionType: str | None = None
+    compressionType: Literal["lossless", "lossy", "none"] | None = None
     tileHeightPx: int | None = None
     tileWidthPx: int | None = None
     channelCount: int | None = None
@@ -54,12 +71,18 @@ class ImageInfo(NamedTuple):
 
 # experiment #################
 
-
-LoopTypeString = Union[
-    Literal["TimeLoop"],
-    Literal["NETimeLoop"],
-    Literal["XYPosLoop"],
-    Literal["ZStackLoop"],
+LoopTypeString = Literal[
+    "Unknown",
+    "TimeLoop",
+    "XYPosLoop",
+    "XYDiscrLoop",
+    "ZStackLoop",
+    "PolarLoop",
+    "SpectLoop",
+    "CustomLoop",
+    "NETimeLoop",
+    "ManTimeLoop",
+    "ZStackLoopAccurate",
 ]
 
 
@@ -72,6 +95,15 @@ class _Loop:
 
     @classmethod
     def create(cls, obj: dict) -> ExpLoop:
+        type_ = obj.pop("type")
+        if type_ in ("TimeLoop", LoopType.TimeLoop):
+            return TimeLoop(**obj)
+        elif type_ in ("NETimeLoop", LoopType.NETimeLoop):
+            return NETimeLoop(**obj)
+        elif type_ in ("XYPosLoop", LoopType.XYPosLoop):
+            return XYPosLoop(**obj)
+        elif type_ in ("ZStackLoop", LoopType.ZStackLoop):
+            return ZStackLoop(**obj)
         return globals()[obj["type"]](**obj)
 
 
@@ -84,6 +116,7 @@ class TimeLoop(_Loop):
     type: Literal["TimeLoop"] = "TimeLoop"
 
     def __post_init__(self):
+        # TODO: make superclass do this
         if isinstance(self.parameters, dict):
             if "periodDiff" not in self.parameters:
                 self.parameters["periodDiff"] = None
@@ -166,6 +199,8 @@ class Position:
     def __post_init__(self):
         if isinstance(self.stagePositionUm, dict):
             self.stagePositionUm = StagePosition(*self.stagePositionUm)
+        elif isinstance(self.stagePositionUm, (tuple, list)):
+            self.stagePositionUm = StagePosition(*self.stagePositionUm)
 
 
 class StagePosition(NamedTuple):
@@ -231,10 +266,13 @@ class Channel:
     volume: Volume
 
     def __post_init__(self):
-        self.channel = ChannelMeta(**self.channel)
-        self.microscope = Microscope(**self.microscope)
-        self.volume = Volume(**self.volume)
-        if self.loops:
+        if isinstance(self.channel, dict):
+            self.channel = ChannelMeta(**self.channel)
+        if isinstance(self.microscope, dict):
+            self.microscope = Microscope(**self.microscope)
+        if isinstance(self.volume, dict):
+            self.volume = Volume(**self.volume)
+        if isinstance(self.loops, dict):
             self.loops = LoopIndices(**self.loops)
 
 
@@ -278,7 +316,7 @@ class Volume:
     bitsPerComponentSignificant: int
     cameraTransformationMatrix: tuple[float, float, float, float]
     componentCount: int
-    componentDataType: Literal["unsigned"] | Literal["float"]
+    componentDataType: Literal["unsigned", "float"]
     voxelCount: tuple[int, int, int]
     componentMaxima: list[float] | None = None
     componentMinima: list[float] | None = None
@@ -288,11 +326,6 @@ class Volume:
 
     # NIS Microscope Absolute frame in um =
     # pixelToStageTransformationMatrix * (X_in_px,  Y_in_px,  1) + stagePositionUm
-
-    def __post_init__(self):
-        self.axesInterpretation = tuple(  # type: ignore
-            AxisInterpretation(i) for i in self.axesInterpretation
-        )
 
 
 @dataclass
@@ -308,8 +341,10 @@ class FrameChannel(Channel):
 
     def __post_init__(self):
         super().__post_init__()
-        self.position = Position(**self.position)
-        self.time = TimeStamp(**self.time)
+        if isinstance(self.position, dict):
+            self.position = Position(**self.position)
+        if isinstance(self.time, dict):
+            self.time = TimeStamp(**self.time)
 
 
 @dataclass
@@ -318,8 +353,11 @@ class FrameMetadata:
     channels: list[FrameChannel]
 
     def __post_init__(self):
-        self.contents = Contents(**self.contents)
-        self.channels = [FrameChannel(**i) for i in self.channels]
+        if isinstance(self.contents, dict):
+            self.contents = Contents(**self.contents)
+        self.channels = [
+            FrameChannel(**i) if isinstance(i, dict) else i for i in self.channels
+        ]
 
 
 class Coordinate(NamedTuple):

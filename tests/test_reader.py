@@ -21,7 +21,7 @@ def test_metadata_extraction(new_nd2: Path):
         assert nd.path == str(new_nd2)
         assert not nd.closed
 
-        # assert isinstance(nd._rdr._seq_count(), int)
+        assert isinstance(nd._rdr._seq_count(), int)
         assert isinstance(nd.attributes, structures.Attributes)
 
         # TODO: deal with typing when metadata is completely missing
@@ -38,6 +38,25 @@ def test_metadata_extraction(new_nd2: Path):
 
         assert isinstance(nd.unstructured_metadata(), dict)
         assert isinstance(nd.recorded_data, dict)
+
+    assert nd.closed
+
+
+def test_metadata_extraction_legacy(old_nd2):
+    assert ND2File.is_supported_file(old_nd2)
+    with ND2File(old_nd2) as nd:
+        assert nd.path == str(old_nd2)
+        assert not nd.closed
+
+        assert isinstance(nd.attributes, structures.Attributes)
+
+        # # TODO: deal with typing when metadata is completely missing
+        # assert isinstance(nd.metadata, structures.Metadata)
+        assert isinstance(nd.experiment, list)
+        assert isinstance(nd.text_info, dict)
+        xarr = nd.to_xarray()
+        assert isinstance(xarr, xr.DataArray)
+        assert isinstance(xarr.data, da.Array)
 
     assert nd.closed
 
@@ -124,25 +143,6 @@ def test_xarray_legacy(old_nd2):
         assert isinstance(xarr, xr.DataArray)
         assert isinstance(xarr.data, da.Array)
         assert isinstance(nd.to_xarray(squeeze=False), xr.DataArray)
-
-
-def test_metadata_extraction_legacy(old_nd2):
-    assert ND2File.is_supported_file(old_nd2)
-    with ND2File(old_nd2) as nd:
-        assert nd.path == str(old_nd2)
-        assert not nd.closed
-
-        assert isinstance(nd.attributes, structures.Attributes)
-
-        # # TODO: deal with typing when metadata is completely missing
-        # assert isinstance(nd.metadata, structures.Metadata)
-        assert isinstance(nd.experiment, list)
-        assert isinstance(nd.text_info, dict)
-        xarr = nd.to_xarray()
-        assert isinstance(xarr, xr.DataArray)
-        assert isinstance(xarr.data, da.Array)
-
-    assert nd.closed
 
 
 def test_missing():
@@ -270,25 +270,25 @@ def test_chunkmap(validate):
     assert np.array_equal(d[250:255, 250:255], expected)
 
 
-def test_with_without_sdk(small_nd2s: Path):
-    with ND2File(small_nd2s, read_using_sdk=True) as withsdk:
-        ary1 = withsdk.asarray()
-        dsk1 = withsdk.to_dask()
-        np.testing.assert_array_equal(ary1, dsk1)
-        compressed = bool(withsdk.attributes.compressionType)
-
-    if not compressed:
-        with ND2File(small_nd2s, read_using_sdk=False) as nosdk:
-            ary2 = nosdk.asarray()
-            dsk2 = nosdk.to_dask()
-            np.testing.assert_array_equal(ary2, dsk2)
-            if not nosdk.attributes.compressionType:
-                np.testing.assert_array_equal(ary1, ary2)
-    else:
-        with pytest.raises(
-            ValueError, match="compressed nd2 files with `read_using_sdk=False`"
-        ):
-            imread(small_nd2s, read_using_sdk=False)
+def test_compressed():
+    data = imread(DATA / "compressed_lossless.nd2")
+    expected = np.asarray(
+        [
+            [
+                [151, 131, 130, 120],
+                [124, 125, 131, 126],
+                [123, 121, 121, 138],
+                [119, 123, 141, 114],
+            ],
+            [
+                [133, 121, 128, 128],
+                [136, 130, 141, 137],
+                [115, 125, 115, 101],
+                [132, 141, 131, 120],
+            ],
+        ]
+    ).astype("uint16")
+    assert np.array_equal(data[:, 100:104, 100:104], expected)
 
 
 def test_extra_width_bytes():
@@ -301,12 +301,6 @@ def test_extra_width_bytes():
 
     im = imread(str(DATA / "jonas_JJ1473_control_24h_JJ1473_control_24h_03.nd2"))
     np.testing.assert_array_equal(im[0, 0, :4, :4], expected)
-
-    im = imread(
-        str(DATA / "jonas_JJ1473_control_24h_JJ1473_control_24h_03.nd2"),
-        read_using_sdk=True,
-    )
-    assert np.array_equal(im[0, 0, :4, :4], expected)
 
 
 def test_recorded_data() -> None:

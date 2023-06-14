@@ -5,12 +5,10 @@ ci:
 
 default_install_hook_types: [pre-commit, commit-msg]
 
-exclude: src/sdk
-
 repos:
 
   - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v2.2.0
+    rev: v2.3.0
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
@@ -23,7 +21,7 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.270
+    rev: v0.0.272
     hooks:
       - id: ruff
         args: [--fix]

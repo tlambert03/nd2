@@ -1,36 +1,15 @@
 from __future__ import annotations
 
-import contextlib
-import mmap
 import threading
 import warnings
-from enum import Enum
 from itertools import product
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Sequence,
-    Sized,
-    SupportsInt,
-    Union,
-    cast,
-    no_type_check,
-    overload,
-)
+from typing import TYPE_CHECKING, cast, no_type_check, overload
 
 import numpy as np
 
-from ._nd2decode import _decode_custom_data, decode_metadata, unnest_experiments
 from ._util import AXIS, VoxelSize, get_reader, is_supported_file
-from .structures import (
-    ROI,
-    Attributes,
-    ExpLoop,
-    FrameMetadata,
-    Metadata,
-    XYPosLoop,
-    ZStackLoop,
-)
+from .structures import ROI
 
 try:
     from functools import cached_property
@@ -39,26 +18,26 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from typing import Any
+    import mmap
+    from typing import Any, Sequence, Sized, SupportsInt
 
     import dask.array.core
     import xarray as xr
     from typing_extensions import Literal
 
     from ._binary import BinaryLayers
-    from ._sdk.latest import ND2Reader as LatestSDKReader
-    from .structures import Position
+    from ._pysdk._pysdk import ND2Reader as LatestSDKReader
+    from .structures import (
+        Attributes,
+        ExpLoop,
+        FrameMetadata,
+        Metadata,
+        Position,
+        TextInfo,
+        XYPosLoop,
+    )
 
-
-Index = Union[int, slice]
-
-ROI_METADATA = "CustomData|RoiMetadata_v1"
-IMG_METADATA = "ImageMetadataLV"
-
-
-class ReadMode(str, Enum):
-    MMAP = "mmap"
-    SDK = "sdk"
+__all__ = ["ND2File", "imread"]
 
 
 class ND2File:
@@ -88,18 +67,25 @@ class ND2File:
             When validate_frames is true, this is the search window (in KB) that will
             be used to try to find the actual chunk position. by default 100 KB
         read_using_sdk : Optional[bool]
+            DEPRECATED.  No longer does anything.
             If `True`, use the SDK to read the file. If `False`, inspects the chunkmap
             and reads from a `numpy.memmap`. If `None` (the default), uses the SDK if
             the file is compressed, otherwise uses the memmap. Note: using
             `read_using_sdk=False` on a compressed file will result in a ValueError.
 
         """
+        if read_using_sdk is not None:
+            warnings.warn(
+                "The `read_using_sdk` argument is deprecated and will be removed in "
+                "a future version.",
+                FutureWarning,
+                stacklevel=2,
+            )
         self._path = str(path)
         self._rdr = get_reader(
             self._path,
             validate_frames=validate_frames,
             search_window=search_window,
-            read_using_sdk=read_using_sdk,
         )
         self._closed = False
         self._is_legacy = "Legacy" in type(self._rdr).__name__
@@ -173,13 +159,14 @@ class ND2File:
         return self._rdr.attributes
 
     @cached_property
-    def text_info(self) -> dict[str, Any]:
+    def text_info(self) -> TextInfo | dict:
         """Misc text info."""
         return self._rdr.text_info()
 
     @cached_property
     def rois(self) -> dict[int, ROI]:
         """Return dict of {id: ROI} for all ROIs found in the metadata."""
+        ROI_METADATA = "CustomData|RoiMetadata_v1"
         if self.is_legacy or ROI_METADATA not in self._rdr._meta_map:  # type: ignore
             return {}
         data = self.unstructured_metadata(include={ROI_METADATA})
@@ -195,35 +182,15 @@ class ND2File:
     @cached_property
     def experiment(self) -> list[ExpLoop]:
         """Loop information for each nd axis."""
-        exp = self._rdr.experiment()
-
-        # https://github.com/tlambert03/nd2/issues/78
-        # the SDK doesn't always do a good job of pulling position names from metadata
-        # here, we try to extract it manually.  Might be error prone, so currently
-        # we just ignore errors.
-        if not self.is_legacy and IMG_METADATA in self._rdr._meta_map:  # type: ignore
-            for n, item in enumerate(exp):
-                if isinstance(item, XYPosLoop):
-                    names = {
-                        tuple(p.stagePositionUm): p.name for p in item.parameters.points
-                    }
-                    if not any(names.values()):
-                        _exp = self.unstructured_metadata(
-                            include={IMG_METADATA}, unnest=True
-                        )[IMG_METADATA]
-                        if n >= len(_exp):
-                            continue
-                        with contextlib.suppress(Exception):
-                            _fix_names(_exp[n], item.parameters.points)
-        return exp
+        return self._rdr.experiment()
 
     def unstructured_metadata(
         self,
         *,
-        unnest: bool = False,
         strip_prefix: bool = True,
         include: set[str] | None = None,
         exclude: set[str] | None = None,
+        unnest: bool | None = None,
     ) -> dict[str, Any]:
         """Exposes, and attempts to decode, each metadata chunk in the file.
 
@@ -239,10 +206,6 @@ class ND2File:
 
         Parameters
         ----------
-        unnest : bool, optional
-            If `True` the nested `NextLevelEx` keys of each Experiment loop level will
-            be flattened into a list, and the return type will be `list`. by default
-            `False`.
         strip_prefix : bool, optional
             Whether to strip the type information from the front of the keys in the
             dict. For example, if `True`: `uiModeFQ` becomes `ModeFQ` and `bUsePFS`
@@ -252,6 +215,8 @@ class ND2File:
             all metadata sections found in the file are included.
         exclude : Optional[Set[str]], optional
             If provided, exclude the specified keys from the output. by default `None`
+        unnest : bool, optional
+            DEPRECATED.  No longer does anything.
 
         Returns
         -------
@@ -263,6 +228,13 @@ class ND2File:
         if self.is_legacy:
             raise NotImplementedError(
                 "unstructured_metadata not available for legacy files"
+            )
+        from ._clx_lite import json_from_clx_lite_variant
+
+        if unnest is not None:
+            warnings.warn(
+                "The unnest parameter is deprecated, and no longer has any effect.",
+                stacklevel=2,
             )
 
         output: dict[str, Any] = {}
@@ -287,9 +259,9 @@ class ND2File:
                     # probably xml
                     decoded: Any = meta.decode("utf-8")
                 else:
-                    decoded = decode_metadata(meta, strip_prefix=strip_prefix)
-                    if key == IMG_METADATA and unnest:
-                        decoded = unnest_experiments(decoded)
+                    decoded = json_from_clx_lite_variant(
+                        meta, strip_prefix=strip_prefix
+                    )
             except Exception:
                 decoded = meta
 
@@ -367,7 +339,7 @@ class ND2File:
     @property
     def components_per_channel(self) -> int:
         """Number of components per channel (e.g. 3 for rgb)."""
-        attrs = cast(Attributes, self.attributes)
+        attrs = cast("Attributes", self.attributes)
         return attrs.componentCount // (attrs.channelCount or 1)
 
     @property
@@ -683,7 +655,7 @@ class ND2File:
             coords[AXIS.Z] = np.arange(self.sizes[AXIS.Z]) * dz
 
         if squeeze:
-            return {k: v for k, v in coords.items() if len(v) > 1}
+            coords = {k: v for k, v in coords.items() if len(v) > 1}
         return coords
 
     def _position_names(self, loop: XYPosLoop | None = None) -> list[str]:
@@ -728,68 +700,7 @@ class ND2File:
                 stacklevel=2,
             )
             return {}
-        rdr = cast("LatestSDKReader", self._rdr)
-
-        cd = self.custom_data
-        if "CustomDataV2_0" not in cd:
-            return {}
-        try:
-            tags: dict = cd["CustomDataV2_0"]["CustomTagDescription_v1.0"]
-        except KeyError:
-            warnings.warn(
-                "Could not find 'CustomTagDescription_v1' tag, please open an issue "
-                "with this nd2 file at https://github.com/tlambert03/nd2/issues/new",
-                stacklevel=2,
-            )
-            return {}
-
-        # tags will be a dict of dicts: eg:
-        # {'Tag0': {'ID': 'X', 'Type': 3, 'Group': 1, 'Size': 5000, 'Desc': 'X Coord', 'Unit': 'µm'}}  # noqa
-        # FIXME: technically, it is possible to have multiple tags with the same Desc
-        # (e.g. for IDs PFS_OFFSET and Z2). In the current implementation, the
-        # 2nd tag will overwrite the first one.
-        data: dict[str, np.ndarray | Sequence] = {}
-        with contextlib.suppress(KeyError):
-            chunk = rdr._get_meta_chunk("CustomData|AcqTimesCache")
-            data["Time [s]"] = np.frombuffer(chunk) / 1000
-
-        try:
-            z_idx = [AXIS._MAP[c[1]] for c in self._rdr._coord_info()].index(AXIS.Z)
-        except ValueError:
-            pass
-        else:
-            # TODO: this is probably slow... and could definitely be improved
-            z_loop = cast("ZStackLoop", self.experiment[z_idx])
-            z_positions = [
-                z_loop.parameters.stepUm * (i - z_loop.parameters.homeIndex)
-                for i in range(z_loop.count)
-            ]
-            if not z_loop.parameters.bottomToTop:
-                z_positions = list(reversed(z_positions))
-
-            data["Z-Series"] = np.array(
-                [
-                    z_positions[rdr._coords_from_seq_index(i)[z_idx]]
-                    for i in range(self.attributes.sequenceCount)
-                ]
-            )
-
-        for tag in tags.values():
-            header = f"{tag['Desc']}"
-            if tag["Unit"]:
-                header += f" [{tag['Unit']}]"
-            raw = rdr._get_meta_chunk(f"CustomData|{tag['ID']}")
-            _type = tag["Type"]
-            if _type == 1:
-                warnings.warn(
-                    f"{header!r} column skipped: "
-                    "(parsing string data is not yet implemented)",
-                    stacklevel=2,
-                )
-            else:
-                data[header] = _decode_custom_data(raw, _type, tag["Size"])
-
-        return data
+        return cast("LatestSDKReader", self._rdr).recorded_data()
 
     @cached_property
     def binary_data(self) -> BinaryLayers | None:
@@ -896,6 +807,7 @@ def imread(
         This comes at a slight performance penalty at file open, but may "rescue"
         some corrupt files. by default False.
     read_using_sdk : Optional[bool]
+        DEPRECATED: no longer used.
         If `True`, use the SDK to read the file. If `False`, inspects the chunkmap and
         reads from a `numpy.memmap`. If `None` (the default), uses the SDK if the file
         is compressed, otherwise uses the memmap.

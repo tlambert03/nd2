@@ -48,8 +48,6 @@ jobs:
 
       - name: Build
         run: pip install --pre -e .[test]
-        env:
-          CYTHON_TRACE: "1"
 
       - name: Test
         run: pytest -v --cov=nd2 --cov-report=xml --cov-report=term

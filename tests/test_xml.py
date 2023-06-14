@@ -1,50 +1,40 @@
-from nd2._xml import parse_xml_block
+from pathlib import Path
+from typing import cast
+
+from nd2._clx_xml import json_from_clx_variant
+
+XML = (Path(__file__).parent / "variant.xml").read_bytes()
 
 
 def test_parse_xml() -> None:
-    bXML = b"""
-    <?xml version="1.0" encoding="UTF-8"?>
-    <variant version="1.0">
-        <CustomTagDescription_v1.0 runtype="CLxListVariant">
-            <Tag0 runtype="CLxListVariant">
-                <ID runtype="CLxStringW" value="CameraTemp1"/>
-                <Type runtype="lx_int32" value="3"/>
-                <Group runtype="lx_int32" value="0"/>
-                <Size runtype="lx_int32" value="21"/>
-                <Desc runtype="CLxStringW" value="Camera Temperature"/>
-                <Unit runtype="CLxStringW" value="\xc2\xb0C"/>
-            </Tag0>
-            <Tag1 runtype="CLxListVariant">
-                <ID runtype="CLxStringW" value="Camera_ExposureTime1"/>
-                <Type runtype="lx_int32" value="3"/>
-                <Group runtype="lx_int32" value="0"/>
-                <Size runtype="lx_int32" value="21"/>
-                <Desc runtype="CLxStringW" value="Exposure Time"/>
-                <Unit runtype="CLxStringW" value="ms"/>
-            </Tag1>
-        </CustomTagDescription_v1.0>
-    </variant>
-    """
+    result = cast(dict, json_from_clx_variant(XML))
+    assert list(result) == [
+        "eType",
+        "wsApplicationDesc",
+        "wsUserDesc",
+        "aMeasProbesBase64",
+        "uLoopPars",
+        "pItemValid",
+        "sAutoFocusBeforeLoop",
+        "wsCommandBeforeLoop",
+        "wsCommandBeforeCapture",
+        "wsCommandAfterCapture",
+        "wsCommandAfterLoop",
+        "bControlShutter",
+        "bUsePFS",
+        "uiRepeatCount",
+        "ppNextLevelEx",
+        "bControlLight",
+        "pLargeImage",
+        "sParallelExperiment",
+    ]
 
-    EXPECT = {
-        "CustomTagDescription_v1.0": {
-            "Tag0": {
-                "ID": "CameraTemp1",
-                "Type": 3,
-                "Group": 0,
-                "Size": 21,
-                "Desc": "Camera Temperature",
-                "Unit": "°C",
-            },
-            "Tag1": {
-                "ID": "Camera_ExposureTime1",
-                "Type": 3,
-                "Group": 0,
-                "Size": 21,
-                "Desc": "Exposure Time",
-                "Unit": "ms",
-            },
-        }
-    }
 
-    assert parse_xml_block(bXML) == EXPECT
+def test_parse_variant_xml():
+    variant = Path(__file__).parent / "variant_CustomDataV2_0.xml"
+    xml = variant.read_bytes()
+    data = json_from_clx_variant(xml, strip_variant=False)
+    assert "variant" in data
+    variant_dict = data["variant"]
+    assert isinstance(variant_dict, dict)
+    assert "CustomTagDescription_v1.0" in variant_dict

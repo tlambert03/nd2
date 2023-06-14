@@ -22,6 +22,6 @@ __all__ = [
 
 from . import structures
 from ._binary import BinaryLayer, BinaryLayers
-from ._chunkmap import read_chunkmap, rescue_nd2
+from ._pysdk._chunk_decode import rescue_nd2
 from ._util import AXIS, is_legacy, is_supported_file
 from .nd2file import ND2File, imread

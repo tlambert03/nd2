@@ -9,7 +9,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 import nd2
-from nd2._chunkmap import iter_chunks
+from nd2._pysdk._chunk_decode import iter_chunks
 
 
 def _get_version(path):
@@ -27,7 +27,7 @@ def _get_version(path):
     raise RuntimeError("Not an ND2 file")
 
 
-def get_nd2_stats(path: Path) -> tuple[str, dict]:
+def get_nd2_stats(path: Path) -> "tuple[str, dict]":
     data = {"ver": _get_version(path)}
 
     with nd2.ND2File(path) as nd:
@@ -48,7 +48,8 @@ if __name__ == "__main__":
 
     DATA = Path(__file__).parent.parent / "tests" / "data"
 
-    if _paths := sys.argv[1:]:
+    _paths = sys.argv[1:]
+    if _paths:
         paths = [Path(p) for p in _paths]
     elif DATA.exists():
         paths = list(DATA.glob("*.nd2"))

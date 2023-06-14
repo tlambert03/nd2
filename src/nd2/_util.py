@@ -1,12 +1,12 @@
 import re
 from datetime import datetime
-from typing import IO, TYPE_CHECKING, Any, Callable, NamedTuple, Optional, Union
+from typing import IO, TYPE_CHECKING, Any, Callable, NamedTuple, Union
 
 if TYPE_CHECKING:
     from os import PathLike
 
     from ._legacy import LegacyND2Reader
-    from ._sdk.latest import ND2Reader
+    from ._pysdk._pysdk import ND2Reader
 
     StrOrBytesPath = Union[str, bytes, PathLike[str], PathLike[bytes]]
 
@@ -58,21 +58,19 @@ def get_reader(
     path: str,
     validate_frames: bool = False,
     search_window: int = 100,
-    read_using_sdk: Optional[bool] = None,
 ) -> Union["ND2Reader", "LegacyND2Reader"]:
     with open(path, "rb") as fh:
         magic_num = fh.read(4)
         if magic_num == NEW_HEADER_MAGIC:
-            from ._sdk.latest import ND2Reader
+            from ._pysdk._pysdk import ND2Reader
 
             return ND2Reader(
                 path,
                 validate_frames=validate_frames,
                 search_window=search_window,
-                read_using_sdk=read_using_sdk,
             )
         elif magic_num == OLD_HEADER_MAGIC:
-            from ._legacy import LegacyND2Reader
+            from ._legacy._legacy import LegacyND2Reader
 
             return LegacyND2Reader(path)
         raise OSError(
@@ -96,21 +94,6 @@ def jdn_to_datetime_utc(jdn):
 
 def rgb_int_to_tuple(rgb):
     return ((rgb & 255), (rgb >> 8 & 255), (rgb >> 16 & 255))
-
-
-DIMSIZE = re.compile(r"(\w+)'?\((\d+)\)")
-
-
-def dims_from_description(desc) -> dict:
-    if not desc:
-        return {}
-    match = re.search(r"Dimensions:\s?([^\r]+)\r?\n", desc)
-    if not match:
-        return {}
-    dims = match.groups()[0]
-    dims = dims.replace("λ", AXIS.CHANNEL)
-    dims = dims.replace("XY", AXIS.POSITION)
-    return {k: int(v) for k, v in DIMSIZE.findall(dims)}
 
 
 class AXIS:

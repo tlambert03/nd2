@@ -1,6 +1,7 @@
 import nd2
 import numpy as np
 import pytest
+from nd2._pysdk._chunk_decode import get_chunkmap
 
 
 @pytest.fixture
@@ -26,7 +27,6 @@ def test_rescue(broken_nd2, single_nd2, capsys):
     # TODO: we could potentially put more of this logic into convenience functions
     # we can't do too much magic about guessing shape and dtype since some files
     # may not have that information intact
-    from nd2._pysdk._chunk_decode import get_chunkmap
 
     with pytest.raises(ValueError, match="appears to be corrupt. Expected "):
         with open(broken_nd2, "rb") as f2:
@@ -34,6 +34,7 @@ def test_rescue(broken_nd2, single_nd2, capsys):
 
     with pytest.raises(ValueError, match="Also looked in the surrounding 1000 bytes"):
         with open(broken_nd2, "rb") as f2:
+            # where 1000 is less than N above in broken_nd2
             cm2 = get_chunkmap(f2, error_radius=1000)
 
     with open(single_nd2, "rb") as f1, open(broken_nd2, "rb") as f2:

@@ -2,32 +2,14 @@ from __future__ import annotations
 
 import threading
 import warnings
-from enum import Enum
 from itertools import product
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Sequence,
-    Sized,
-    SupportsInt,
-    Union,
-    cast,
-    no_type_check,
-    overload,
-)
+from typing import TYPE_CHECKING, cast, no_type_check, overload
 
 import numpy as np
 
 from ._util import AXIS, VoxelSize, get_reader, is_supported_file
-from .structures import (
-    ROI,
-    Attributes,
-    ExpLoop,
-    FrameMetadata,
-    Metadata,
-    TextInfo,
-    XYPosLoop,
-)
+from .structures import ROI
 
 try:
     from functools import cached_property
@@ -37,7 +19,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     import mmap
-    from typing import Any
+    from typing import Any, Sequence, Sized, SupportsInt
 
     import dask.array.core
     import xarray as xr
@@ -45,18 +27,17 @@ if TYPE_CHECKING:
 
     from ._binary import BinaryLayers
     from ._pysdk._pysdk import ND2Reader as LatestSDKReader
-    from .structures import Position
+    from .structures import (
+        Attributes,
+        ExpLoop,
+        FrameMetadata,
+        Metadata,
+        Position,
+        TextInfo,
+        XYPosLoop,
+    )
 
-
-Index = Union[int, slice]
-
-ROI_METADATA = "CustomData|RoiMetadata_v1"
-IMG_METADATA = "ImageMetadataLV"
-
-
-class ReadMode(str, Enum):
-    MMAP = "mmap"
-    SDK = "sdk"
+__all__ = ["ND2File", "imread"]
 
 
 class ND2File:
@@ -185,6 +166,7 @@ class ND2File:
     @cached_property
     def rois(self) -> dict[int, ROI]:
         """Return dict of {id: ROI} for all ROIs found in the metadata."""
+        ROI_METADATA = "CustomData|RoiMetadata_v1"
         if self.is_legacy or ROI_METADATA not in self._rdr._meta_map:  # type: ignore
             return {}
         data = self.unstructured_metadata(include={ROI_METADATA})
@@ -357,7 +339,7 @@ class ND2File:
     @property
     def components_per_channel(self) -> int:
         """Number of components per channel (e.g. 3 for rgb)."""
-        attrs = cast(Attributes, self.attributes)
+        attrs = cast("Attributes", self.attributes)
         return attrs.componentCount // (attrs.channelCount or 1)
 
     @property
@@ -673,7 +655,7 @@ class ND2File:
             coords[AXIS.Z] = np.arange(self.sizes[AXIS.Z]) * dz
 
         if squeeze:
-            return {k: v for k, v in coords.items() if len(v) > 1}
+            coords = {k: v for k, v in coords.items() if len(v) > 1}
         return coords
 
     def _position_names(self, loop: XYPosLoop | None = None) -> list[str]:

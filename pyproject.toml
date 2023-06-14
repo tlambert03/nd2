@@ -138,10 +138,6 @@ show_error_codes = true
 pretty = true
 
 [[tool.mypy.overrides]]
-module = 'nd2.structures'
-ignore_errors = true
-
-[[tool.mypy.overrides]]
 module = ["imagecodecs", "resource_backed_dask_array"]
 ignore_missing_imports = true
 

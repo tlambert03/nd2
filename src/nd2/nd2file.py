@@ -4,7 +4,7 @@ import threading
 import warnings
 from itertools import product
 from pathlib import Path
-from typing import TYPE_CHECKING, cast, no_type_check, overload
+from typing import TYPE_CHECKING, cast, overload
 
 import numpy as np
 
@@ -34,7 +34,6 @@ if TYPE_CHECKING:
         ExpLoop,
         FrameMetadata,
         Metadata,
-        Position,
         TextInfo,
         XYPosLoop,
     )
@@ -174,14 +173,14 @@ class ND2File:
         """Return dict of {id: ROI} for all ROIs found in the metadata."""
         key = b"CustomData|RoiMetadata_v1!"
         if self.is_legacy or key not in self._rdr.chunkmap:  # type: ignore
-            return {}
+            return {}  # pragma: no cover
 
         data = cast("LatestSDKReader", self._rdr)._decode_chunk(key)
         data = data.get("RoiMetadata_v1", {}).copy()
         data.pop("Global_Size", None)
         try:
             _rois = [ROI._from_meta_dict(d) for d in data.values()]
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             raise ValueError(f"Could not parse ROI metadata: {e}") from e
         return {r.id: r for r in _rois}
 
@@ -231,7 +230,7 @@ class ND2File:
             metadata chunk (things like 'CustomData|RoiMetadata_v1' or
             'ImageMetadataLV'), and values that are associated metadata chunk.
         """
-        if self.is_legacy:
+        if self.is_legacy:  # pragma: no cover
             raise NotImplementedError(
                 "unstructured_metadata not available for legacy files"
             )
@@ -239,6 +238,7 @@ class ND2File:
         if unnest is not None:
             warnings.warn(
                 "The unnest parameter is deprecated, and no longer has any effect.",
+                FutureWarning,
                 stacklevel=2,
             )
 
@@ -265,7 +265,7 @@ class ND2File:
             name = f"{key}!".encode()
             try:
                 output[key] = rdr._decode_chunk(name, strip_prefix=strip_prefix)
-            except Exception:
+            except Exception:  # pragma: no cover
                 output[key] = rdr._load_chunk(name)
         return output
 
@@ -408,7 +408,7 @@ class ND2File:
             try:
                 pidx = list(self.sizes).index(AXIS.POSITION)
             except ValueError as exc:
-                if position > 0:
+                if position > 0:  # pragma: no cover
                     raise IndexError(
                         f"Position {position} is out of range. "
                         f"Only 1 position available"
@@ -416,7 +416,7 @@ class ND2File:
                 seqs = range(self._frame_count)
             else:
                 if position >= self.sizes[AXIS.POSITION]:
-                    raise IndexError(
+                    raise IndexError(  # pragma: no cover
                         f"Position {position} is out of range. "
                         f"Only {self.sizes[AXIS.POSITION]} positions available"
                     )
@@ -502,7 +502,7 @@ class ND2File:
                 idx = self._seq_index_from_coords(block_id[:ncoords])
 
                 if idx == self._NO_IDX:
-                    if any(block_id):
+                    if any(block_id):  # pragma: no cover
                         raise ValueError(
                             f"Cannot get chunk {block_id} for single frame image."
                         )
@@ -652,6 +652,7 @@ class ND2File:
             ]
 
         # fix for Z axis missing from experiment:
+        # TODO: this isn't hit by coverage... maybe it's not needed?
         if AXIS.Z in self.sizes and AXIS.Z not in coords:
             coords[AXIS.Z] = np.arange(self.sizes[AXIS.Z]) * dz
 
@@ -695,7 +696,7 @@ class ND2File:
 
         Legacy ND2 files are not supported.
         """
-        if self.is_legacy:
+        if self.is_legacy:  # pragma: no cover
             warnings.warn(
                 "`recorded_data` is not supported for legacy ND2 files",
                 UserWarning,
@@ -830,20 +831,3 @@ def imread(
             return nd2.to_dask()
         else:
             return nd2.asarray()
-
-
-@no_type_check
-def _fix_names(xy_exp, points: list[Position]) -> None:
-    """Attempt to fix missing XYPosLoop position names."""
-    if not isinstance(xy_exp, dict) or xy_exp.get("Type", "") != 2:
-        raise ValueError("Invalid XY experiment")
-    _points = xy_exp["LoopPars"]["Points"]
-    if len(_points) == 1 and "" in _points:
-        _points = _points[""]
-    if not isinstance(_points, list):
-        _points = [_points]
-    _names = {(p["PosX"], p["PosY"], p["PosZ"]): p["PosName"] for p in _points}
-
-    for p in points:
-        if p.name is None:
-            p.name = _names.get(tuple(p.stagePositionUm), p.name)

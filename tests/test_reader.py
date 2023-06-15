@@ -8,30 +8,11 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
-from nd2 import ND2File, imread, structures
+from nd2 import ND2File, imread
 from nd2._util import AXIS
 from resource_backed_dask_array import ResourceBackedDaskArray
 
 DATA = Path(__file__).parent / "data"
-
-
-def test_metadata_extraction_legacy(old_nd2):
-    assert ND2File.is_supported_file(old_nd2)
-    with ND2File(old_nd2) as nd:
-        assert nd.path == str(old_nd2)
-        assert not nd.closed
-
-        assert isinstance(nd.attributes, structures.Attributes)
-
-        # # TODO: deal with typing when metadata is completely missing
-        # assert isinstance(nd.metadata, structures.Metadata)
-        assert isinstance(nd.experiment, list)
-        assert isinstance(nd.text_info, dict)
-        xarr = nd.to_xarray()
-        assert isinstance(xarr, xr.DataArray)
-        assert isinstance(xarr.data, da.Array)
-
-    assert nd.closed
 
 
 def test_read_safety(new_nd2: Path):

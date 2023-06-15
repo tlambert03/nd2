@@ -112,7 +112,7 @@ ignore = [
 # https://docs.pytest.org/en/6.2.x/customize.html
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = '--color=yes'
+addopts = '--color=yes --cov-config=pyproject.toml'
 testpaths = ["tests"]
 filterwarnings = [
     "error",
@@ -136,6 +136,7 @@ ignore_missing_imports = true
 
 # https://coverage.readthedocs.io/en/6.4/config.html
 [tool.coverage.report]
+show_missing = true
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
@@ -146,7 +147,7 @@ exclude_lines = [
 ]
 
 [tool.coverage.run]
-omit = ["tests"]
+source = ["src"]
 
 # https://github.com/mgedmin/check-manifest#configuration
 [tool.check-manifest]

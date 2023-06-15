@@ -2,7 +2,9 @@ import json
 import sys
 from pathlib import Path
 
+import dask.array as da
 import pytest
+import xarray as xr
 from nd2 import ND2File, structures
 from nd2._pysdk._chunk_decode import ND2_FILE_SIGNATURE
 
@@ -49,6 +51,7 @@ def test_decode_all_chunks(new_nd2):
 def test_metadata_extraction(new_nd2: Path):
     assert ND2File.is_supported_file(new_nd2)
     with ND2File(new_nd2) as nd:
+        assert repr(nd)
         assert nd.path == str(new_nd2)
         assert not nd.closed
 
@@ -67,9 +70,31 @@ def test_metadata_extraction(new_nd2: Path):
         assert isinstance(nd.closed, bool)
         assert isinstance(nd.ndim, int)
         _bd = nd.binary_data
+        assert isinstance(nd.is_rgb, bool)
+        assert isinstance(nd.nbytes, int)
 
         assert isinstance(nd.unstructured_metadata(), dict)
         assert isinstance(nd.recorded_data, dict)
+
+    assert nd.closed
+
+
+def test_metadata_extraction_legacy(old_nd2):
+    assert ND2File.is_supported_file(old_nd2)
+    with ND2File(old_nd2) as nd:
+        assert repr(nd)
+        assert nd.path == str(old_nd2)
+        assert not nd.closed
+
+        assert isinstance(nd.attributes, structures.Attributes)
+
+        # # TODO: deal with typing when metadata is completely missing
+        # assert isinstance(nd.metadata, structures.Metadata)
+        assert isinstance(nd.experiment, list)
+        assert isinstance(nd.text_info, dict)
+        xarr = nd.to_xarray()
+        assert isinstance(xarr, xr.DataArray)
+        assert isinstance(xarr.data, da.Array)
 
     assert nd.closed
 

@@ -115,6 +115,8 @@ def _chunk_name_and_dtype(
 
     data_type, name_length = strctBB.unpack(header)
     if data_type == ELxLiteVariantType.COMPRESS:
+        # NOTE: the rois.nd2 test file has compressed metadata
+        # in b'CustomData|CustomDescriptionV1_0!'
         raise NotImplementedError("Compressed metadata not yet implemented.")
     if data_type in (ELxLiteVariantType.DEPRECATED, ELxLiteVariantType.UNKNOWN):
         raise ValueError(f"Unknown data type in metadata header: {data_type}")

@@ -106,6 +106,7 @@ f.recorded_data     # returns a dict of lists (passable to pandas.DataFrame) tha
 # allll the metadata we can find...
 # no attempt made to standardize or parse it
 # look in here if you're searching for metdata that isn't exposed in the above
+# but try not to rely on it, as it's not guaranteed to be stable
 f.unstructured_metadata()
 
 f.close()           # don't forget to close when not using a contet manager!

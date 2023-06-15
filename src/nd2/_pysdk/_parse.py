@@ -26,6 +26,7 @@ if TYPE_CHECKING:
         RawAttributesDict,
         RawExperimentDict,
         RawMetaDict,
+        RawTextInfoDict,
         SpectLoopPars,
         SpectrumDict,
         TimeLoopPars,
@@ -237,7 +238,7 @@ def _load_single_experiment_loop(
         count = loop_params.get("pPlanes", {}).get("uiCount", count)
         return strct.SpectLoop(count=count)
 
-    raise NotImplementedError(
+    raise NotImplementedError(  # pragma: no cover
         f"We've never seen a file like this! (loop_type={loop_type!r}). We'd "
         "appreciate it if you would submit this file at "
         "https://github.com/tlambert03/nd2/issues/new",
@@ -347,28 +348,29 @@ def _get_spectrum_max(item: SpectrumDict | None) -> float:
     return max(spectrum, key=lambda x: x[0])[1] if spectrum else 0.0
 
 
-def load_text_info(src: dict) -> strct.TextInfo:
-    # we only want keys that are present in the src
+def load_text_info(raw_txt_info: RawTextInfoDict) -> strct.TextInfo:
+    # we only want keys that are present in the raw_txt_info
+
     out = {
-        key: src[lookup]
+        key: raw_txt_info.get(lookup)
         for key, lookup in (
-            ("appVersion", "TextInfoItem_14"),
-            ("author", "TextInfoItem_4"),
-            ("capturing", "TextInfoItem_6"),
-            ("conclusion", "TextInfoItem_10"),
-            ("date", "TextInfoItem_9"),
-            ("description", "TextInfoItem_5"),
-            ("group", "TextInfoItem_2"),
             ("imageId", "TextInfoItem_0"),
+            ("type", "TextInfoItem_1"),
+            ("group", "TextInfoItem_2"),
+            ("sampleId", "TextInfoItem_3"),
+            ("author", "TextInfoItem_4"),
+            ("description", "TextInfoItem_5"),
+            ("capturing", "TextInfoItem_6"),
+            ("sampling", "TextInfoItem_7"),
+            ("location", "TextInfoItem_8"),
+            ("date", "TextInfoItem_9"),
+            ("conclusion", "TextInfoItem_10"),
             ("info1", "TextInfoItem_11"),
             ("info2", "TextInfoItem_12"),
-            ("location", "TextInfoItem_8"),
             ("optics", "TextInfoItem_13"),
-            ("sampleId", "TextInfoItem_3"),
-            ("sampling", "TextInfoItem_7"),
-            ("type", "TextInfoItem_1"),
+            ("appVersion", "TextInfoItem_14"),
         )
-        if src.get(lookup)
+        if raw_txt_info.get(lookup)
     }
     return cast(strct.TextInfo, out)
 

@@ -4,10 +4,11 @@ import threading
 import warnings
 from itertools import product
 from pathlib import Path
-from typing import TYPE_CHECKING, cast, no_type_check, overload
+from typing import TYPE_CHECKING, cast, overload
 
 import numpy as np
 
+from ._pysdk._chunk_decode import ND2_FILE_SIGNATURE
 from ._util import AXIS, VoxelSize, get_reader, is_supported_file
 from .structures import ROI
 
@@ -33,7 +34,6 @@ if TYPE_CHECKING:
         ExpLoop,
         FrameMetadata,
         Metadata,
-        Position,
         TextInfo,
         XYPosLoop,
     )
@@ -42,6 +42,28 @@ __all__ = ["ND2File", "imread"]
 
 
 class ND2File:
+    """Main objecting for opening and extracting data from an nd2 file.
+
+    Parameters
+    ----------
+    path : Path | str
+        Filename of an nd2 file.
+    validate_frames : bool
+        Whether to verify (and attempt to fix) frames whose positions have been
+        shifted relative to the predicted offset (i.e. in a corrupted file).
+        This comes at a slight performance penalty at file open, but may "rescue"
+        some corrupt files. by default False.
+    search_window : int
+        When validate_frames is true, this is the search window (in KB) that will
+        be used to try to find the actual chunk position. by default 100 KB
+    read_using_sdk : Optional[bool]
+        DEPRECATED.  No longer does anything.
+        If `True`, use the SDK to read the file. If `False`, inspects the chunkmap
+        and reads from a `numpy.memmap`. If `None` (the default), uses the SDK if
+        the file is compressed, otherwise uses the memmap. Note: using
+        `read_using_sdk=False` on a compressed file will result in a ValueError.
+    """
+
     _memmap: mmap.mmap
     _is_legacy: bool
 
@@ -53,28 +75,6 @@ class ND2File:
         search_window: int = 100,
         read_using_sdk: bool | None = None,
     ) -> None:
-        """Open an nd2 file.
-
-        Parameters
-        ----------
-        path : Union[Path, str]
-            Filename of an nd2 file.
-        validate_frames : bool
-            Whether to verify (and attempt to fix) frames whose positions have been
-            shifted relative to the predicted offset (i.e. in a corrupted file).
-            This comes at a slight performance penalty at file open, but may "rescue"
-            some corrupt files. by default False.
-        search_window : int
-            When validate_frames is true, this is the search window (in KB) that will
-            be used to try to find the actual chunk position. by default 100 KB
-        read_using_sdk : Optional[bool]
-            DEPRECATED.  No longer does anything.
-            If `True`, use the SDK to read the file. If `False`, inspects the chunkmap
-            and reads from a `numpy.memmap`. If `None` (the default), uses the SDK if
-            the file is compressed, otherwise uses the memmap. Note: using
-            `read_using_sdk=False` on a compressed file will result in a ValueError.
-
-        """
         if read_using_sdk is not None:
             warnings.warn(
                 "The `read_using_sdk` argument is deprecated and will be removed in "
@@ -125,6 +125,7 @@ class ND2File:
         return self._closed
 
     def __enter__(self) -> ND2File:
+        """Open file for reading."""
         self.open()
         return self
 
@@ -139,15 +140,18 @@ class ND2File:
             self._rdr.close()
 
     def __exit__(self, *_: Any) -> None:
+        """Exit context manager and close file."""
         self.close()
 
     def __getstate__(self) -> dict[str, Any]:
+        """Return state for pickling."""
         state = self.__dict__.copy()
         del state["_rdr"]
         del state["_lock"]
         return state
 
     def __setstate__(self, d: dict[str, Any]) -> None:
+        """Load state from pickling."""
         self.__dict__ = d
         self._lock = threading.RLock()
         self._rdr = get_reader(self._path)
@@ -167,18 +171,18 @@ class ND2File:
     @cached_property
     def rois(self) -> dict[int, ROI]:
         """Return dict of {id: ROI} for all ROIs found in the metadata."""
-        ROI_METADATA = "CustomData|RoiMetadata_v1"
-        if self.is_legacy or ROI_METADATA not in self._rdr._meta_map:  # type: ignore
-            return {}
-        data = self.unstructured_metadata(include={ROI_METADATA})
-        data = data.get(ROI_METADATA, {}).get("RoiMetadata_v1", {})
+        key = b"CustomData|RoiMetadata_v1!"
+        if self.is_legacy or key not in self._rdr.chunkmap:  # type: ignore
+            return {}  # pragma: no cover
+
+        data = cast("LatestSDKReader", self._rdr)._decode_chunk(key)
+        data = data.get("RoiMetadata_v1", {}).copy()
         data.pop("Global_Size", None)
         try:
-            _rois = (ROI._from_meta_dict(d) for d in data.values())
-            rois = {r.id: r for r in _rois}
-        except Exception as e:
+            _rois = [ROI._from_meta_dict(d) for d in data.values()]
+        except Exception as e:  # pragma: no cover
             raise ValueError(f"Could not parse ROI metadata: {e}") from e
-        return rois
+        return {r.id: r for r in _rois}
 
     @cached_property
     def experiment(self) -> list[ExpLoop]:
@@ -226,22 +230,25 @@ class ND2File:
             metadata chunk (things like 'CustomData|RoiMetadata_v1' or
             'ImageMetadataLV'), and values that are associated metadata chunk.
         """
-        if self.is_legacy:
+        if self.is_legacy:  # pragma: no cover
             raise NotImplementedError(
                 "unstructured_metadata not available for legacy files"
             )
-        from ._clx_lite import json_from_clx_lite_variant
 
         if unnest is not None:
             warnings.warn(
                 "The unnest parameter is deprecated, and no longer has any effect.",
+                FutureWarning,
                 stacklevel=2,
             )
 
-        output: dict[str, Any] = {}
-
         rdr = cast("LatestSDKReader", self._rdr)
-        keys = set(rdr._meta_map)
+        keys = {
+            k.decode()[:-1]
+            for k in rdr.chunkmap
+            if not k.startswith((b"ImageDataSeq", b"CustomData", ND2_FILE_SIGNATURE))
+        }
+
         if include:
             _keys: set[str] = set()
             for i in include:
@@ -253,20 +260,13 @@ class ND2File:
         if exclude:
             keys = {k for k in keys if k not in exclude}
 
+        output: dict[str, Any] = {}
         for key in sorted(keys):
+            name = f"{key}!".encode()
             try:
-                meta: bytes = rdr._get_meta_chunk(key)
-                if meta.startswith(b"<"):
-                    # probably xml
-                    decoded: Any = meta.decode("utf-8")
-                else:
-                    decoded = json_from_clx_lite_variant(
-                        meta, strip_prefix=strip_prefix
-                    )
-            except Exception:
-                decoded = meta
-
-            output[key] = decoded
+                output[key] = rdr._decode_chunk(name, strip_prefix=strip_prefix)
+            except Exception:  # pragma: no cover
+                output[key] = rdr._load_chunk(name)
         return output
 
     @cached_property
@@ -408,7 +408,7 @@ class ND2File:
             try:
                 pidx = list(self.sizes).index(AXIS.POSITION)
             except ValueError as exc:
-                if position > 0:
+                if position > 0:  # pragma: no cover
                     raise IndexError(
                         f"Position {position} is out of range. "
                         f"Only 1 position available"
@@ -416,7 +416,7 @@ class ND2File:
                 seqs = range(self._frame_count)
             else:
                 if position >= self.sizes[AXIS.POSITION]:
-                    raise IndexError(
+                    raise IndexError(  # pragma: no cover
                         f"Position {position} is out of range. "
                         f"Only {self.sizes[AXIS.POSITION]} positions available"
                     )
@@ -492,7 +492,7 @@ class ND2File:
 
     def _dask_block(self, copy: bool, block_id: tuple[int]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
-            return
+            return None
         with self._lock:
             was_closed = self.closed
             if self.closed:
@@ -502,7 +502,7 @@ class ND2File:
                 idx = self._seq_index_from_coords(block_id[:ncoords])
 
                 if idx == self._NO_IDX:
-                    if any(block_id):
+                    if any(block_id):  # pragma: no cover
                         raise ValueError(
                             f"Cannot get chunk {block_id} for single frame image."
                         )
@@ -652,6 +652,7 @@ class ND2File:
             ]
 
         # fix for Z axis missing from experiment:
+        # TODO: this isn't hit by coverage... maybe it's not needed?
         if AXIS.Z in self.sizes and AXIS.Z not in coords:
             coords[AXIS.Z] = np.arange(self.sizes[AXIS.Z]) * dz
 
@@ -674,6 +675,7 @@ class ND2File:
         return self._rdr.channel_names()
 
     def __repr__(self) -> str:
+        """Return a string representation of the ND2File."""
         try:
             details = " (closed)" if self.closed else f" {self.dtype}: {self.sizes!r}"
             extra = f": {Path(self.path).name!r}{details}"
@@ -694,7 +696,7 @@ class ND2File:
 
         Legacy ND2 files are not supported.
         """
-        if self.is_legacy:
+        if self.is_legacy:  # pragma: no cover
             warnings.warn(
                 "`recorded_data` is not supported for legacy ND2 files",
                 UserWarning,
@@ -829,20 +831,3 @@ def imread(
             return nd2.to_dask()
         else:
             return nd2.asarray()
-
-
-@no_type_check
-def _fix_names(xy_exp, points: list[Position]) -> None:
-    """Attempt to fix missing XYPosLoop position names."""
-    if not isinstance(xy_exp, dict) or xy_exp.get("Type", "") != 2:
-        raise ValueError("Invalid XY experiment")
-    _points = xy_exp["LoopPars"]["Points"]
-    if len(_points) == 1 and "" in _points:
-        _points = _points[""]
-    if not isinstance(_points, list):
-        _points = [_points]
-    _names = {(p["PosX"], p["PosY"], p["PosZ"]): p["PosName"] for p in _points}
-
-    for p in points:
-        if p.name is None:
-            p.name = _names.get(tuple(p.stagePositionUm), p.name)

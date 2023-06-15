@@ -39,6 +39,7 @@ if TYPE_CHECKING:
         RawAttributesDict,
         RawExperimentDict,
         RawMetaDict,
+        RawTextInfoDict,
     )
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
@@ -53,6 +54,7 @@ class ND2Reader:
         self._fh: BufferedReader | None = None
         self._mmap: mmap.mmap | None = None
         self._chunkmap: ChunkMap = {}
+        self._cached_decoded_chunks: dict[bytes, Any] = {}
         self._error_radius: int | None = (
             search_window * 1000 if validate_frames else None
         )
@@ -62,16 +64,18 @@ class ND2Reader:
         self._experiment: list[structures.ExpLoop] | None = None
         self._text_info: structures.TextInfo | None = None
         self._metadata: structures.Metadata | None = None
-        self._raw_attributes: RawAttributesDict | None = None
-        self._raw_experiment: RawExperimentDict | None = None
-        self._raw_text_info: dict | None = None
-        self._raw_image_metadata: RawMetaDict | None = None
+
         self._global_metadata: GlobalMetadata | None = None
-        self._frame_offsets_: dict[int, int] | None = None
+        self._cached_frame_offsets: dict[int, int] | None = None
         self._raw_frame_shape_: tuple[int, ...] | None = None
         self._dtype_: np.dtype | None = None
         self._strides_: tuple[int, ...] | None = None
         self._frame_times: list[float] | None = None
+        # these caches could be removed... they aren't really used
+        self._raw_attributes: RawAttributesDict | None = None
+        self._raw_experiment: RawExperimentDict | None = None
+        self._raw_text_info: RawTextInfoDict | None = None
+        self._raw_image_metadata: RawMetaDict | None = None
 
         self.open()
 
@@ -97,6 +101,16 @@ class ND2Reader:
 
     @property
     def chunkmap(self) -> ChunkMap:
+        """Load and return the chunkmap.
+
+        a Chunkmap is mapping of chunk names (bytes) to (offset, size) pairs.
+        {
+            b'ImageTextInfoLV!': (13041664, 2128),
+            b'ImageTextInfo!': (13037568, 1884),
+            b'ImageMetadataSeq|0!': (237568, 33412),
+            ...
+        }
+        """
         if not self._chunkmap:
             if self._fh is None:
                 raise OSError("File not open")
@@ -104,21 +118,8 @@ class ND2Reader:
         return self._chunkmap
 
     @property
-    def _frame_offsets(self) -> dict[int, int]:
-        if self._frame_offsets_ is None:
-            DEFAULT_SHIFT = 4072
-            offsets = [
-                (int(key[13:-1]), pos)
-                for key, (pos, _) in sorted(self.chunkmap.items())
-                if key.startswith(b"ImageDataSeq|")
-            ]
-            # if validate_frames:
-            #     return _validate_frames(fh, image_map, kbrange=search_window), meta_ma
-            self._frame_offsets_ = {f: int(o + 24 + DEFAULT_SHIFT) for f, o in offsets}
-        return self._frame_offsets_
-
-    @property
     def attributes(self) -> structures.Attributes:
+        """Load and return the image attributes."""
         if self._attributes is None:
             k = b"ImageAttributesLV!" if self.version >= (3, 0) else b"ImageAttributes!"
             attrs = self._decode_chunk(k, strip_prefix=False)
@@ -130,24 +131,51 @@ class ND2Reader:
         return self._attributes
 
     def _load_chunk(self, name: bytes) -> bytes:
+        """Load raw bytes from a specific chunk in the chunkmap.
+
+        `name` must be a valid key in the chunkmap.
+        """
         if self._fh is None:
             raise OSError("File not open")
-        offset, _ = self.chunkmap[name]
-        # TODO: there's a possibility of speed up here since we're rereading the header
+
+        try:
+            offset = self.chunkmap[name][0]
+        except KeyError as e:
+            raise KeyError(
+                f"Chunk key {name!r} not found in chunkmap: {set(self.chunkmap)}"
+            ) from e
+
         if self._error_radius is None:
             return read_nd2_chunk(self._fh, offset)
         return _robustly_read_named_chunk(
             self._fh, offset, expect_name=name, search_radius=self._error_radius
         )
 
-    def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict:
-        data = self._load_chunk(name)
-        if self.version < (3, 0):
-            return cast("dict", json_from_clx_variant(data, strip_prefix=strip_prefix))
-        return json_from_clx_lite_variant(data, strip_prefix=strip_prefix)
+    def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict | Any:
+        """Convert raw chunk bytes to a Python object.
+
+        Parameters
+        ----------
+        name : bytes
+            The name of the chunk to load.  Must be a valid key in the chunkmap.
+        strip_prefix : bool, optional
+            If True, strip the lowercase "type" prefix from the tag names, by default
+            False.
+        """
+        if name not in self._cached_decoded_chunks:
+            data = self._load_chunk(name)
+            if data.startswith(b"<"):
+                decoded: Any = json_from_clx_variant(data, strip_prefix=strip_prefix)
+            elif self.version < (3, 0):
+                decoded = json_from_clx_variant(data, strip_prefix=strip_prefix)
+            else:
+                decoded = json_from_clx_lite_variant(data, strip_prefix=strip_prefix)
+            self._cached_decoded_chunks[name] = decoded
+        return self._cached_decoded_chunks[name]
 
     @property
     def version(self) -> tuple[int, int]:
+        """Return the file format version as a tuple of ints."""
         if self._version is None:
             try:
                 self._version = get_version(self._fh or self._filename)
@@ -208,8 +236,8 @@ class ND2Reader:
             else:
                 info = self._decode_chunk(k, strip_prefix=False)
                 info = info.get("SLxImageTextInfo", info)  # for v3 only
-                self._raw_text_info = info
-                self._text_info = load_text_info(info)
+                self._raw_text_info = cast("RawTextInfoDict", info)
+                self._text_info = load_text_info(self._raw_text_info)
         return self._text_info
 
     def experiment(self) -> list[structures.ExpLoop]:
@@ -248,8 +276,6 @@ class ND2Reader:
     def channel_names(self) -> list[str]:
         return [c.channel.name for c in self.metadata().channels or []]
 
-    # -----------
-
     def _coords_from_seq_index(self, seq_index: int) -> tuple[int, ...]:
         """Convert a sequence index to a coordinate tuple."""
         coords: list[int] = []
@@ -267,6 +293,20 @@ class ND2Reader:
 
     def _seq_count(self) -> int:
         return int(np.prod([x.count for x in self.experiment()]))
+
+    @property
+    def _frame_offsets(self) -> dict[int, int]:
+        """Return map of frame number to offset in the file."""
+        if self._cached_frame_offsets is None:
+            # image frames are stored in the chunkmap as "ImageDataSeq|<frame>!"
+            # and their data is stored 24 + 4072 bytes after the chunkmap offset
+            data_offset = 24 + 4072
+            self._cached_frame_offsets = {
+                int(chunk_key[13:-1]): int(offset + data_offset)
+                for chunk_key, (offset, _) in sorted(self.chunkmap.items())
+                if chunk_key.startswith(b"ImageDataSeq|")
+            }
+        return self._cached_frame_offsets
 
     def _read_image(self, index: int) -> np.ndarray:
         """Read a chunk directly without using SDK."""
@@ -363,61 +403,12 @@ class ND2Reader:
             attr.componentCount // (attr.channelCount or 1),
         )
 
-    def _get_meta_chunk(self, key: str) -> bytes:
-        # deprecated
-        return self._load_chunk(f"{key}!".encode())
-
-    @property
-    def _meta_map(self) -> dict[str, int]:
-        # deprecated
-        return {k.decode()[:-1]: v for k, (v, _) in self.chunkmap.items()}
-
     def _custom_data(self) -> dict[str, Any]:
         return {
-            k.decode()[14:-1]: json_from_clx_variant(self._load_chunk(k))
+            k.decode()[14:-1]: self._decode_chunk(k)
             for k in self.chunkmap
             if k.startswith(b"CustomDataVar|")
         }
-
-    # probably a temporary method, for testing
-    def _raw_meta(self) -> dict:
-        k = b"ImageAttributesLV!" if self.version >= (3, 0) else b"ImageAttributes!"
-        attrs = self._decode_chunk(k, strip_prefix=False) if k in self.chunkmap else {}
-        attrs = attrs.get("SLxImageAttributes", attrs)
-
-        k = b"ImageTextInfoLV!" if self.version >= (3, 0) else b"ImageTextInfo!"
-        ti = self._decode_chunk(k, strip_prefix=False) if k in self.chunkmap else {}
-        ti = ti.get("SLxImageTextInfo", ti)
-
-        k = b"ImageMetadataLV!" if self.version >= (3, 0) else b"ImageMetadata!"
-        exp = self._decode_chunk(k, strip_prefix=False) if k in self.chunkmap else {}
-        exp = exp.get("SLxExperiment", exp)
-
-        k = (
-            b"ImageMetadataSeqLV|0!"
-            if self.version >= (3, 0)
-            else b"ImageMetadataSeq|0!"
-        )
-        meta = self._decode_chunk(k, strip_prefix=False) if k in self.chunkmap else {}
-        meta = meta.get("SLxPictureMetadata", meta)
-
-        return {
-            "Attributes": attrs,
-            "Experiment": exp,
-            "Metadata": meta,
-            "TextInfo": ti,
-        }
-
-    # TODO: merge with decode_chunk
-    def _decoded_custom_data_chunk(
-        self, key: bytes, strip_prefix: bool = False
-    ) -> dict:
-        k = b"CustomDataVar|" + key
-        if k not in self.chunkmap:
-            return {}
-
-        bytes_ = self._load_chunk(k)
-        return cast("dict", json_from_clx_variant(bytes_, strip_prefix=strip_prefix))
 
     def recorded_data(self) -> dict[str, np.ndarray | Sequence]:
         """Return tabular data recorded for each frame of the experiment.
@@ -431,7 +422,11 @@ class ND2Reader:
 
         Legacy ND2 files are not supported.
         """
-        cd = self._decoded_custom_data_chunk(b"CustomDataV2_0!")
+        try:
+            cd = self._decode_chunk(b"CustomDataVar|CustomDataV2_0!")
+        except KeyError:
+            return {}
+
         if not cd:
             return {}
 

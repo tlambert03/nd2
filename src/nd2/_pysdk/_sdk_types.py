@@ -83,6 +83,22 @@ if TYPE_CHECKING:
         vectStimulationConfigurationsSize: NotRequired[int]
         wsCameraName: NotRequired[str]
 
+    class RawTextInfoDict(TypedDict):
+        TextInfoItem_0: str
+        TextInfoItem_1: str
+        TextInfoItem_2: str
+        TextInfoItem_3: str
+        TextInfoItem_4: str
+        TextInfoItem_5: str
+        TextInfoItem_6: str
+        TextInfoItem_7: str
+        TextInfoItem_8: str
+        TextInfoItem_9: str
+        TextInfoItem_10: str
+        TextInfoItem_11: str
+        TextInfoItem_12: str
+        TextInfoItem_13: str
+
     class TimeLoopPars(TypedDict):
         bDurationPref: NotRequired[bool]
         dAvgPeriodDiff: float

@@ -1,4 +1,5 @@
 """gather metadata from all files in test/data with all nd readers."""
+import contextlib
 import json
 from pathlib import Path
 
@@ -19,10 +20,9 @@ def get_nd2_stats(file) -> dict:
         d["pixel_size"] = m.channels[0].volume.axesCalibration
     d["shape"] = fh.shape
     d["axes"] = fh.axes
-    try:
+    with contextlib.suppress(Exception):
         d["dtype"] = str(fh.dtype)
-    except Exception:
-        pass
+
     fh.close()
     return d
 

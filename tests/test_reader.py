@@ -8,57 +8,11 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
-from nd2 import ND2File, imread, structures
+from nd2 import ND2File, imread
 from nd2._util import AXIS
 from resource_backed_dask_array import ResourceBackedDaskArray
 
 DATA = Path(__file__).parent / "data"
-
-
-def test_metadata_extraction(new_nd2: Path):
-    assert ND2File.is_supported_file(new_nd2)
-    with ND2File(new_nd2) as nd:
-        assert nd.path == str(new_nd2)
-        assert not nd.closed
-
-        assert isinstance(nd._rdr._seq_count(), int)
-        assert isinstance(nd.attributes, structures.Attributes)
-
-        # TODO: deal with typing when metadata is completely missing
-        assert isinstance(nd.metadata, structures.Metadata)
-        assert isinstance(nd.frame_metadata(0), structures.FrameMetadata)
-        assert isinstance(nd.experiment, list)
-        assert isinstance(nd.text_info, dict)
-        assert isinstance(nd.sizes, dict)
-        assert isinstance(nd.custom_data, dict)
-        assert isinstance(nd.shape, tuple)
-        assert isinstance(nd.size, int)
-        assert isinstance(nd.closed, bool)
-        assert isinstance(nd.ndim, int)
-
-        assert isinstance(nd.unstructured_metadata(), dict)
-        assert isinstance(nd.recorded_data, dict)
-
-    assert nd.closed
-
-
-def test_metadata_extraction_legacy(old_nd2):
-    assert ND2File.is_supported_file(old_nd2)
-    with ND2File(old_nd2) as nd:
-        assert nd.path == str(old_nd2)
-        assert not nd.closed
-
-        assert isinstance(nd.attributes, structures.Attributes)
-
-        # # TODO: deal with typing when metadata is completely missing
-        # assert isinstance(nd.metadata, structures.Metadata)
-        assert isinstance(nd.experiment, list)
-        assert isinstance(nd.text_info, dict)
-        xarr = nd.to_xarray()
-        assert isinstance(xarr, xr.DataArray)
-        assert isinstance(xarr.data, da.Array)
-
-    assert nd.closed
 
 
 def test_read_safety(new_nd2: Path):
@@ -67,7 +21,7 @@ def test_read_safety(new_nd2: Path):
             nd._rdr._read_image(i)
 
 
-def test_position(new_nd2):
+def test_position(new_nd2: Path):
     """use position to extract a single stage position with asarray."""
     if new_nd2.stat().st_size > 250_000_000:
         pytest.skip("skipping read on big files")
@@ -156,7 +110,7 @@ def test_imread():
     assert d.shape == (4, 5, 520, 696)
 
 
-@pytest.fixture
+@pytest.fixture()
 def bfshapes():
     with open(DATA / "bf_shapes.json") as f:
         return json.load(f)
@@ -164,16 +118,14 @@ def bfshapes():
 
 def test_bioformats_parity(new_nd2: Path, bfshapes: dict):
     """Testing that match bioformats shapes (or better when bioformats misses it)."""
-    if new_nd2.name in {
+    if new_nd2.name.startswith("JOBS_") or new_nd2.name in {
         "dims_rgb_t3p2c2z3x64y64.nd2",  # bioformats seems to miss the RGB
         "dims_rgb_c2x64y64.nd2",  # bioformats seems to miss the RGB
         "dims_t3y32x32.nd2",  # bioformats misses T
         "jonas_3.nd2",  # bioformats misses Z
         "cluster.nd2",  # bioformats misses both Z and T
     }:
-        pytest.xfail()
-    if new_nd2.name.startswith("JOBS_"):
-        pytest.xfail()  # bioformats misses XY position info in JOBS files
+        return  # bioformats misses XY position info in JOBS files
     try:
         bf_info = {k: v for k, v in bfshapes[new_nd2.name]["shape"].items() if v > 1}
     except KeyError:
@@ -245,7 +197,7 @@ OLD_SDK_MISSES_COORDS = (
 )
 
 
-@pytest.mark.parametrize("fname, sizes", OLD_SDK_MISSES_COORDS)
+@pytest.mark.parametrize(("fname", "sizes"), OLD_SDK_MISSES_COORDS)
 def test_sizes(fname, sizes):
     with ND2File(DATA / fname) as f:
         assert f.sizes == sizes
@@ -301,55 +253,6 @@ def test_extra_width_bytes():
 
     im = imread(str(DATA / "jonas_JJ1473_control_24h_JJ1473_control_24h_03.nd2"))
     np.testing.assert_array_equal(im[0, 0, :4, :4], expected)
-
-
-def test_recorded_data() -> None:
-    # this method is smoke-tested for every file above...
-    # but specific values are asserted here:
-    with ND2File(DATA / "cluster.nd2") as f:
-        rd = f.recorded_data
-        headers = list(rd)
-        row_0 = [rd[h][0] for h in headers]
-        assert headers == [
-            "Time [s]",
-            "Z-Series",
-            "Camera 1 Temperature [°C]",
-            "Laser Power; 1.channel [%]",
-            "High Voltage; 1.channel",
-            "Laser Power; 2.channel [%]",
-            "High Voltage; 2.channel",
-            "Laser Power; 3.channel [%]",
-            "High Voltage; 3.channel",
-            "Laser Power; 4.channel [%]",
-            "High Voltage; 4.channel",
-            "Camera 1 Exposure Time [ms]",
-            "High Voltage; TD",
-            "PFS Offset",
-            "PFS Status",
-            "X Coord [µm]",
-            "Y Coord [µm]",
-            "Ti ZDrive [µm]",
-        ]
-        assert row_0 == [
-            0.44508349828422067,
-            -2.0,
-            -5.0,
-            0.0,
-            0,
-            0.5,
-            37,
-            10.758400000000002,
-            137,
-            9.0,
-            75,
-            8.1,
-            0,
-            -1,
-            7,
-            -26056.951209195162,
-            -4155.462732842248,
-            3916.7250000000004,
-        ]
 
 
 def test_gc_triggers_cleanup(single_nd2):

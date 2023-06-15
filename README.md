@@ -37,12 +37,23 @@ or from conda:
 conda install -c conda-forge nd2
 ```
 
-### extras
+### Legacy nd2 file support
 
-Legacy nd2 (JPEG2000) files are also supported, but require `imagecodecs`.  To install with support for these files use:
+Legacy nd2 (JPEG2000) files are also supported, but require `imagecodecs`.  To
+install with support for these files use the `legacy` extra:
 
 ```sh
 pip install nd2[legacy]
+```
+
+### Faster XML parsing
+
+Much of the metadata in the file stored as XML.  If found in the environment,
+`nd2` will use [`lxml`](https://pypi.org/project/lxml/) which is much faster
+than the built-in `xml` module.  To install with support for `lxml` use:
+
+```sh
+pip install nd2 lxml
 ```
 
 ## usage and API

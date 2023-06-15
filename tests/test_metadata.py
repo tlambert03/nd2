@@ -2,13 +2,19 @@ import json
 import sys
 from pathlib import Path
 
+import dask.array as da
 import pytest
+import xarray as xr
+from nd2 import ND2File, structures
+from nd2._pysdk._chunk_decode import ND2_FILE_SIGNATURE
 
 sys.path.append(str(Path(__file__).parent.parent / "scripts"))
 from nd2_describe import get_nd2_stats  # noqa: E402
 
 with open("tests/samples_metadata.json") as f:
     EXPECTED = json.load(f)
+
+DATA = Path(__file__).parent / "data"
 
 
 @pytest.mark.parametrize("path", EXPECTED, ids=lambda x: f'{x}_{EXPECTED[x]["ver"]}')
@@ -33,3 +39,110 @@ def _clear_names(*exps):
             if item["type"] == "XYPosLoop":
                 for point in item["parameters"]["points"]:
                     point.pop("name", None)
+
+
+def test_decode_all_chunks(new_nd2):
+    with ND2File(new_nd2) as f:
+        for key in f._rdr.chunkmap:
+            if not key.startswith((b"ImageDataSeq", b"CustomData", ND2_FILE_SIGNATURE)):
+                f._rdr._decode_chunk(key)
+
+
+def test_metadata_extraction(new_nd2: Path):
+    assert ND2File.is_supported_file(new_nd2)
+    with ND2File(new_nd2) as nd:
+        assert repr(nd)
+        assert nd.path == str(new_nd2)
+        assert not nd.closed
+
+        assert isinstance(nd._rdr._seq_count(), int)
+        assert isinstance(nd.attributes, structures.Attributes)
+
+        # TODO: deal with typing when metadata is completely missing
+        assert isinstance(nd.metadata, structures.Metadata)
+        assert isinstance(nd.frame_metadata(0), structures.FrameMetadata)
+        assert isinstance(nd.experiment, list)
+        assert isinstance(nd.text_info, dict)
+        assert isinstance(nd.sizes, dict)
+        assert isinstance(nd.custom_data, dict)
+        assert isinstance(nd.shape, tuple)
+        assert isinstance(nd.size, int)
+        assert isinstance(nd.closed, bool)
+        assert isinstance(nd.ndim, int)
+        _bd = nd.binary_data
+        assert isinstance(nd.is_rgb, bool)
+        assert isinstance(nd.nbytes, int)
+
+        assert isinstance(nd.unstructured_metadata(), dict)
+        assert isinstance(nd.recorded_data, dict)
+
+    assert nd.closed
+
+
+def test_metadata_extraction_legacy(old_nd2):
+    assert ND2File.is_supported_file(old_nd2)
+    with ND2File(old_nd2) as nd:
+        assert repr(nd)
+        assert nd.path == str(old_nd2)
+        assert not nd.closed
+
+        assert isinstance(nd.attributes, structures.Attributes)
+
+        # # TODO: deal with typing when metadata is completely missing
+        # assert isinstance(nd.metadata, structures.Metadata)
+        assert isinstance(nd.experiment, list)
+        assert isinstance(nd.text_info, dict)
+        xarr = nd.to_xarray()
+        assert isinstance(xarr, xr.DataArray)
+        assert isinstance(xarr.data, da.Array)
+
+    assert nd.closed
+
+
+def test_recorded_data() -> None:
+    # this method is smoke-tested for every file above...
+    # but specific values are asserted here:
+    with ND2File(DATA / "cluster.nd2") as f:
+        rd = f.recorded_data
+        headers = list(rd)
+        row_0 = [rd[h][0] for h in headers]
+        assert headers == [
+            "Time [s]",
+            "Z-Series",
+            "Camera 1 Temperature [°C]",
+            "Laser Power; 1.channel [%]",
+            "High Voltage; 1.channel",
+            "Laser Power; 2.channel [%]",
+            "High Voltage; 2.channel",
+            "Laser Power; 3.channel [%]",
+            "High Voltage; 3.channel",
+            "Laser Power; 4.channel [%]",
+            "High Voltage; 4.channel",
+            "Camera 1 Exposure Time [ms]",
+            "High Voltage; TD",
+            "PFS Offset",
+            "PFS Status",
+            "X Coord [µm]",
+            "Y Coord [µm]",
+            "Ti ZDrive [µm]",
+        ]
+        assert row_0 == [
+            0.44508349828422067,
+            -2.0,
+            -5.0,
+            0.0,
+            0,
+            0.5,
+            37,
+            10.758400000000002,
+            137,
+            9.0,
+            75,
+            8.1,
+            0,
+            -1,
+            7,
+            -26056.951209195162,
+            -4155.462732842248,
+            3916.7250000000004,
+        ]

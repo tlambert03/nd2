@@ -8,14 +8,23 @@
 
 Yet another `.nd2` (Nikon NIS Elements) file reader.
 
-This reader provides a Cython wrapper for the official Nikon SDK.
-(The actual reading of image frames, however, uses a direct memmap approach, instead of the SDK,
-for performance reasons and to avoid occasional segfaults from the SDK.)
+This reader provides a pure python implementation the official Nikon ND2 SDK.
 
-Features good metadata retrieval, and direct `to_dask` and `to_xarray` options for lazy and/or annotated arrays.
+> It *used* to wrap the official SDK with Cython, but has since been completely
+> rewritten to be pure python (for performance, ease of distribution, and
+> maintenance) while retaining complete API parity with the official SDK.
+>
+> **Note:** This library is not affiliated with Nikon in any way, but we are
+> grateful for assistance from the SDK developers at Laboratory Imaging.
 
-This library is tested against many nd2 files with the goal of maximizing compatibility and data extraction.
-(If you find an nd2 file that fails in some way, please open an issue with the file!)
+Features good metadata retrieval, and direct `to_dask` and `to_xarray` options
+for lazy and/or annotated arrays.
+
+This library is tested against many nd2 files with the goal of maximizing
+compatibility and data extraction. (If you find an nd2 file that fails in some
+way, please [open an issue](https://github.com/tlambert03/nd2/issues/new) with
+the file!)
+
 
 ## install
 
@@ -686,7 +695,6 @@ You can also cast an individual `BinaryLayer` to a numpy array:
 
 </details>
 
-
 ## Contributing / Development
 
 To test locally and contribute.  Clone this repo, then:
@@ -712,14 +720,22 @@ pytest
 
 ## alternatives
 
-- [pims_nd2](https://github.com/soft-matter/pims_nd2) - *pims-based reader. ctypes wrapper around the v9.00 (2015) SDK*
-- [nd2reader](https://github.com/rbnvrw/nd2reader) - *pims-based reader, using reverse-engineered file headers. mostly tested on NIS Elements 4.30.02*
-- [nd2file](https://github.com/csachs/nd2file) - *another pure-python, chunk map reader, unmaintained?*
-- [pyND2SDK](https://github.com/aarpon/pyND2SDK) - *windows-only cython wrapper around the v9.00 (2015) SDK. not on PyPI*
+Here are some other nd2 readers that I know of, though many
+of them are unmaintained:
+
+- [pims_nd2](https://github.com/soft-matter/pims_nd2) - *pims-based reader.
+  ctypes wrapper around the v9.00 (2015) SDK*
+- [nd2reader](https://github.com/rbnvrw/nd2reader) - *pims-based reader, using
+  reverse-engineered file headers. mostly tested on files from NIS Elements
+  4.30.02*
+- [nd2file](https://github.com/csachs/nd2file) - *another pure-python, chunk map
+  reader, unmaintained?*
+- [pyND2SDK](https://github.com/aarpon/pyND2SDK) - *windows-only cython wrapper
+  around the v9.00 (2015) SDK. not on PyPI*
 
 The motivating factors for this library were:
 
 - support for as many nd2 files as possible, with a large test suite
+  an and emphasis on correctness
 - pims-independent delayed reader based on dask
 - axis-associated metadata via xarray
-- combined approach of SDK and direct binary reads

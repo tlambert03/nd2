@@ -2,70 +2,55 @@ from __future__ import annotations
 
 import re
 from dataclasses import asdict
-from enum import IntEnum
+from math import ceil
 from struct import Struct
-from typing import TYPE_CHECKING, Iterable, Sequence, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
-from nd2.structures import (
-    Attributes,
-    AxisInterpretation,
-    Channel,
-    ChannelMeta,
-    Contents,
-    ExpLoop,
-    FrameChannel,
-    FrameMetadata,
-    LoopIndices,
-    LoopParams,
-    LoopType,
-    Metadata,
-    Microscope,
-    NETimeLoopParams,
-    Period,
-    PeriodDiff,
-    Position,
-    StagePosition,
-    TextInfo,
-    TimeLoopParams,
-    TimeStamp,
-    Volume,
-    XYPosLoopParams,
-    ZStackLoop,
-    ZStackLoopParams,
-)
+from nd2 import structures as strct
+
+from ._sdk_types import ELxModalityMask
 
 if TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from nd2.structures import AxisInterpretation, ExpLoop, XYPosLoopParams
 
-    CompressionType = Literal["lossless", "lossy", "none"]
-
-    class GlobalMetadata(TypedDict):
-        contents: dict
-        loops: dict
-        microscope: dict
-        position: dict
-        time: dict
-        volume: dict
+    from ._sdk_types import (
+        CompressionType,
+        FilterDict,
+        FluorescentProbeDict,
+        GlobalMetadata,
+        NETimeLoopPars,
+        PicturePlanesDict,
+        PlaneDict,
+        RawAttributesDict,
+        RawExperimentDict,
+        RawMetaDict,
+        SpectLoopPars,
+        SpectrumDict,
+        TimeLoopPars,
+        XYPosLoopPars,
+        ZStackLoopPars,
+    )
 
 
 strctd = Struct("d")
 
 
 def _parse_xy_pos_loop(
-    item: dict, valid: Sequence[int] = ()
-) -> tuple[int, XYPosLoopParams]:
+    item: XYPosLoopPars, valid: list[int] | dict[str, bool]
+) -> strct.XYPosLoop:
     useZ = item.get("bUseZ", False)
     relXY = item.get("bRelativeXY", False)
     refX = item.get("dReferenceX", 0) if relXY else 0
     refY = item.get("dReferenceY", 0) if relXY else 0
-    out_points: list[Position] = []
+    out_points: list[strct.Position] = []
 
     if "Points" in item:
-        it_points: Iterable[dict] = item["Points"].values()
+        it_points = item["Points"].values()
     else:
         # legacy
+        # FIXME: can we move this?  does this ever hit?
         it_points = [
             {
                 "dPosX": item["dPosX"][key],
@@ -79,44 +64,45 @@ def _parse_xy_pos_loop(
     for it in it_points:
         _offset = it.get("dPFSOffset", 0)
         out_points.append(
-            Position(
-                stagePositionUm=StagePosition(
+            strct.Position(
+                stagePositionUm=strct.StagePosition(
                     refX + it.get("dPosX", 0.0),
                     refY + it.get("dPosY", 0.0),
                     it.get("dPosZ", 0.0) if useZ else 0.0,
                 ),
                 pfsOffset=_offset if _offset >= 0 else None,
                 # note: the SDK only checks for pPosName
-                name=it.get("pPosName") or it.get("dPosName"),
+                name=it.get("dPosName") or it.get("pPosName"),
             )
         )
     if valid:
+        if isinstance(valid, dict):
+            valid = [v for k, v in sorted(valid.items())]
         out_points = [p for p, is_valid in zip(out_points, valid) if is_valid]
 
-    params = XYPosLoopParams(isSettingZ=useZ, points=out_points)
-    return len(out_points), params
+    params = strct.XYPosLoopParams(isSettingZ=useZ, points=out_points)
+    return strct.XYPosLoop(count=len(out_points), nestingLevel=0, parameters=params)
 
 
-def _parse_z_stack_loop(item: dict) -> tuple[int, ZStackLoopParams]:
+def _parse_z_stack_loop(item: ZStackLoopPars) -> strct.ZStackLoop:
     count = item.get("uiCount", 0)
 
-    low = item.get("dZLow", 0)
-    hi = item.get("dZHigh", 0)
-    step = item.get("dZStep", 0)
-    home = item.get("dZHome", 0)
+    low = item.get("dZLow", 0.0)
+    hi = item.get("dZHigh", 0.0)
+    step = item.get("dZStep", 0.0)
+    home = item.get("dZHome", 0.0)
     inv = item.get("bZInverted", False)
     type_ = item.get("iType", 0)
     if step == 0 and count > 1:
         step = abs(hi - low) / (count - 1)
-    home_index = _calc_zstack_home_index(inv, count, type_, home, low, hi, step)
 
-    params = ZStackLoopParams(
-        homeIndex=home_index,
+    params = strct.ZStackLoopParams(
+        homeIndex=_calc_zstack_home_index(inv, count, type_, home, low, hi, step),
         stepUm=step,
         bottomToTop=bool(type_ < 4),
         deviceName=item.get("wsZDevice"),
     )
-    return count, params
+    return strct.ZStackLoop(count=count, nestingLevel=0, parameters=params)
 
 
 def _calc_zstack_home_index(
@@ -129,8 +115,6 @@ def _calc_zstack_home_index(
     step_um: float,
     tol: float = 0.05,
 ) -> int:
-    from math import ceil
-
     home_range_f = abs(low_um - home_um)
     home_range_i = abs(high_um - home_um)
 
@@ -147,172 +131,149 @@ def _calc_zstack_home_index(
         return min(int(abs(ceil((hrange - tol * step_um) / step_um))), count - 1)
 
 
-def _parse_time_loop(item: dict) -> tuple[int, TimeLoopParams | None]:
+def _parse_time_loop(item: TimeLoopPars) -> strct.TimeLoop | None:
     count = item.get("uiCount", 0)
     if not count:
-        return (0, None)
+        return None
 
-    params = TimeLoopParams(
+    params = strct.TimeLoopParams(
         startMs=item["dStart"],
         periodMs=item["dPeriod"],
         durationMs=item["dDuration"],
-        periodDiff=PeriodDiff(
+        periodDiff=strct.PeriodDiff(
             avg=item.get("dAvgPeriodDiff", 0),
             max=item.get("dMaxPeriodDiff", 0),
             min=item.get("dMinPeriodDiff", 0),
         ),
     )
-    return count, params
+    return strct.TimeLoop(count=count, nestingLevel=0, parameters=params)
 
 
-def _parse_ne_time_loop(item: dict) -> tuple[int, NETimeLoopParams]:
-    out_periods: list[Period] = []
-    _per = cast("dict[str, dict]", item["pPeriod"])
-    periods: Iterable[dict] = _per.values()
-    valid: list[int] | dict[str, bool] = item.get("pPeriodValid", [])
-    if isinstance(valid, dict):
-        valid = [valid[k] for k in sorted(valid)]
-    elif not isinstance(valid, list):
-        raise TypeError(f"invalid type for pPeriodValid: {type(valid)}")
-    period_valid = [bool(x) for x in valid]
+def _parse_ne_time_loop(item: NETimeLoopPars) -> strct.NETimeLoop:
+    period_valid = item.get("pPeriodValid", [])
+    if isinstance(period_valid, dict):
+        period_valid = [period_valid[k] for k in sorted(period_valid)]
+    elif not isinstance(period_valid, list):
+        raise TypeError(f"invalid type for pPeriodValid: {type(period_valid)}")
 
     count = 0
-    for it, is_valid in zip(periods, period_valid):
+    out_periods: list[strct.Period] = []
+    for it, is_valid in zip(item["pPeriod"].values(), period_valid):
         if not is_valid:
             continue
 
-        c_, period_params = _parse_time_loop(it)
-        if period_params:
+        time_loop = _parse_time_loop(it)
+        if time_loop:
             out_periods.append(
-                Period(
-                    count=c_,
-                    startMs=period_params.startMs,
-                    periodMs=period_params.periodMs,
-                    durationMs=period_params.durationMs,
-                    periodDiff=period_params.periodDiff,
+                strct.Period(
+                    count=time_loop.count,
+                    startMs=time_loop.parameters.startMs,
+                    periodMs=time_loop.parameters.periodMs,
+                    durationMs=time_loop.parameters.durationMs,
+                    periodDiff=time_loop.parameters.periodDiff,
                 )
             )
-            count += c_
+            count += time_loop.count
 
-    params = NETimeLoopParams(periods=out_periods)
-    return count, params
-
-
-# class ExpLoop(TypedDict):
-#     ppNextLevelEx
-#     eType
-#     uLoopPars
-
-#     pItemValid
-#     wsApplicationDesc
-#     wsUserDesc
-#     aMeasProbesBase64
-#     wsCameraName
-#     sAutoFocusBeforeLoop
-#     sParallelExperiment
-#     wsCommandBeforeLoop
-#     wsCommandBeforeCapture
-#     wsCommandAfterCapture
-#     wsCommandAfterLoop
-#     bControlShutter
-#     bControlLight
-#     bUsePFS
-#     bUseWatterSupply
-#     bUseHWSequencer
-#     bUseTiRecipe
-#     bUseIntenzityCorrection
-#     bUseTriggeredAcquisition
-#     bKeepObject
-#     uiRepeatCount
-#     uiNextLevelCount
+    params = strct.NETimeLoopParams(periods=out_periods)
+    return strct.NETimeLoop(count=count, nestingLevel=0, parameters=params)
 
 
-def load_exp_loop(level: int, src: dict, dest: list[dict] | None = None) -> list[dict]:
+def load_experiment(
+    level: int, src: RawExperimentDict, dest: list[ExpLoop] | None = None
+) -> list[ExpLoop]:
     """Parse the "ImageMetadata[LV]!" section of an nd2 file."""
-    loop = _load_single_exp_loop(src)
-    loop_type = loop.get("type")
-    loop_count = loop.get("count")
     dest = dest or []
+    loop = _load_single_experiment_loop(src)
 
-    if not loop or loop_count == 0 or loop_type == LoopType.Unknown:
+    if not loop or loop.count == 0:
         return dest
-    if loop_type == LoopType.SpectLoop:
+
+    if isinstance(loop, strct.SpectLoop):
         level -= 1
-    elif not dest or dest[-1]["nestingLevel"] < level:
-        loop["nestingLevel"] = level
+    elif not dest or dest[-1].nestingLevel < level:
+        loop.nestingLevel = level
         dest.append(loop)
     else:
         prev = dest[-1]
-        if prev["nestingLevel"] == level and prev["type"] == loop_type:
-            loop["nestingLevel"] = level
-            if prev["count"] < loop_count:
+        if prev.nestingLevel == level and prev.type == loop.type:
+            loop.nestingLevel = level
+            if prev.count < loop.count:
                 dest[-1] = loop
 
-    next_level_src: dict = src.get("ppNextLevelEx", {})
+    next_level_src = src.get("ppNextLevelEx")
     if next_level_src:
         for item in next_level_src.values():
-            dest = load_exp_loop(level + 1, item, dest)
+            dest = load_experiment(level + 1, item, dest)
 
     return dest
 
 
-def _load_single_exp_loop(exp: dict) -> dict:
+def _load_single_experiment_loop(
+    exp: RawExperimentDict,
+) -> ExpLoop | strct.SpectLoop | None:
     loop_type = exp.get("eType", 0)
-    loop_params: dict = exp.get("uLoopPars", {})
-    if not loop_params or loop_type > max(LoopType):
-        return {}
+    loop_params = exp.get("uLoopPars", {})
+    if not loop_params or loop_type > max(strct.LoopType):
+        return None
 
     # FIXME: sometimes it's a dict with a single i000000 key?
     # this only happens with version < (3, 0)
     if len(loop_params) == 1:
-        loop_params = next(iter(loop_params.values()))
+        loop_params = next(iter(loop_params.values()))  # type: ignore
 
-    count = loop_params.get("uiCount", 0)
-    params: LoopParams | None = None
-    if loop_type == LoopType.TimeLoop:
-        count, params = _parse_time_loop(loop_params)
-    elif loop_type == LoopType.XYPosLoop:
-        valid = exp.get("pItemValid", ())
-        count, params = _parse_xy_pos_loop(loop_params, valid)
-    elif loop_type == LoopType.ZStackLoop:
-        count, params = _parse_z_stack_loop(loop_params)
-    elif loop_type == LoopType.SpectLoop:
+    if loop_type == strct.LoopType.TimeLoop:  # 1
+        return _parse_time_loop(cast("TimeLoopPars", loop_params))
+    elif loop_type == strct.LoopType.XYPosLoop:  # 2
+        valid = exp.get("pItemValid", [])
+        return _parse_xy_pos_loop(cast("XYPosLoopPars", loop_params), valid)
+    elif loop_type == strct.LoopType.ZStackLoop:  # 4
+        return _parse_z_stack_loop(cast("ZStackLoopPars", loop_params))
+    elif loop_type == strct.LoopType.NETimeLoop:  # 8
+        return _parse_ne_time_loop(cast("NETimeLoopPars", loop_params))
+    elif loop_type == strct.LoopType.SpectLoop:  # 6
+        loop_params = cast("SpectLoopPars", loop_params)
+        count = loop_params.get("uiCount", 0)
         count = loop_params.get("pPlanes", {}).get("uiCount", count)
-    elif loop_type == LoopType.NETimeLoop:
-        count, params = _parse_ne_time_loop(loop_params)
+        return strct.SpectLoop(count=count)
 
-    # TODO: loop_type to string
-    return {"type": loop_type, "count": count, "parameters": params}
+    raise NotImplementedError(
+        f"We've never seen a file like this! (loop_type={loop_type!r}). We'd "
+        "appreciate it if you would submit this file at "
+        "https://github.com/tlambert03/nd2/issues/new",
+    )
 
 
-def load_attributes(src: dict, channel_count: int) -> Attributes:
+def load_attributes(
+    raw_attrs: RawAttributesDict, channel_count: int
+) -> strct.Attributes:
     """Parse the ImageAttributes[LV]! portion of an nd2 file."""
-    bpc = src["uiBpcInMemory"]
-    _ecomp: int = src.get("eCompression", 2)
+    bpc = raw_attrs["uiBpcInMemory"]
+    _ecomp = raw_attrs.get("eCompression", 2)
     comp_type: CompressionType | None
     if 0 <= _ecomp < 2:
         comp_type = cast("CompressionType", ["lossless", "lossy", "none"][_ecomp])
-        comp_level = src.get("dCompressionParam")
+        comp_level = raw_attrs.get("dCompressionParam")
     else:
         comp_type = None
         comp_level = None
 
-    tile_width = src.get("uiTileWidth", 0)
-    tile_height = src.get("uiTileHeight", 0)
-    if (tile_width <= 0 or tile_width == src["uiWidth"]) and (
-        tile_height <= 0 or tile_height == src["uiHeight"]
+    tile_width = raw_attrs.get("uiTileWidth", 0)
+    tile_height = raw_attrs.get("uiTileHeight", 0)
+    if (tile_width <= 0 or tile_width == raw_attrs["uiWidth"]) and (
+        tile_height <= 0 or tile_height == raw_attrs["uiHeight"]
     ):
-        tile_width = tile_height = None
+        tile_width = tile_height = None  # type: ignore
 
-    return Attributes(
+    return strct.Attributes(
         bitsPerComponentInMemory=bpc,
-        bitsPerComponentSignificant=src["uiBpcSignificant"],
-        componentCount=src["uiComp"],
-        heightPx=src["uiHeight"],
+        bitsPerComponentSignificant=raw_attrs["uiBpcSignificant"],
+        componentCount=raw_attrs["uiComp"],
+        heightPx=raw_attrs["uiHeight"],
         pixelDataType="float" if bpc == 32 else "unsigned",
-        sequenceCount=src["uiSequenceCount"],
-        widthBytes=src["uiWidthBytes"],
-        widthPx=src["uiWidth"],
+        sequenceCount=raw_attrs["uiSequenceCount"],
+        widthBytes=raw_attrs["uiWidthBytes"],
+        widthPx=raw_attrs["uiWidth"],
         compressionLevel=comp_level,
         compressionType=comp_type,
         tileHeightPx=tile_height,
@@ -324,19 +285,14 @@ def load_attributes(src: dict, channel_count: int) -> Attributes:
 RGB_COLORS: tuple[float, float, float] = (420.0, 515.0, 590.0)
 
 
-def _get_excitation(probe: dict, filter_: dict, plane: dict, compIndex: int) -> float:
+def _get_excitation(
+    probe: FluorescentProbeDict, filter_: FilterDict, plane: PlaneDict, compIndex: int
+) -> float:
     """Get the excitation wavelength from the probe or filter."""
     if probe:
         excitation = _get_spectrum_max(probe.get("m_ExcitationSpectrum", {}))
     if not excitation and filter_:
-        fspectrum: dict = next(
-            (
-                v["m_ExcitationSpectrum"]
-                for v in filter_.values()
-                if "m_ExcitationSpectrum" in v
-            ),
-            {},
-        )
+        fspectrum = filter_.get("m_ExcitationSpectrum", {})
         ppoint = fspectrum.get("pPoint", {})
         if fspectrum.get("uiCount", 0) > 1 and all(
             i.get("eType") == 4 for i in ppoint.values()
@@ -349,7 +305,9 @@ def _get_excitation(probe: dict, filter_: dict, plane: dict, compIndex: int) -> 
     return excitation
 
 
-def _get_emission(probe: dict, filter_: dict, plane: dict, compIndex: int) -> float:
+def _get_emission(
+    probe: FluorescentProbeDict, filter_: FilterDict, plane: PlaneDict, compIndex: int
+) -> float:
     """Get the emission wavelength from the probe or filter."""
     if plane.get("uiCompCount") == 3:
         return RGB_COLORS[compIndex]
@@ -357,18 +315,16 @@ def _get_emission(probe: dict, filter_: dict, plane: dict, compIndex: int) -> fl
     if probe:
         emission = _get_spectrum_max(probe.get("m_EmissionSpectrum", {}))
     if not emission and filter_:
-        for v in filter_.values():
-            emission = _get_spectrum_max(v.get("m_EmissionSpectrum", {}))
-            if emission:
-                break
+        emission = _get_spectrum_max(filter_.get("m_EmissionSpectrum", {}))
     return emission
 
 
-def _read_wavelengths(plane: dict, compIndex: int) -> tuple[float, float]:
-    probe: dict = plane.get("pFluorescentProbe", {})
-    filter_: dict = plane.get("pFilterPath", {}).get("m_pFilter", {})
-    while isinstance(filter_, list):
-        filter_ = filter_[0] if filter_ else {}
+def _read_wavelengths(plane: PlaneDict, compIndex: int) -> tuple[float, float]:
+    probe: FluorescentProbeDict = plane.get("pFluorescentProbe", {})
+    filters = plane.get("pFilterPath", {}).get("m_pFilter", {})
+
+    # FIXME: always taking the first value?
+    filter_: FilterDict = next(iter(filters.values()), {})
 
     excitation = _get_excitation(probe, filter_, plane, compIndex)
     emission = _get_emission(probe, filter_, plane, compIndex)
@@ -376,21 +332,14 @@ def _read_wavelengths(plane: dict, compIndex: int) -> tuple[float, float]:
     return excitation, emission
 
 
-def _get_spectrum(item: dict) -> list[tuple[float, float, int]]:
-    # types:
-    #    eSptInvalid = 0,
-    #    eSptPoint = 1,
-    #    eSptRaisingEdge = 2,
-    #    eSptFallingEdge = 3,
-    #    eSptPeak = 4,
-    #    eSptRange = 5
+def _get_spectrum(item: SpectrumDict) -> list[tuple[float, float, int]]:
     return [
         (p.get("dTValue", 0.0), p.get("dWavelength", 0.0), p.get("eType", 0))
-        for p in cast("dict[str, dict]", item.get("pPoint", {})).values()
+        for p in item.get("pPoint", {}).values()
     ]
 
 
-def _get_spectrum_max(item: dict | None) -> float:
+def _get_spectrum_max(item: SpectrumDict | None) -> float:
     # return the wavelength associated with the max value, or 0.0 if no spectrum
     if not item:
         return 0.0
@@ -398,7 +347,7 @@ def _get_spectrum_max(item: dict | None) -> float:
     return max(spectrum, key=lambda x: x[0])[1] if spectrum else 0.0
 
 
-def load_text_info(src: dict) -> TextInfo:
+def load_text_info(src: dict) -> strct.TextInfo:
     # we only want keys that are present in the src
     out = {
         key: src[lookup]
@@ -421,11 +370,14 @@ def load_text_info(src: dict) -> TextInfo:
         )
         if src.get(lookup)
     }
-    return cast(TextInfo, out)
+    return cast(strct.TextInfo, out)
 
 
 def load_global_metadata(
-    attrs: Attributes, raw_meta: dict, exp_loops: list[ExpLoop], text_info: TextInfo
+    attrs: strct.Attributes,
+    raw_meta: RawMetaDict,
+    exp_loops: list[ExpLoop],
+    text_info: strct.TextInfo,
 ) -> GlobalMetadata:
     axesInterpretation: list[AxisInterpretation] = ["distance", "distance", "distance"]
     axesCalibrated: list[bool] = [False, False, False]
@@ -503,46 +455,43 @@ def load_global_metadata(
     }
 
 
-def load_metadata(raw_meta: dict, global_meta: GlobalMetadata) -> Metadata:
-    it: dict = raw_meta.get("sPicturePlanes", {})
-    raw_planes: dict = it.get("sPlaneNew", None) or it.get("sPlane", {})
-    raw_sample_settings: dict[str, dict] = it.get("sSampleSetting", {})
-    if len(raw_planes) != it.get("uiCount"):
+def load_metadata(raw_meta: RawMetaDict, global_meta: GlobalMetadata) -> strct.Metadata:
+    pplanes: PicturePlanesDict = raw_meta.get("sPicturePlanes", {})
+    raw_planes = pplanes.get("sPlaneNew", None) or pplanes.get("sPlane", {})
+    raw_sample_settings = pplanes.get("sSampleSetting", {})
+    if len(raw_planes) != pplanes.get("uiCount"):
         raise ValueError("Channel count does not match number of planes")
 
     pixel_to_stage: list[float] | None = None
-    channels: list[Channel] = []
+    channels: list[strct.Channel] = []
     for i, plane in enumerate(raw_planes.values()):
         k = plane.get("uiSampleIndex") or i
         ex, em = _read_wavelengths(plane, i)
-        srcSampleSettings: dict = raw_sample_settings.get(f"a{k}", {})
-        channel_meta = ChannelMeta(
+        srcSampleSettings = raw_sample_settings.get(f"a{k}", {})
+        channel_meta = strct.ChannelMeta(
             index=k,
-            name=plane.get("sDescription"),
-            colorRGB=plane.get("uiColor"),
+            name=plane.get("sDescription", ""),
+            colorRGB=plane.get("uiColor", 0),
             emissionLambdaNm=em or None,
             excitationLambdaNm=ex or None,
         )
         compCount = plane.get("uiCompCount", 1)
         mask = plane.get("uiModalityMask", None)
         if mask is None:
-            modality = plane.get("eModality", None)
-            mask = _MODALITY_MASK_MAP.get(
-                modality, ELxModalityMask.fluorescence | ELxModalityMask.camera
-            )
-        flags = _get_modality_flags(mask, compCount)
+            modality = plane.get("eModality", -1)
+            default_modality = ELxModalityMask.fluorescence | ELxModalityMask.camera
+            mask = ELxModalityMask.get(modality, default_modality)
+
+        flags = ELxModalityMask.flags(mask, compCount)
         volume = global_meta["volume"].copy()
         microscope = global_meta["microscope"].copy()
         camera_matrix = volume.get("cameraTransformationMatrix")
         matrix = srcSampleSettings.get("matCameraToStage")
-        if matrix:
-            cols = matrix.get("Columns")
-            rows = matrix.get("Rows")
+        if matrix and (matrix.get("Columns") == 2 and matrix.get("Rows") == 2):
             # matrix["Data"] is a list of int64, we need to recast to float
-            matrix_data = [i[0] for i in strctd.iter_unpack(bytearray(matrix["Data"]))]
-
-            if cols == 2 and rows == 2:
-                volume["cameraTransformationMatrix"] = matrix_data
+            data = bytearray(matrix["Data"])
+            matrix_data: list[float] = [i[0] for i in strctd.iter_unpack(data)]
+            volume["cameraTransformationMatrix"] = matrix_data
 
         _pixel_to_stage = pixel_to_stage
         if camera_matrix:
@@ -551,15 +500,15 @@ def load_metadata(raw_meta: dict, global_meta: GlobalMetadata) -> Metadata:
             m11, m12, m21, m22 = camera_matrix
             devSettings: dict | None = srcSampleSettings.get("pDeviceSetting")
             if devSettings is not None:
-                validStageInversions = devSettings.get("m_iXYUse0")
-                if not validStageInversions:
+                if not devSettings.get("m_iXYUse0"):
                     _pixel_to_stage = None
                 else:
                     calX, calY = volume["axesCalibration"][:2]
                     width, height = volume["voxelCount"][:2]
-                    if validStageInversions and all(volume["axesCalibrated"][:2]):
-                        invX = devSettings.get("m_iXOrientation0", 0)
-                        invY = devSettings.get("m_iYOrientation0", 0)
+
+                    if all(volume["axesCalibrated"][:2]):
+                        invX = cast(int, devSettings.get("m_iXOrientation0", 0))
+                        invY = cast(int, devSettings.get("m_iYOrientation0", 0))
                         _pixel_to_stage = [
                             invX * calX * m11,
                             invX * calY * m12,
@@ -577,12 +526,14 @@ def load_metadata(raw_meta: dict, global_meta: GlobalMetadata) -> Metadata:
         if plane.get("dPinholeDiameter", -1) > 0:
             microscope["pinholeDiameterUm"] = plane["dPinholeDiameter"]
 
-        loops = LoopIndices(**global_meta["loops"]) if global_meta["loops"] else None
-        channel = Channel(
+        loops = (
+            strct.LoopIndices(**global_meta["loops"]) if global_meta["loops"] else None
+        )
+        channel = strct.Channel(
             channel=channel_meta,
             loops=loops,
-            microscope=Microscope(**microscope, modalityFlags=flags),
-            volume=Volume(
+            microscope=strct.Microscope(**microscope, modalityFlags=flags),
+            volume=strct.Volume(
                 **volume,
                 componentCount=compCount,
                 componentMinima=[0.0] * compCount,  # FIXME
@@ -591,22 +542,22 @@ def load_metadata(raw_meta: dict, global_meta: GlobalMetadata) -> Metadata:
         )
         channels.append(channel)
 
-    contents = Contents(**global_meta["contents"], channelCount=len(channels))
-    return Metadata(contents=contents, channels=channels)
+    contents = strct.Contents(**global_meta["contents"], channelCount=len(channels))
+    return strct.Metadata(contents=contents, channels=channels)
 
 
 def load_frame_metadata(
     global_meta: GlobalMetadata,
-    meta: Metadata,
+    meta: strct.Metadata,
     exp_loops: list[ExpLoop],
     frame_time: float,
     seq_index: int,
-) -> FrameMetadata:  # sourcery skip: extract-method
+) -> strct.FrameMetadata:
     xy_loop_idx = global_meta["loops"].get("XYPosLoop", -1)
     z_loop_idx = global_meta["loops"].get("ZStackLoop", -1)
     if 0 <= xy_loop_idx < len(exp_loops):
         params = cast("XYPosLoopParams", exp_loops[xy_loop_idx].parameters)
-        point: Position = params.points[seq_index]
+        point = params.points[seq_index]
         name = point.name
         x, y, z = point.stagePositionUm
         if not params.isSettingZ:
@@ -617,159 +568,28 @@ def load_frame_metadata(
 
     if np.isfinite(frame_time):
         julian_day = global_meta["time"].get("absoluteJulianDayNumber", 0)
-        time = TimeStamp(
+        time = strct.TimeStamp(
             absoluteJulianDayNumber=julian_day + frame_time / 86_400_000,
             relativeTimeMs=frame_time,
         )
     else:
-        time = TimeStamp(**global_meta["time"])
+        time = strct.TimeStamp(**global_meta["time"])
 
     if 0 <= z_loop_idx < len(exp_loops):
         # Not sure about this, but it's matching the output of the SDK
-        zparams = cast(ZStackLoop, exp_loops[z_loop_idx])
+        zparams = cast(strct.ZStackLoop, exp_loops[z_loop_idx])
         home = zparams.parameters.homeIndex or 0
         step = zparams.parameters.stepUm or 1
         z -= home * step
 
-    frame_channels = []
-    for channel in meta.channels or []:
-        position = Position(name=name, stagePositionUm=StagePosition(x, y, z))
-        frame_channel = FrameChannel(**asdict(channel), time=time, position=position)
-        frame_channels.append(frame_channel)
-
-    contents = cast(Contents, meta.contents)
-    return FrameMetadata(contents=contents, channels=frame_channels)
-
-
-def _get_modality_flags(modality_mask: int, component_count: int) -> list[str]:
-    if not _modality_mask_valid(modality_mask):
-        return ["brightfield"] if component_count == 3 else ["fluorescence"]
-    return [e.name for e in ELxModalityMask if e & modality_mask]
-
-
-def _modality_mask_valid(mask: int) -> bool:
-    # sourcery skip: remove-unnecessary-cast
-    return bool(mask & MaskCombo.LX_ModMaskLight != 0)
-
-
-class ELxModalityMask(IntEnum):
-    fluorescence = 0x0000000000000001
-    brightfield = 0x0000000000000002
-    phaseContrast = 0x0000000000000010
-    diContrast = 0x0000000000000020
-    camera = 0x0000000000000100
-    laserScanConfocal = 0x0000000000000200
-    spinningDiskConfocal = 0x0000000000000400
-    sweptFieldConfocalSlit = 0x0000000000000800
-    sweptFieldConfocalPinhole = 0x0000000000001000
-    dsdConfocal = 0x0000000000002000
-    SIM = 0x0000000000004000
-    iSIM = 0x0000000000008000
-    RCM = 0x0000000000000040  # point scan detected by camera (multiple detection)
-    VCS = 0x0000000000000080  # VideoConfocal super-resolution
-    sora = 0x0000000040000000  # Yokogawa in Super-resolution mode
-    liveSR = 0x0000000000040000
-    multiphoton = 0x0000000000010000
-    TIRF = 0x0000000000020000
-    pmt = 0x0000000000100000
-    spectral = 0x0000000000200000
-    vaasIF = 0x0000000000400000
-    vaasNF = 0x0000000000800000
-    transmitDetector = 0x0000000001000000
-    nonDescannedDetector = 0x0000000002000000
-    virtualFilter = 0x0000000004000000
-    gaasp = 0x0000000008000000
-    remainder = 0x0000000010000000
-    aux = 0x0000000020000000
-
-
-class MaskCombo(IntEnum):
-    EXCLUDE_LIGHT = 0x00000000000FF000
-    LX_ModMaskLight = ELxModalityMask.fluorescence | ELxModalityMask.brightfield
-    LX_ModMaskContrast = ELxModalityMask.phaseContrast | ELxModalityMask.diContrast
-    LX_ModMaskAcqHWType = (
-        ELxModalityMask.camera
-        | ELxModalityMask.laserScanConfocal
-        | ELxModalityMask.spinningDiskConfocal
-        | ELxModalityMask.sweptFieldConfocalSlit
-        | ELxModalityMask.sweptFieldConfocalPinhole
-        | ELxModalityMask.dsdConfocal
-        | ELxModalityMask.RCM
-        | ELxModalityMask.VCS
-        | ELxModalityMask.iSIM
-    )
-    LX_ModMaskDetector = (
-        ELxModalityMask.spectral
-        | ELxModalityMask.vaasIF
-        | ELxModalityMask.vaasNF
-        | ELxModalityMask.transmitDetector
-        | ELxModalityMask.nonDescannedDetector
-        | ELxModalityMask.virtualFilter
-        | ELxModalityMask.aux
-    )
-
-
-class ELxModality(IntEnum):
-    eModWidefieldFluo = 0
-    eModBrightfield = 1
-    eModLaserScanConfocal = 2
-    eModSpinDiskConfocal = 3
-    eModSweptFieldConfocal = 4
-    eModMultiPhotonFluo = 5
-    eModPhaseContrast = 6
-    eModDIContrast = 7
-    eModSpectralConfocal = 8
-    eModVAASConfocal = 9
-    eModVAASConfocalIF = 10
-    eModVAASConfocalNF = 11
-    eModDSDConfocal = 12
-    eModMaxValue = 12
-
-
-_MODALITY_MASK_MAP: dict[int, int] = {
-    ELxModality.eModWidefieldFluo: (
-        ELxModalityMask.fluorescence | ELxModalityMask.camera
-    ),
-    ELxModality.eModBrightfield: ELxModalityMask.brightfield | ELxModalityMask.camera,
-    ELxModality.eModLaserScanConfocal: (
-        ELxModalityMask.fluorescence | ELxModalityMask.laserScanConfocal
-    ),
-    ELxModality.eModSpinDiskConfocal: (
-        ELxModalityMask.fluorescence | ELxModalityMask.spinningDiskConfocal
-    ),
-    ELxModality.eModSweptFieldConfocal: (
-        ELxModalityMask.fluorescence | ELxModalityMask.sweptFieldConfocalSlit
-    ),
-    ELxModality.eModMultiPhotonFluo: (
-        ELxModalityMask.fluorescence
-        | ELxModalityMask.multiphoton
-        | ELxModalityMask.laserScanConfocal
-    ),
-    ELxModality.eModPhaseContrast: (
-        ELxModalityMask.brightfield | ELxModalityMask.phaseContrast
-    ),
-    ELxModality.eModDIContrast: (
-        ELxModalityMask.brightfield | ELxModalityMask.diContrast
-    ),
-    ELxModality.eModSpectralConfocal: (
-        ELxModalityMask.fluorescence
-        | ELxModalityMask.spectral
-        | ELxModalityMask.laserScanConfocal
-    ),
-    ELxModality.eModVAASConfocal: (
-        ELxModalityMask.fluorescence
-        | ELxModalityMask.vaasNF
-        | ELxModalityMask.laserScanConfocal
-    ),
-    ELxModality.eModVAASConfocalIF: (
-        ELxModalityMask.fluorescence
-        | ELxModalityMask.vaasIF
-        | ELxModalityMask.laserScanConfocal
-    ),
-    ELxModality.eModVAASConfocalNF: (
-        ELxModalityMask.fluorescence
-        | ELxModalityMask.vaasNF
-        | ELxModalityMask.laserScanConfocal
-    ),
-    ELxModality.eModDSDConfocal: (ELxModalityMask.dsdConfocal),
-}
+    P = strct.StagePosition(x, y, z)
+    frame_channels = [
+        strct.FrameChannel(
+            **asdict(channel),
+            time=time,
+            position=strct.Position(name=name, stagePositionUm=P),
+        )
+        for channel in meta.channels or ()
+    ]
+    contents = cast(strct.Contents, meta.contents)
+    return strct.FrameMetadata(contents=contents, channels=frame_channels)

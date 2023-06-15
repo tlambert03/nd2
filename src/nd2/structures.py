@@ -55,7 +55,7 @@ class Attributes(NamedTuple):
     sequenceCount: int
     widthBytes: int | None = None
     widthPx: int | None = None
-    compressionLevel: int | None = None
+    compressionLevel: float | None = None
     compressionType: Literal["lossless", "lossy", "none"] | None = None
     tileHeightPx: int | None = None
     tileWidthPx: int | None = None
@@ -105,6 +105,12 @@ class _Loop:
         elif type_ in ("ZStackLoop", LoopType.ZStackLoop):
             return ZStackLoop(**obj)
         return cast("ExpLoop", globals()[obj["type"]](**obj))
+
+
+@dataclass
+class SpectLoop:
+    count: int
+    type: Literal["SpectLoop"] = "SpectLoop"
 
 
 #####

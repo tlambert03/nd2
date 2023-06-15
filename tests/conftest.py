@@ -20,7 +20,7 @@ for x in ALL:
 SINGLE = DATA / "dims_t3c2y32x32.nd2"
 
 
-@pytest.fixture
+@pytest.fixture()
 def single_nd2():
     return SINGLE
 
@@ -46,7 +46,7 @@ def old_nd2(request):
 
 
 @pytest.fixture(autouse=True)
-def no_files_left_open():
+def _assert_no_files_left_open():
     files_before = {p for p in psutil.Process().open_files() if p.path.endswith("nd2")}
     yield
     files_after = {p for p in psutil.Process().open_files() if p.path.endswith("nd2")}

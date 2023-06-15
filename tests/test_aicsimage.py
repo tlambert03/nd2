@@ -16,14 +16,16 @@ DATA = Path(__file__).parent / "data"
 
 
 @pytest.mark.parametrize(
-    "filename, "
-    "set_scene, "
-    "expected_scenes, "
-    "expected_shape, "
-    "expected_dtype, "
-    "expected_dims_order, "
-    "expected_channel_names, "
-    "expected_physical_pixel_sizes",
+    (
+        "filename",
+        "set_scene",
+        "expected_scenes",
+        "expected_shape",
+        "expected_dtype",
+        "expected_dims_order",
+        "expected_channel_names",
+        "expected_physical_pixel_sizes",
+    ),
     [
         pytest.param(
             "ND2_aryeh_but3_cont200-1.nd2",

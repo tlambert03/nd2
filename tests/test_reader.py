@@ -129,7 +129,7 @@ def test_imread():
     assert d.shape == (4, 5, 520, 696)
 
 
-@pytest.fixture
+@pytest.fixture()
 def bfshapes():
     with open(DATA / "bf_shapes.json") as f:
         return json.load(f)
@@ -216,7 +216,7 @@ OLD_SDK_MISSES_COORDS = (
 )
 
 
-@pytest.mark.parametrize("fname, sizes", OLD_SDK_MISSES_COORDS)
+@pytest.mark.parametrize(("fname", "sizes"), OLD_SDK_MISSES_COORDS)
 def test_sizes(fname, sizes):
     with ND2File(DATA / fname) as f:
         assert f.sizes == sizes

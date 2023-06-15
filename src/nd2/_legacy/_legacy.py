@@ -13,8 +13,9 @@ from typing import (
 
 import numpy as np
 
-from .. import structures as strct
-from .._util import AXIS, VoxelSize
+from nd2 import structures as strct
+from nd2._util import AXIS, VoxelSize
+
 from ._legacy_xml import parse_xml_block
 
 if TYPE_CHECKING:

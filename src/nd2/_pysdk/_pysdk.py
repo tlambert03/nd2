@@ -66,7 +66,7 @@ class ND2Reader:
         self._metadata: structures.Metadata | None = None
 
         self._global_metadata: GlobalMetadata | None = None
-        self._frame_offsets_: dict[int, int] | None = None
+        self._cached_frame_offsets: dict[int, int] | None = None
         self._raw_frame_shape_: tuple[int, ...] | None = None
         self._dtype_: np.dtype | None = None
         self._strides_: tuple[int, ...] | None = None
@@ -101,6 +101,16 @@ class ND2Reader:
 
     @property
     def chunkmap(self) -> ChunkMap:
+        """Load and return the chunkmap.
+
+        a Chunkmap is mapping of chunk names (bytes) to (offset, size) pairs.
+        {
+            b'ImageTextInfoLV!': (13041664, 2128),
+            b'ImageTextInfo!': (13037568, 1884),
+            b'ImageMetadataSeq|0!': (237568, 33412),
+            ...
+        }
+        """
         if not self._chunkmap:
             if self._fh is None:
                 raise OSError("File not open")
@@ -108,21 +118,8 @@ class ND2Reader:
         return self._chunkmap
 
     @property
-    def _frame_offsets(self) -> dict[int, int]:
-        if self._frame_offsets_ is None:
-            DEFAULT_SHIFT = 4072
-            offsets = [
-                (int(key[13:-1]), pos)
-                for key, (pos, _) in sorted(self.chunkmap.items())
-                if key.startswith(b"ImageDataSeq|")
-            ]
-            # if validate_frames:
-            #     return _validate_frames(fh, image_map, kbrange=search_window), meta_ma
-            self._frame_offsets_ = {f: int(o + 24 + DEFAULT_SHIFT) for f, o in offsets}
-        return self._frame_offsets_
-
-    @property
     def attributes(self) -> structures.Attributes:
+        """Load and return the image attributes."""
         if self._attributes is None:
             k = b"ImageAttributesLV!" if self.version >= (3, 0) else b"ImageAttributes!"
             attrs = self._decode_chunk(k, strip_prefix=False)
@@ -155,6 +152,16 @@ class ND2Reader:
         )
 
     def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict | Any:
+        """Convert raw chunk bytes to a Python object.
+
+        Parameters
+        ----------
+        name : bytes
+            The name of the chunk to load.  Must be a valid key in the chunkmap.
+        strip_prefix : bool, optional
+            If True, strip the lowercase "type" prefix from the tag names, by default
+            False.
+        """
         if name not in self._cached_decoded_chunks:
             data = self._load_chunk(name)
             if data.startswith(b"<"):
@@ -168,6 +175,7 @@ class ND2Reader:
 
     @property
     def version(self) -> tuple[int, int]:
+        """Return the file format version as a tuple of ints."""
         if self._version is None:
             try:
                 self._version = get_version(self._fh or self._filename)
@@ -285,6 +293,20 @@ class ND2Reader:
 
     def _seq_count(self) -> int:
         return int(np.prod([x.count for x in self.experiment()]))
+
+    @property
+    def _frame_offsets(self) -> dict[int, int]:
+        """Return map of frame number to offset in the file."""
+        if self._cached_frame_offsets is None:
+            # image frames are stored in the chunkmap as "ImageDataSeq|<frame>!"
+            # and their data is stored 24 + 4072 bytes after the chunkmap offset
+            data_offset = 24 + 4072
+            self._cached_frame_offsets = {
+                int(chunk_key[13:-1]): int(offset + data_offset)
+                for chunk_key, (offset, _) in sorted(self.chunkmap.items())
+                if chunk_key.startswith(b"ImageDataSeq|")
+            }
+        return self._cached_frame_offsets
 
     def _read_image(self, index: int) -> np.ndarray:
         """Read a chunk directly without using SDK."""

@@ -43,6 +43,28 @@ __all__ = ["ND2File", "imread"]
 
 
 class ND2File:
+    """Main objecting for opening and extracting data from an nd2 file.
+
+    Parameters
+    ----------
+    path : Path | str
+        Filename of an nd2 file.
+    validate_frames : bool
+        Whether to verify (and attempt to fix) frames whose positions have been
+        shifted relative to the predicted offset (i.e. in a corrupted file).
+        This comes at a slight performance penalty at file open, but may "rescue"
+        some corrupt files. by default False.
+    search_window : int
+        When validate_frames is true, this is the search window (in KB) that will
+        be used to try to find the actual chunk position. by default 100 KB
+    read_using_sdk : Optional[bool]
+        DEPRECATED.  No longer does anything.
+        If `True`, use the SDK to read the file. If `False`, inspects the chunkmap
+        and reads from a `numpy.memmap`. If `None` (the default), uses the SDK if
+        the file is compressed, otherwise uses the memmap. Note: using
+        `read_using_sdk=False` on a compressed file will result in a ValueError.
+    """
+
     _memmap: mmap.mmap
     _is_legacy: bool
 
@@ -54,28 +76,6 @@ class ND2File:
         search_window: int = 100,
         read_using_sdk: bool | None = None,
     ) -> None:
-        """Open an nd2 file.
-
-        Parameters
-        ----------
-        path : Union[Path, str]
-            Filename of an nd2 file.
-        validate_frames : bool
-            Whether to verify (and attempt to fix) frames whose positions have been
-            shifted relative to the predicted offset (i.e. in a corrupted file).
-            This comes at a slight performance penalty at file open, but may "rescue"
-            some corrupt files. by default False.
-        search_window : int
-            When validate_frames is true, this is the search window (in KB) that will
-            be used to try to find the actual chunk position. by default 100 KB
-        read_using_sdk : Optional[bool]
-            DEPRECATED.  No longer does anything.
-            If `True`, use the SDK to read the file. If `False`, inspects the chunkmap
-            and reads from a `numpy.memmap`. If `None` (the default), uses the SDK if
-            the file is compressed, otherwise uses the memmap. Note: using
-            `read_using_sdk=False` on a compressed file will result in a ValueError.
-
-        """
         if read_using_sdk is not None:
             warnings.warn(
                 "The `read_using_sdk` argument is deprecated and will be removed in "
@@ -126,6 +126,7 @@ class ND2File:
         return self._closed
 
     def __enter__(self) -> ND2File:
+        """Open file for reading."""
         self.open()
         return self
 
@@ -140,15 +141,18 @@ class ND2File:
             self._rdr.close()
 
     def __exit__(self, *_: Any) -> None:
+        """Exit context manager and close file."""
         self.close()
 
     def __getstate__(self) -> dict[str, Any]:
+        """Return state for pickling."""
         state = self.__dict__.copy()
         del state["_rdr"]
         del state["_lock"]
         return state
 
     def __setstate__(self, d: dict[str, Any]) -> None:
+        """Load state from pickling."""
         self.__dict__ = d
         self._lock = threading.RLock()
         self._rdr = get_reader(self._path)
@@ -488,7 +492,7 @@ class ND2File:
 
     def _dask_block(self, copy: bool, block_id: tuple[int]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
-            return
+            return None
         with self._lock:
             was_closed = self.closed
             if self.closed:
@@ -670,6 +674,7 @@ class ND2File:
         return self._rdr.channel_names()
 
     def __repr__(self) -> str:
+        """Return a string representation of the ND2File."""
         try:
             details = " (closed)" if self.closed else f" {self.dtype}: {self.sizes!r}"
             extra = f": {Path(self.path).name!r}{details}"

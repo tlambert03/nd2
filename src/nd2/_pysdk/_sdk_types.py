@@ -1,3 +1,4 @@
+"""Various raw dict structures likely to be found in an ND2 file."""
 from __future__ import annotations
 
 from enum import IntEnum

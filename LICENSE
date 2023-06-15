@@ -1,10 +1,4 @@
-ND2 SDK libraries are distributed by permission of Mirek Svoboda,
-Laboratory Imaging, Inc.  (see LICENSE file in sdk folder)
-https://www.lim.cz/
-https://www.nd2sdk.com
-
-
-The remainder of the code is distributed under the following BSD License
+This code is distributed under the following BSD License
 
 Copyright (c) 2021, Talley Lambert
 All rights reserved.

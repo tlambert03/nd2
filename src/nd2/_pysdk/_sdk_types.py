@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeAlias, Union
 
 if TYPE_CHECKING:
-    from typing_extensions import Literal, TypedDict
+    from typing_extensions import Literal, NotRequired, TypedDict
 
     class RawAttributesDict(TypedDict, total=False):
         uiWidth: int
@@ -44,6 +44,119 @@ if TYPE_CHECKING:
         dTimeAbsolute: float
         sPicturePlanes: PicturePlanesDict
 
+    class RawExperimentDict(TypedDict):
+        # these will very likely be present
+        aMeasProbesBase64: bytearray
+        bControlLight: bool
+        bControlShutter: bool
+        bUsePFS: bool
+        eType: int
+        sAutoFocusBeforeLoop: dict
+        uLoopPars: LoopParsDict | dict[str, LoopParsDict]
+        uiRepeatCount: int
+        wsApplicationDesc: str
+        wsCommandAfterCapture: str
+        wsCommandAfterLoop: str
+        wsCommandBeforeCapture: str
+        wsCommandBeforeLoop: str
+        wsUserDesc: str
+        # these may be missing
+        bKeepObject: NotRequired[bool]
+        bTriggeredStimulation: NotRequired[bool]
+        bUseHWSequencer: NotRequired[bool]
+        bUseIntenzityCorrection: NotRequired[bool]
+        bUseTiRecipe: NotRequired[bool]
+        bUseTriggeredAcquisition: NotRequired[bool]
+        bUseWatterSupply: NotRequired[bool]
+        iRecipeDSCPort: NotRequired[int]
+        # either [0,0,1,...] or {'_00': False, '_01': True, '_02': True, ...}
+        pItemValid: NotRequired[list[int] | dict[str, bool]]
+        pLargeImage: NotRequired[dict]
+        pLargeImageEx: NotRequired[dict]
+        pNIExperiment: NotRequired[dict]
+        # when present this is a dict of keys 'i0000000000', 'i0000000001', etc.
+        ppNextLevelEx: NotRequired[dict[str, RawExperimentDict]]
+        pRecordedData: NotRequired[dict]
+        sParallelExperiment: NotRequired[dict]
+        uiNextLevelCount: NotRequired[int]
+        vectStimulationConfigurationsSize: NotRequired[int]
+        wsCameraName: NotRequired[str]
+
+    class TimeLoopPars(TypedDict):
+        bDurationPref: NotRequired[bool]
+        dAvgPeriodDiff: float
+        dDuration: float
+        dMaxPeriodDiff: float
+        dMinPeriodDiff: float
+        dPeriod: float
+        dStart: float
+        sAutoFocusBeforeCapture: dict
+        uiCount: int
+        wsInterfaceName: NotRequired[str]
+
+    # XYPosLoopPars never appears as dict[str, XYPosLoopPars]
+    class XYPosLoopPars(TypedDict):
+        Points: dict
+        bKeepPFSOn: bool
+        bRedefineAfterAutoFocus: bool
+        bRedefineAfterPFS: bool
+        bRelativeXY: bool
+        bSplitMultipoints: bool
+        bUseAFPlane: bool
+        bUseZ: bool
+        dReferenceX: float
+        dReferenceY: float
+        sAFBefore: dict
+        sZDevice: dict
+        uiCount: int
+
+    class ZStackLoopPars(TypedDict):
+        bAbsolute: bool
+        bTIRF: bool
+        bTriggeredPiezo: bool
+        bZInverted: bool
+        dReferencePosition: float
+        dTIRFPFSOffset: float
+        dTIRFPosition: float
+        dZHigh: float
+        dZHome: float
+        dZLow: float
+        dZStep: float
+        iType: int
+        uiCount: int
+        wsCommandAfterCapture: str
+        wsCommandBeforeCapture: str
+        wsZDevice: str
+
+    class SpectLoopPars(TypedDict):
+        Points: dict
+        bAskForFilter: NotRequired[bool]  # second to go
+        bMergeCameras: bool
+        bWaitForPFS: NotRequired[bool]  # first to go
+        iOffsetReference: NotRequired[int]  # second to go
+        pPlanes: dict
+
+    class NETimeLoopPars(TypedDict):
+        # keys are '_00' or 'i0000000000' ...
+        pPeriod: dict[str, PeriodDict]
+        pPeriodValid: list[int] | dict[str, bool]
+        sAutoFocusBeforeCapture: dict
+        sAutoFocusBeforePeriod: dict
+        uiCount: int
+        uiPeriodCount: int
+        wsCommandAfterPeriod: str
+        wsCommandBeforePeriod: str
+
+    LoopParsDict: TypeAlias = Union[
+        TimeLoopPars, XYPosLoopPars, ZStackLoopPars, SpectLoopPars, NETimeLoopPars
+    ]
+
+    class PeriodDict(TimeLoopPars):
+        dIncubationDuration: NotRequired[float]
+        sAutoFocusBeforePeriod: dict
+        uiGroup: int
+        uiLoopType: int
+
     class PicturePlanesDict(TypedDict, total=False):
         eRepresentation: int
         sDescription: str
@@ -76,7 +189,8 @@ if TYPE_CHECKING:
     class FilterPathDict(TypedDict, total=False):
         m_sDescr: str
         m_uiCount: int
-        # m_pFilter keys are strings of the form 'i0000000000', 'i0000000001', ...
+        # m_pFilter keys are strings of the form 'i0000000000
+        # i0000000001', ...
         m_pFilter: dict[str, FilterDict]
 
     class FilterDict(TypedDict, total=False):
@@ -97,7 +211,8 @@ if TYPE_CHECKING:
 
     class SpectrumDict(TypedDict, total=False):
         uiCount: int
-        # pPoint keys are likely strings of the form 'Point0', 'Point1', ...
+        # pPoint keys are likely strings of the form 'Point0
+        # Point1', ...
         pPoint: dict[str, SpectrumPointDict]
         bPoints: bool
 

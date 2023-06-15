@@ -34,7 +34,12 @@ if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
     from ._chunk_decode import ChunkMap
-    from ._sdk_types import GlobalMetadata, RawAttributesDict, RawMetaDict
+    from ._sdk_types import (
+        GlobalMetadata,
+        RawAttributesDict,
+        RawExperimentDict,
+        RawMetaDict,
+    )
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]
@@ -58,7 +63,7 @@ class ND2Reader:
         self._text_info: structures.TextInfo | None = None
         self._metadata: structures.Metadata | None = None
         self._raw_attributes: RawAttributesDict | None = None
-        self._raw_experiment: dict | None = None
+        self._raw_experiment: RawExperimentDict | None = None
         self._raw_text_info: dict | None = None
         self._raw_image_metadata: RawMetaDict | None = None
         self._global_metadata: GlobalMetadata | None = None
@@ -215,8 +220,8 @@ class ND2Reader:
             else:
                 exp = self._decode_chunk(k, strip_prefix=False)
                 exp = exp.get("SLxExperiment", exp)  # for v3 only
-                self._raw_experiment = exp
-                loops = load_exp_loop(0, exp)
+                self._raw_experiment = cast("RawExperimentDict", exp)
+                loops = load_exp_loop(0, self._raw_experiment)
                 self._experiment = [structures._Loop.create(x) for x in loops]
         return self._experiment
 

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import re
+import warnings
 from dataclasses import asdict
 from struct import Struct
-from typing import TYPE_CHECKING, Iterable, Sequence, cast
+from typing import TYPE_CHECKING, Iterable, cast
 
 import numpy as np
 
@@ -32,7 +33,9 @@ from nd2.structures import (
     ZStackLoopParams,
 )
 
-from ._sdk_types import ELxModalityMask
+from ._sdk_types import (
+    ELxModalityMask,
+)
 
 if TYPE_CHECKING:
     from nd2.structures import AxisInterpretation, ExpLoop, LoopParams
@@ -42,11 +45,18 @@ if TYPE_CHECKING:
         FilterDict,
         FluorescentProbeDict,
         GlobalMetadata,
+        LoopParsDict,
+        NETimeLoopPars,
         PicturePlanesDict,
         PlaneDict,
         RawAttributesDict,
+        RawExperimentDict,
         RawMetaDict,
+        SpectLoopPars,
         SpectrumDict,
+        TimeLoopPars,
+        XYPosLoopPars,
+        ZStackLoopPars,
     )
 
 
@@ -54,7 +64,7 @@ strctd = Struct("d")
 
 
 def _parse_xy_pos_loop(
-    item: dict, valid: Sequence[int] = ()
+    item: XYPosLoopPars, valid: list[int] | dict[str, bool]
 ) -> tuple[int, XYPosLoopParams]:
     useZ = item.get("bUseZ", False)
     relXY = item.get("bRelativeXY", False)
@@ -66,6 +76,7 @@ def _parse_xy_pos_loop(
         it_points: Iterable[dict] = item["Points"].values()
     else:
         # legacy
+        # FIXME: can we move this?  does this ever hit?
         it_points = [
             {
                 "dPosX": item["dPosX"][key],
@@ -91,13 +102,15 @@ def _parse_xy_pos_loop(
             )
         )
     if valid:
+        if isinstance(valid, dict):
+            valid = [v for k, v in sorted(valid.items())]
         out_points = [p for p, is_valid in zip(out_points, valid) if is_valid]
 
     params = XYPosLoopParams(isSettingZ=useZ, points=out_points)
     return len(out_points), params
 
 
-def _parse_z_stack_loop(item: dict) -> tuple[int, ZStackLoopParams]:
+def _parse_z_stack_loop(item: ZStackLoopPars) -> tuple[int, ZStackLoopParams]:
     count = item.get("uiCount", 0)
 
     low = item.get("dZLow", 0)
@@ -147,7 +160,7 @@ def _calc_zstack_home_index(
         return min(int(abs(ceil((hrange - tol * step_um) / step_um))), count - 1)
 
 
-def _parse_time_loop(item: dict) -> tuple[int, TimeLoopParams | None]:
+def _parse_time_loop(item: TimeLoopPars) -> tuple[int, TimeLoopParams | None]:
     count = item.get("uiCount", 0)
     if not count:
         return (0, None)
@@ -165,11 +178,9 @@ def _parse_time_loop(item: dict) -> tuple[int, TimeLoopParams | None]:
     return count, params
 
 
-def _parse_ne_time_loop(item: dict) -> tuple[int, NETimeLoopParams]:
+def _parse_ne_time_loop(item: NETimeLoopPars) -> tuple[int, NETimeLoopParams]:
     out_periods: list[Period] = []
-    _per = cast("dict[str, dict]", item["pPeriod"])
-    periods: Iterable[dict] = _per.values()
-    valid: list[int] | dict[str, bool] = item.get("pPeriodValid", [])
+    valid = item.get("pPeriodValid", [])
     if isinstance(valid, dict):
         valid = [valid[k] for k in sorted(valid)]
     elif not isinstance(valid, list):
@@ -177,7 +188,7 @@ def _parse_ne_time_loop(item: dict) -> tuple[int, NETimeLoopParams]:
     period_valid = [bool(x) for x in valid]
 
     count = 0
-    for it, is_valid in zip(periods, period_valid):
+    for it, is_valid in zip(item["pPeriod"].values(), period_valid):
         if not is_valid:
             continue
 
@@ -198,36 +209,9 @@ def _parse_ne_time_loop(item: dict) -> tuple[int, NETimeLoopParams]:
     return count, params
 
 
-# class ExpLoop(TypedDict):
-#     ppNextLevelEx
-#     eType
-#     uLoopPars
-
-#     pItemValid
-#     wsApplicationDesc
-#     wsUserDesc
-#     aMeasProbesBase64
-#     wsCameraName
-#     sAutoFocusBeforeLoop
-#     sParallelExperiment
-#     wsCommandBeforeLoop
-#     wsCommandBeforeCapture
-#     wsCommandAfterCapture
-#     wsCommandAfterLoop
-#     bControlShutter
-#     bControlLight
-#     bUsePFS
-#     bUseWatterSupply
-#     bUseHWSequencer
-#     bUseTiRecipe
-#     bUseIntenzityCorrection
-#     bUseTriggeredAcquisition
-#     bKeepObject
-#     uiRepeatCount
-#     uiNextLevelCount
-
-
-def load_exp_loop(level: int, src: dict, dest: list[dict] | None = None) -> list[dict]:
+def load_exp_loop(
+    level: int, src: RawExperimentDict, dest: list[dict] | None = None
+) -> list[dict]:
     """Parse the "ImageMetadata[LV]!" section of an nd2 file."""
     loop = _load_single_exp_loop(src)
     loop_type = loop.get("type")
@@ -256,30 +240,40 @@ def load_exp_loop(level: int, src: dict, dest: list[dict] | None = None) -> list
     return dest
 
 
-def _load_single_exp_loop(exp: dict) -> dict:
+def _load_single_exp_loop(exp: RawExperimentDict) -> dict:
     loop_type = exp.get("eType", 0)
-    loop_params: dict = exp.get("uLoopPars", {})
-    if not loop_params or loop_type > max(LoopType):
+    _loop_params = exp.get("uLoopPars", {})
+    if not _loop_params or loop_type > max(LoopType):
         return {}
 
     # FIXME: sometimes it's a dict with a single i000000 key?
     # this only happens with version < (3, 0)
-    if len(loop_params) == 1:
-        loop_params = next(iter(loop_params.values()))
+    if len(_loop_params) == 1:
+        loop_params = cast("LoopParsDict", next(iter(_loop_params.values())))
+    else:
+        loop_params = cast("LoopParsDict", _loop_params)
 
     count = loop_params.get("uiCount", 0)
     params: LoopParams | None = None
-    if loop_type == LoopType.TimeLoop:
-        count, params = _parse_time_loop(loop_params)
-    elif loop_type == LoopType.XYPosLoop:
-        valid = exp.get("pItemValid", ())
-        count, params = _parse_xy_pos_loop(loop_params, valid)
-    elif loop_type == LoopType.ZStackLoop:
-        count, params = _parse_z_stack_loop(loop_params)
-    elif loop_type == LoopType.SpectLoop:
+    if loop_type == LoopType.TimeLoop:  # 1
+        count, params = _parse_time_loop(loop_params)  # type: ignore
+    elif loop_type == LoopType.XYPosLoop:  # 2
+        valid = exp.get("pItemValid", [])
+        count, params = _parse_xy_pos_loop(loop_params, valid)  # type: ignore
+    elif loop_type == LoopType.ZStackLoop:  # 4
+        count, params = _parse_z_stack_loop(loop_params)  # type: ignore
+    elif loop_type == LoopType.SpectLoop:  # 6
+        loop_params = cast("SpectLoopPars", loop_params)
         count = loop_params.get("pPlanes", {}).get("uiCount", count)
-    elif loop_type == LoopType.NETimeLoop:
-        count, params = _parse_ne_time_loop(loop_params)
+    elif loop_type == LoopType.NETimeLoop:  # 8
+        count, params = _parse_ne_time_loop(loop_params)  # type: ignore
+    else:
+        warnings.warn(
+            f"We've never seen a file like this! ({loop_type=}). We'd appreciate it if "
+            "you would submit this file at "
+            "https://github.com/tlambert03/nd2/issues/new",
+            stacklevel=2,
+        )
 
     # TODO: loop_type to string
     return {"type": loop_type, "count": count, "parameters": params}
@@ -360,7 +354,7 @@ def _get_emission(
 
 def _read_wavelengths(plane: PlaneDict, compIndex: int) -> tuple[float, float]:
     probe: FluorescentProbeDict = plane.get("pFluorescentProbe", {})
-    filters: dict = plane.get("pFilterPath", {}).get("m_pFilter", {})
+    filters = plane.get("pFilterPath", {}).get("m_pFilter", {})
 
     # FIXME: always taking the first value?
     filter_: FilterDict = next(iter(filters.values()), {})

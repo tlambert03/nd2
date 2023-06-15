@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, cast, no_type_check, overload
 
 import numpy as np
 
+from ._pysdk._chunk_decode import ND2_FILE_SIGNATURE
 from ._util import AXIS, VoxelSize, get_reader, is_supported_file
 from .structures import ROI
 
@@ -167,19 +168,18 @@ class ND2File:
     @cached_property
     def rois(self) -> dict[int, ROI]:
         """Return dict of {id: ROI} for all ROIs found in the metadata."""
-        # FIXME: remove gettar when legacy reader has the attribute
-        if b"CustomData|RoiMetadata_v1!" not in getattr(self._rdr, "chunkmap", {}):
+        key = b"CustomData|RoiMetadata_v1!"
+        if self.is_legacy or key not in self._rdr.chunkmap:  # type: ignore
             return {}
-        ROI_METADATA = "CustomData|RoiMetadata_v1"
-        data = self.unstructured_metadata(include={ROI_METADATA})
-        data = data.get(ROI_METADATA, {}).get("RoiMetadata_v1", {})
+
+        data = cast("LatestSDKReader", self._rdr)._decode_chunk(key)
+        data = data.get("RoiMetadata_v1", {}).copy()
         data.pop("Global_Size", None)
         try:
-            _rois = (ROI._from_meta_dict(d) for d in data.values())
-            rois = {r.id: r for r in _rois}
+            _rois = [ROI._from_meta_dict(d) for d in data.values()]
         except Exception as e:
             raise ValueError(f"Could not parse ROI metadata: {e}") from e
-        return rois
+        return {r.id: r for r in _rois}
 
     @cached_property
     def experiment(self) -> list[ExpLoop]:
@@ -239,7 +239,11 @@ class ND2File:
             )
 
         rdr = cast("LatestSDKReader", self._rdr)
-        keys = {k.decode()[:-1] for k in rdr.chunkmap}
+        keys = {
+            k.decode()[:-1]
+            for k in rdr.chunkmap
+            if not k.startswith((b"ImageDataSeq", b"CustomData", ND2_FILE_SIGNATURE))
+        }
 
         if include:
             _keys: set[str] = set()
@@ -256,7 +260,7 @@ class ND2File:
         for key in sorted(keys):
             name = f"{key}!".encode()
             try:
-                output[key] = rdr._decode_chunk(name)
+                output[key] = rdr._decode_chunk(name, strip_prefix=strip_prefix)
             except Exception:
                 output[key] = rdr._load_chunk(name)
         return output

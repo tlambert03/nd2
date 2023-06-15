@@ -51,7 +51,7 @@ if TYPE_CHECKING:
         bControlShutter: bool
         bUsePFS: bool
         eType: int
-        sAutoFocusBeforeLoop: dict
+        sAutoFocusBeforeLoop: AutoFocusDict
         uLoopPars: LoopParsDict | dict[str, LoopParsDict]
         uiRepeatCount: int
         wsApplicationDesc: str
@@ -90,13 +90,13 @@ if TYPE_CHECKING:
         dMinPeriodDiff: float
         dPeriod: float
         dStart: float
-        sAutoFocusBeforeCapture: dict
+        sAutoFocusBeforeCapture: AutoFocusDict
         uiCount: int
         wsInterfaceName: NotRequired[str]
 
     # XYPosLoopPars never appears as dict[str, XYPosLoopPars]
     class XYPosLoopPars(TypedDict):
-        Points: dict
+        Points: dict[str, PointDict]
         bKeepPFSOn: bool
         bRedefineAfterAutoFocus: bool
         bRedefineAfterPFS: bool
@@ -129,19 +129,20 @@ if TYPE_CHECKING:
         wsZDevice: str
 
     class SpectLoopPars(TypedDict):
-        Points: dict
+        Points: dict[str, SpectLoopPointDict]
         bAskForFilter: NotRequired[bool]  # second to go
         bMergeCameras: bool
         bWaitForPFS: NotRequired[bool]  # first to go
         iOffsetReference: NotRequired[int]  # second to go
-        pPlanes: dict
+        pPlanes: PicturePlanesDict
+        uiCount: NotRequired[int]
 
     class NETimeLoopPars(TypedDict):
         # keys are '_00' or 'i0000000000' ...
         pPeriod: dict[str, PeriodDict]
         pPeriodValid: list[int] | dict[str, bool]
-        sAutoFocusBeforeCapture: dict
-        sAutoFocusBeforePeriod: dict
+        sAutoFocusBeforeCapture: AutoFocusDict
+        sAutoFocusBeforePeriod: AutoFocusDict
         uiCount: int
         uiPeriodCount: int
         wsCommandAfterPeriod: str
@@ -151,9 +152,43 @@ if TYPE_CHECKING:
         TimeLoopPars, XYPosLoopPars, ZStackLoopPars, SpectLoopPars, NETimeLoopPars
     ]
 
+    class PointDict(TypedDict):
+        dPFSOffset: float
+        dPosX: float
+        dPosY: float
+        dPosZ: float
+        dPosName: str
+        pPosName: NotRequired[str]  # never seen it, but the SDK looks for it.
+
+    class SpectLoopPointDict(TypedDict):
+        pAutoFocus: AutoFocusDict
+        pZStackPos: int
+        pdOffset: NotRequired[float]
+        wsCommandAfterCapture: str
+        wsCommandBeforeCapture: str
+
+    class AutoFocusDict(TypedDict, total=False):
+        eType: int
+        dStep: float
+        dRange: float
+        dPrecision: float
+        dSpeed: float
+        dOffset: float
+        aFocusPlane: dict
+        uiFlags: int
+        iFocusCriterion: int
+        sZDrive: str
+        bPiezoZTriggered: bool
+        wszOptConf: str
+        wszPreferedAFChannel: str
+        dCoeff_0: float
+        dCoeff_1: float
+        dCoeff_2: float
+        dCoeff_3: float
+
     class PeriodDict(TimeLoopPars):
         dIncubationDuration: NotRequired[float]
-        sAutoFocusBeforePeriod: dict
+        sAutoFocusBeforePeriod: AutoFocusDict
         uiGroup: int
         uiLoopType: int
 
@@ -163,7 +198,8 @@ if TYPE_CHECKING:
         # only one of these two Plane keys will likely be present
         sPlane: dict[str, PlaneDict]
         sPlaneNew: dict[str, PlaneDict]
-        sSampleSetting: dict[str, dict]
+        # keys are 'a0', 'a1', 'a2', etc.
+        sSampleSetting: dict[str, SampleSettingDict]
         uiCompCount: int
         uiCount: int
         uiSampleCount: int
@@ -227,6 +263,26 @@ if TYPE_CHECKING:
         dWavelength: float  # this is usually the one with the value
         uiWavelength: int
         dTValue: float
+
+    class SampleSettingDict(TypedDict, total=False):
+        baScanArea: bytearray
+        dExposureTime: float
+        dObjectiveToPinholeZoom: float
+        dRelayLensZoom: float
+        dScalingToIntensity: float
+        matCameraToStage: dict
+        pCameraSetting: dict
+        pDeviceSetting: dict  # tons of keys in here
+        pObjectiveSetting: dict
+        sOpticalConfigs: dict[str, dict]
+        sSpecSettings: str
+        uiModeFQ: int
+        uiOpticalConfigs: int
+
+    class MatrixDict(TypedDict):
+        Columns: int
+        Rows: int
+        Data: list[int]
 
     # These dicts are intermediate dicts created in the process of parsing raw meta
     # they mimic intermediate parsing done by the SDK... but needn't stay this way.

@@ -107,6 +107,12 @@ class _Loop:
         return cast("ExpLoop", globals()[obj["type"]](**obj))
 
 
+@dataclass
+class SpectLoop:
+    count: int
+    type: Literal["SpectLoop"] = "SpectLoop"
+
+
 #####
 
 

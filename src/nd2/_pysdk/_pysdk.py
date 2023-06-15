@@ -18,7 +18,7 @@ from nd2._pysdk._chunk_decode import (
 )
 from nd2._pysdk._parse import (
     load_attributes,
-    load_exp_loop,
+    load_experiment,
     load_frame_metadata,
     load_global_metadata,
     load_metadata,
@@ -221,8 +221,7 @@ class ND2Reader:
                 exp = self._decode_chunk(k, strip_prefix=False)
                 exp = exp.get("SLxExperiment", exp)  # for v3 only
                 self._raw_experiment = cast("RawExperimentDict", exp)
-                loops = load_exp_loop(0, self._raw_experiment)
-                self._experiment = [structures._Loop.create(x) for x in loops]
+                self._experiment = load_experiment(0, self._raw_experiment)
         return self._experiment
 
     def _cached_frame_times(self) -> list[float]:

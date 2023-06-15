@@ -24,7 +24,7 @@ dynamic = ["version"]
 dependencies = ["resource-backed-dask-array", "typing-extensions", "numpy"]
 
 [project.optional-dependencies]
-legacy = ["imagecodecs", "wurlitzer"]
+legacy = ["imagecodecs"]
 test = [
     "lxml; python_version<'3.11'",
     "aicsimageio; python_version<'3.11'",
@@ -34,7 +34,6 @@ test = [
     "pytest-cov",
     "pytest>=6.0",
     "pytest-pretty",
-    "wurlitzer",
     "xarray",
 ]
 dev = [
@@ -49,7 +48,6 @@ dev = [
     "pytest-cov",
     "pytest",
     "rich",
-    "wurlitzer",
     "ruff",
     "xarray",
     "lxml-stubs",

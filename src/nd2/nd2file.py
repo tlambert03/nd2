@@ -167,9 +167,10 @@ class ND2File:
     @cached_property
     def rois(self) -> dict[int, ROI]:
         """Return dict of {id: ROI} for all ROIs found in the metadata."""
-        ROI_METADATA = "CustomData|RoiMetadata_v1"
-        if self.is_legacy or ROI_METADATA not in self._rdr._meta_map:  # type: ignore
+        # FIXME: remove gettar when legacy reader has the attribute
+        if b"CustomData|RoiMetadata_v1!" not in getattr(self._rdr, "chunkmap", {}):
             return {}
+        ROI_METADATA = "CustomData|RoiMetadata_v1"
         data = self.unstructured_metadata(include={ROI_METADATA})
         data = data.get(ROI_METADATA, {}).get("RoiMetadata_v1", {})
         data.pop("Global_Size", None)
@@ -230,7 +231,6 @@ class ND2File:
             raise NotImplementedError(
                 "unstructured_metadata not available for legacy files"
             )
-        from ._clx_lite import json_from_clx_lite_variant
 
         if unnest is not None:
             warnings.warn(
@@ -238,10 +238,9 @@ class ND2File:
                 stacklevel=2,
             )
 
-        output: dict[str, Any] = {}
-
         rdr = cast("LatestSDKReader", self._rdr)
-        keys = set(rdr._meta_map)
+        keys = {k.decode()[:-1] for k in rdr.chunkmap}
+
         if include:
             _keys: set[str] = set()
             for i in include:
@@ -253,20 +252,13 @@ class ND2File:
         if exclude:
             keys = {k for k in keys if k not in exclude}
 
+        output: dict[str, Any] = {}
         for key in sorted(keys):
+            name = f"{key}!".encode()
             try:
-                meta: bytes = rdr._get_meta_chunk(key)
-                if meta.startswith(b"<"):
-                    # probably xml
-                    decoded: Any = meta.decode("utf-8")
-                else:
-                    decoded = json_from_clx_lite_variant(
-                        meta, strip_prefix=strip_prefix
-                    )
+                output[key] = rdr._decode_chunk(name)
             except Exception:
-                decoded = meta
-
-            output[key] = decoded
+                output[key] = rdr._load_chunk(name)
         return output
 
     @cached_property

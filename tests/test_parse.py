@@ -14,8 +14,14 @@ def readlim_output():
 
 def test_parse_raw_metadata(new_nd2: Path):
     expected = readlim_output()
-    with ND2Reader(new_nd2) as f:
-        meta = f._raw_meta()
+    with ND2Reader(new_nd2) as rdr:
+        rdr._cached_global_metadata()  # force metadata to be read
+        meta = {
+            "Attributes": rdr._raw_attributes,
+            "Experiment": rdr._raw_experiment,
+            "Metadata": rdr._raw_image_metadata,
+            "TextInfo": rdr._raw_text_info,
+        }
         lim_meta = expected[new_nd2.name]["raw_metadata"]
         _assert_lim_close_enough(meta, lim_meta)
 

@@ -166,12 +166,13 @@ class BinaryLayers(Sequence[BinaryLayer]):
             return None
         rdr = cast("LatestSDKReader", nd2file._rdr)
 
-        binary_meta = rdr._decoded_custom_data_chunk(
-            b"BinaryMetadata_v1!", strip_prefix=True
-        )
-
-        if not binary_meta:
+        try:
+            binary_meta = rdr._decode_chunk(
+                b"CustomDataVar|BinaryMetadata_v1!", strip_prefix=True
+            )
+        except KeyError:
             return None
+
         try:
             items: dict = binary_meta["BinaryMetadata_v1"]
         except KeyError:
@@ -182,14 +183,14 @@ class BinaryLayers(Sequence[BinaryLayer]):
             )
             return None
 
-        binseqs = sorted(x for x in rdr._meta_map if "RleZipBinarySequence" in x)
+        binseqs = sorted(x for x in rdr.chunkmap if b"RleZipBinarySequence" in x)
         mask_items = []
         for _, item in sorted(items.items()):
-            key = item["FileTag"]
+            key = item["FileTag"].encode()
             _masks: list[np.ndarray | None] = []
             for bs in binseqs:
                 if key in bs:
-                    data = rdr._load_chunk(f"{bs}!".encode())[4:]
+                    data = rdr._load_chunk(bs)[4:]
                     _masks.append(_decode_binary_mask(data) if data else None)
             mask_items.append(
                 BinaryLayer(
@@ -216,7 +217,6 @@ def _unpack(stream: io.BufferedIOBase, strct: struct.Struct) -> tuple:
 def _decode_binary_mask(data: bytes, dtype: DTypeLike = "uint16") -> np.ndarray:
     # this receives data as would be extracted from a
     # `CustomDataSeq|RleZipBinarySequence...` section in the metadata
-    # data = f._rdr._get_meta_chunk('CustomDataSeq|RleZipBinarySequence_1_v1|0')[:4]
 
     # NOTE it is up to ND2File to strip the first 4 bytes... and not call this if there
     # is no data (i.e. if the chunk is just '\x00')

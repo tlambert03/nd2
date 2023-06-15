@@ -10,10 +10,11 @@ if TYPE_CHECKING:
     import lxml.etree
 
     Element = Union[xml.etree.ElementTree.Element, lxml.etree._Element]
-    Parser = Callable[[bytes], Element]
+    Parser = Callable[[bytes | str], Element]
     Scalar = Union[float, str, int, bytearray, bool]
     JsonValue = Union[Scalar, dict[str, "JsonValue"]]
     XML: Parser
+    ParseError: Exception
 
 else:
     try:
@@ -73,7 +74,15 @@ def json_from_clx_variant(
         on the XML structure. (A <variant><no_name>...</no_name></variant> is the most
         likely case where a scalar is returned.)
     """
-    node = parser(bxml.split(b"?>", 1)[-1])  # strip xml header
+    if bxml.startswith(b"<?xml"):
+        bxml = bxml.split(b"?>", 1)[-1]  # strip xml header
+
+    try:
+        node = parser(bxml)
+    except SyntaxError:  # when there are invalid characters in the XML
+        # could go straight to this ... not sure if it's slower
+        node = parser(bxml.decode(encoding="utf-8", errors="ignore"))
+
     is_legacy = node.attrib.get("_VERSION") == "1.000000"
     name, val = _node_name_value(node, strip_prefix, include_attrs=is_legacy)
 
@@ -123,7 +132,17 @@ def _node_name_value(
             # NOTE: "no_name" is the standard name for a list-type node
             # "BinaryItem" is a special case found in the BinaryMetadata_v1 tag...
             # without special handling, you would only get the last item in the list
-            if cname in ("no_name", None, "", "BinaryItem", "TextInfoItem"):
+            # FIXME: handle the special cases below "" better.
+            if cname in (
+                "no_name",
+                None,
+                "",
+                "BinaryItem",
+                "TextInfoItem",
+                "Wavelength",
+                "MinSrc",
+                "MaxSrc",
+            ):
                 if not cval:
                     # skip empty nodes ... the sdk does this too
                     continue

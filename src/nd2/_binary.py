@@ -157,7 +157,7 @@ class BinaryLayers(Sequence[BinaryLayer]):
     @classmethod
     def from_nd2file(cls, nd2file: ND2File) -> BinaryLayers | None:
         """Extract binary layers from an ND2 file."""
-        if nd2file.is_legacy:
+        if nd2file.is_legacy:  # pragma: no cover
             warnings.warn(
                 "`binary_data` is not supported for legacy ND2 files",
                 UserWarning,
@@ -175,7 +175,7 @@ class BinaryLayers(Sequence[BinaryLayer]):
 
         try:
             items: dict = binary_meta["BinaryMetadata_v1"]
-        except KeyError:
+        except KeyError:  # pragma: no cover
             warnings.warn(
                 "Could not find 'BinaryMetadata_v1' tag, please open an "
                 "issue with this file at https://github.com/tlambert03/nd2/issues/new",

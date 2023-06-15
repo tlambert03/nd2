@@ -1,8 +1,43 @@
 # Changelog
 
-## [0.5.2](https://github.com/tlambert03/nd2/tree/0.5.2) (2022-12-08)
+## [0.6.0](https://github.com/tlambert03/nd2/tree/0.6.0) (2023-06-15)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.5.1...0.5.2)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.5.3...0.6.0)
+
+**Implemented enhancements:**
+
+- feat: Remove sdk, use all python [\#135](https://github.com/tlambert03/nd2/pull/135) ([tlambert03](https://github.com/tlambert03))
+
+**Fixed bugs:**
+
+- fix: Make 'periodDiff' optional in TimeLoopParams construction [\#131](https://github.com/tlambert03/nd2/pull/131) ([SeanLeRoy](https://github.com/SeanLeRoy))
+
+**Tests & CI:**
+
+- feat: add more typed dicts to parsing [\#139](https://github.com/tlambert03/nd2/pull/139) ([tlambert03](https://github.com/tlambert03))
+- ci: enable Strict mypy typing [\#138](https://github.com/tlambert03/nd2/pull/138) ([tlambert03](https://github.com/tlambert03))
+- test: update rescue test [\#137](https://github.com/tlambert03/nd2/pull/137) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- refactor: cleaning up reader [\#141](https://github.com/tlambert03/nd2/pull/141) ([tlambert03](https://github.com/tlambert03))
+- chore: adding nd2\_describe script [\#136](https://github.com/tlambert03/nd2/pull/136) ([tlambert03](https://github.com/tlambert03))
+- ci\(dependabot\): bump pypa/cibuildwheel from 2.12.1 to 2.12.3 [\#130](https://github.com/tlambert03/nd2/pull/130) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump pypa/cibuildwheel from 2.12.0 to 2.12.1 [\#128](https://github.com/tlambert03/nd2/pull/128) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump pypa/cibuildwheel from 2.11.3 to 2.12.0 [\#125](https://github.com/tlambert03/nd2/pull/125) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump pypa/cibuildwheel from 2.11.2 to 2.11.3 [\#120](https://github.com/tlambert03/nd2/pull/120) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v0.5.3](https://github.com/tlambert03/nd2/tree/v0.5.3) (2022-12-08)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.5.2...v0.5.3)
+
+**Merged pull requests:**
+
+- fix: catch exception on file open and release handle [\#117](https://github.com/tlambert03/nd2/pull/117) ([tlambert03](https://github.com/tlambert03))
+
+## [v0.5.2](https://github.com/tlambert03/nd2/tree/v0.5.2) (2022-12-08)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.5.1...v0.5.2)
 
 **Fixed bugs:**
 
@@ -104,7 +139,7 @@
 
 **Fixed bugs:**
 
-- fix: Typo in legacy requirements [\#79](https://github.com/tlambert03/nd2/pull/79) ([c0deizbae](https://github.com/c0deizbae))
+- fix: Typo in legacy requirements [\#79](https://github.com/tlambert03/nd2/pull/79) ([ghost](https://github.com/ghost))
 
 **Merged pull requests:**
 
@@ -190,7 +225,7 @@
 
 ## [v0.2.0](https://github.com/tlambert03/nd2/tree/v0.2.0) (2022-02-20)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.6...v0.2.0)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5-1...v0.2.0)
 
 **Merged pull requests:**
 
@@ -203,13 +238,13 @@
 - \[pre-commit.ci\] pre-commit autoupdate [\#34](https://github.com/tlambert03/nd2/pull/34) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 - \[pre-commit.ci\] pre-commit autoupdate [\#33](https://github.com/tlambert03/nd2/pull/33) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 
-## [v0.1.6](https://github.com/tlambert03/nd2/tree/v0.1.6) (2021-11-12)
-
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5-1...v0.1.6)
-
 ## [v0.1.5-1](https://github.com/tlambert03/nd2/tree/v0.1.5-1) (2021-11-12)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5...v0.1.5-1)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.6...v0.1.5-1)
+
+## [v0.1.6](https://github.com/tlambert03/nd2/tree/v0.1.6) (2021-11-12)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5...v0.1.6)
 
 ## [v0.1.5](https://github.com/tlambert03/nd2/tree/v0.1.5) (2021-11-12)
 

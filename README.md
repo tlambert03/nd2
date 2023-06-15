@@ -6,7 +6,7 @@
 [![Tests](https://github.com/tlambert03/nd2/actions/workflows/ci.yml/badge.svg)](https://github.com/tlambert03/nd2/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/tlambert03/nd2/branch/main/graph/badge.svg)](https://codecov.io/gh/tlambert03/nd2)
 
-Yet another `.nd2` (Nikon NIS Elements) file reader.
+`.nd2` (Nikon NIS Elements) file reader.
 
 This reader provides a pure python implementation the official Nikon ND2 SDK.
 
@@ -25,7 +25,6 @@ compatibility and data extraction. (If you find an nd2 file that fails in some
 way, please [open an issue](https://github.com/tlambert03/nd2/issues/new) with
 the file!)
 
-
 ## install
 
 ```sh
@@ -37,10 +36,6 @@ or from conda:
 ```sh
 conda install -c conda-forge nd2
 ```
-
-**Centos Linux**
-
-*Please note that CentOS Linux is only supported in the conda-forge package. `nd2` installed via `pip` will fail to load at runtime.*
 
 ### extras
 

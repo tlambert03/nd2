@@ -238,7 +238,7 @@ def _load_single_experiment_loop(
         return strct.SpectLoop(count=count)
 
     raise NotImplementedError(
-        f"We've never seen a file like this! (experiment {loop_type=}). We'd "
+        f"We've never seen a file like this! (loop_type={loop_type!r}). We'd "
         "appreciate it if you would submit this file at "
         "https://github.com/tlambert03/nd2/issues/new",
     )

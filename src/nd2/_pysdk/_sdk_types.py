@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import TYPE_CHECKING, TypeAlias, Union
+from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
-    from typing_extensions import Literal, NotRequired, TypedDict
+    from typing_extensions import Literal, NotRequired, TypeAlias, TypedDict
 
     class RawAttributesDict(TypedDict, total=False):
         uiWidth: int

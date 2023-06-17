@@ -1,25 +1,14 @@
 """Utilities for binary layers in ND2 files."""
 from __future__ import annotations
 
-import io
-import struct
-import warnings
-from typing import TYPE_CHECKING, Iterator, NamedTuple, Sequence, cast, overload
+from dataclasses import dataclass
+from typing import Iterator, Sequence, overload
 
 import numpy as np
 
-if TYPE_CHECKING:
-    from numpy.typing import DTypeLike
 
-    from ._pysdk._pysdk import ND2Reader as LatestSDKReader
-    from .nd2file import ND2File
-
-I7 = struct.Struct("<" + "I" * 7)
-I9 = struct.Struct("<" + "I" * 9)
-I2 = struct.Struct("<" + "I" * 2)
-
-
-class BinaryLayer(NamedTuple):
+@dataclass
+class BinaryLayer:
     """Wrapper for data from a single binary layer in an ND2 file.
 
     `data` will have length of num_sequences, with `None` for any frames
@@ -45,9 +34,6 @@ class BinaryLayer(NamedTuple):
         the color value), "8" is color by 3D ... and I'm not sure about the rest :)
     state: int
         The state of the binary layer. (meaning still unclear)
-    file_tag: str
-        The key for the binary layer in the CustomData metadata,
-        e.g. `RleZipBinarySequence_1_v1`
     layer_id: int
         The ID of the binary layer.
     coordinate_shape: tuple of int
@@ -62,7 +48,6 @@ class BinaryLayer(NamedTuple):
     color: int
     color_mode: int
     state: int
-    file_tag: str
     layer_id: int
     coordinate_shape: tuple[int, ...]
 
@@ -91,15 +76,7 @@ class BinaryLayer(NamedTuple):
             i if i is not None else np.zeros(frame_shape, dtype="uint16")
             for i in self.data
         ]
-        return cast(
-            "np.ndarray", np.stack(d).reshape(self.coordinate_shape + frame_shape)
-        )
-
-    def __repr__(self) -> str:
-        """Return a nicely formatted string."""
-        field_names = (f for f in self._fields if f != "data")
-        repr_fmt = "(" + ", ".join(f"{name}=%r" for name in field_names) + ")"
-        return self.__class__.__name__ + repr_fmt % self[1:]
+        return np.stack(d).reshape(self.coordinate_shape + frame_shape)  # type: ignore
 
 
 class BinaryLayers(Sequence[BinaryLayer]):
@@ -153,96 +130,3 @@ class BinaryLayers(Sequence[BinaryLayer]):
             if d is not None:
                 out.append(d)
         return np.stack(out)
-
-    @classmethod
-    def from_nd2file(cls, nd2file: ND2File) -> BinaryLayers | None:
-        """Extract binary layers from an ND2 file."""
-        if nd2file.is_legacy:  # pragma: no cover
-            warnings.warn(
-                "`binary_data` is not supported for legacy ND2 files",
-                UserWarning,
-                stacklevel=2,
-            )
-            return None
-        rdr = cast("LatestSDKReader", nd2file._rdr)
-
-        try:
-            binary_meta = rdr._decode_chunk(
-                b"CustomDataVar|BinaryMetadata_v1!", strip_prefix=True
-            )
-        except KeyError:
-            return None
-
-        try:
-            items: dict = binary_meta["BinaryMetadata_v1"]
-        except KeyError:  # pragma: no cover
-            warnings.warn(
-                "Could not find 'BinaryMetadata_v1' tag, please open an "
-                "issue with this file at https://github.com/tlambert03/nd2/issues/new",
-                stacklevel=2,
-            )
-            return None
-
-        binseqs = sorted(x for x in rdr.chunkmap if b"RleZipBinarySequence" in x)
-        mask_items = []
-        for _, item in sorted(items.items()):
-            key = item["FileTag"].encode()
-            _masks: list[np.ndarray | None] = []
-            for bs in binseqs:
-                if key in bs:
-                    data = rdr._load_chunk(bs)[4:]
-                    _masks.append(_decode_binary_mask(data) if data else None)
-            mask_items.append(
-                BinaryLayer(
-                    data=_masks,
-                    name=item["Name"],
-                    comp_name=item["CompName"],
-                    comp_order=item["CompOrder"],
-                    color_mode=item["ColorMode"],
-                    state=item["State"],
-                    color=item["Color"],
-                    file_tag=key,
-                    layer_id=item["BinLayerID"],
-                    coordinate_shape=nd2file._coord_shape,
-                )
-            )
-
-        return cls(mask_items)
-
-
-def _unpack(stream: io.BufferedIOBase, strct: struct.Struct) -> tuple:
-    return strct.unpack(stream.read(strct.size))
-
-
-def _decode_binary_mask(data: bytes, dtype: DTypeLike = "uint16") -> np.ndarray:
-    # this receives data as would be extracted from a
-    # `CustomDataSeq|RleZipBinarySequence...` section in the metadata
-
-    # NOTE it is up to ND2File to strip the first 4 bytes... and not call this if there
-    # is no data (i.e. if the chunk is just '\x00')
-    import zlib
-
-    decomp = zlib.decompress(data)
-    stream = io.BytesIO(decomp)
-
-    # still not sure what _q is
-    # tot_bytes should be length of the stream remaining after this
-    (v, ncols, nrows, nmasks, tot_bytes, _q, _zero) = _unpack(stream, I7)
-    if v != 3:
-        warnings.warn(
-            f"Expected first byte to be 3 but got {v}. "
-            "Please submit this file :) https://github.com/tlambert03/nd2/issues/.",
-            stacklevel=2,
-        )
-
-    output = np.zeros((nrows, ncols), dtype=dtype)
-    for _m in range(nmasks):
-        # (1,     1,  0, 15, 11,       412,      12, 396, 0)
-        (roi_id, c0, r0, c1, r1, roi_bytes, maskrows, _y, _zero) = _unpack(stream, I9)
-        for _r in range(maskrows):
-            (row, nruns) = _unpack(stream, I2)
-            for _s in range(nruns):
-                (col, n) = _unpack(stream, I2)
-                output[row, col : col + n] = roi_id
-
-    return output

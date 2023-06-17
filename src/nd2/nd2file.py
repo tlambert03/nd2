@@ -739,9 +739,39 @@ class ND2File:
         >>> np.asarray(f.binary_data).shape  # cast all layers to array
         (4, 3, 4, 5, 32, 32)
         """
-        from ._binary import BinaryLayers
+        if self.is_legacy:
+            warnings.warn(  # pragma: no cover
+                "`binary_data` is not supported for legacy ND2 files",
+                UserWarning,
+                stacklevel=2,
+            )
+            return None
+        rdr = cast("LatestSDKReader", self._rdr)
+        key = b"CustomDataVar|BinaryMetadata_v1!"
+        if key not in rdr.chunkmap:
+            return None
 
-        return BinaryLayers.from_nd2file(self)
+        layer_meta = rdr._decode_chunk(key, strip_prefix=True)
+        if "BinaryMetadata_v1" not in layer_meta:
+            warnings.warn(  # pragma: no cover
+                "Could not find 'BinaryMetadata_v1' tag, please open an "
+                "issue with this file at https://github.com/tlambert03/nd2/issues/new",
+                stacklevel=2,
+            )
+            return None
+        layer_meta = layer_meta["BinaryMetadata_v1"]
+
+        from ._pysdk._parse import load_binary_layers
+
+        seq_bytes: dict[str, dict[int, bytes | None]] = {}
+        for x in rdr.chunkmap:
+            if b"RleZipBinarySequence" in x:
+                _, file_tag, idx = x[:-1].split(b"|")
+                chunk = rdr._load_chunk(x)[4:]
+                tag_dict = seq_bytes.setdefault(file_tag.decode(), {})
+                tag_dict[int(idx)] = chunk
+
+        return load_binary_layers(layer_meta.values(), seq_bytes, self._coord_shape)
 
 
 @overload

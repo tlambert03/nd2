@@ -1,21 +1,28 @@
 from __future__ import annotations
 
+import io
 import re
+import struct
+import warnings
 from dataclasses import asdict
 from math import ceil
 from struct import Struct
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Iterable, cast
 
 import numpy as np
 
 from nd2 import structures as strct
+from nd2._binary import BinaryLayer, BinaryLayers
 
 from ._sdk_types import ELxModalityMask
 
 if TYPE_CHECKING:
+    from numpy.typing import DTypeLike
+
     from nd2.structures import AxisInterpretation, ExpLoop, XYPosLoopParams
 
     from ._sdk_types import (
+        BinaryLayerDict,
         CompressionType,
         FilterDict,
         FluorescentProbeDict,
@@ -595,3 +602,73 @@ def load_frame_metadata(
     ]
     contents = cast(strct.Contents, meta.contents)
     return strct.FrameMetadata(contents=contents, channels=frame_channels)
+
+
+def _unpack(stream: io.BufferedIOBase, strct: struct.Struct) -> tuple:
+    return strct.unpack(stream.read(strct.size))
+
+
+I7 = struct.Struct("<" + "I" * 7)
+I9 = struct.Struct("<" + "I" * 9)
+I2 = struct.Struct("<" + "I" * 2)
+
+
+def _load_binary_mask(data: bytes, dtype: DTypeLike = "uint16") -> np.ndarray:
+    # this receives data as would be extracted from a
+    # `CustomDataSeq|RleZipBinarySequence...` section in the metadata
+
+    # NOTE it is up to ND2File to strip the first 4 bytes... and not call this if there
+    # is no data (i.e. if the chunk is just '\x00')
+    import zlib
+
+    decomp = zlib.decompress(data)
+    stream = io.BytesIO(decomp)
+
+    # still not sure what _q is
+    # tot_bytes should be length of the stream remaining after this
+    (v, ncols, nrows, nmasks, tot_bytes, _q, _zero) = _unpack(stream, I7)
+    if v != 3:
+        warnings.warn(
+            f"Expected first byte to be 3 but got {v}. "
+            "Please submit this file :) https://github.com/tlambert03/nd2/issues/.",
+            stacklevel=2,
+        )
+
+    output = np.zeros((nrows, ncols), dtype=dtype)
+    for _m in range(nmasks):
+        # (1,     1,  0, 15, 11,       412,      12, 396, 0)
+        (roi_id, c0, r0, c1, r1, roi_bytes, maskrows, _y, _zero) = _unpack(stream, I9)
+        for _r in range(maskrows):
+            (row, nruns) = _unpack(stream, I2)
+            for _s in range(nruns):
+                (col, n) = _unpack(stream, I2)
+                output[row, col : col + n] = roi_id
+
+    return output
+
+
+def load_binary_layers(
+    layer_metas: Iterable[BinaryLayerDict],
+    seq_bytes: dict[str, dict[int, bytes | None]],
+    coordinate_shape: tuple[int, ...],
+) -> BinaryLayers:
+    """Extract binary layers from an ND2 file."""
+    return BinaryLayers(
+        [
+            BinaryLayer(
+                data=[
+                    (_load_binary_mask(seq) if seq else None)
+                    for _, seq in sorted(seq_bytes[d["FileTag"]].items())
+                ],
+                name=d["Name"],
+                comp_name=d["CompName"],
+                comp_order=d["CompOrder"],
+                color_mode=d["ColorMode"],
+                state=d["State"],
+                color=d["Color"],
+                layer_id=d["BinLayerID"],
+                coordinate_shape=coordinate_shape,
+            )
+            for d in layer_metas
+        ]
+    )

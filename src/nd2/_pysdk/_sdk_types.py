@@ -301,6 +301,16 @@ if TYPE_CHECKING:
         Rows: int
         Data: list[int]
 
+    class BinaryLayerDict(TypedDict):
+        BinLayerID: int
+        State: int
+        Color: int
+        CompOrder: int
+        Name: str
+        FileTag: str
+        CompName: str
+        ColorMode: int
+
     # These dicts are intermediate dicts created in the process of parsing raw meta
     # they mimic intermediate parsing done by the SDK... but needn't stay this way.
 

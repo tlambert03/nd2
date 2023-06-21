@@ -104,6 +104,7 @@ f.voxel_size()      # VoxelSize(x=0.65, y=0.65, z=1.0)
 f.text_info         # dict of misc info
 
 f.binary_data       # any binary masks stored in the file.  See below.
+f.events            # list of nd2.structures.ExperimentEvent that occurred
 f.custom_data       # bits of unstructured metadata that start with CustomData
 f.recorded_data     # returns a dict of lists (passable to pandas.DataFrame) that
                     # the tabular "Recorded Data" view from in NIS Elements/Viewer
@@ -330,6 +331,118 @@ ROIs found in the metadata are available at `ND2File.rois`, which is a
     'description': 'Metadata:\r\nDimensions: T(3) x XY(4) x λ(2) x Z(5)\r\nCamera Name: Flash4.0, SN:101412\r\nNumerical Aperture: 0.3\r\nRefractive Index: 1\r\nNumber of Picture Planes: 2\r\nPlane #1:\r\n Name: Widefield Green\r\n Component Count: 1\r\n Modality: Widefield Fluorescence\r\n Camera Settings:   Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast\r\n Microscope Settings:   Nikon Ti2, FilterChanger(Turret-Lo): 3 (FITC)\r\n  Nikon Ti2, Shutter(FL-Lo): Open\r\n  Nikon Ti2, Shutter(DIA LED): Closed\r\n  Nikon Ti2, Illuminator(DIA): Off\r\n  Nikon Ti2, Illuminator(DIA) Iris intensity: 3.0\r\n  Analyzer Slider: Extracted\r\n  Analyzer Cube: Extracted\r\n  Condenser: 1 (Shutter)\r\n  PFS, state: On\r\n  PFS, offset: 7959\r\n  PFS, mirror: Inserted\r\n  PFS, Dish Type: Glass\r\n  Zoom: 1.00x\r\n  Sola, Shutter(Sola): Active\r\n  Sola, Illuminator(Sola) Voltage: 100.0\r\nPlane #2:\r\n Name: Widefield Red\r\n Component Count: 1\r\n Modality: Widefield Fluorescence\r\n Camera Settings:   Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast\r\n Microscope Settings:   Nikon Ti2, FilterChanger(Turret-Lo): 4 (TRITC)\r\n  Nikon Ti2, Shutter(FL-Lo): Open\r\n  Nikon Ti2, Shutter(DIA LED): Closed\r\n  Nikon Ti2, Illuminator(DIA): Off\r\n  Nikon Ti2, Illuminator(DIA) Iris intensity: 1.5\r\n  Analyzer Slider: Extracted\r\n  Analyzer Cube: Extracted\r\n  Condenser: 1 (Shutter)\r\n  PFS, state: On\r\n  PFS, offset: 7959\r\n  PFS, mirror: Inserted\r\n  PFS, Dish Type: Glass\r\n  Zoom: 1.00x\r\n  Sola, Shutter(Sola): Active\r\n  Sola, Illuminator(Sola) Voltage: 100.0\r\nTime Loop: 3\r\n- Equidistant (Period 1 ms)\r\nZ Stack Loop: 5\r\n- Step: 1 µm\r\n- Device: Ti2 ZDrive',
     'optics': 'Plan Fluor 10x Ph1 DLL'
 }
+```
+
+</details>
+
+<details>
+
+<summary><code>binary_data</code></summary>
+
+This property returns an `nd2.BinaryLayers` object representing all of the
+binary masks in the nd2 file.
+
+A `nd2.BinaryLayers` object is a sequence of individual `nd2.BinaryLayer`
+objects (one for each binary layer found in the file).  Each `BinaryLayer` in
+the sequence is a named tuple that has, among other things, a `name` attribute,
+and a `data` attribute that is list of numpy arrays (one for each frame in the
+experiment) or `None` if the binary layer had no data in that frame.
+
+The most common use case will be to cast either the entire `BinaryLayers` object
+or an individual `BinaryLayer` to a `numpy.ndarray`:
+
+```python
+>>> import nd2
+>>> nd2file = nd2.ND2File('path/to/file.nd2')
+>>> binary_layers = nd2file.binary_data
+
+# The output array will have shape
+# (n_binary_layers, *coord_shape, *frame_shape).
+>>> np.asarray(binary_layers)
+```
+
+For example, if the data in the nd2 file has shape `(nT, nZ, nC, nY, nX)`, and
+there are 4 binary layers, then the output of `np.asarray(nd2file.binary_data)` will
+have shape `(4, nT, nZ, nY, nX)`.  (Note that the `nC` dimension is not present
+in the output array, and the binary layers are always in the first axis).
+
+You can also cast an individual `BinaryLayer` to a numpy array:
+
+```python
+>>> binary_layer = binary_layers[0]
+>>> np.asarray(binary_layer)
+```
+
+</details>
+
+<details>
+
+<summary><code>events</code></summary>
+
+This property returns a list of `nd2.structures.ExperimentEvent` objects found
+in the file.  These are things like Stimulation events and a host of other events
+that might occur during an experiment.
+
+```python
+[
+    ExperimentEvent(
+        id=1,
+        time=30919.564199984074,
+        time2=0.0,
+        meaning=<EventMeaning.Stimulation: 15>,
+        description='Stimulation',
+        data='',
+        stimulation=StimulationEvent(
+            type=<StimulationType.Begin: 4>,
+            loop_index=0,
+            position=0,
+            description='DMD:S1 = (365 nm : 0.0%, 440 nm : 0.0%, 488 nm : 3.0%)'
+        )
+    ),
+    ExperimentEvent(
+        id=2,
+        time=31128.348900020123,
+        time2=0.0,
+        meaning=<EventMeaning.Stimulation: 15>,
+        description='Stimulation',
+        data='',
+        stimulation=StimulationEvent(
+            type=<StimulationType.End: 5>,
+            loop_index=0,
+            position=0,
+            description=''
+        )
+    ),
+    ExperimentEvent(
+        id=3,
+        time=61436.26100003719,
+        time2=0.0,
+        meaning=<EventMeaning.Stimulation: 15>,
+        description='Stimulation',
+        data='',
+        stimulation=StimulationEvent(
+            type=<StimulationType.Begin: 4>,
+            loop_index=1,
+            position=0,
+            description='DMD:S1 = (365 nm : 0.0%, 440 nm : 0.0%, 488 nm : 3.0%)'
+        )
+    ),
+    ExperimentEvent(
+        id=4,
+        time=61649.4361000061,
+        time2=0.0,
+        meaning=<EventMeaning.Stimulation: 15>,
+        description='Stimulation',
+        data='',
+        stimulation=StimulationEvent(
+            type=<StimulationType.End: 5>,
+            loop_index=1,
+            position=0,
+            description=''
+        )
+    )
+]
+
 ```
 
 </details>
@@ -658,46 +771,6 @@ Out[13]:
 13  12.371539       1.0               100.0              0              0       31452.2       -1801.6        555.68           555.68
 14  12.665469       2.0               100.0              0              0       31452.2       -1801.6        556.68           556.68
 
-```
-
-</details>
-
-<details>
-
-<summary><code>binary_data</code></summary>
-
-This property returns an `nd2.BinaryLayers` object representing all of the
-binary masks in the nd2 file.
-
-A `nd2.BinaryLayers` object is a sequence of individual `nd2.BinaryLayer`
-objects (one for each binary layer found in the file).  Each `BinaryLayer` in
-the sequence is a named tuple that has, among other things, a `name` attribute,
-and a `data` attribute that is list of numpy arrays (one for each frame in the
-experiment) or `None` if the binary layer had no data in that frame.
-
-The most common use case will be to cast either the entire `BinaryLayers` object
-or an individual `BinaryLayer` to a `numpy.ndarray`:
-
-```python
->>> import nd2
->>> nd2file = nd2.ND2File('path/to/file.nd2')
->>> binary_layers = nd2file.binary_data
-
-# The output array will have shape
-# (n_binary_layers, *coord_shape, *frame_shape).
->>> np.asarray(binary_layers)
-```
-
-For example, if the data in the nd2 file has shape `(nT, nZ, nC, nY, nX)`, and
-there are 4 binary layers, then the output of `np.asarray(nd2file.binary_data)` will
-have shape `(4, nT, nZ, nY, nX)`.  (Note that the `nC` dimension is not present
-in the output array, and the binary layers are always in the first axis).
-
-You can also cast an individual `BinaryLayer` to a numpy array:
-
-```python
->>> binary_layer = binary_layers[0]
->>> np.asarray(binary_layer)
 ```
 
 </details>

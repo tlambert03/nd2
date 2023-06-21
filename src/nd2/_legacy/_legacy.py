@@ -203,7 +203,6 @@ class LegacyND2Reader:
         except KeyError:
             return {}
 
-    @cached_property
     def events(self) -> dict:
         return self._get_xml_dict(b"IEVE")
 

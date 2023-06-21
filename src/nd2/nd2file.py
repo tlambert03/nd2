@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from ._util import StrOrBytesPath
     from .structures import (
         Attributes,
+        ExperimentEvent,
         ExpLoop,
         FrameMetadata,
         Metadata,
@@ -188,6 +189,11 @@ class ND2File:
     def experiment(self) -> list[ExpLoop]:
         """Loop information for each nd axis."""
         return self._rdr.experiment()
+
+    @cached_property
+    def events(self) -> list[ExperimentEvent]:
+        """Loop information for each nd axis."""
+        return self._rdr.events()  # type: ignore
 
     def unstructured_metadata(
         self,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import warnings
 from dataclasses import asdict
 from math import ceil
 from struct import Struct
@@ -10,9 +11,11 @@ import numpy as np
 
 from nd2 import structures as strct
 
-from ._sdk_types import ELxModalityMask
+from ._sdk_types import ELxModalityMask, EventMeaning, StimulationType
 
 if TYPE_CHECKING:
+    from typing_extensions import TypeGuard
+
     from nd2.structures import AxisInterpretation, ExpLoop, XYPosLoopParams
 
     from ._sdk_types import (
@@ -25,6 +28,8 @@ if TYPE_CHECKING:
         PlaneDict,
         RawAttributesDict,
         RawExperimentDict,
+        RawExperimentRecordDict,
+        RawLiteEventDict,
         RawMetaDict,
         RawTextInfoDict,
         SpectLoopPars,
@@ -346,6 +351,54 @@ def _get_spectrum_max(item: SpectrumDict | None) -> float:
         return 0.0
     spectrum = _get_spectrum(item)
     return max(spectrum, key=lambda x: x[0])[1] if spectrum else 0.0
+
+
+LITE_EVENT_KEYS = {"T", "T2", "M", "D", "A", "I", "S"}
+
+
+def _is_lite_events(events: dict) -> TypeGuard[dict[str, RawLiteEventDict]]:
+    event_keys = set.union(*(set(x) for x in events.values()))
+    return event_keys.issubset(LITE_EVENT_KEYS)
+
+
+def load_events(events: RawExperimentRecordDict) -> list[strct.ExperimentEvent]:
+    # found in b'CustomData|ExperimentEventsV1_0!'
+    count = events.get("uiCount", 0)
+    if count == 0:
+        return []
+    p_events = events.get("pEvents", {})
+    if _is_lite_events(p_events):
+        return [_load_lite_event(x[1]) for x in sorted(p_events.items())]
+    warnings.warn(
+        "We haven't seen this event type before, please submit this file at"
+        "https://github.com/tlambert03/nd2/issue",
+        stacklevel=2,
+    )
+    return []
+
+
+def _load_lite_event(event: RawLiteEventDict) -> strct.ExperimentEvent:
+    stim_event = event.get("S", {})
+    if stim_event:
+        stim_struct = strct.StimulationEvent(
+            type=StimulationType(stim_event.get("T", 0)),
+            loop_index=stim_event.get("L", 0),
+            position=stim_event.get("P", 0),
+            description=stim_event.get("D", ""),
+        )
+    else:
+        stim_struct = None
+
+    meaning = EventMeaning(event.get("M", 0))
+    return strct.ExperimentEvent(
+        id=event.get("I", 0),
+        time=event.get("T", 0.0),
+        time2=event.get("T2", 0.0),
+        meaning=meaning,
+        description=event.get("D", "") or meaning.description(),
+        data=event.get("A", ""),
+        stimulation=stim_struct,
+    )
 
 
 def load_text_info(raw_txt_info: RawTextInfoDict) -> strct.TextInfo:

@@ -18,6 +18,7 @@ from nd2._pysdk._chunk_decode import (
 )
 from nd2._pysdk._parse import (
     load_attributes,
+    load_events,
     load_experiment,
     load_frame_metadata,
     load_global_metadata,
@@ -38,6 +39,7 @@ if TYPE_CHECKING:
         GlobalMetadata,
         RawAttributesDict,
         RawExperimentDict,
+        RawExperimentRecordDict,
         RawMetaDict,
         RawTextInfoDict,
     )
@@ -64,6 +66,7 @@ class ND2Reader:
         self._experiment: list[structures.ExpLoop] | None = None
         self._text_info: structures.TextInfo | None = None
         self._metadata: structures.Metadata | None = None
+        self._events: list[structures.ExperimentEvent] | None = None
 
         self._global_metadata: GlobalMetadata | None = None
         self._cached_frame_offsets: dict[int, int] | None = None
@@ -251,6 +254,19 @@ class ND2Reader:
                 self._raw_experiment = cast("RawExperimentDict", exp)
                 self._experiment = load_experiment(0, self._raw_experiment)
         return self._experiment
+
+    def events(self) -> list[structures.ExperimentEvent]:
+        if not self._events:
+            # TODO: is it always V1_0?
+            k = b"CustomData|ExperimentEventsV1_0!"
+            if k not in self.chunkmap:
+                self._events = []
+            else:
+                events = self._decode_chunk(k, strip_prefix=False)
+                # TODO: what about v2.0?
+                events = events.get("RLxExperimentRecord", events)
+                self._events = load_events(cast("RawExperimentRecordDict", events))
+        return self._events
 
     def _cached_frame_times(self) -> list[float]:
         """Returns frame times in milliseconds."""

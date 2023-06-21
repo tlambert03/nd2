@@ -369,9 +369,9 @@ def load_events(events: RawExperimentRecordDict) -> list[strct.ExperimentEvent]:
     p_events = events.get("pEvents", {})
     if _is_lite_events(p_events):
         return [_load_lite_event(x[1]) for x in sorted(p_events.items())]
-    warnings.warn(
-        "We haven't seen this event type before, please submit this file at"
-        "https://github.com/tlambert03/nd2/issue",
+    warnings.warn(  # pragma: no cover
+        "We haven't seen this event type before, we'd appreciate if you submit this "
+        "file at https://github.com/tlambert03/nd2/issues/new",
         stacklevel=2,
     )
     return []

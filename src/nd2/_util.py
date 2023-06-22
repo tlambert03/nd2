@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from itertools import product
 from typing import IO, TYPE_CHECKING, Any, Callable, NamedTuple, Union
 
 if TYPE_CHECKING:
@@ -121,3 +122,51 @@ class VoxelSize(NamedTuple):
     x: float
     y: float
     z: float
+
+
+def convert_records_to_dict_of_lists(
+    records: list[dict], null_val: Any = float("nan")
+) -> dict[str, list]:
+    """Convert a list of records (dicts) to a dict of lists.
+
+    Examples
+    --------
+    >>> records = [
+    ...     {"a": 1, "c": 3},
+    ...     {"a": 4, "b": 5, "c": 6},
+    ...     {"b": 8, "c": 9},
+    ... ]
+    >>> _convert_records_to_dict(records)
+    {'a': [1, 4, nan], 'b': [nan, 5, 8], 'c': [3, 6, 9]}
+    """
+    col_names: set[str] = {column for r in records for column in r}
+    output: dict[str, list] = {col_name: [] for col_name in col_names}
+
+    for record, col_name in product(records, col_names):
+        output[col_name].append(record.get(col_name, null_val))
+
+    return output
+
+
+def convert_records_to_dict_of_dicts(
+    records: list[dict], null_val: Any = float("nan")
+) -> dict[str, dict[int, Any]]:
+    """Convert a list of records (dicts) to a dict of dicts.
+
+    Examples
+    --------
+    >>> records = [
+    ...     {"a": 1, "c": 3},
+    ...     {"a": 4, "b": 5, "c": 6},
+    ...     {"b": 8, "c": 9},
+    ... ]
+    >>> _convert_records_to_dict_of_dicts(records)
+    {'b': {0: nan, 1: 5, 2: 8}, 'a': {0: 1, 1: 4, 2: nan}, 'c': {0: 3, 1: 6, 2: 9}}
+    """
+    col_names: set[str] = {column for r in records for column in r}
+    output: dict[str, dict[int, Any]] = {col_name: {} for col_name in col_names}
+
+    for (idx, record), col_name in product(enumerate(records), col_names):
+        output[col_name][idx] = record.get(col_name, null_val)
+
+    return output

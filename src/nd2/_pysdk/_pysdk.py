@@ -3,7 +3,7 @@ from __future__ import annotations
 import mmap
 import os
 import warnings
-from typing import TYPE_CHECKING, Sequence, cast
+from typing import TYPE_CHECKING, Sequence, cast, overload
 
 import numpy as np
 
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from pathlib import Path
     from typing import Any
 
-    from typing_extensions import TypeAlias
+    from typing_extensions import Literal, TypeAlias
 
     from ._chunk_decode import ChunkMap
     from ._sdk_types import (
@@ -46,6 +46,8 @@ if TYPE_CHECKING:
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]
+
+NAN = float("nan")
 
 
 class ND2Reader:
@@ -426,7 +428,30 @@ class ND2Reader:
             if k.startswith(b"CustomDataVar|")
         }
 
-    def recorded_data(self) -> dict[str, np.ndarray | Sequence]:
+    @overload
+    def recorded_data(
+        self, orient: Literal["records"], null_value: Any = ...
+    ) -> list[dict[str, Any]]:
+        ...
+
+    @overload
+    def recorded_data(
+        self, orient: Literal["list"], null_value: Any = ...
+    ) -> dict[str, Sequence[Any]]:
+        ...
+
+    @overload
+    def recorded_data(
+        self, orient: Literal["dict"], null_value: Any = ...
+    ) -> dict[str, dict[int, Any]]:
+        ...
+
+    def recorded_data(
+        self,
+        *,
+        orient: Literal["records", "dict", "list"] = "records",
+        null_value: Any = NAN,
+    ) -> dict[str, Sequence[Any]] | list[dict[str, Any]] | dict[str, dict[int, Any]]:
         """Return tabular data recorded for each frame of the experiment.
 
         This method returns a dict of equal-length sequences (passable to
@@ -437,6 +462,13 @@ class ND2Reader:
         `ND2File.custom_data`)
 
         Legacy ND2 files are not supported.
+
+        Parameters
+        ----------
+        orient : {'records', 'dict', 'list'}, default 'records'
+            The format of the returned data. See `pandas.DataFrame
+        null_value : Any, default float('nan')
+            The value to use for missing data.
         """
         try:
             cd = self._decode_chunk(b"CustomDataVar|CustomDataV2_0!")
@@ -506,8 +538,11 @@ class ND2Reader:
             if tag["Unit"]:
                 col_header += f" [{tag['Unit']}]"
 
-            buffer = self._load_chunk(f"CustomData|{tag['ID']}!".encode())
+            buffer_ = self._load_chunk(f"CustomData|{tag['ID']}!".encode())
             dtype = {3: np.float64, 2: np.int32}[tag["Type"]]
-            data[col_header] = np.frombuffer(buffer, dtype=dtype, count=tag["Size"])
+            data[col_header] = np.frombuffer(buffer_, dtype=dtype, count=tag["Size"])
 
+        events = self.events()
+        if events:
+            breakpoint()
         return data

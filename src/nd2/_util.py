@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 from datetime import datetime
 from itertools import product
@@ -124,9 +125,12 @@ class VoxelSize(NamedTuple):
     z: float
 
 
+# utils for converting records to dicts, in recorded_data method
+
+
 def convert_records_to_dict_of_lists(
-    records: list[dict], null_val: Any = float("nan")
-) -> dict[str, list]:
+    records: list[dict[str, Any]], null_val: Any = float("nan")
+) -> dict[str, list[Any]]:
     """Convert a list of records (dicts) to a dict of lists.
 
     Examples
@@ -136,10 +140,11 @@ def convert_records_to_dict_of_lists(
     ...     {"a": 4, "b": 5, "c": 6},
     ...     {"b": 8, "c": 9},
     ... ]
-    >>> _convert_records_to_dict(records)
+    >>> convert_records_to_dict(records)
     {'a': [1, 4, nan], 'b': [nan, 5, 8], 'c': [3, 6, 9]}
     """
-    col_names: set[str] = {column for r in records for column in r}
+    # get the column names in the order they appear in the records
+    col_names: dict[str, None] = {column: None for r in records for column in r}
     output: dict[str, list] = {col_name: [] for col_name in col_names}
 
     for record, col_name in product(records, col_names):
@@ -149,7 +154,7 @@ def convert_records_to_dict_of_lists(
 
 
 def convert_records_to_dict_of_dicts(
-    records: list[dict], null_val: Any = float("nan")
+    records: list[dict[str, Any]], null_val: Any = float("nan")
 ) -> dict[str, dict[int, Any]]:
     """Convert a list of records (dicts) to a dict of dicts.
 
@@ -160,13 +165,39 @@ def convert_records_to_dict_of_dicts(
     ...     {"a": 4, "b": 5, "c": 6},
     ...     {"b": 8, "c": 9},
     ... ]
-    >>> _convert_records_to_dict_of_dicts(records)
+    >>> convert_records_to_dict_of_dicts(records)
     {'b': {0: nan, 1: 5, 2: 8}, 'a': {0: 1, 1: 4, 2: nan}, 'c': {0: 3, 1: 6, 2: 9}}
     """
-    col_names: set[str] = {column for r in records for column in r}
+    # get the column names in the order they appear in the records
+    col_names: dict[str, None] = {column: None for r in records for column in r}
     output: dict[str, dict[int, Any]] = {col_name: {} for col_name in col_names}
 
     for (idx, record), col_name in product(enumerate(records), col_names):
         output[col_name][idx] = record.get(col_name, null_val)
 
     return output
+
+
+def convert_dict_of_lists_to_records(
+    columns: dict[str, list[Any]], strip_nan: bool = False
+) -> list[dict[str, Any]]:
+    """Convert a dict of column lists to a list of records (dicts).
+
+    Examples
+    --------
+    >>> lists = {'a': [1, 4, float('nan')], 'b': [float('nan'), 5, 8], 'c': [3, 6, 9]}
+    >>> convert_dict_of_lists_to_records(records)
+    [
+        {"a": 1, "c": 3},
+        {"a": 4, "b": 5, "c": 6},
+        {"b": 8, "c": 9},
+    ]
+    """
+    return [
+        {
+            col_name: value
+            for col_name, value in zip(columns, row_data)
+            if not strip_nan or not math.isnan(value)
+        }
+        for row_data in zip(*columns.values())
+    ]

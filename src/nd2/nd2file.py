@@ -689,8 +689,31 @@ class ND2File:
             extra = ""
         return f"<ND2File at {hex(id(self))}{extra}>"
 
-    @cached_property
-    def recorded_data(self) -> dict[str, np.ndarray | Sequence]:
+    @overload
+    def recorded_data(
+        self, *, orient: Literal["list"] = ..., null_value: Any = ...
+    ) -> dict[str, list[Any]]:
+        ...
+
+    @overload
+    def recorded_data(
+        self, *, orient: Literal["records"], null_value: Any = ...
+    ) -> list[dict[str, Any]]:
+        ...
+
+    @overload
+    def recorded_data(
+        self, *, orient: Literal["dict"], null_value: Any = ...
+    ) -> dict[str, dict[int, Any]]:
+        ...
+
+    @property
+    def recorded_data(
+        self,
+        *,
+        orient: Literal["records", "dict", "list"] = "list",
+        null_value: Any = float("nan"),
+    ) -> dict[str, list[Any]] | list[dict[str, Any]] | dict[str, dict[int, Any]]:
         """Return tabular data recorded for each frame of the experiment.
 
         This method returns a dict of equal-length sequences (passable to
@@ -708,8 +731,10 @@ class ND2File:
                 UserWarning,
                 stacklevel=2,
             )
-            return {}
-        return cast("LatestSDKReader", self._rdr).recorded_data()
+            return [] if orient == "records" else {}  # type: ignore[return-value]
+        return cast("LatestSDKReader", self._rdr).recorded_data(
+            orient=orient, null_value=null_value
+        )
 
     @cached_property
     def binary_data(self) -> BinaryLayers | None:

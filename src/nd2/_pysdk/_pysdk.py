@@ -47,8 +47,6 @@ if TYPE_CHECKING:
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]
 
-NAN = float("nan")
-
 
 class ND2Reader:
     def __init__(
@@ -259,15 +257,17 @@ class ND2Reader:
 
     def events(self) -> list[structures.ExperimentEvent]:
         if not self._events:
-            # TODO: is it always V1_0?
-            k = b"CustomData|ExperimentEventsV1_0!"
-            if k not in self.chunkmap:
-                self._events = []
-            else:
-                events = self._decode_chunk(k, strip_prefix=False)
-                # TODO: what about v2.0?
-                events = events.get("RLxExperimentRecord", events)
-                self._events = load_events(cast("RawExperimentRecordDict", events))
+            events = []
+            for key in (
+                b"ImageEvents",
+                b"ImageEventsLV!",
+                b"CustomData|ExperimentEventsV1_0!",
+            ):
+                if key in self.chunkmap:
+                    e = self._decode_chunk(key, strip_prefix=False)
+                    e = e.get("RLxExperimentRecord", e)
+                    events.extend(load_events(cast("RawExperimentRecordDict", e)))
+            self._events = events
         return self._events
 
     def _cached_frame_times(self) -> list[float]:
@@ -428,21 +428,56 @@ class ND2Reader:
             if k.startswith(b"CustomDataVar|")
         }
 
+    def _acquisition_data(self) -> dict[str, Any]:
+        """Return a dict of acquisition times and z-series indices for each image."""
+        data: dict[str, np.ndarray | Sequence] = {}
+        frame_times = self._cached_frame_times()
+        if frame_times:
+            data["Time [s]"] = [x / 1000 for x in frame_times]
+
+        # FIXME: this whole thing is dumb... must be a better way
+        experiment = self.experiment()
+        for i, z_loop in enumerate(experiment):
+            if not isinstance(z_loop, structures.ZStackLoop):
+                continue
+
+            z_positions = [
+                z_loop.parameters.stepUm * (i - z_loop.parameters.homeIndex)
+                for i in range(z_loop.count)
+            ]
+            if not z_loop.parameters.bottomToTop:
+                z_positions.reverse()
+
+            def _seq_z_pos(
+                seq_index: int, z_idx: int = i, _zp: list[float] = z_positions
+            ) -> float:
+                """Convert a sequence index to a coordinate tuple."""
+                for n, _loop in enumerate(experiment):
+                    if n == z_idx:
+                        return _zp[seq_index % _loop.count]
+                    seq_index //= _loop.count
+                raise ValueError("Invalid sequence index or z_idx")
+
+            seq_count = self.attributes.sequenceCount
+            data["Z-Series"] = np.array([_seq_z_pos(i) for i in range(seq_count)])
+
+        return data
+
     @overload
     def recorded_data(
-        self, orient: Literal["records"], null_value: Any = ...
+        self, *, orient: Literal["records"] = ..., null_value: Any = ...
     ) -> list[dict[str, Any]]:
         ...
 
     @overload
     def recorded_data(
-        self, orient: Literal["list"], null_value: Any = ...
-    ) -> dict[str, Sequence[Any]]:
+        self, *, orient: Literal["list"], null_value: Any = ...
+    ) -> dict[str, list[Any]]:
         ...
 
     @overload
     def recorded_data(
-        self, orient: Literal["dict"], null_value: Any = ...
+        self, *, orient: Literal["dict"], null_value: Any = ...
     ) -> dict[str, dict[int, Any]]:
         ...
 
@@ -450,8 +485,8 @@ class ND2Reader:
         self,
         *,
         orient: Literal["records", "dict", "list"] = "records",
-        null_value: Any = NAN,
-    ) -> dict[str, Sequence[Any]] | list[dict[str, Any]] | dict[str, dict[int, Any]]:
+        null_value: Any = float("nan"),
+    ) -> dict[str, list[Any]] | list[dict[str, Any]] | dict[str, dict[int, Any]]:
         """Return tabular data recorded for each frame of the experiment.
 
         This method returns a dict of equal-length sequences (passable to
@@ -467,16 +502,46 @@ class ND2Reader:
         ----------
         orient : {'records', 'dict', 'list'}, default 'records'
             The format of the returned data. See `pandas.DataFrame
+                - 'records' : (default) list like `[{column -> value}, ...]`
+                - 'dict' : dict like `{column -> {index -> value}, ...}`
+                - 'list' : dict like `{column -> [value, ...]}`
+
         null_value : Any, default float('nan')
             The value to use for missing data.
         """
+        if orient not in ("records", "dict", "list"):
+            raise ValueError("orient must be one of 'records', 'dict', or 'list'")
+
+        from nd2 import _util
+
+        data = self._acquisition_data()
+        data.update(self._custom_tags())
+
+        records = _util.convert_dict_of_lists_to_records(data)
+        for e in self.events():
+            records.append({"Time [s]": e.time / 1000, "Events": e.description})
+        records.sort(key=lambda x: x.get("Time [s]", 0))
+
+        if orient == "dict":
+            return _util.convert_records_to_dict_of_dicts(records, null_val=null_value)
+        elif orient == "list":
+            return _util.convert_records_to_dict_of_lists(records, null_val=null_value)
+        return records
+
+    def _custom_tags(self) -> dict[str, Any]:
+        """Return tags mentioned in in CustomDataVar|CustomDataV2_0.
+
+        This is a dict of {header: [values]}, where
+        len([values]) == self.attributes.sequenceCount
+        """
+        data: dict[str, Any] = {}
         try:
             cd = self._decode_chunk(b"CustomDataVar|CustomDataV2_0!")
         except KeyError:
-            return {}
+            return data
 
         if not cd:
-            return {}
+            return data
 
         if "CustomTagDescription_v1.0" not in cd:
             warnings.warn(
@@ -485,37 +550,6 @@ class ND2Reader:
                 stacklevel=2,
             )
             return {}
-
-        data: dict[str, np.ndarray | Sequence] = {}
-        frame_times = self._cached_frame_times()
-        if frame_times:
-            data["Time [s]"] = [x / 1000 for x in frame_times]
-
-        experiment = self.experiment()
-        for i, loop in enumerate(experiment):
-            if not isinstance(loop, structures.ZStackLoop):
-                continue
-
-            z_loop = loop
-            z_positions = [
-                z_loop.parameters.stepUm * (i - z_loop.parameters.homeIndex)
-                for i in range(z_loop.count)
-            ]
-            if not z_loop.parameters.bottomToTop:
-                z_positions = list(reversed(z_positions))
-
-            def _seq_z_pos(
-                seq_index: int, z_idx: int = i, _zp: list[float] = z_positions
-            ) -> float:
-                """Convert a sequence index to a coordinate tuple."""
-                for n, _loop in enumerate(experiment):
-                    if n == z_idx:
-                        return _zp[seq_index % _loop.count]
-                    seq_index //= _loop.count
-                raise ValueError("Invalid sequence index or z_idx")
-
-            seq_count = self.attributes.sequenceCount
-            data["Z-Series"] = np.array([_seq_z_pos(i) for i in range(seq_count)])
 
         # tags will be a dict of dicts: eg:
         # {
@@ -542,7 +576,4 @@ class ND2Reader:
             dtype = {3: np.float64, 2: np.int32}[tag["Type"]]
             data[col_header] = np.frombuffer(buffer_, dtype=dtype, count=tag["Size"])
 
-        events = self.events()
-        if events:
-            breakpoint()
         return data

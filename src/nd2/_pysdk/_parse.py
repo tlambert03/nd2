@@ -390,12 +390,17 @@ def _load_lite_event(event: RawLiteEventDict) -> strct.ExperimentEvent:
         stim_struct = None
 
     meaning = EventMeaning(event.get("M", 0))
+    description = event.get("D", "") or meaning.description()
+    if stim_struct:
+        description += f" Phase {stim_struct.type.name}"
+        if stim_struct.description:
+            description += f" - {stim_struct.description}"
     return strct.ExperimentEvent(
         id=event.get("I", 0),
         time=event.get("T", 0.0),
         time2=event.get("T2", 0.0),
         meaning=meaning,
-        description=event.get("D", "") or meaning.description(),
+        description=description,
         data=event.get("A", ""),
         stimulation=stim_struct,
     )

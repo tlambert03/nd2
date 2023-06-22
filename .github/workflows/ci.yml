@@ -53,11 +53,11 @@ jobs:
           path: tests/data
           key: ${{ hashFiles('scripts/download_samples.py') }}
 
-      - name: Download Samples
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          pip install requests
-          python scripts/download_samples.py
+      - uses: gbrls/action-dropbox-download@main
+        with:
+          dropbox-refresh-token: ${{ secrets.DROPBOX_TOKEN }}
+          source-path: '/nd2_test_data'
+          destination-path: 'tests/data'
 
       - name: Build
         # -e seems necessary for coverage to work

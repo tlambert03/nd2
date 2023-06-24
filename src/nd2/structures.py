@@ -523,6 +523,7 @@ class ExperimentEvent:
     data: str = ""  # the additional data (command code, macro file path etc.)
     stimulation: StimulationEvent | None = None
 
+
 @dataclass
 class StimulationEvent:
     type: StimulationType = StimulationType.NoStimulation

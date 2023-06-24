@@ -320,6 +320,14 @@ if TYPE_CHECKING:
         P: int  # uiPosition
         D: str  # wsDescription
 
+    class RawTagDict(TypedDict):
+        ID: str  # name of the tag
+        Type: int
+        Group: int
+        Size: int
+        Desc: str
+        Unit: str
+
     # These dicts are intermediate dicts created in the process of parsing raw meta
     # they mimic intermediate parsing done by the SDK... but needn't stay this way.
 

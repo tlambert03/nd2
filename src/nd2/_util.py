@@ -4,16 +4,20 @@ import math
 import re
 from datetime import datetime
 from itertools import product
-from typing import IO, TYPE_CHECKING, Any, Callable, NamedTuple, Union
+from typing import TYPE_CHECKING, Mapping, NamedTuple
 
 if TYPE_CHECKING:
     from os import PathLike
+    from typing import IO, Any, Callable, ClassVar, Sequence, Union
 
     from ._legacy import LegacyND2Reader
     from ._pysdk._pysdk import ND2Reader
 
     StrOrBytesPath = Union[str, bytes, PathLike[str], PathLike[bytes]]
 
+    ListOfDicts = list[dict[str, Any]]
+    DictOfLists = Mapping[str, Sequence[Any]]
+    DictOfDicts = Mapping[str, dict[int, Any]]
 
 NEW_HEADER_MAGIC = b"\xda\xce\xbe\n"
 OLD_HEADER_MAGIC = b"\x00\x00\x00\x0c"
@@ -100,6 +104,11 @@ def rgb_int_to_tuple(rgb: int) -> tuple[int, int, int]:
     return ((rgb & 255), (rgb >> 8 & 255), (rgb >> 16 & 255))
 
 
+# these are used has headers in the events() table
+TIME_KEY = "Time [s]"
+Z_SERIES_KEY = "Z-Series"
+
+
 class AXIS:
     X = "X"
     Y = "Y"
@@ -110,7 +119,7 @@ class AXIS:
     POSITION = "P"
     UNKNOWN = "U"
 
-    _MAP = {
+    _MAP: ClassVar[dict[str, str]] = {
         "Unknown": UNKNOWN,
         "TimeLoop": TIME,
         "XYPosLoop": POSITION,
@@ -129,8 +138,8 @@ class VoxelSize(NamedTuple):
 
 
 def convert_records_to_dict_of_lists(
-    records: list[dict[str, Any]], null_val: Any = float("nan")
-) -> dict[str, list[Any]]:
+    records: ListOfDicts, null_val: Any = float("nan")
+) -> DictOfLists:
     """Convert a list of records (dicts) to a dict of lists.
 
     Examples
@@ -145,7 +154,7 @@ def convert_records_to_dict_of_lists(
     """
     # get the column names in the order they appear in the records
     col_names: dict[str, None] = {column: None for r in records for column in r}
-    output: dict[str, list] = {col_name: [] for col_name in col_names}
+    output: Mapping[str, list[Any]] = {col_name: [] for col_name in col_names}
 
     for record, col_name in product(records, col_names):
         output[col_name].append(record.get(col_name, null_val))
@@ -154,8 +163,8 @@ def convert_records_to_dict_of_lists(
 
 
 def convert_records_to_dict_of_dicts(
-    records: list[dict[str, Any]], null_val: Any = float("nan")
-) -> dict[str, dict[int, Any]]:
+    records: ListOfDicts, null_val: Any = float("nan")
+) -> DictOfDicts:
     """Convert a list of records (dicts) to a dict of dicts.
 
     Examples
@@ -170,7 +179,7 @@ def convert_records_to_dict_of_dicts(
     """
     # get the column names in the order they appear in the records
     col_names: dict[str, None] = {column: None for r in records for column in r}
-    output: dict[str, dict[int, Any]] = {col_name: {} for col_name in col_names}
+    output: DictOfDicts = {col_name: {} for col_name in col_names}
 
     for (idx, record), col_name in product(enumerate(records), col_names):
         output[col_name][idx] = record.get(col_name, null_val)
@@ -179,8 +188,8 @@ def convert_records_to_dict_of_dicts(
 
 
 def convert_dict_of_lists_to_records(
-    columns: dict[str, list[Any]], strip_nan: bool = False
-) -> list[dict[str, Any]]:
+    columns: DictOfLists, strip_nan: bool = False
+) -> ListOfDicts:
     """Convert a dict of column lists to a list of records (dicts).
 
     Examples

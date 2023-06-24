@@ -203,8 +203,12 @@ class LegacyND2Reader:
         except KeyError:
             return {}
 
-    def events(self) -> dict:
-        return self._get_xml_dict(b"IEVE")
+    def _img_exp_events(self) -> list[strct.ExperimentEvent]:
+        from nd2._pysdk._parse import load_legacy_events
+
+        _events = self._get_xml_dict(b"IEVE")
+        events: list[dict] = _events.get("FirstEvent", {}).get("no_name", [])
+        return load_legacy_events(events)
 
     # def sizes(self):
     #     attrs = cast(Attributes, self.attributes)

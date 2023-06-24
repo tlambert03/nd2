@@ -3,7 +3,7 @@ from __future__ import annotations
 import mmap
 import os
 import warnings
-from typing import TYPE_CHECKING, Sequence, cast, overload
+from typing import TYPE_CHECKING, Iterable, Sequence, cast
 
 import numpy as np
 
@@ -25,6 +25,7 @@ from nd2._pysdk._parse import (
     load_metadata,
     load_text_info,
 )
+from nd2._util import TIME_KEY, Z_SERIES_KEY
 
 if TYPE_CHECKING:
     from io import BufferedReader
@@ -32,7 +33,7 @@ if TYPE_CHECKING:
     from pathlib import Path
     from typing import Any
 
-    from typing_extensions import Literal, TypeAlias
+    from typing_extensions import TypeAlias
 
     from ._chunk_decode import ChunkMap
     from ._sdk_types import (
@@ -41,6 +42,7 @@ if TYPE_CHECKING:
         RawExperimentDict,
         RawExperimentRecordDict,
         RawMetaDict,
+        RawTagDict,
         RawTextInfoDict,
     )
 
@@ -255,7 +257,8 @@ class ND2Reader:
                 self._experiment = load_experiment(0, self._raw_experiment)
         return self._experiment
 
-    def events(self) -> list[structures.ExperimentEvent]:
+    def _img_exp_events(self) -> list[structures.ExperimentEvent]:
+        """Parse and return all Image and Experiment events."""
         if not self._events:
             events = []
             for key in (
@@ -310,6 +313,9 @@ class ND2Reader:
         return [(i, x.type, x.count) for i, x in enumerate(self.experiment())]
 
     def _seq_count(self) -> int:
+        # this differs from self.attributes.SequenceCount in that it
+        # includes the actual number of frames in the experiment,
+        # excluding "invalid" frames.
         return int(np.prod([x.count for x in self.experiment()]))
 
     @property
@@ -428,12 +434,18 @@ class ND2Reader:
             if k.startswith(b"CustomDataVar|")
         }
 
-    def _acquisition_data(self) -> dict[str, Any]:
-        """Return a dict of acquisition times and z-series indices for each image."""
+    def _acquisition_data(self) -> dict[str, Sequence[Any]]:
+        """Return a dict of acquisition times and z-series indices for each image.
+
+        {
+            "Time [s]": [0.0, 0.0, 0.0, ...],
+            "Z-Series": [-1.0, 0., 1.0, ...],
+        }
+        """
         data: dict[str, np.ndarray | Sequence] = {}
         frame_times = self._cached_frame_times()
         if frame_times:
-            data["Time [s]"] = [x / 1000 for x in frame_times]
+            data[TIME_KEY] = [x / 1000 for x in frame_times]
 
         # FIXME: this whole thing is dumb... must be a better way
         experiment = self.experiment()
@@ -458,81 +470,22 @@ class ND2Reader:
                     seq_index //= _loop.count
                 raise ValueError("Invalid sequence index or z_idx")
 
-            seq_count = self.attributes.sequenceCount
-            data["Z-Series"] = np.array([_seq_z_pos(i) for i in range(seq_count)])
+            seq_count = self._seq_count()
+            data[Z_SERIES_KEY] = np.array([_seq_z_pos(i) for i in range(seq_count)])
 
-        return data
-
-    @overload
-    def recorded_data(
-        self, *, orient: Literal["records"] = ..., null_value: Any = ...
-    ) -> list[dict[str, Any]]:
-        ...
-
-    @overload
-    def recorded_data(
-        self, *, orient: Literal["list"], null_value: Any = ...
-    ) -> dict[str, list[Any]]:
-        ...
-
-    @overload
-    def recorded_data(
-        self, *, orient: Literal["dict"], null_value: Any = ...
-    ) -> dict[str, dict[int, Any]]:
-        ...
-
-    def recorded_data(
-        self,
-        *,
-        orient: Literal["records", "dict", "list"] = "records",
-        null_value: Any = float("nan"),
-    ) -> dict[str, list[Any]] | list[dict[str, Any]] | dict[str, dict[int, Any]]:
-        """Return tabular data recorded for each frame of the experiment.
-
-        This method returns a dict of equal-length sequences (passable to
-        pd.DataFrame()). It matches the tabular data reported in the Image Properties >
-        Recorded Data tab of the NIS Viewer.
-
-        (There will be a column for each tag in the `CustomDataV2_0` section of
-        `ND2File.custom_data`)
-
-        Legacy ND2 files are not supported.
-
-        Parameters
-        ----------
-        orient : {'records', 'dict', 'list'}, default 'records'
-            The format of the returned data. See `pandas.DataFrame
-                - 'records' : (default) list like `[{column -> value}, ...]`
-                - 'dict' : dict like `{column -> {index -> value}, ...}`
-                - 'list' : dict like `{column -> [value, ...]}`
-
-        null_value : Any, default float('nan')
-            The value to use for missing data.
-        """
-        if orient not in ("records", "dict", "list"):
-            raise ValueError("orient must be one of 'records', 'dict', or 'list'")
-
-        from nd2 import _util
-
-        data = self._acquisition_data()
-        data.update(self._custom_tags())
-
-        records = _util.convert_dict_of_lists_to_records(data)
-        for e in self.events():
-            records.append({"Time [s]": e.time / 1000, "Events": e.description})
-        records.sort(key=lambda x: x.get("Time [s]", 0))
-
-        if orient == "dict":
-            return _util.convert_records_to_dict_of_dicts(records, null_val=null_value)
-        elif orient == "list":
-            return _util.convert_records_to_dict_of_lists(records, null_val=null_value)
-        return records
+        return data  # type: ignore [return-value]
 
     def _custom_tags(self) -> dict[str, Any]:
         """Return tags mentioned in in CustomDataVar|CustomDataV2_0.
 
         This is a dict of {header: [values]}, where
         len([values]) == self.attributes.sequenceCount
+
+        {
+            "Camera_ExposureTime1": [0.0, 0.0, 0.0, ...],
+            "PFS_OFFSET": [-1.0, 0., 1.0, ...],
+            "PFS_STATUS": [0, 0, 0, ...],
+        }
         """
         data: dict[str, Any] = {}
         try:
@@ -557,18 +510,24 @@ class ND2Reader:
         #     'Tag1': {'ID': 'PFS_OFFSET', 'Type': 2, 'Group': 0, 'Size': 1, ...},
         #     'Tag2': {'ID': 'PFS_STATUS', 'Type': 2, 'Group': 0, 'Size': 1, ...},
         # }
-        # FIXME: technically, it is possible to have multiple tags with the same Desc
-        # (e.g. for IDs PFS_OFFSET and Z2). In the current implementation, the
-        # 2nd tag will overwrite the first one.
-        for tag in cd["CustomTagDescription_v1.0"].values():
+        tags = cast("Iterable[RawTagDict]", cd["CustomTagDescription_v1.0"].values())
+        for tag in tags:
             if tag["Type"] == 1:
                 warnings.warn(
                     f"{tag['Desc']!r} column skipped: "
-                    "(parsing string data is not yet implemented)",
+                    "(parsing string data is not yet implemented).  Please open an "
+                    "issue with this nd2 file at "
+                    "https://github.com/tlambert03/nd2/issues/new",
                     stacklevel=2,
                 )
                 continue
-            col_header = f"{tag['Desc']}"
+
+            col_header = tag["Desc"]
+            if col_header in data:
+                col_header = tag["ID"]
+            if col_header in data:
+                col_header = f"{tag['Desc']} ({tag['ID']})"
+
             if tag["Unit"]:
                 col_header += f" [{tag['Unit']}]"
 

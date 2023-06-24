@@ -5,7 +5,7 @@ import warnings
 from dataclasses import asdict
 from math import ceil
 from struct import Struct
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Iterable, cast
 
 import numpy as np
 
@@ -375,6 +375,28 @@ def load_events(events: RawExperimentRecordDict) -> list[strct.ExperimentEvent]:
         stacklevel=2,
     )
     return []
+
+
+def load_legacy_events(events: Iterable[dict]) -> list[strct.ExperimentEvent]:
+    return [_load_legacy_event(*ie) for ie in enumerate(events)]
+
+
+def _load_legacy_event(id: int, event: dict) -> strct.ExperimentEvent:
+    # event will have keys: 'Time', 'Meaning', 'Description', 'Data',
+    # meaning seems to almost always be 7
+
+    meaning = EventMeaning(event.get("Meaning", 0))
+    description = event.get("Description", "") or meaning.description()
+    if data := event.get("Data", ""):
+        description += f" - {data}"
+
+    return strct.ExperimentEvent(
+        id=id,
+        time=event.get("Time", 0.0),
+        meaning=meaning,
+        description=description,
+        data=data,
+    )
 
 
 def _load_lite_event(event: RawLiteEventDict) -> strct.ExperimentEvent:

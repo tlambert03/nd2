@@ -9,6 +9,10 @@ import requests
 TEST_DATA = Path(__file__).parent.parent / "tests" / "data"
 URL = "https://www.dropbox.com/sh/pg9my6hnjj918x8/AACiKLlcDsljRgjJOec-9PQwa?dl=1"
 
+# this is just here to invalidate the github actions cache
+# change it when a new file is added to the test data in the dropbox folder
+__HASH__ = "2b6b31e6-8606-42c4-9011-5e233581e53b"
+
 
 def main():
     response = requests.get(URL, stream=True)

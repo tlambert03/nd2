@@ -6,13 +6,13 @@ import struct
 from contextlib import contextmanager
 from io import BufferedReader
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator, cast
+from typing import TYPE_CHECKING, BinaryIO, Iterator, cast
 
 import numpy as np
 
 if TYPE_CHECKING:
     from os import PathLike
-    from typing import BinaryIO, Final
+    from typing import Final
 
     from numpy.typing import DTypeLike
 
@@ -66,7 +66,7 @@ SIG_CHUNKMAP_LOC = struct.Struct("32sQ")
 # uint64_t offset
 
 
-def get_version(fh: BufferedReader | StrOrBytesPath) -> tuple[int, int]:
+def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
     """Get the version of the ND2 file or raise an exception.
 
     Parameters
@@ -84,7 +84,7 @@ def get_version(fh: BufferedReader | StrOrBytesPath) -> tuple[int, int]:
     ValueError
         If the file is not a valid ND2 file or the header chunk is corrupt.
     """
-    if not isinstance(fh, BufferedReader):
+    if not isinstance(fh, (BinaryIO, BufferedReader)):
         with open(fh, "rb") as fh:
             chunk = START_FILE_CHUNK.unpack(fh.read(START_FILE_CHUNK.size))
     else:

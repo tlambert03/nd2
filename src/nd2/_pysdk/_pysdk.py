@@ -3,6 +3,7 @@ from __future__ import annotations
 import mmap
 import os
 import warnings
+from pathlib import Path
 from typing import TYPE_CHECKING, Iterable, Sequence, cast
 
 import numpy as np
@@ -28,9 +29,9 @@ from nd2._pysdk._parse import (
 from nd2._util import TIME_KEY, Z_SERIES_KEY
 
 if TYPE_CHECKING:
+    import datetime
     from io import BufferedReader
     from os import PathLike
-    from pathlib import Path
     from typing import Any
 
     from typing_extensions import TypeAlias
@@ -54,7 +55,7 @@ class ND2Reader:
     def __init__(
         self, path: str | Path, validate_frames: bool = False, search_window: int = 100
     ) -> None:
-        self._filename = path
+        self._path = Path(path)
         self._fh: BufferedReader | None = None
         self._mmap: mmap.mmap | None = None
         self._chunkmap: ChunkMap = {}
@@ -86,7 +87,7 @@ class ND2Reader:
 
     def open(self) -> None:
         if self._fh is None:
-            self._fh = open(self._filename, "rb")
+            self._fh = open(self._path, "rb")
             self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
 
     def close(self) -> None:
@@ -183,7 +184,7 @@ class ND2Reader:
         """Return the file format version as a tuple of ints."""
         if self._version is None:
             try:
-                self._version = get_version(self._fh or self._filename)
+                self._version = get_version(self._fh or self._path)
             except Exception:
                 self._version = (-1, -1)
                 raise
@@ -213,7 +214,7 @@ class ND2Reader:
                 text_info=self.text_info(),
             )
             if self._global_metadata["time"]["absoluteJulianDayNumber"] < 1:
-                julian_day = os.stat(self._filename).st_ctime / 86400.0 + 2440587.5
+                julian_day = os.stat(self._path).st_ctime / 86400.0 + 2440587.5
                 self._global_metadata["time"]["absoluteJulianDayNumber"] = julian_day
 
         return self._global_metadata
@@ -537,3 +538,32 @@ class ND2Reader:
             data[col_header] = np.frombuffer(buffer_, dtype=dtype, count=tag["Size"])
 
         return data
+
+    def _app_info(self) -> dict:
+        """Return a dict of app info."""
+        k = b"CustomDataVar|AppInfo_V1_0!"
+        return self._decode_chunk(k) if k in self.chunkmap else {}
+
+    def _acquisition_date(self) -> datetime.datetime | str | None:
+        """Try to extract acquisition date.
+
+        A best effort is made to extract a datetime object from the date string,
+        but if that fails, the raw string is returned.  Use isinstance() to
+        be safe.
+        """
+        from nd2._util import parse_time
+
+        date = self.text_info().get("date")
+        if date:
+            try:
+                return parse_time(date)
+            except ValueError:
+                return date
+
+        time = self._cached_global_metadata().get("time", {})
+        jdn = time.get("absoluteJulianDayNumber")
+        if jdn:
+            from nd2._util import jdn_to_datetime_utc
+
+            return jdn_to_datetime_utc(jdn)
+        return None

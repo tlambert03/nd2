@@ -134,6 +134,25 @@ class VoxelSize(NamedTuple):
     z: float
 
 
+TIME_FMT_STRINGS = [
+    "%m/%d/%Y %I:%M:%S %p",
+    "%d/%m/%Y %I:%M:%S",
+    "%Y-%m-%d %H:%M:%S",
+    "%d/%m/%Y %H:%M:%S",
+    "%d-%b-%y %I:%M:%S %p",
+    "%d/%m/%Y %I:%M:%S %p",
+]
+
+
+def parse_time(time_str: str) -> datetime:
+    for fmt_str in TIME_FMT_STRINGS:
+        try:
+            return datetime.strptime(time_str, fmt_str)
+        except ValueError:
+            continue
+    raise ValueError(f"Could not parse {time_str}")
+
+
 # utils for converting records to dicts, in recorded_data method
 
 

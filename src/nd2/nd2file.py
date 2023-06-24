@@ -10,7 +10,7 @@ import numpy as np
 
 from nd2 import _util
 
-from ._pysdk._chunk_decode import ND2_FILE_SIGNATURE
+from ._pysdk._chunk_decode import ND2_FILE_SIGNATURE, get_version
 from ._util import AXIS, TIME_KEY, is_supported_file
 from .structures import ROI
 
@@ -93,11 +93,23 @@ class ND2File:
         self._closed = False
         self._is_legacy = "Legacy" in type(self._rdr).__name__
         self._lock = threading.RLock()
+        self._version: tuple[int, ...] | None = None
 
     @staticmethod
     def is_supported_file(path: StrOrBytesPath) -> bool:
         """Return True if the file is supported by this reader."""
         return is_supported_file(path)
+
+    @property
+    def version(self) -> tuple[int, ...]:
+        """Return the file format version as a tuple of ints."""
+        if self._version is None:
+            try:
+                self._version = get_version(self._rdr._fh or self._rdr._path)
+            except Exception:
+                self._version = (-1, -1)
+                raise
+        return self._version
 
     @property
     def path(self) -> str:

@@ -211,7 +211,7 @@ def _filter_data(
         # preserve order of to_include
         data = [{h: row[h] for h in to_include} for row in data]
 
-    to_exclude = cast(list[str], exclude.split(",") if exclude else [])
+    to_exclude = cast("list[str]", exclude.split(",") if exclude else [])
 
     if to_exclude:
         data = [{h: row[h] for h in HEADERS if h not in to_exclude} for row in data]

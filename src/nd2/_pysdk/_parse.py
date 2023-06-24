@@ -387,7 +387,8 @@ def _load_legacy_event(id: int, event: dict) -> strct.ExperimentEvent:
 
     meaning = EventMeaning(event.get("Meaning", 0))
     description = event.get("Description", "") or meaning.description()
-    if data := event.get("Data", ""):
+    data = event.get("Data", "")
+    if data:
         description += f" - {data}"
 
     return strct.ExperimentEvent(

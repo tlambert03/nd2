@@ -3,6 +3,9 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+import pytest
+from nd2 import structures
+from nd2._pysdk import _parse
 from nd2._pysdk._pysdk import ND2Reader
 
 
@@ -14,6 +17,8 @@ def readlim_output():
 
 def test_parse_raw_metadata(new_nd2: Path):
     expected = readlim_output()
+    if new_nd2.name not in expected:
+        pytest.skip(f"{new_nd2.name} not in readlim_output.json")
     with ND2Reader(new_nd2) as rdr:
         rdr._cached_global_metadata()  # force metadata to be read
         meta = {
@@ -69,3 +74,51 @@ def _assert_lim_close_enough(a: Any, lim_data: Any, key=()):
             # TODO talk to lim folks about this
             return
         raise AssertionError(f"in key={key}: {a} != {lim_data}")
+
+
+def test_load_events():
+    # this is the output of
+    # f._rdr._decode_chunk(b'CustomData|ExperimentEventsV1_0!', strip_prefix=False)
+    # e = f['RLxExperimentRecord']
+    # need to find a small file for this
+    e = {
+        "uiCount": 8,
+        "pEvents": {
+            "i0000000000": {
+                "T": 30919.564199984074,
+                "M": 15,
+                "I": 1,
+                "S": {
+                    "T": 4,
+                    "L": 0,
+                    "P": 0,
+                    "D": "DMD:S1 = (365 nm : 0.0%, 440 nm : 0.0%, 488 nm : 3.0%)",
+                },
+            },
+            "i0000000001": {
+                "T": 31128.348900020123,
+                "M": 15,
+                "I": 2,
+                "S": {"T": 5, "L": 0, "P": 0, "D": ""},
+            },
+            "i0000000002": {
+                "T": 61436.26100003719,
+                "M": 15,
+                "I": 3,
+                "S": {
+                    "T": 4,
+                    "L": 1,
+                    "P": 0,
+                    "D": "DMD:S1 = (365 nm : 0.0%, 440 nm : 0.0%, 488 nm : 3.0%)",
+                },
+            },
+            "i0000000003": {
+                "T": 61649.4361000061,
+                "M": 15,
+                "I": 4,
+                "S": {"T": 5, "L": 1, "P": 0, "D": ""},
+            },
+        },
+    }
+    events = _parse.load_events(e)
+    assert isinstance(events[0], structures.ExperimentEvent)

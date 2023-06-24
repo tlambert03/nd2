@@ -8,8 +8,10 @@ from typing import TYPE_CHECKING, cast, overload
 
 import numpy as np
 
+from nd2 import _util
+
 from ._pysdk._chunk_decode import ND2_FILE_SIGNATURE
-from ._util import AXIS, VoxelSize, get_reader, is_supported_file
+from ._util import AXIS, TIME_KEY, is_supported_file
 from .structures import ROI
 
 try:
@@ -28,7 +30,7 @@ if TYPE_CHECKING:
 
     from ._binary import BinaryLayers
     from ._pysdk._pysdk import ND2Reader as LatestSDKReader
-    from ._util import StrOrBytesPath
+    from ._util import DictOfDicts, DictOfLists, ListOfDicts, StrOrBytesPath
     from .structures import (
         Attributes,
         ExpLoop,
@@ -83,7 +85,7 @@ class ND2File:
                 stacklevel=2,
             )
         self._path = str(path)
-        self._rdr = get_reader(
+        self._rdr = _util.get_reader(
             self._path,
             validate_frames=validate_frames,
             search_window=search_window,
@@ -154,7 +156,7 @@ class ND2File:
         """Load state from pickling."""
         self.__dict__ = d
         self._lock = threading.RLock()
-        self._rdr = get_reader(self._path)
+        self._rdr = _util.get_reader(self._path)
         if self._closed:
             self._rdr.close()
 
@@ -188,6 +190,89 @@ class ND2File:
     def experiment(self) -> list[ExpLoop]:
         """Loop information for each nd axis."""
         return self._rdr.experiment()
+
+    @overload
+    def events(
+        self, *, orient: Literal["records"] = ..., null_value: Any = ...
+    ) -> ListOfDicts:
+        ...
+
+    @overload
+    def events(self, *, orient: Literal["list"], null_value: Any = ...) -> DictOfLists:
+        ...
+
+    @overload
+    def events(self, *, orient: Literal["dict"], null_value: Any = ...) -> DictOfDicts:
+        ...
+
+    def events(
+        self,
+        *,
+        orient: Literal["records", "list", "dict"] = "records",
+        null_value: Any = float("nan"),
+    ) -> ListOfDicts | DictOfLists | DictOfDicts:
+        """Return tabular data recorded for each frame and/or event of the experiment.
+
+        This method returns tabular data in the format specified by the `orient`
+        argument:
+            - 'records' : list of dict - `[{column -> value}, ...]` (default)
+            - 'dict' :    dict of dict - `{column -> {index -> value}, ...}`
+            - 'list' :    dict of list - `{column -> [value, ...]}`
+
+        All return types are passable to pd.DataFrame(). It matches the tabular data
+        reported in the Image Properties > Recorded Data tab of the NIS Viewer.
+
+        There will be a column for each tag in the `CustomDataV2_0` section of
+        `ND2File.custom_data`, as well columns for any events recorded in the
+        data.  Not all cells will be populated, and empty cells will be filled
+        with `null_value` (default `float('nan')`).
+
+        Legacy ND2 files are not supported.
+
+        Parameters
+        ----------
+        orient : {'records', 'dict', 'list'}, default 'records'
+            The format of the returned data. See `pandas.DataFrame
+                - 'records' : list of dict - `[{column -> value}, ...]` (default)
+                - 'dict' :    dict of dict - `{column -> {index -> value}, ...}`
+                - 'list' :    dict of list - `{column -> [value, ...]}`
+        null_value : Any, default float('nan')
+            The value to use for missing data.
+        """
+        if orient not in ("records", "dict", "list"):  # pragma: no cover
+            raise ValueError("orient must be one of 'records', 'dict', or 'list'")
+
+        if self.is_legacy:  # pragma: no cover
+            warnings.warn(
+                "`recorded_data` is not implemented for legacy ND2 files",
+                UserWarning,
+                stacklevel=2,
+            )
+            return [] if orient == "records" else {}  # type: ignore[return-value]
+
+        rdr = cast("LatestSDKReader", self._rdr)
+        acq_data = rdr._acquisition_data()  # comes back as a dict of lists
+        acq_data.update(rdr._custom_tags())
+
+        img_events = rdr._img_exp_events()
+        if not img_events and orient == "list":
+            # by default, acq_data is already oriented as a dict of lists,
+            # so if we don't have any image events, we can just return it
+            return acq_data
+
+        # re-orient acq_data as a list of dicts, to combine with events
+        records = _util.convert_dict_of_lists_to_records(acq_data)
+        for e in img_events:
+            records.append({TIME_KEY: e.time / 1000, "Events": e.description})
+
+        # sort by time
+        records.sort(key=lambda x: x.get(TIME_KEY, 0))
+
+        if orient == "dict":
+            return _util.convert_records_to_dict_of_dicts(records, null_val=null_value)
+        elif orient == "list":
+            return _util.convert_records_to_dict_of_lists(records, null_val=null_value)
+        return records
 
     def unstructured_metadata(
         self,
@@ -360,7 +445,7 @@ class ND2File:
         d = attrs.pixelDataType[0] if attrs.pixelDataType else "u"
         return np.dtype(f"{d}{attrs.bitsPerComponentInMemory // 8}")
 
-    def voxel_size(self, channel: int = 0) -> VoxelSize:
+    def voxel_size(self, channel: int = 0) -> _util.VoxelSize:
         """XYZ voxel size.
 
         Parameters
@@ -373,7 +458,7 @@ class ND2File:
         VoxelSize
             Named tuple with attrs `x`, `y`, and `z`.
         """
-        return VoxelSize(*self._rdr.voxel_size())
+        return _util.VoxelSize(*self._rdr.voxel_size())
 
     def asarray(self, position: int | None = None) -> np.ndarray:
         """Read image into numpy array.
@@ -683,8 +768,10 @@ class ND2File:
             extra = ""
         return f"<ND2File at {hex(id(self))}{extra}>"
 
-    @cached_property
-    def recorded_data(self) -> dict[str, np.ndarray | Sequence]:
+    @property
+    def recorded_data(
+        self,
+    ) -> DictOfLists:
         """Return tabular data recorded for each frame of the experiment.
 
         This method returns a dict of equal-length sequences (passable to
@@ -696,14 +783,15 @@ class ND2File:
 
         Legacy ND2 files are not supported.
         """
-        if self.is_legacy:  # pragma: no cover
-            warnings.warn(
-                "`recorded_data` is not supported for legacy ND2 files",
-                UserWarning,
-                stacklevel=2,
-            )
-            return {}
-        return cast("LatestSDKReader", self._rdr).recorded_data()
+        warnings.warn(
+            "recorded_data is deprecated and will be removed in a future version."
+            "Please use the `events` method instead. To get the same dict-of-lists "
+            "output, use `events(orient='list')`",
+            FutureWarning,
+            stacklevel=2,
+        )
+
+        return self.events(orient="list")
 
     @cached_property
     def binary_data(self) -> BinaryLayers | None:

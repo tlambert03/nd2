@@ -1,15 +1,22 @@
+from __future__ import annotations
+
 import json
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import dask.array as da
 import pytest
 import xarray as xr
-from nd2 import ND2File, structures
+from nd2 import ND2File, _util, structures
 from nd2._pysdk._chunk_decode import ND2_FILE_SIGNATURE
 
 sys.path.append(str(Path(__file__).parent.parent / "scripts"))
 from nd2_describe import get_nd2_stats  # noqa: E402
+
+if TYPE_CHECKING:
+    from typing_extensions import Literal
+
 
 with open("tests/samples_metadata.json") as f:
     EXPECTED = json.load(f)
@@ -74,7 +81,9 @@ def test_metadata_extraction(new_nd2: Path):
         assert isinstance(nd.nbytes, int)
 
         assert isinstance(nd.unstructured_metadata(), dict)
-        assert isinstance(nd.recorded_data, dict)
+        assert isinstance(nd.events(), list)
+        with pytest.warns(FutureWarning):
+            assert isinstance(nd.recorded_data, dict)
 
     assert nd.closed
 
@@ -96,6 +105,9 @@ def test_metadata_extraction_legacy(old_nd2):
         assert isinstance(xarr, xr.DataArray)
         assert isinstance(xarr.data, da.Array)
 
+        with pytest.warns(UserWarning, match="not implemented"):
+            nd.events()
+
     assert nd.closed
 
 
@@ -103,11 +115,13 @@ def test_recorded_data() -> None:
     # this method is smoke-tested for every file above...
     # but specific values are asserted here:
     with ND2File(DATA / "cluster.nd2") as f:
-        rd = f.recorded_data
+        with pytest.warns(FutureWarning, match="deprecated"):
+            rd = f.recorded_data
+
         headers = list(rd)
         row_0 = [rd[h][0] for h in headers]
         assert headers == [
-            "Time [s]",
+            _util.TIME_KEY,
             "Z-Series",
             "Camera 1 Temperature [°C]",
             "Laser Power; 1.channel [%]",
@@ -146,3 +160,16 @@ def test_recorded_data() -> None:
             -4155.462732842248,
             3916.7250000000004,
         ]
+
+
+@pytest.mark.parametrize("orient", ["records", "dict", "list"])
+def test_events(new_nd2: Path, orient: Literal["records", "dict", "list"]) -> None:
+    with ND2File(new_nd2) as f:
+        events = f.events(orient=orient)
+
+    assert isinstance(events, list if orient == "records" else dict)
+    if events and isinstance(events, dict):
+        assert _util.TIME_KEY in events
+
+    pd = pytest.importorskip("pandas")
+    print(pd.DataFrame(events))

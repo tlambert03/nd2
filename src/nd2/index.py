@@ -227,7 +227,7 @@ def main(argv: Sequence[str] = ()) -> None:
     """Index ND2 files and print the results as a table."""
     args = _parse_args(argv)
 
-    to_include = cast(list[str], args.include.split(",") if args.include else [])
+    to_include = cast("list[str]", args.include.split(",") if args.include else [])
     if args.sort_by and to_include and args.sort_by not in to_include:
         raise sys.exit(  # pragma: no cover
             f"The sort column {args.sort_by!r} must be in the "

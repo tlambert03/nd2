@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import json
 import sys
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING
 
 import dask.array as da
 import pytest
@@ -11,6 +13,10 @@ from nd2._pysdk._chunk_decode import ND2_FILE_SIGNATURE
 
 sys.path.append(str(Path(__file__).parent.parent / "scripts"))
 from nd2_describe import get_nd2_stats  # noqa: E402
+
+if TYPE_CHECKING:
+    from typing_extensions import Literal
+
 
 with open("tests/samples_metadata.json") as f:
     EXPECTED = json.load(f)

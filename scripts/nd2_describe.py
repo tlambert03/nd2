@@ -31,11 +31,15 @@ def get_nd2_stats(path: Path) -> "tuple[str, dict]":
     data = {"ver": _get_version(path)}
 
     with nd2.ND2File(path) as nd:
+        meta = nd.metadata if isinstance(nd.metadata, dict) else asdict(nd.metadata)
+        for channel in meta.get("channels", []):
+            # Remove custom loops if null... they're super rare, and
+            # readlimfile.json doesn't include them
+            if channel.get("loops") and not channel["loops"].get("CustomLoop"):
+                channel["loops"].pop("CustomLoop", None)
         data["attributes"] = nd.attributes._asdict()
         data["experiment"] = [asdict(x) for x in nd.experiment]
-        data["metadata"] = (
-            nd.metadata if isinstance(nd.metadata, dict) else asdict(nd.metadata)
-        )
+        data["metadata"] = meta
         data["textinfo"] = nd.text_info
 
     return path.name, data

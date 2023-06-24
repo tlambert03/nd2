@@ -523,13 +523,6 @@ class ExperimentEvent:
     data: str = ""  # the additional data (command code, macro file path etc.)
     stimulation: StimulationEvent | None = None
 
-    def __lt__(self, other: object) -> bool:
-        # allows sorted([ExperimentEvent, ...]])
-        if not isinstance(other, ExperimentEvent):
-            return NotImplemented
-        return self.time < other.time
-
-
 @dataclass
 class StimulationEvent:
     type: StimulationType = StimulationType.NoStimulation

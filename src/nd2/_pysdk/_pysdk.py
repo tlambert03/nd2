@@ -493,10 +493,10 @@ class ND2Reader:
         except KeyError:
             return data
 
-        if not cd:
+        if not cd:  # pragma: no cover
             return data
 
-        if "CustomTagDescription_v1.0" not in cd:
+        if "CustomTagDescription_v1.0" not in cd:  # pragma: no cover
             warnings.warn(
                 "Could not find 'CustomTagDescription_v1' tag, please open an issue "
                 "with this nd2 file at https://github.com/tlambert03/nd2/issues/new",
@@ -523,10 +523,11 @@ class ND2Reader:
                 continue
 
             col_header = tag["Desc"]
-            if col_header in data:
+            if col_header in data:  # pragma: no cover
+                # sourcery skip: hoist-if-from-if
                 col_header = tag["ID"]
-            if col_header in data:
-                col_header = f"{tag['Desc']} ({tag['ID']})"
+                if col_header in data:
+                    col_header = f"{tag['Desc']} ({tag['ID']})"
 
             if tag["Unit"].strip():
                 col_header += f" [{tag['Unit']}]"

@@ -239,7 +239,7 @@ class ND2File:
         null_value : Any, default float('nan')
             The value to use for missing data.
         """
-        if orient not in ("records", "dict", "list"):
+        if orient not in ("records", "dict", "list"):  # pragma: no cover
             raise ValueError("orient must be one of 'records', 'dict', or 'list'")
 
         if self.is_legacy:  # pragma: no cover

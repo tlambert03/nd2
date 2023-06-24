@@ -499,9 +499,8 @@ class ND2Reader:
 
     def _app_info(self) -> dict:
         """Return a dict of app info."""
-        if (k := b"CustomDataVar|AppInfo_V1_0!") in self.chunkmap:
-            return self._decode_chunk(k)
-        return {}
+        k = b"CustomDataVar|AppInfo_V1_0!"
+        return self._decode_chunk(k) if k in self.chunkmap else {}
 
     def _acquisition_date(self) -> datetime.datetime | str | None:
         """Try to extract acquisition date.
@@ -512,7 +511,8 @@ class ND2Reader:
         """
         from nd2._util import parse_time
 
-        if date := self.text_info().get("date"):
+        date = self.text_info().get("date")
+        if date:
             try:
                 return parse_time(date)
             except ValueError:

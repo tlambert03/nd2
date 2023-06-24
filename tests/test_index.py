@@ -41,7 +41,8 @@ def test_filter_data(records, filters: dict):
     assert len(filtered) == len(records)
     if filters.get("to_include"):
         assert len(filtered[0]) == len(filters["to_include"])
-    if sb := filters.get("sort_by"):
+    sb = filters.get("sort_by")
+    if sb:
         first_version = filtered[0]["version"]
         # ascending / descending
         assert first_version == "3.0" if sb.endswith("-") else "1.0"

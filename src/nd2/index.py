@@ -200,7 +200,8 @@ def _filter_data(
     sort_by: str | None = None,
     exclude: str | None = None,
 ) -> list[Record]:
-    if unrecognized := (set(to_include) - set(HEADERS)):  # pragma: no cover
+    unrecognized = set(to_include) - set(HEADERS)
+    if unrecognized:  # pragma: no cover
         print(f"Unrecognized columns: {', '.join(unrecognized)}", file=sys.stderr)
         to_include = [x for x in to_include if x not in unrecognized]
 

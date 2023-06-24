@@ -105,9 +105,9 @@ f.text_info         # dict of misc info
 
 f.binary_data       # any binary masks stored in the file.  See below.
 f.custom_data       # bits of unstructured metadata that start with CustomData
-f.recorded_data     # returns a dict of lists (passable to pandas.DataFrame) that
-                    # the tabular "Recorded Data" view from in NIS Elements/Viewer
+f.events()          # returns tabular "Recorded Data" view from in NIS Elements/Viewer
                     # with info for each frame in the experiment.
+                    # output is passabled to pandas.DataFrame
 
 # allll the metadata we can find...
 # no attempt made to standardize or parse it
@@ -330,6 +330,46 @@ ROIs found in the metadata are available at `ND2File.rois`, which is a
     'description': 'Metadata:\r\nDimensions: T(3) x XY(4) x λ(2) x Z(5)\r\nCamera Name: Flash4.0, SN:101412\r\nNumerical Aperture: 0.3\r\nRefractive Index: 1\r\nNumber of Picture Planes: 2\r\nPlane #1:\r\n Name: Widefield Green\r\n Component Count: 1\r\n Modality: Widefield Fluorescence\r\n Camera Settings:   Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast\r\n Microscope Settings:   Nikon Ti2, FilterChanger(Turret-Lo): 3 (FITC)\r\n  Nikon Ti2, Shutter(FL-Lo): Open\r\n  Nikon Ti2, Shutter(DIA LED): Closed\r\n  Nikon Ti2, Illuminator(DIA): Off\r\n  Nikon Ti2, Illuminator(DIA) Iris intensity: 3.0\r\n  Analyzer Slider: Extracted\r\n  Analyzer Cube: Extracted\r\n  Condenser: 1 (Shutter)\r\n  PFS, state: On\r\n  PFS, offset: 7959\r\n  PFS, mirror: Inserted\r\n  PFS, Dish Type: Glass\r\n  Zoom: 1.00x\r\n  Sola, Shutter(Sola): Active\r\n  Sola, Illuminator(Sola) Voltage: 100.0\r\nPlane #2:\r\n Name: Widefield Red\r\n Component Count: 1\r\n Modality: Widefield Fluorescence\r\n Camera Settings:   Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast\r\n Microscope Settings:   Nikon Ti2, FilterChanger(Turret-Lo): 4 (TRITC)\r\n  Nikon Ti2, Shutter(FL-Lo): Open\r\n  Nikon Ti2, Shutter(DIA LED): Closed\r\n  Nikon Ti2, Illuminator(DIA): Off\r\n  Nikon Ti2, Illuminator(DIA) Iris intensity: 1.5\r\n  Analyzer Slider: Extracted\r\n  Analyzer Cube: Extracted\r\n  Condenser: 1 (Shutter)\r\n  PFS, state: On\r\n  PFS, offset: 7959\r\n  PFS, mirror: Inserted\r\n  PFS, Dish Type: Glass\r\n  Zoom: 1.00x\r\n  Sola, Shutter(Sola): Active\r\n  Sola, Illuminator(Sola) Voltage: 100.0\r\nTime Loop: 3\r\n- Equidistant (Period 1 ms)\r\nZ Stack Loop: 5\r\n- Step: 1 µm\r\n- Device: Ti2 ZDrive',
     'optics': 'Plan Fluor 10x Ph1 DLL'
 }
+```
+
+</details>
+
+<details>
+
+<summary><code>binary_data</code></summary>
+
+This property returns an `nd2.BinaryLayers` object representing all of the
+binary masks in the nd2 file.
+
+A `nd2.BinaryLayers` object is a sequence of individual `nd2.BinaryLayer`
+objects (one for each binary layer found in the file).  Each `BinaryLayer` in
+the sequence is a named tuple that has, among other things, a `name` attribute,
+and a `data` attribute that is list of numpy arrays (one for each frame in the
+experiment) or `None` if the binary layer had no data in that frame.
+
+The most common use case will be to cast either the entire `BinaryLayers` object
+or an individual `BinaryLayer` to a `numpy.ndarray`:
+
+```python
+>>> import nd2
+>>> nd2file = nd2.ND2File('path/to/file.nd2')
+>>> binary_layers = nd2file.binary_data
+
+# The output array will have shape
+# (n_binary_layers, *coord_shape, *frame_shape).
+>>> np.asarray(binary_layers)
+```
+
+For example, if the data in the nd2 file has shape `(nT, nZ, nC, nY, nX)`, and
+there are 4 binary layers, then the output of `np.asarray(nd2file.binary_data)` will
+have shape `(4, nT, nZ, nY, nX)`.  (Note that the `nC` dimension is not present
+in the output array, and the binary layers are always in the first axis).
+
+You can also cast an individual `BinaryLayer` to a numpy array:
+
+```python
+>>> binary_layer = binary_layers[0]
+>>> np.asarray(binary_layer)
 ```
 
 </details>
@@ -605,43 +645,120 @@ No attempt is made to parse this data.  It will vary from file to file, but you 
 
 <details>
 
-<summary><code>recorded_data</code></summary>
+<summary><code>events</code></summary>
 
-This property returns a `dict` of equal-length sequences.
-It matches the tabular data reported in the `Image Properties > Recorded Data` tab of the NIS Viewer.
+This property returns the tabular data reported in the `Image Properties >
+Recorded Data` tab of the NIS Viewer.
 
-(There will be a column for each tag in the `CustomDataV2_0` section of `custom_data` above.)
+(There will be a column for each tag in the `CustomDataV2_0` section of
+`custom_data` above, as well as any additional events found in the metadata)
+
+The format of the return type data is controlled by the `orient` argument:
+
+- `'records'` : list of dicts - `[{column -> value}, ...]` (default)
+- `'dict'` :    dict of dicts - `{column -> {index -> value}, ...}`
+- `'list'` :    dict of lists - `{column -> [value, ...]}`
+
+Not every column header appears in every event, so when `orient` is either
+`'dict'` or `'list'`, `float('nan')` will be inserted to maintain a consistent
+length for each column.
 
 ```python
+
+# with `orient='records'` (DEFAULT)
+[
+    {
+        'Time [s]': 1.32686654,
+        'Z-Series': -2.0,
+        'Exposure Time [ms]': 100.0,
+        'PFS Offset': 0,
+        'PFS Status': 0,
+        'X Coord [µm]': 31452.2,
+        'Y Coord [µm]': -1801.6,
+        'Z Coord [µm]': 552.74,
+        'Ti2 ZDrive [µm]': 552.74
+    },
+    {
+        'Time [s]': 1.69089657,
+        'Z-Series': -1.0,
+        'Exposure Time [ms]': 100.0,
+        'PFS Offset': 0,
+        'PFS Status': 0,
+        'X Coord [µm]': 31452.2,
+        'Y Coord [µm]': -1801.6,
+        'Z Coord [µm]': 553.74,
+        'Ti2 ZDrive [µm]': 553.74
+    },
+    {
+        'Time [s]': 2.04194662,
+        'Z-Series': 0.0,
+        'Exposure Time [ms]': 100.0,
+        'PFS Offset': 0,
+        'PFS Status': 0,
+        'X Coord [µm]': 31452.2,
+        'Y Coord [µm]': -1801.6,
+        'Z Coord [µm]': 554.74,
+        'Ti2 ZDrive [µm]': 554.74
+    },
+    {
+        'Time [s]': 2.38194662,
+        'Z-Series': 1.0,
+        'Exposure Time [ms]': 100.0,
+        'PFS Offset': 0,
+        'PFS Status': 0,
+        'X Coord [µm]': 31452.2,
+        'Y Coord [µm]': -1801.6,
+        'Z Coord [µm]': 555.74,
+        'Ti2 ZDrive [µm]': 555.74
+    },
+    {
+        'Time [s]': 2.63795663,
+        'Z-Series': 2.0,
+        'Exposure Time [ms]': 100.0,
+        'PFS Offset': 0,
+        'PFS Status': 0,
+        'X Coord [µm]': 31452.2,
+        'Y Coord [µm]': -1801.6,
+        'Z Coord [µm]': 556.74,
+        'Ti2 ZDrive [µm]': 556.74
+    }
+]
+
+# with `orient='list'`
 {
-    'Time [s]': array([ 1.32686654,  1.69089657,  2.04194662,  2.38194662,  2.63795663,
-        8.7022286 ,  9.03626864,  9.33031869,  9.63934872,  9.90636874,
-       11.48143856, 11.7964786 , 12.0894786 , 12.37153866, 12.66546859]),
-    'Z-Series': array([-2., -1.,  0.,  1.,  2., -2., -1.,  0.,  1.,  2., -2., -1.,  0.,
-        1.,  2.]),
-    'Exposure Time [ms]': array([100., 100., 100., 100., 100., 100., 100., 100., 100., 100., 100.,
-       100., 100., 100., 100.]),
-    'PFS Offset []': array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=int32),
-    'PFS Status []': array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=int32),
-    'X Coord [µm]': array([31452.2, 31452.2, 31452.2, 31452.2, 31452.2, 31452.2, 31452.2,
-       31452.2, 31452.2, 31452.2, 31452.2, 31452.2, 31452.2, 31452.2,
-       31452.2]),
-    'Y Coord [µm]': array([-1801.6, -1801.6, -1801.6, -1801.6, -1801.6, -1801.6, -1801.6,
-       -1801.6, -1801.6, -1801.6, -1801.6, -1801.6, -1801.6, -1801.6,
-       -1801.6]),
-    'Z Coord [µm]': array([552.74, 553.74, 554.74, 555.74, 556.74, 552.7 , 553.7 , 554.68,
-       555.7 , 556.64, 552.68, 553.68, 554.68, 555.68, 556.68]),
-    'Ti2 ZDrive [µm]': array([552.74, 553.74, 554.74, 555.74, 556.74, 552.7 , 553.7 , 554.68,
-       555.7 , 556.64, 552.68, 553.68, 554.68, 555.68, 556.68])
+    'Time [s]': array([1.32686654, 1.69089657, 2.04194662, 2.38194662, 2.63795663]),
+    'Z-Series': array([-2., -1.,  0.,  1.,  2.]),
+    'Exposure Time [ms]': array([100., 100., 100., 100., 100.]),
+    'PFS Offset': array([0, 0, 0, 0, 0], dtype=int32),
+    'PFS Status': array([0, 0, 0, 0, 0], dtype=int32),
+    'X Coord [µm]': array([31452.2, 31452.2, 31452.2, 31452.2, 31452.2]),
+    'Y Coord [µm]': array([-1801.6, -1801.6, -1801.6, -1801.6, -1801.6]),
+    'Z Coord [µm]': array([552.74, 553.74, 554.74, 555.74, 556.74]),
+    'Ti2 ZDrive [µm]': array([552.74, 553.74, 554.74, 555.74, 556.74])
 }
+
+# with `orient='dict'`
+{
+    'Time [s]': {0: 1.32686654, 1: 1.69089657, 2: 2.04194662, 3: 2.38194662, 4: 2.63795663},
+    'Z-Series': {0: -2.0, 1: -1.0, 2: 0.0, 3: 1.0, 4: 2.0},
+    'Exposure Time [ms]': {0: 100.0, 1: 100.0, 2: 100.0, 3: 100.0, 4: 100.0},
+    'PFS Offset []': {0: 0, 1: 0, 2: 0, 3: 0, 4: 0},
+    'PFS Status []': {0: 0, 1: 0, 2: 0, 3: 0, 4: 0},
+    'X Coord [µm]': {0: 31452.2, 1: 31452.2, 2: 31452.2, 3: 31452.2, 4: 31452.2},
+    'Y Coord [µm]': {0: -1801.6, 1: -1801.6, 2: -1801.6, 3: -1801.6, 4: -1801.6},
+    'Z Coord [µm]': {0: 552.74, 1: 553.74, 2: 554.74, 3: 555.74, 4: 556.74},
+    'Ti2 ZDrive [µm]': {0: 552.74, 1: 553.74, 2: 554.74, 3: 555.74, 4: 556.74}
+}
+
+
 ```
 
-You can pass the output of `recorded_data` to `pandas.DataFrame`:
+You can pass the output of `events()` to `pandas.DataFrame`:
 
 ```python
-In [13]: pd.DataFrame(nd2file.recorded_data)
+In [13]: pd.DataFrame(nd2file.events())
 Out[13]:
-     Time [s]  Z-Series  Exposure Time [ms]  PFS Offset []  PFS Status []  X Coord [µm]  Y Coord [µm]  Z Coord [µm]  Ti2 ZDrive [µm]
+     Time [s]  Z-Series  Exposure Time [ms]  PFS Offset  PFS Status []  X Coord [µm]  Y Coord [µm]  Z Coord [µm]  Ti2 ZDrive [µm]
 0    1.326867      -2.0               100.0              0              0       31452.2       -1801.6        552.74           552.74
 1    1.690897      -1.0               100.0              0              0       31452.2       -1801.6        553.74           553.74
 2    2.041947       0.0               100.0              0              0       31452.2       -1801.6        554.74           554.74
@@ -658,46 +775,6 @@ Out[13]:
 13  12.371539       1.0               100.0              0              0       31452.2       -1801.6        555.68           555.68
 14  12.665469       2.0               100.0              0              0       31452.2       -1801.6        556.68           556.68
 
-```
-
-</details>
-
-<details>
-
-<summary><code>binary_data</code></summary>
-
-This property returns an `nd2.BinaryLayers` object representing all of the
-binary masks in the nd2 file.
-
-A `nd2.BinaryLayers` object is a sequence of individual `nd2.BinaryLayer`
-objects (one for each binary layer found in the file).  Each `BinaryLayer` in
-the sequence is a named tuple that has, among other things, a `name` attribute,
-and a `data` attribute that is list of numpy arrays (one for each frame in the
-experiment) or `None` if the binary layer had no data in that frame.
-
-The most common use case will be to cast either the entire `BinaryLayers` object
-or an individual `BinaryLayer` to a `numpy.ndarray`:
-
-```python
->>> import nd2
->>> nd2file = nd2.ND2File('path/to/file.nd2')
->>> binary_layers = nd2file.binary_data
-
-# The output array will have shape
-# (n_binary_layers, *coord_shape, *frame_shape).
->>> np.asarray(binary_layers)
-```
-
-For example, if the data in the nd2 file has shape `(nT, nZ, nC, nY, nX)`, and
-there are 4 binary layers, then the output of `np.asarray(nd2file.binary_data)` will
-have shape `(4, nT, nZ, nY, nX)`.  (Note that the `nC` dimension is not present
-in the output array, and the binary layers are always in the first axis).
-
-You can also cast an individual `BinaryLayer` to a numpy array:
-
-```python
->>> binary_layer = binary_layers[0]
->>> np.asarray(binary_layer)
 ```
 
 </details>

@@ -81,7 +81,10 @@ def json_from_clx_variant(
         node = parser(bxml)
     except SyntaxError:  # when there are invalid characters in the XML
         # could go straight to this ... not sure if it's slower
-        node = parser(bxml.decode(encoding="utf-8", errors="ignore"))
+        try:
+            node = parser(bxml.decode(encoding="utf-8", errors="ignore"))
+        except Exception:
+            node = parser(bxml.decode(encoding="utf-16", errors="ignore"))
 
     is_legacy = node.attrib.get("_VERSION") == "1.000000"
     name, val = _node_name_value(node, strip_prefix, include_attrs=is_legacy)

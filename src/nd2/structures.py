@@ -7,6 +7,8 @@ from typing import NamedTuple, Union
 
 from typing_extensions import Literal, TypeAlias, TypedDict
 
+from ._pysdk._sdk_types import EventMeaning, StimulationType
+
 
 class TextInfo(TypedDict, total=False):
     imageId: str
@@ -508,3 +510,23 @@ class RoiInfo:
             else:
                 type_ = getattr(builtins, anno)
                 setattr(self, key, type_(getattr(self, key)))
+
+
+@dataclass
+class ExperimentEvent:
+    id: int = 0  #  ID of the event
+    # meaning of the time/time2 could be found in the globalmetadata-eTimeSource
+    time: float = 0.0  # time in msec, in the same axis as time in image metaformat
+    time2: float = 0.0  # time in msec, similar to acqtime2
+    meaning: EventMeaning = EventMeaning.Unspecified
+    description: str = ""  # description that the user typed in (if any)
+    data: str = ""  # the additional data (command code, macro file path etc.)
+    stimulation: StimulationEvent | None = None
+
+
+@dataclass
+class StimulationEvent:
+    type: StimulationType = StimulationType.NoStimulation
+    loop_index: int = 0
+    position: int = 0
+    description: str = ""

@@ -7,7 +7,7 @@ from zipfile import ZipFile
 import requests
 
 TEST_DATA = Path(__file__).parent.parent / "tests" / "data"
-URL = "https://www.dropbox.com/s/heo9ss4tcsi15x5/nd2_test_data.zip?dl=1"
+URL = "https://www.dropbox.com/sh/pg9my6hnjj918x8/AACiKLlcDsljRgjJOec-9PQwa?dl=1"
 
 
 def main():
@@ -28,7 +28,7 @@ def main():
             sys.stdout.flush()
     with ZipFile(f) as zf:
         zf.extractall(str(TEST_DATA))
-    shutil.rmtree(TEST_DATA / "__MACOSX")
+    shutil.rmtree(TEST_DATA / "__MACOSX", ignore_errors=True)
 
 
 if __name__ == "__main__":

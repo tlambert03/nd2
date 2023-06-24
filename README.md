@@ -104,11 +104,10 @@ f.voxel_size()      # VoxelSize(x=0.65, y=0.65, z=1.0)
 f.text_info         # dict of misc info
 
 f.binary_data       # any binary masks stored in the file.  See below.
-f.events            # list of nd2.structures.ExperimentEvent that occurred
 f.custom_data       # bits of unstructured metadata that start with CustomData
-f.recorded_data     # returns a dict of lists (passable to pandas.DataFrame) that
-                    # the tabular "Recorded Data" view from in NIS Elements/Viewer
+f.events()          # returns tabular "Recorded Data" view from in NIS Elements/Viewer
                     # with info for each frame in the experiment.
+                    # output is passabled to pandas.DataFrame
 
 # allll the metadata we can find...
 # no attempt made to standardize or parse it
@@ -371,78 +370,6 @@ You can also cast an individual `BinaryLayer` to a numpy array:
 ```python
 >>> binary_layer = binary_layers[0]
 >>> np.asarray(binary_layer)
-```
-
-</details>
-
-<details>
-
-<summary><code>events</code></summary>
-
-This property returns a list of `nd2.structures.ExperimentEvent` objects found
-in the file.  These are things like Stimulation events and a host of other events
-that might occur during an experiment.
-
-```python
-[
-    ExperimentEvent(
-        id=1,
-        time=30919.564199984074,
-        time2=0.0,
-        meaning=<EventMeaning.Stimulation: 15>,
-        description='Stimulation',
-        data='',
-        stimulation=StimulationEvent(
-            type=<StimulationType.Begin: 4>,
-            loop_index=0,
-            position=0,
-            description='DMD:S1 = (365 nm : 0.0%, 440 nm : 0.0%, 488 nm : 3.0%)'
-        )
-    ),
-    ExperimentEvent(
-        id=2,
-        time=31128.348900020123,
-        time2=0.0,
-        meaning=<EventMeaning.Stimulation: 15>,
-        description='Stimulation',
-        data='',
-        stimulation=StimulationEvent(
-            type=<StimulationType.End: 5>,
-            loop_index=0,
-            position=0,
-            description=''
-        )
-    ),
-    ExperimentEvent(
-        id=3,
-        time=61436.26100003719,
-        time2=0.0,
-        meaning=<EventMeaning.Stimulation: 15>,
-        description='Stimulation',
-        data='',
-        stimulation=StimulationEvent(
-            type=<StimulationType.Begin: 4>,
-            loop_index=1,
-            position=0,
-            description='DMD:S1 = (365 nm : 0.0%, 440 nm : 0.0%, 488 nm : 3.0%)'
-        )
-    ),
-    ExperimentEvent(
-        id=4,
-        time=61649.4361000061,
-        time2=0.0,
-        meaning=<EventMeaning.Stimulation: 15>,
-        description='Stimulation',
-        data='',
-        stimulation=StimulationEvent(
-            type=<StimulationType.End: 5>,
-            loop_index=1,
-            position=0,
-            description=''
-        )
-    )
-]
-
 ```
 
 </details>
@@ -718,43 +645,120 @@ No attempt is made to parse this data.  It will vary from file to file, but you 
 
 <details>
 
-<summary><code>recorded_data</code></summary>
+<summary><code>events</code></summary>
 
-This property returns a `dict` of equal-length sequences.
-It matches the tabular data reported in the `Image Properties > Recorded Data` tab of the NIS Viewer.
+This property returns the tabular data reported in the `Image Properties >
+Recorded Data` tab of the NIS Viewer.
 
-(There will be a column for each tag in the `CustomDataV2_0` section of `custom_data` above.)
+(There will be a column for each tag in the `CustomDataV2_0` section of
+`custom_data` above, as well as any additional events found in the metadata)
+
+The format of the return type data is controlled by the `orient` argument:
+
+- `'records'` : list of dicts - `[{column -> value}, ...]` (default)
+- `'dict'` :    dict of dicts - `{column -> {index -> value}, ...}`
+- `'list'` :    dict of lists - `{column -> [value, ...]}`
+
+Not every column header appears in every event, so when `orient` is either
+`'dict'` or `'list'`, `float('nan')` will be inserted to maintain a consistent
+length for each column.
 
 ```python
+
+# with `orient='records'` (DEFAULT)
+[
+    {
+        'Time [s]': 1.32686654,
+        'Z-Series': -2.0,
+        'Exposure Time [ms]': 100.0,
+        'PFS Offset': 0,
+        'PFS Status': 0,
+        'X Coord [µm]': 31452.2,
+        'Y Coord [µm]': -1801.6,
+        'Z Coord [µm]': 552.74,
+        'Ti2 ZDrive [µm]': 552.74
+    },
+    {
+        'Time [s]': 1.69089657,
+        'Z-Series': -1.0,
+        'Exposure Time [ms]': 100.0,
+        'PFS Offset': 0,
+        'PFS Status': 0,
+        'X Coord [µm]': 31452.2,
+        'Y Coord [µm]': -1801.6,
+        'Z Coord [µm]': 553.74,
+        'Ti2 ZDrive [µm]': 553.74
+    },
+    {
+        'Time [s]': 2.04194662,
+        'Z-Series': 0.0,
+        'Exposure Time [ms]': 100.0,
+        'PFS Offset': 0,
+        'PFS Status': 0,
+        'X Coord [µm]': 31452.2,
+        'Y Coord [µm]': -1801.6,
+        'Z Coord [µm]': 554.74,
+        'Ti2 ZDrive [µm]': 554.74
+    },
+    {
+        'Time [s]': 2.38194662,
+        'Z-Series': 1.0,
+        'Exposure Time [ms]': 100.0,
+        'PFS Offset': 0,
+        'PFS Status': 0,
+        'X Coord [µm]': 31452.2,
+        'Y Coord [µm]': -1801.6,
+        'Z Coord [µm]': 555.74,
+        'Ti2 ZDrive [µm]': 555.74
+    },
+    {
+        'Time [s]': 2.63795663,
+        'Z-Series': 2.0,
+        'Exposure Time [ms]': 100.0,
+        'PFS Offset': 0,
+        'PFS Status': 0,
+        'X Coord [µm]': 31452.2,
+        'Y Coord [µm]': -1801.6,
+        'Z Coord [µm]': 556.74,
+        'Ti2 ZDrive [µm]': 556.74
+    }
+]
+
+# with `orient='list'`
 {
-    'Time [s]': array([ 1.32686654,  1.69089657,  2.04194662,  2.38194662,  2.63795663,
-        8.7022286 ,  9.03626864,  9.33031869,  9.63934872,  9.90636874,
-       11.48143856, 11.7964786 , 12.0894786 , 12.37153866, 12.66546859]),
-    'Z-Series': array([-2., -1.,  0.,  1.,  2., -2., -1.,  0.,  1.,  2., -2., -1.,  0.,
-        1.,  2.]),
-    'Exposure Time [ms]': array([100., 100., 100., 100., 100., 100., 100., 100., 100., 100., 100.,
-       100., 100., 100., 100.]),
-    'PFS Offset []': array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=int32),
-    'PFS Status []': array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=int32),
-    'X Coord [µm]': array([31452.2, 31452.2, 31452.2, 31452.2, 31452.2, 31452.2, 31452.2,
-       31452.2, 31452.2, 31452.2, 31452.2, 31452.2, 31452.2, 31452.2,
-       31452.2]),
-    'Y Coord [µm]': array([-1801.6, -1801.6, -1801.6, -1801.6, -1801.6, -1801.6, -1801.6,
-       -1801.6, -1801.6, -1801.6, -1801.6, -1801.6, -1801.6, -1801.6,
-       -1801.6]),
-    'Z Coord [µm]': array([552.74, 553.74, 554.74, 555.74, 556.74, 552.7 , 553.7 , 554.68,
-       555.7 , 556.64, 552.68, 553.68, 554.68, 555.68, 556.68]),
-    'Ti2 ZDrive [µm]': array([552.74, 553.74, 554.74, 555.74, 556.74, 552.7 , 553.7 , 554.68,
-       555.7 , 556.64, 552.68, 553.68, 554.68, 555.68, 556.68])
+    'Time [s]': array([1.32686654, 1.69089657, 2.04194662, 2.38194662, 2.63795663]),
+    'Z-Series': array([-2., -1.,  0.,  1.,  2.]),
+    'Exposure Time [ms]': array([100., 100., 100., 100., 100.]),
+    'PFS Offset': array([0, 0, 0, 0, 0], dtype=int32),
+    'PFS Status': array([0, 0, 0, 0, 0], dtype=int32),
+    'X Coord [µm]': array([31452.2, 31452.2, 31452.2, 31452.2, 31452.2]),
+    'Y Coord [µm]': array([-1801.6, -1801.6, -1801.6, -1801.6, -1801.6]),
+    'Z Coord [µm]': array([552.74, 553.74, 554.74, 555.74, 556.74]),
+    'Ti2 ZDrive [µm]': array([552.74, 553.74, 554.74, 555.74, 556.74])
 }
+
+# with `orient='dict'`
+{
+    'Time [s]': {0: 1.32686654, 1: 1.69089657, 2: 2.04194662, 3: 2.38194662, 4: 2.63795663},
+    'Z-Series': {0: -2.0, 1: -1.0, 2: 0.0, 3: 1.0, 4: 2.0},
+    'Exposure Time [ms]': {0: 100.0, 1: 100.0, 2: 100.0, 3: 100.0, 4: 100.0},
+    'PFS Offset []': {0: 0, 1: 0, 2: 0, 3: 0, 4: 0},
+    'PFS Status []': {0: 0, 1: 0, 2: 0, 3: 0, 4: 0},
+    'X Coord [µm]': {0: 31452.2, 1: 31452.2, 2: 31452.2, 3: 31452.2, 4: 31452.2},
+    'Y Coord [µm]': {0: -1801.6, 1: -1801.6, 2: -1801.6, 3: -1801.6, 4: -1801.6},
+    'Z Coord [µm]': {0: 552.74, 1: 553.74, 2: 554.74, 3: 555.74, 4: 556.74},
+    'Ti2 ZDrive [µm]': {0: 552.74, 1: 553.74, 2: 554.74, 3: 555.74, 4: 556.74}
+}
+
+
 ```
 
-You can pass the output of `recorded_data` to `pandas.DataFrame`:
+You can pass the output of `events()` to `pandas.DataFrame`:
 
 ```python
-In [13]: pd.DataFrame(nd2file.recorded_data)
+In [13]: pd.DataFrame(nd2file.events())
 Out[13]:
-     Time [s]  Z-Series  Exposure Time [ms]  PFS Offset []  PFS Status []  X Coord [µm]  Y Coord [µm]  Z Coord [µm]  Ti2 ZDrive [µm]
+     Time [s]  Z-Series  Exposure Time [ms]  PFS Offset  PFS Status []  X Coord [µm]  Y Coord [µm]  Z Coord [µm]  Ti2 ZDrive [µm]
 0    1.326867      -2.0               100.0              0              0       31452.2       -1801.6        552.74           552.74
 1    1.690897      -1.0               100.0              0              0       31452.2       -1801.6        553.74           553.74
 2    2.041947       0.0               100.0              0              0       31452.2       -1801.6        554.74           554.74

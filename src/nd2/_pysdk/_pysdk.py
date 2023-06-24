@@ -528,7 +528,7 @@ class ND2Reader:
             if col_header in data:
                 col_header = f"{tag['Desc']} ({tag['ID']})"
 
-            if tag["Unit"]:
+            if tag["Unit"].strip():
                 col_header += f" [{tag['Unit']}]"
 
             buffer_ = self._load_chunk(f"CustomData|{tag['ID']}!".encode())

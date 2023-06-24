@@ -1,8 +1,22 @@
 # Changelog
 
-## [0.6.0](https://github.com/tlambert03/nd2/tree/0.6.0) (2023-06-15)
+## [v0.6.1](https://github.com/tlambert03/nd2/tree/v0.6.1) (2023-06-24)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.5.3...0.6.0)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.6.0...v0.6.1)
+
+**Implemented enhancements:**
+
+- feat: support files with custom experiment loops [\#148](https://github.com/tlambert03/nd2/pull/148) ([tlambert03](https://github.com/tlambert03))
+- feat: add `python -m nd2.index` cli [\#147](https://github.com/tlambert03/nd2/pull/147) ([tlambert03](https://github.com/tlambert03))
+- feat: big update to events parsing.  add .events method, deprecate recorded\_date [\#144](https://github.com/tlambert03/nd2/pull/144) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- build: remove wurlitzer from build [\#142](https://github.com/tlambert03/nd2/pull/142) ([tlambert03](https://github.com/tlambert03))
+
+## [v0.6.0](https://github.com/tlambert03/nd2/tree/v0.6.0) (2023-06-15)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.5.3...v0.6.0)
 
 **Implemented enhancements:**
 

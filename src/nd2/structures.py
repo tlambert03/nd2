@@ -92,7 +92,7 @@ LoopTypeString = Literal[
 class _Loop:
     count: int
     nestingLevel: int
-    parameters: LoopParams
+    parameters: LoopParams | None
     type: LoopTypeString
 
 
@@ -100,6 +100,14 @@ class _Loop:
 class SpectLoop:
     count: int
     type: Literal["SpectLoop"] = "SpectLoop"
+
+
+@dataclass
+class CustomLoop(_Loop):
+    count: int
+    nestingLevel: int = 0
+    parameters: None = None
+    type: Literal["CustomLoop"] = "CustomLoop"
 
 
 #####
@@ -227,7 +235,7 @@ class ZStackLoopParams:
 
 ###
 
-ExpLoop = Union[TimeLoop, NETimeLoop, XYPosLoop, ZStackLoop]
+ExpLoop = Union[TimeLoop, NETimeLoop, XYPosLoop, ZStackLoop, CustomLoop]
 LoopParams = Union[TimeLoopParams, NETimeLoopParams, XYPosLoopParams, ZStackLoopParams]
 
 # metadata #################
@@ -286,6 +294,7 @@ class LoopIndices:
     TimeLoop: int | None = None
     XYPosLoop: int | None = None
     ZStackLoop: int | None = None
+    CustomLoop: int | None = field(default=None, repr=False, compare=False)
 
 
 @dataclass

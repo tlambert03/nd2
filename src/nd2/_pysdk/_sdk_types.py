@@ -1,7 +1,7 @@
 """Various raw dict structures likely to be found in an ND2 file."""
 from __future__ import annotations
 
-from enum import IntEnum
+from enum import IntEnum, auto
 from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
@@ -242,8 +242,7 @@ if TYPE_CHECKING:
     class FilterPathDict(TypedDict, total=False):
         m_sDescr: str
         m_uiCount: int
-        # m_pFilter keys are strings of the form 'i0000000000
-        # i0000000001', ...
+        # m_pFilter keys are strings of the form 'i0000000000', 'i0000000001', ...
         m_pFilter: dict[str, FilterDict]
 
     class FilterDict(TypedDict, total=False):
@@ -310,6 +309,34 @@ if TYPE_CHECKING:
         FileTag: str
         CompName: str
         ColorMode: int
+
+    class RawExperimentRecordDict(TypedDict):
+        uiCount: int
+        # pEvents keys are strings of the form 'i0000000000', 'i0000000001', ...
+        pEvents: dict[str, RawLiteEventDict]
+
+    class RawLiteEventDict(TypedDict, total=False):
+        T: float  # timestamp
+        T2: NotRequired[float]  # timestamp
+        M: int  # EventMeaning
+        D: NotRequired[str]  # wsDescription
+        A: NotRequired[str]  # wsData
+        I: int  # Event ID  # noqa E741
+        S: NotRequired[StimulationDict]  # pStimulation
+
+    class StimulationDict(TypedDict):
+        T: int  # eType
+        L: int  # uiLoopIdx
+        P: int  # uiPosition
+        D: str  # wsDescription
+
+    class RawTagDict(TypedDict):
+        ID: str  # name of the tag
+        Type: int
+        Group: int
+        Size: int
+        Desc: str
+        Unit: str
 
     # These dicts are intermediate dicts created in the process of parsing raw meta
     # they mimic intermediate parsing done by the SDK... but needn't stay this way.
@@ -464,3 +491,119 @@ _MODALITY_MASK_MAP: dict[int, int] = {
     ),
     ELxModality.eModDSDConfocal: (ELxModalityMask.dsdConfocal),
 }
+
+
+class EventMeaning(IntEnum):
+    """Meanings of various event types."""
+
+    Unspecified = 0
+    Autofocus = 1  # autofocus performed
+    UserInteraction1_Old = 2  # the user interactively added the event
+    UserInteraction2_Old = 3  # the user interactively added the event
+    UserInteraction3_Old = 4  # the user interactively added the event
+    UserInteraction4_Old = 5  # the user interactively added the event
+    JOBs = 6  # the event added from JOBs
+    Command = 7  # a command ran
+    Macro = 8  # a macro ran
+    Pause = 9  # experiment paused
+    Resume = 10  # experiment resumed
+    Cancel = 11  # experiment canceled
+    RAMGrabZeroTime = 12  # time when RAM capture is triggered (manually, from macro)
+    TimeLoopNextPhase = 13  # the time when next phase in time acq was pressed
+    Refocus = 14  # experiment paused for refocusing (live started & joysticks enabled)
+    Stimulation = 15  # stimulation mark
+    ExternalStimulation = 16  # external stimulation mark
+    ExperimentStart = 17
+    ExperimentEnd = 18
+    PhaseXStart = 19
+    PhaseXEnd = 20
+    BeforeXYMove = 21
+    AfterXYMove = 22
+    BeforeZSeries = 23
+    AfterZSeries = 24
+    BeforeLambdaLoop = 25
+    AfterLambdaLoop = 26
+    BeforeLargeImage = 27
+    AfterLargeImage = 28
+    BeforeStimulation = 29
+    AfterStimulation = 30
+    UserEvents = 31
+    StreamData = 32
+    UserInteraction1 = 33  # the user interactively added the event
+    UserInteraction2 = 34  # the user interactively added the event
+    UserInteraction3 = 35  # the user interactively added the event
+    UserInteraction4 = 36  # the user interactively added the event
+    UserInteraction5 = 37  # the user interactively added the event
+    UserInteraction6 = 38  # the user interactively added the event
+    UserInteraction7 = 39  # the user interactively added the event
+    UserInteraction8 = 40  # the user interactively added the event
+    BeforeCapture = 41
+    AfterCapture = 42
+    RealTimeTTLData = 43
+    NoAcquisitionStart = 44
+    NoAcquisitionEnd = 45
+    HardwareError = 46
+    StormEvent = 47
+    IncubationInfo = 48
+    IncubationError = 49
+    InteractiveExpEnd = 50
+    ExperimentPause = 51
+    WIDReplenishmentStart = 52
+    WIDReplenishmentEnd = 53
+    NSTORM = 54
+    EventCount = auto()  # leave this as last
+
+    def description(self) -> str:
+        """Return a description of the event meaning."""
+        return EVENT_MEANING_DESCRIPTIONS.get(self, "")
+
+
+EVENT_MEANING_DESCRIPTIONS: dict[EventMeaning, str] = {
+    EventMeaning.Unspecified: "Unknown",
+    EventMeaning.Autofocus: "Autofocus",
+    EventMeaning.UserInteraction1_Old: "User 1 old",
+    EventMeaning.UserInteraction2_Old: "User 2 old",
+    EventMeaning.UserInteraction3_Old: "User 3 old",
+    EventMeaning.UserInteraction4_Old: "User 4 old",
+    EventMeaning.JOBs: "JOBs Event",
+    EventMeaning.Command: "Command Executed",
+    EventMeaning.Macro: "Macro Event",  # retired
+    EventMeaning.Pause: "Experiment Paused",
+    EventMeaning.Resume: "Experiment Resumed",
+    EventMeaning.Cancel: "Experiment Stopped by User",
+    EventMeaning.RAMGrabZeroTime: "Acquisition zero time",  # retired
+    EventMeaning.TimeLoopNextPhase: "Next Phase Moved by User",
+    EventMeaning.Refocus: "Experiment Paused for Refocusing",
+    EventMeaning.Stimulation: "Stimulation",
+    EventMeaning.ExternalStimulation: "External Stimulation",
+    EventMeaning.UserInteraction1: "User 1",
+    EventMeaning.UserInteraction2: "User 2",
+    EventMeaning.UserInteraction3: "User 3",
+    EventMeaning.UserInteraction4: "User 4",
+    EventMeaning.UserInteraction5: "User 5",
+    EventMeaning.UserInteraction6: "User 6",
+    EventMeaning.UserInteraction7: "User 7",
+    EventMeaning.UserInteraction8: "User 8",
+    EventMeaning.BeforeCapture: "Before Capture",
+    EventMeaning.AfterCapture: "After Capture",
+    EventMeaning.NoAcquisitionStart: "No Acquisition Phase Start",
+    EventMeaning.NoAcquisitionEnd: "No Acquisition Phase End",
+    EventMeaning.HardwareError: "Hardware Error",
+    EventMeaning.StormEvent: "N-STORM",
+    EventMeaning.IncubationInfo: "Incubation Info",
+    EventMeaning.IncubationError: "Incubation Error",
+    EventMeaning.InteractiveExpEnd: "Interactive Finish",
+    EventMeaning.ExperimentPause: "Pause Experiment",
+    EventMeaning.WIDReplenishmentStart: "WID Replenishment Start",
+    EventMeaning.WIDReplenishmentEnd: "WID Replenishment End",
+    EventMeaning.NSTORM: "N-STORM",
+}
+
+
+class StimulationType(IntEnum):
+    NoStimulation = 0
+    Sequential = 1
+    Parallel = 2
+    Manual = 3
+    Begin = 4
+    End = 5

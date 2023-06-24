@@ -142,6 +142,7 @@ exclude_lines = [
     "\\.\\.\\.",
     "except ImportError",
     "except NotImplementedError",
+    "if __name__ == .__main__.:",
 ]
 
 [tool.coverage.run]

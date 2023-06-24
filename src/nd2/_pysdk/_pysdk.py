@@ -26,6 +26,7 @@ from nd2._pysdk._parse import (
 )
 
 if TYPE_CHECKING:
+    import datetime
     from io import BufferedReader
     from os import PathLike
     from typing import Any
@@ -502,13 +503,25 @@ class ND2Reader:
             return self._decode_chunk(k)
         return {}
 
-    def _acquisition_date(self) -> str | None:
-        """Try to extract acquisition date."""
-        if not (date := self.text_info().get("date")):
-            time = self._cached_global_metadata().get("time", {})
-            jdn = time.get("absoluteJulianDayNumber")
-            if jdn:
-                from nd2._util import jdn_to_datetime_utc
+    def _acquisition_date(self) -> datetime.datetime | str | None:
+        """Try to extract acquisition date.
 
-                date = jdn_to_datetime_utc(jdn).isoformat()
-        return date
+        A best effort is made to extract a datetime object from the date string,
+        but if that fails, the raw string is returned.  Use isinstance() to
+        be safe.
+        """
+        from nd2._util import parse_time
+
+        if date := self.text_info().get("date"):
+            try:
+                return parse_time(date)
+            except ValueError:
+                return date
+
+        time = self._cached_global_metadata().get("time", {})
+        jdn = time.get("absoluteJulianDayNumber")
+        if jdn:
+            from nd2._util import jdn_to_datetime_utc
+
+            return jdn_to_datetime_utc(jdn)
+        return None

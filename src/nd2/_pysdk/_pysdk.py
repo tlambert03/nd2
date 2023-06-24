@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import mmap
+import os
 import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Sequence, cast
@@ -208,9 +209,8 @@ class ND2Reader:
                 text_info=self.text_info(),
             )
             if self._global_metadata["time"]["absoluteJulianDayNumber"] < 1:
-                # julian_day = os.stat(self._path).st_ctime / 86400.0 + 2440587.5
-                # self._global_metadata["time"]["absoluteJulianDayNumber"] = julian_day
-                self._global_metadata["time"]["absoluteJulianDayNumber"] = None
+                julian_day = os.stat(self._path).st_ctime / 86400.0 + 2440587.5
+                self._global_metadata["time"]["absoluteJulianDayNumber"] = julian_day
 
         return self._global_metadata
 

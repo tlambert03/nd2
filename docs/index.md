@@ -18,7 +18,8 @@ maximizing compatibility and data extraction. (If you find an nd2 file that
 fails in some way, please [open an
 issue](https://github.com/tlambert03/nd2/issues/new) with the file!)
 
-!!! Note This library is not affiliated with Nikon in any way, but we are
+!!! Note
+    This library is not affiliated with Nikon in any way, but we are
     grateful for assistance from the SDK developers at [Laboratory
     Imaging](https://www.lim.cz).
 
@@ -136,4 +137,4 @@ properties and methods, try looking through:
 - [ND2File.unstructured_metadata()][nd2.ND2File.unstructured_metadata]
 
 These methods parse and return more of the metadata found in the file,
-but no attempt is made to parse it.
+but no attempt is made to extract it into a more useful form.

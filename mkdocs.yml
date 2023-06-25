@@ -1,6 +1,6 @@
 site_name: nd2
 site_author: Talley Lambert
-repo_name: nd2
+repo_name: tlambert03/nd2
 repo_url: https://github.com/tlambert03/nd2
 edit_uri: edit/main/docs/
 site_description: A Python package for reading Nikon ND2 files
@@ -20,7 +20,7 @@ theme:
   palette:
     # Palette toggle for light mode
     - scheme: default
-      primary: amber
+      primary: yellow
       accent: teal
       toggle:
         icon: material/brightness-7

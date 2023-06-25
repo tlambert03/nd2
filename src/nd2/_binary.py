@@ -20,37 +20,37 @@ I2 = struct.Struct("<" + "I" * 2)
 
 
 class BinaryLayer(NamedTuple):
-    """Wrapper for data from a single binary layer in an ND2 file.
+    """Wrapper for data from a single binary layer in an [`nd2.ND2File`][].
 
     `data` will have length of num_sequences, with `None` for any frames
     that lack binary data.
 
-    Parameters
+    Attributes
     ----------
-    data : list of numpy.ndarray or None
+    data : list[numpy.ndarray] | None
         The data for each frame. If a frame has no binary data, the value
         will be None.  Data will have the same length as the number of sequences
         in the file.
-    name: str
+    name : str
         The name of the binary layer.
-    comp_name: str
+    comp_name : str
         The name of the associated component, if Any.
-    comp_order: int
+    comp_order : int
         The order of the associated component, if Any.
-    color: int
+    color : int
         The color of the binary layer.
-    color_mode: int
+    color_mode : int
         The color mode of the binary layer.  I believe this is related to how colors
         are chosen in NIS-Elements software.  Where "0" is direct color (i.e. use,
         the color value), "8" is color by 3D ... and I'm not sure about the rest :)
-    state: int
+    state : int
         The state of the binary layer. (meaning still unclear)
-    file_tag: str
+    file_tag : str
         The key for the binary layer in the CustomData metadata,
         e.g. `RleZipBinarySequence_1_v1`
-    layer_id: int
+    layer_id : int
         The ID of the binary layer.
-    coordinate_shape: tuple of int
+    coordinate_shape : tuple[int, ...]
         The shape of the coordinates for the associated nd2 file.  This is used
         to reshape the data into a 3D array in `asarray`.
     """
@@ -111,8 +111,8 @@ class BinaryLayers(Sequence[BinaryLayer]):
     present in that frame.
 
     The wrapper can be cast to a numpy array (with `BinaryLayers.asarray()` or
-    np.asarray(BinaryLayers)) to stack all the layers into a single array.  The output
-    array will have shape (n_layers, *coord_shape, *frame_shape).
+    `np.asarray(BinaryLayers)`) to stack all the layers into a single array.  The output
+    array will have shape `(n_layers, *coord_shape, *frame_shape)`.
     """
 
     def __init__(self, data: list[BinaryLayer]) -> None:
@@ -139,7 +139,7 @@ class BinaryLayers(Sequence[BinaryLayer]):
         return f"<{type(self).__name__} with {len(self)} layers>"
 
     def __array__(self) -> np.ndarray:
-        """Compatibility with np.asarray(BinaryLayers)."""
+        """Compatibility with `np.asarray(BinaryLayers)`."""
         return self.asarray()
 
     def asarray(self) -> np.ndarray:

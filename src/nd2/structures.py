@@ -115,6 +115,8 @@ class CustomLoop(_Loop):
 
 @dataclass
 class TimeLoop(_Loop):
+    """The time dimension of an experiment."""
+
     parameters: TimeLoopParams
     type: Literal["TimeLoop"] = "TimeLoop"
 
@@ -150,6 +152,8 @@ class PeriodDiff:
 
 @dataclass
 class NETimeLoop(_Loop):
+    """The time dimension of an nD experiment."""
+
     parameters: NETimeLoopParams
     type: Literal["NETimeLoop"] = "NETimeLoop"
 
@@ -393,7 +397,7 @@ class XYZPoint(NamedTuple):
 
 class ExtrudedShape(NamedTuple):
     sizeZ: float = 0
-    basePoints: list[XYPoint] = []
+    basePoints: list[XYPoint] = field(default_factory=list)
 
     @classmethod
     def _from_meta_dict(cls, val: dict) -> ExtrudedShape:

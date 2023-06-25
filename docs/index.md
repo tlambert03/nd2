@@ -7,15 +7,13 @@
 
 .nd2 (Nikon NIS Elements) file reader.
 
-This reader provides a pure python implementation the official Nikon ND2 SDK.
-
-Features complete metadata retrieval, and direct
+Features complete metadata retrieval, and many array outputs, including
 [`to_dask()`][nd2.ND2File.to_dask] and [`to_xarray()`][nd2.ND2File.to_xarray]
-options for lazy and/or annotated arrays.
+options for lazy and/or annotated arrays (in addition to numpy arrays).
 
 This library is thoroughly tested against many nd2 files with the goal of
 maximizing compatibility and data extraction. (If you find an nd2 file that
-fails in some way, please [open an
+fails in any way, please [open an
 issue](https://github.com/tlambert03/nd2/issues/new) with the file!)
 
 !!! Note

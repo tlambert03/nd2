@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     import mmap
     from typing import Any, Sequence, Sized, SupportsInt
 
+    import dask.array
     import dask.array.core
     import xarray as xr
     from typing_extensions import Literal
@@ -46,6 +47,27 @@ __all__ = ["ND2File", "imread"]
 class ND2File:
     """Main objecting for opening and extracting data from an nd2 file.
 
+    ```python
+    with nd2.ND2File("path/to/file.nd2") as nd2_file:
+        ...
+    ```
+
+    The key metadata outputs are:
+
+    - [attributes][nd2.ND2File.attributes]
+    - [metadata][nd2.ND2File.metadata] / [frame_metadata][nd2.ND2File.frame_metadata]
+    - [experiment][nd2.ND2File.experiment]
+    - [text_info][nd2.ND2File.text_info]
+
+    Some files may also have:
+
+    - [binary_data][nd2.ND2File.binary_data]
+    - [rois][nd2.ND2File.rois]
+
+    !!! tip
+
+        For a simple way to read nd2 file data into an array, see [nd2.imread][].
+
     Parameters
     ----------
     path : Path | str
@@ -59,7 +81,8 @@ class ND2File:
         When validate_frames is true, this is the search window (in KB) that will
         be used to try to find the actual chunk position. by default 100 KB
     read_using_sdk : Optional[bool]
-        DEPRECATED.  No longer does anything.
+        :warning: **DEPRECATED**.  No longer does anything.
+
         If `True`, use the SDK to read the file. If `False`, inspects the chunkmap
         and reads from a `numpy.memmap`. If `None` (the default), uses the SDK if
         the file is compressed, otherwise uses the memmap. Note: using
@@ -97,12 +120,19 @@ class ND2File:
 
     @staticmethod
     def is_supported_file(path: StrOrBytesPath) -> bool:
-        """Return True if the file is supported by this reader."""
+        """Return `True` if the file is supported by this reader."""
         return is_supported_file(path)
 
     @property
     def version(self) -> tuple[int, ...]:
-        """Return the file format version as a tuple of ints."""
+        """Return the file format version as a tuple of ints.
+
+        Likely values are:
+
+        - `(1, 0)` = a legacy nd2 file (JPEG2000)
+        - `(2, 0)`, `(2, 1)` = non-JPEG2000 nd2 with xml metadata
+        - `(3, 0)` = new format nd2 file with lite variant metadata
+        """
         if self._version is None:
             try:
                 self._version = get_version(self._rdr._fh or self._rdr._path)
@@ -122,20 +152,44 @@ class ND2File:
         return self._is_legacy
 
     def open(self) -> None:
-        """Open file for reading."""
+        """Open file for reading.
+
+        !!! note
+
+            Files are best opened using a context manager:
+
+            ```python
+            with nd2.ND2File("path/to/file.nd2") as nd2_file:
+                ...
+            ```
+
+            This will automatically close the file when the context exits.
+        """
         if self.closed:
             self._rdr.open()
             self._closed = False
 
     def close(self) -> None:
-        """Close file (may cause segfault if read when closed in some cases)."""
+        """Close file.
+
+        !!! note
+
+            Files are best opened using a context manager:
+
+            ```python
+            with nd2.ND2File("path/to/file.nd2") as nd2_file:
+                ...
+            ```
+
+            This will automatically close the file when the context exits.
+        """
         if not self.closed:
             self._rdr.close()
             self._closed = True
 
     @property
     def closed(self) -> bool:
-        """Whether the file is closed."""
+        """Return `True` if the file is closed."""
         return self._closed
 
     def __enter__(self) -> ND2File:
@@ -174,17 +228,67 @@ class ND2File:
 
     @cached_property
     def attributes(self) -> Attributes:
-        """Core image attributes."""
+        """Core image attributes.
+
+        !!! example "Example Output"
+
+            ```python
+            Attributes(
+                bitsPerComponentInMemory=16,
+                bitsPerComponentSignificant=16,
+                componentCount=2,
+                heightPx=32,
+                pixelDataType='unsigned',
+                sequenceCount=60,
+                widthBytes=128,
+                widthPx=32,
+                compressionLevel=None,
+                compressionType=None,
+                tileHeightPx=None,
+                tileWidthPx=None,
+                channelCount=2
+            )
+            ```
+
+
+        Returns
+        -------
+        attrs : Attributes
+            Core image attributes
+        """
         return self._rdr.attributes
 
     @cached_property
     def text_info(self) -> TextInfo | dict:
-        """Misc text info."""
+        r"""Miscellaneous text info.
+
+        ??? example "Example Output"
+
+            ```python
+            {
+                'description': 'Metadata:\r\nDimensions: T(3) x XY(4) x λ(2) x Z(5)...'
+                'capturing': 'Flash4.0, SN:101412\r\nSample 1:\r\n  Exposure: 100 ms...'
+                'date': '9/28/2021  9:41:27 AM',
+                'optics': 'Plan Fluor 10x Ph1 DLL'
+            }
+            ```
+        Returns
+        -------
+        TextInfo | dict
+            If the file is a legacy nd2 file, a dict is returned. Otherwise, a
+            `TextInfo` object is returned.
+        """
         return self._rdr.text_info()
 
     @cached_property
     def rois(self) -> dict[int, ROI]:
-        """Return dict of {id: ROI} for all ROIs found in the metadata."""
+        """Return dict of `{id: ROI}` for all ROIs found in the metadata.
+
+        Returns
+        -------
+        dict[int, ROI]
+            The dict of ROIs is keyed by the ROI ID.
+        """
         key = b"CustomData|RoiMetadata_v1!"
         if self.is_legacy or key not in self._rdr.chunkmap:  # type: ignore
             return {}  # pragma: no cover
@@ -200,7 +304,45 @@ class ND2File:
 
     @cached_property
     def experiment(self) -> list[ExpLoop]:
-        """Loop information for each nd axis."""
+        """Loop information for each axis of an nD acquisition.
+
+        ??? example "Example Output"
+
+            ```python
+            [
+                TimeLoop(
+                    count=3,
+                    nestingLevel=0,
+                    parameters=TimeLoopParams(
+                        startMs=0.0,
+                        periodMs=1.0,
+                        durationMs=0.0,
+                        periodDiff=PeriodDiff(
+                            avg=3674.199951171875,
+                            max=3701.219970703125,
+                            min=3647.179931640625
+                        )
+                    ),
+                    type='TimeLoop'
+                ),
+                ZStackLoop(
+                    count=5,
+                    nestingLevel=1,
+                    parameters=ZStackLoopParams(
+                        homeIndex=2,
+                        stepUm=1.0,
+                        bottomToTop=True,
+                        deviceName='Ti2 ZDrive'
+                    ),
+                    type='ZStackLoop'
+                )
+            ]
+            ```
+
+        Returns
+        -------
+        list[ExpLoop]
+        """
         return self._rdr.experiment()
 
     @overload
@@ -250,6 +392,12 @@ class ND2File:
                 - 'list' :    dict of list - `{column -> [value, ...]}`
         null_value : Any, default float('nan')
             The value to use for missing data.
+
+
+        Returns
+        -------
+        ListOfDicts | DictOfLists | DictOfDicts
+            Tabular data in the format specified by `orient`.
         """
         if orient not in ("records", "dict", "list"):  # pragma: no cover
             raise ValueError("orient must be one of 'records', 'dict', or 'list'")
@@ -312,17 +460,17 @@ class ND2File:
             Whether to strip the type information from the front of the keys in the
             dict. For example, if `True`: `uiModeFQ` becomes `ModeFQ` and `bUsePFS`
             becomes `UsePFS`, etc... by default `True`
-        include : Optional[Set[str]], optional
+        include : set[str] | None, optional
             If provided, only include the specified keys in the output. by default,
             all metadata sections found in the file are included.
-        exclude : Optional[Set[str]], optional
+        exclude : set[str] | None, optional
             If provided, exclude the specified keys from the output. by default `None`
         unnest : bool, optional
-            DEPRECATED.  No longer does anything.
+            :warning: **DEPRECATED**.  No longer does anything.
 
         Returns
         -------
-        Dict[str, Any]
+        dict[str, Any]
             A dict of the unstructured metadata, with keys that are the type of the
             metadata chunk (things like 'CustomData|RoiMetadata_v1' or
             'ImageMetadataLV'), and values that are associated metadata chunk.
@@ -368,14 +516,260 @@ class ND2File:
 
     @cached_property
     def metadata(self) -> Metadata | dict:
-        """Various metadata (will be dict if legacy format)."""
+        """Various metadata (will be `dict` only if legacy format).
+
+        ??? example "Example output"
+
+            ```python
+            Metadata(
+                contents=Contents(channelCount=2, frameCount=15),
+                channels=[
+                    Channel(
+                        channel=ChannelMeta(
+                            name='Widefield Green',
+                            index=0,
+                            colorRGB=65371,
+                            emissionLambdaNm=535.0,
+                            excitationLambdaNm=None
+                        ),
+                        loops=LoopIndices(
+                            NETimeLoop=None,
+                            TimeLoop=0,
+                            XYPosLoop=None,
+                            ZStackLoop=1
+                        ),
+                        microscope=Microscope(
+                            objectiveMagnification=10.0,
+                            objectiveName='Plan Fluor 10x Ph1 DLL',
+                            objectiveNumericalAperture=0.3,
+                            zoomMagnification=1.0,
+                            immersionRefractiveIndex=1.0,
+                            projectiveMagnification=None,
+                            pinholeDiameterUm=None,
+                            modalityFlags=['fluorescence']
+                        ),
+                        volume=Volume(
+                            axesCalibrated=[True, True, True],
+                            axesCalibration=[
+                                0.652452890023035,
+                                0.652452890023035,
+                                1.0
+                            ],
+                            axesInterpretation=['distance', 'distance', 'distance'],
+                            bitsPerComponentInMemory=16,
+                            bitsPerComponentSignificant=16,
+                            cameraTransformationMatrix=[
+                                -0.9998932296054086,
+                                -0.014612644841559427,
+                                0.014612644841559427,
+                                -0.9998932296054086
+                            ],
+                            componentCount=1,
+                            componentDataType='unsigned',
+                            voxelCount=[32, 32, 5],
+                            componentMaxima=[0.0],
+                            componentMinima=[0.0],
+                            pixelToStageTransformationMatrix=None
+                        )
+                    ),
+                    Channel(
+                        channel=ChannelMeta(
+                            name='Widefield Red',
+                            index=1,
+                            colorRGB=22015,
+                            emissionLambdaNm=620.0,
+                            excitationLambdaNm=None
+                        ),
+                        loops=LoopIndices(
+                            NETimeLoop=None,
+                            TimeLoop=0,
+                            XYPosLoop=None,
+                            ZStackLoop=1
+                        ),
+                        microscope=Microscope(
+                            objectiveMagnification=10.0,
+                            objectiveName='Plan Fluor 10x Ph1 DLL',
+                            objectiveNumericalAperture=0.3,
+                            zoomMagnification=1.0,
+                            immersionRefractiveIndex=1.0,
+                            projectiveMagnification=None,
+                            pinholeDiameterUm=None,
+                            modalityFlags=['fluorescence']
+                        ),
+                        volume=Volume(
+                            axesCalibrated=[True, True, True],
+                            axesCalibration=[
+                                0.652452890023035,
+                                0.652452890023035,
+                                1.0
+                            ],
+                            axesInterpretation=['distance', 'distance', 'distance'],
+                            bitsPerComponentInMemory=16,
+                            bitsPerComponentSignificant=16,
+                            cameraTransformationMatrix=[
+                                -0.9998932296054086,
+                                -0.014612644841559427,
+                                0.014612644841559427,
+                                -0.9998932296054086
+                            ],
+                            componentCount=1,
+                            componentDataType='unsigned',
+                            voxelCount=[32, 32, 5],
+                            componentMaxima=[0.0],
+                            componentMinima=[0.0],
+                            pixelToStageTransformationMatrix=None
+                        )
+                    )
+                ]
+            )
+            ```
+
+        Returns
+        -------
+        Metadata | dict
+            dict if legacy format, else `Metadata`
+        """
         return self._rdr.metadata()
 
     def frame_metadata(self, seq_index: int | tuple) -> FrameMetadata | dict:
         """Metadata for specific frame.
 
+        :eyes: **See also:** [metadata][nd2.ND2File.metadata]
+
         This includes the global metadata from the metadata function.
         (will be dict if legacy format).
+
+        ??? example "Example output"
+
+            ```python
+            FrameMetadata(
+                contents=Contents(channelCount=2, frameCount=15),
+                channels=[
+                    FrameChannel(
+                        channel=ChannelMeta(
+                            name='Widefield Green',
+                            index=0,
+                            colorRGB=65371,
+                            emissionLambdaNm=535.0,
+                            excitationLambdaNm=None
+                        ),
+                        loops=LoopIndices(
+                            NETimeLoop=None,
+                            TimeLoop=0,
+                            XYPosLoop=None,
+                            ZStackLoop=1
+                        ),
+                        microscope=Microscope(
+                            objectiveMagnification=10.0,
+                            objectiveName='Plan Fluor 10x Ph1 DLL',
+                            objectiveNumericalAperture=0.3,
+                            zoomMagnification=1.0,
+                            immersionRefractiveIndex=1.0,
+                            projectiveMagnification=None,
+                            pinholeDiameterUm=None,
+                            modalityFlags=['fluorescence']
+                        ),
+                        volume=Volume(
+                            axesCalibrated=[True, True, True],
+                            axesCalibration=[
+                                0.652452890023035,
+                                0.652452890023035,
+                                1.0
+                            ],
+                            axesInterpretation=['distance', 'distance', 'distance'],
+                            bitsPerComponentInMemory=16,
+                            bitsPerComponentSignificant=16,
+                            cameraTransformationMatrix=[
+                                -0.9998932296054086,
+                                -0.014612644841559427,
+                                0.014612644841559427,
+                                -0.9998932296054086
+                            ],
+                            componentCount=1,
+                            componentDataType='unsigned',
+                            voxelCount=[32, 32, 5],
+                            componentMaxima=[0.0],
+                            componentMinima=[0.0],
+                            pixelToStageTransformationMatrix=None
+                        ),
+                        position=Position(
+                            stagePositionUm=StagePosition(
+                                x=26950.2,
+                                y=-1801.6000000000001,
+                                z=494.3
+                            ),
+                            pfsOffset=None,
+                            name=None
+                        ),
+                        time=TimeStamp(
+                            absoluteJulianDayNumber=2459486.0682717753,
+                            relativeTimeMs=580.3582921028137
+                        )
+                    ),
+                    FrameChannel(
+                        channel=ChannelMeta(
+                            name='Widefield Red',
+                            index=1,
+                            colorRGB=22015,
+                            emissionLambdaNm=620.0,
+                            excitationLambdaNm=None
+                        ),
+                        loops=LoopIndices(
+                            NETimeLoop=None,
+                            TimeLoop=0,
+                            XYPosLoop=None,
+                            ZStackLoop=1
+                        ),
+                        microscope=Microscope(
+                            objectiveMagnification=10.0,
+                            objectiveName='Plan Fluor 10x Ph1 DLL',
+                            objectiveNumericalAperture=0.3,
+                            zoomMagnification=1.0,
+                            immersionRefractiveIndex=1.0,
+                            projectiveMagnification=None,
+                            pinholeDiameterUm=None,
+                            modalityFlags=['fluorescence']
+                        ),
+                        volume=Volume(
+                            axesCalibrated=[True, True, True],
+                            axesCalibration=[
+                                0.652452890023035,
+                                0.652452890023035,
+                                1.0
+                            ],
+                            axesInterpretation=['distance', 'distance', 'distance'],
+                            bitsPerComponentInMemory=16,
+                            bitsPerComponentSignificant=16,
+                            cameraTransformationMatrix=[
+                                -0.9998932296054086,
+                                -0.014612644841559427,
+                                0.014612644841559427,
+                                -0.9998932296054086
+                            ],
+                            componentCount=1,
+                            componentDataType='unsigned',
+                            voxelCount=[32, 32, 5],
+                            componentMaxima=[0.0],
+                            componentMinima=[0.0],
+                            pixelToStageTransformationMatrix=None
+                        ),
+                        position=Position(
+                            stagePositionUm=StagePosition(
+                                x=26950.2,
+                                y=-1801.6000000000001,
+                                z=494.3
+                            ),
+                            pfsOffset=None,
+                            name=None
+                        ),
+                        time=TimeStamp(
+                            absoluteJulianDayNumber=2459486.0682717753,
+                            relativeTimeMs=580.3582921028137
+                        )
+                    )
+                ]
+            )
+            ```
 
         Parameters
         ----------
@@ -384,7 +778,7 @@ class ND2File:
 
         Returns
         -------
-        Union[FrameMetadata, dict]
+        FrameMetadata | dict
             dict if legacy format, else FrameMetadata
         """
         idx = cast(
@@ -402,17 +796,34 @@ class ND2File:
 
     @cached_property
     def ndim(self) -> int:
-        """Number of dimensions."""
+        """Number of dimensions (i.e. `len(`[`self.shape`][nd2.ND2File.shape]`)`)."""
         return len(self.shape)
 
     @cached_property
     def shape(self) -> tuple[int, ...]:
-        """Size of each axis."""
+        """Size of each axis.
+
+        Examples
+        --------
+        >>> ndfile.shape
+        (3, 5, 2, 512, 512)
+        """
         return self._coord_shape + self._frame_shape
 
     @cached_property
     def sizes(self) -> dict[str, int]:
-        """Names and sizes for each axis."""
+        """Names and sizes for each axis.
+
+        This is an ordered dict, with the same order
+        as the corresponding [shape][nd2.ND2File.shape]
+
+        Examples
+        --------
+        >>> ndfile.sizes
+        {'T': 3, 'Z': 5, 'C': 2, 'Y': 512, 'X': 512}
+        >>> ndfile.shape
+        (3, 5, 2, 512, 512)
+        """
         attrs = self.attributes
         dims = {AXIS._MAP[c[1]]: c[2] for c in self._rdr._coord_info()}
         dims[AXIS.CHANNEL] = (
@@ -431,7 +842,7 @@ class ND2File:
 
     @property
     def is_rgb(self) -> bool:
-        """Whether the image is rgb."""
+        """Whether the image is rgb (i.e. it has 3 or 4 components per channel)."""
         return self.components_per_channel in (3, 4)
 
     @property
@@ -442,7 +853,7 @@ class ND2File:
 
     @property
     def size(self) -> int:
-        """Total number of pixels in the volume."""
+        """Total number of voxels in the volume (the product of the shape)."""
         return int(np.prod(self.shape))
 
     @property
@@ -473,7 +884,9 @@ class ND2File:
         return _util.VoxelSize(*self._rdr.voxel_size())
 
     def asarray(self, position: int | None = None) -> np.ndarray:
-        """Read image into numpy array.
+        """Read image into a [numpy.ndarray][].
+
+        For a simple way to read a file into a numpy array, see [nd2.imread][].
 
         Parameters
         ----------
@@ -482,7 +895,7 @@ class ND2File:
 
         Returns
         -------
-        np.ndarray
+        array : np.ndarray
 
         Raises
         ------
@@ -544,15 +957,14 @@ class ND2File:
         Parameters
         ----------
         wrapper : bool
-            If True (the default), the returned obect will be a thin subclass of
-            a :class:`dask.array.Array` (an
-            `ResourceBackedDaskArray`) that manages the opening and closing of this file
-            when getting chunks via compute(). If `wrapper` is `False`, then a pure
-            `dask.array.core.Array` will be returned. However, when that array is
-            computed, it will incur a file open/close on *every* chunk that is read (in
-            the `_dask_block` method).  As such `wrapper` will generally be much faster,
-            however, it *may* fail (i.e. result in segmentation faults) with certain
-            dask schedulers.
+            If `True` (the default), the returned object will be a thin subclass of a
+            [`dask.array.Array`][] (a `ResourceBackedDaskArray`) that manages the
+            opening and closing of this file when getting chunks via compute(). If
+            `wrapper` is `False`, then a pure `dask.array.core.Array` will be returned.
+            However, when that array is computed, it will incur a file open/close on
+            *every* chunk that is read (in the `_dask_block` method).  As such `wrapper`
+            will generally be much faster, however, it *may* fail (i.e. result in
+            segmentation faults) with certain dask schedulers.
         copy : bool
             If `True` (the default), the dask chunk-reading function will return
             an array copy. This can avoid segfaults in certain cases, though it
@@ -560,7 +972,8 @@ class ND2File:
 
         Returns
         -------
-        dask.array.core.Array
+        dask_array: dask.array.Array
+            A dask array representing the image data.
         """
         from dask.array.core import map_blocks
 
@@ -618,7 +1031,10 @@ class ND2File:
         position: int | None = None,
         copy: bool = True,
     ) -> xr.DataArray:
-        """Create labeled xarray representing image.
+        """Return a labeled [xarray.DataArray][] representing image.
+
+        Xarrays are a powerful way to label and manipulate n-dimensional data with
+        axis-associated coordinates.
 
         `array.dims` will be populated according to image metadata, and coordinates
         will be populated based on pixel spacings. Additional metadata is available
@@ -781,19 +1197,15 @@ class ND2File:
         return f"<ND2File at {hex(id(self))}{extra}>"
 
     @property
-    def recorded_data(
-        self,
-    ) -> DictOfLists:
+    def recorded_data(self) -> DictOfLists:
         """Return tabular data recorded for each frame of the experiment.
 
-        This method returns a dict of equal-length sequences (passable to
-        pd.DataFrame()). It matches the tabular data reported in the Image Properties >
-        Recorded Data tab of the NIS Viewer.
+        !!! warning "Deprecated"
 
-        (There will be a column for each tag in the `CustomDataV2_0` section of
-        `ND2File.custom_data`)
-
-        Legacy ND2 files are not supported.
+            This method is deprecated and will be removed in a future version.
+            Please use the [`events`][nd2.ND2File.events] method instead. To get the
+            same dict-of-lists output that `recorded_data` returns, use
+            `ndfile.events(orient='list')`
         """
         warnings.warn(
             "recorded_data is deprecated and will be removed in a future version."
@@ -892,7 +1304,7 @@ def imread(
 
     Parameters
     ----------
-    file : Union[Path, str]
+    file : Path | str
         Filepath (`str`) or `Path` object to ND2 file.
     dask : bool
         If `True`, returns a (delayed) `dask.array.Array`. This will avoid reading
@@ -910,7 +1322,8 @@ def imread(
         This comes at a slight performance penalty at file open, but may "rescue"
         some corrupt files. by default False.
     read_using_sdk : Optional[bool]
-        DEPRECATED: no longer used.
+        :warning: **DEPRECATED**.  No longer used.
+
         If `True`, use the SDK to read the file. If `False`, inspects the chunkmap and
         reads from a `numpy.memmap`. If `None` (the default), uses the SDK if the file
         is compressed, otherwise uses the memmap.

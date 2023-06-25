@@ -111,11 +111,11 @@ f.events()          # returns tabular "Recorded Data" view from in NIS Elements/
 
 # allll the metadata we can find...
 # no attempt made to standardize or parse it
-# look in here if you're searching for metdata that isn't exposed in the above
+# look in here if you're searching for metadata that isn't exposed in the above
 # but try not to rely on it, as it's not guaranteed to be stable
 f.unstructured_metadata()
 
-f.close()           # don't forget to close when not using a contet manager!
+f.close()           # don't forget to close when not using a context manager!
 f.closed            # boolean, whether the file is closed
 ```
 

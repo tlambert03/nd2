@@ -52,6 +52,11 @@ dev = [
     "xarray",
     "lxml-stubs",
 ]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings-python",
+]
 
 [project.urls]
 homepage = "https://github.com/tlambert03/nd2"

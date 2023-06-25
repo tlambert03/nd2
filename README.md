@@ -25,6 +25,8 @@ compatibility and data extraction. (If you find an nd2 file that fails in some
 way, please [open an issue](https://github.com/tlambert03/nd2/issues/new) with
 the file!)
 
+### :book: [Documentation](https://tlambert03.github.io/nd2)
+
 ## install
 
 ```sh
@@ -56,7 +58,12 @@ than the built-in `xml` module.  To install with support for `lxml` use:
 pip install nd2 lxml
 ```
 
-## usage and API
+## Usage and API
+
+Full API documentation is available at
+[https://tlambert03.github.io/nd2](https://tlambert03.github.io/nd2)
+
+Quick summary below:
 
 ```python
 import nd2

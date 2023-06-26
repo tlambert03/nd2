@@ -172,8 +172,6 @@ class ND2Reader:
             data = self._load_chunk(name)
             if data.startswith(b"<"):
                 decoded: Any = json_from_clx_variant(data, strip_prefix=strip_prefix)
-            elif self.version < (3, 0):
-                decoded = json_from_clx_variant(data, strip_prefix=strip_prefix)
             else:
                 decoded = json_from_clx_lite_variant(data, strip_prefix=strip_prefix)
             self._cached_decoded_chunks[name] = decoded

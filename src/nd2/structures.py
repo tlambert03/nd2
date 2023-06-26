@@ -422,19 +422,25 @@ class ROI:
     def __post_init__(self) -> None:
         if isinstance(self.info, dict):
             self.info = RoiInfo(**self.info)
-        self.animParams = [AnimParam(**i) for i in self.animParams]  # type: ignore
+        self.animParams = [
+            AnimParam(**i) if isinstance(i, dict) else i for i in self.animParams
+        ]
 
     @classmethod
     def _from_meta_dict(cls, val: dict) -> ROI:
+        # val has keys:
+        # 'Id', 'Info', 'GUID', 'AnimParams_Size', 'AnimParams_{i}'
+        # where GUID and AnimParams keys are optional
         anim_params = [
-            {_lower0(k): v for k, v in val[f"AnimParams_{i}"].items()}
-            for i in range(val.pop("AnimParams_Size", 0))
+            AnimParam(**{_lower0(k): v for k, v in val[f"AnimParams_{i}"].items()})
+            for i in range(val.get("AnimParams_Size", 0))
         ]
+        info = RoiInfo(**{_lower0(k): v for k, v in val["Info"].items()})
         return cls(
             id=val["Id"],
-            info={_lower0(k): v for k, v in val["Info"].items()},  # type: ignore
+            info=info,
             guid=val.get("GUID", ""),
-            animParams=anim_params,  # type: ignore
+            animParams=anim_params,
         )
 
 

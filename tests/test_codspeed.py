@@ -18,7 +18,7 @@ FILES: list[Path] = [
     DATA / "karl_sample_image.nd2",         # v3.0 - 218.65 MB
 ]
 # super slow on codspeed...
-LEGACY = DATA / "aryeh_but3_cont200-1.nd2", # v1.0 -  16.14 MB
+LEGACY = DATA / "aryeh_but3_cont200-1.nd2"  # v1.0 -  16.14 MB
 # fmt: on
 
 

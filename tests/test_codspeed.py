@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-from typing import Callable
 
 import nd2
 import pytest
@@ -13,14 +12,16 @@ DATA = Path(__file__).parent / "data"
 TEST_FILE = DATA / "train_TR67_Inj7_fr50.nd2"
 
 
+@pytest.mark.benchmark
 @pytest.mark.parametrize("file", [TEST_FILE], ids=lambda x: x.stem)
-def test_time_imread(benchmark: Callable, file: Path) -> None:
+def test_time_imread(file: Path) -> None:
     """Test time to read a file."""
     _ = nd2.imread(file)
 
 
+@pytest.mark.benchmark
 @pytest.mark.parametrize("file", [TEST_FILE], ids=lambda x: x.stem)
-def test_time_all_metadata(benchmark: Callable, file: Path) -> None:
+def test_time_all_metadata(file: Path) -> None:
     """Test time to read all metadata."""
     with nd2.ND2File(file) as nd:
         _ = nd.metadata

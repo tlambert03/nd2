@@ -16,29 +16,31 @@ def test_format(records, fmt, capsys):
     filtered = nd2.index._filter_data(records)
 
     if fmt == "table":
-        nd2.index._pretty_print_table(filtered)
+        nd2.index._pretty_print_table(filtered, sort_column="name")
     elif fmt == "csv":
         nd2.index._print_csv(filtered)
     elif fmt == "json":
         nd2.index._print_json(filtered)
     captured = capsys.readouterr()
-    assert "path" in captured.out
+    assert captured.out
+    assert not captured.err
 
 
 @pytest.mark.parametrize(
     "filters",
     [
         {},
-        {"to_include": ["path", "name", "version"]},
+        {"include": "path,name,version"},
         {"sort_by": "version"},
         {"sort_by": "version-"},
         {"exclude": "path"},
+        {"filters": ("'TimeLoop' in experiment",)},
+        {"filters": ["acquired > '2020' and kb < 500"], "sort_by": "kb-"},
     ],
 )
-def test_filter_data(records, filters: dict):
+def test_filter_data(records, filters: dict) -> None:
     filtered = nd2.index._filter_data(records, **filters)
     assert isinstance(filtered, list)
-    assert len(filtered) == len(records)
     if filters.get("to_include"):
         assert len(filtered[0]) == len(filters["to_include"])
     sb = filters.get("sort_by")
@@ -48,6 +50,10 @@ def test_filter_data(records, filters: dict):
         assert first_version == "3.0" if sb.endswith("-") else "1.0"
     if filters.get("exclude"):
         assert "path" not in filtered[0]
+    if filters.get("filters"):
+        assert len(filtered) < len(records)
+    else:
+        assert len(filtered) == len(records)
 
 
 def test_index(capsys):

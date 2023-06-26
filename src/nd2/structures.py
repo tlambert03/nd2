@@ -444,6 +444,14 @@ class ROI:
         )
 
 
+class T(TypedDict):
+    Id: int
+    Info: dict
+    GUID: str
+    AnimParams_Size: int
+    # AnimParams_{i}: dict
+
+
 @dataclass
 class AnimParam:
     """Parameters of ROI position/shape."""

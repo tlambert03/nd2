@@ -4,8 +4,8 @@ from pathlib import Path
 import nd2
 import pytest
 
-if all(x not in {"--codspeed", "--benchmark", "tests/test_bench.py"} for x in sys.argv):
-    pytest.skip("use --benchmark to run benchmark", allow_module_level=True)
+if all(x not in {"--codspeed", "tests/test_codspeed.py"} for x in sys.argv):
+    pytest.skip("use --codspeed to run benchmarks", allow_module_level=True)
 
 
 DATA = Path(__file__).parent / "data"

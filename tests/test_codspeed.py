@@ -28,6 +28,13 @@ def test_time_imread(file: Path) -> None:
 
 @pytest.mark.benchmark
 @pytest.mark.parametrize("file", FILES, ids=lambda x: x.stem)
+def test_time_imread_dask(file: Path) -> None:
+    """Test time to read a file."""
+    _ = nd2.imread(file, dask=True).compute()
+
+
+@pytest.mark.benchmark
+@pytest.mark.parametrize("file", FILES, ids=lambda x: x.stem)
 def test_time_all_metadata(file: Path) -> None:
     """Test time to read all metadata."""
     with nd2.ND2File(file) as nd:

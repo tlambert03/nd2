@@ -7,7 +7,7 @@ from argparse import RawTextHelpFormatter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, Iterator, Sequence, cast, no_type_check
+from typing import Any, Iterable, Iterator, Sequence, cast, no_type_check
 
 from typing_extensions import TypedDict
 
@@ -33,8 +33,8 @@ class Record(TypedDict):
     dtype: str
     shape: list[int]
     axes: str
-    has_binary: bool
-    has_rois: bool
+    binary: bool
+    rois: bool
     software_name: str
     software_version: str
     grabber: str
@@ -50,9 +50,11 @@ def index_file(path: Path) -> Record:
         if nd.is_legacy:
             software: dict = {}
             acquired: str | None = ""
+            binary = False
         else:
             software = nd._rdr._app_info()  # type: ignore
             acquired = nd._rdr._acquisition_date()  # type: ignore
+            binary = nd.binary_data is not None
 
         stat = path.stat()
         exp = [(x.type, x.count) for x in nd.experiment]
@@ -71,8 +73,8 @@ def index_file(path: Path) -> Record:
                 "dtype": str(nd.dtype),
                 "shape": list(shape),
                 "axes": "".join(axes),
-                "has_binary": nd.binary_data is not None,
-                "has_rois": bool(nd.rois),
+                "binary": binary,
+                "rois": bool(nd.rois),
                 "software_name": software.get("SWNameString", ""),
                 "software_version": software.get("VersionString", ""),
                 "grabber": software.get("GrabberString", ""),
@@ -126,9 +128,15 @@ def _pretty_print_table(data: list[Record], sort_column: str | None = None) -> N
             table.add_column(header)
 
     for row in data:
-        table.add_row(*[str(value) for value in row.values()])
+        table.add_row(*[_strify(value) for value in row.values()])
 
     Console().print(table)
+
+
+def _strify(val: Any) -> str:
+    if isinstance(val, bool):
+        return "✅" if val else ""
+    return str(val)
 
 
 def _print_csv(records: list[Record], skip_header: bool = False) -> None:
@@ -223,11 +231,31 @@ def _parse_args(argv: Sequence[str] = ()) -> argparse.Namespace:
 @no_type_check
 def _filter_data(
     data: list[Record],
-    include: str | None = None,
     sort_by: str | None = None,
+    include: str | None = None,
     exclude: str | None = None,
     filters: Sequence[str] = (),
 ) -> list[Record]:
+    """Filter and sort the data.
+
+    Parameters
+    ----------
+    data : list[Record]
+        the data to filter
+    sort_by : str | None, optional
+        Name of column to sort by, by default None
+    include : str | None, optional
+        Comma-separated list of columns to include, by default None
+    exclude : str | None, optional
+        Comma-separated list of columns to exclude, by default None
+    filters : Sequence[str], optional
+        Sequence of python expression strings to filter the data, by default ()
+
+    Returns
+    -------
+    list[Record]
+        _description_
+    """
     includes = include.split(",") if include else []
     unrecognized = set(includes) - set(HEADERS)
     if unrecognized:  # pragma: no cover
@@ -255,7 +283,7 @@ def _filter_data(
         for f in filters:
             try:
                 data = [row for row in data if bool(eval(f, None, row))]
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 print(f"Error evaluating filter {f!r}: {e}", file=sys.stderr)
                 sys.exit(1)
 
@@ -269,8 +297,8 @@ def main(argv: Sequence[str] = ()) -> None:
     data = _index_files(paths=args.paths, recurse=args.recurse, glob=args.glob_pattern)
     data = _filter_data(
         data,
-        include=args.include,
         sort_by=args.sort_by,
+        include=args.include,
         exclude=args.exclude,
         filters=args.filter,
     )

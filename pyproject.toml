@@ -26,10 +26,10 @@ dependencies = ["resource-backed-dask-array", "typing-extensions", "numpy"]
 [project.optional-dependencies]
 legacy = ["imagecodecs"]
 test = [
-    "lxml; python_version<'3.11'",
-    "aicsimageio; python_version<'3.11'",
+    "lxml",
+    "aicsimageio",
     "dask[array]",
-    "imagecodecs; platform_system=='Windows' or python_version<'3.11'",
+    "imagecodecs",
     "psutil",
     "pytest-cov",
     "pytest>=6.0",
@@ -53,11 +53,7 @@ dev = [
     "xarray",
     "lxml-stubs",
 ]
-docs = [
-    "mkdocs",
-    "mkdocs-material",
-    "mkdocstrings-python",
-]
+docs = ["mkdocs", "mkdocs-material", "mkdocstrings-python"]
 
 [project.urls]
 homepage = "https://github.com/tlambert03/nd2"

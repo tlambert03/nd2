@@ -1268,9 +1268,9 @@ class ND2File:
 def imread(
     file: Path | str,
     *,
-    dask: Literal[False],
-    xarray: Literal[False],
-    validate_frames: bool = False,
+    dask: Literal[False] = ...,
+    xarray: Literal[False] = ...,
+    validate_frames: bool = ...,
     read_using_sdk: bool | None = None,
 ) -> np.ndarray:
     ...
@@ -1282,7 +1282,7 @@ def imread(
     *,
     dask: bool = ...,
     xarray: Literal[True],
-    validate_frames: bool = False,
+    validate_frames: bool = ...,
     read_using_sdk: bool | None = None,
 ) -> xr.DataArray:
     ...
@@ -1293,8 +1293,8 @@ def imread(
     file: Path | str,
     *,
     dask: Literal[True],
-    xarray: Literal[False],
-    validate_frames: bool = False,
+    xarray: Literal[False] = ...,
+    validate_frames: bool = ...,
     read_using_sdk: bool | None = None,
 ) -> dask.array.core.Array:
     ...

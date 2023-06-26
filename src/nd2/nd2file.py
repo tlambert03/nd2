@@ -299,6 +299,7 @@ class ND2File:
         try:
             _rois = [ROI._from_meta_dict(d) for d in data.values()]
         except Exception as e:  # pragma: no cover
+            return {}
             raise ValueError(f"Could not parse ROI metadata: {e}") from e
         return {r.id: r for r in _rois}
 

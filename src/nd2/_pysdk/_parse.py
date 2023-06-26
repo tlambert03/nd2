@@ -222,7 +222,7 @@ def load_experiment(
 
 def _load_single_experiment_loop(
     exp: RawExperimentDict,
-) -> ExpLoop | strct.SpectLoop | None:
+) -> ExpLoop | strct.SpectLoop | strct.CustomLoop | None:
     loop_type = exp.get("eType", 0)
     loop_params = exp.get("uLoopPars", {})
     if not loop_params or loop_type > max(strct.LoopType):
@@ -230,7 +230,7 @@ def _load_single_experiment_loop(
 
     # FIXME: sometimes it's a dict with a single i000000 key?
     # this only happens with version < (3, 0)
-    if len(loop_params) == 1:
+    if list(loop_params) == ["i0000000000"]:
         loop_params = next(iter(loop_params.values()))  # type: ignore
 
     if loop_type == strct.LoopType.TimeLoop:  # 1
@@ -247,6 +247,9 @@ def _load_single_experiment_loop(
         count = loop_params.get("uiCount", 0)
         count = loop_params.get("pPlanes", {}).get("uiCount", count)
         return strct.SpectLoop(count=count)
+    elif loop_type == strct.LoopType.CustomLoop:  # 7
+        count = cast("int", loop_params.get("uiCount", 0))
+        return strct.CustomLoop(count=count)
 
     raise NotImplementedError(  # pragma: no cover
         f"We've never seen a file like this! (loop_type={loop_type!r}). We'd "

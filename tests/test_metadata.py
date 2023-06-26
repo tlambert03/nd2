@@ -77,6 +77,7 @@ def test_metadata_extraction(new_nd2: Path):
         assert isinstance(nd.closed, bool)
         assert isinstance(nd.ndim, int)
         _bd = nd.binary_data
+        assert all(isinstance(x, structures.ROI) for x in nd.rois.values())
         assert isinstance(nd.is_rgb, bool)
         assert isinstance(nd.nbytes, int)
 

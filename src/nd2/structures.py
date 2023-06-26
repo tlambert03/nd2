@@ -92,7 +92,7 @@ LoopTypeString = Literal[
 class _Loop:
     count: int
     nestingLevel: int
-    parameters: LoopParams
+    parameters: LoopParams | None
     type: LoopTypeString
 
 
@@ -102,11 +102,21 @@ class SpectLoop:
     type: Literal["SpectLoop"] = "SpectLoop"
 
 
+@dataclass
+class CustomLoop(_Loop):
+    count: int
+    nestingLevel: int = 0
+    parameters: None = None
+    type: Literal["CustomLoop"] = "CustomLoop"
+
+
 #####
 
 
 @dataclass
 class TimeLoop(_Loop):
+    """The time dimension of an experiment."""
+
     parameters: TimeLoopParams
     type: Literal["TimeLoop"] = "TimeLoop"
 
@@ -142,6 +152,8 @@ class PeriodDiff:
 
 @dataclass
 class NETimeLoop(_Loop):
+    """The time dimension of an nD experiment."""
+
     parameters: NETimeLoopParams
     type: Literal["NETimeLoop"] = "NETimeLoop"
 
@@ -227,7 +239,7 @@ class ZStackLoopParams:
 
 ###
 
-ExpLoop = Union[TimeLoop, NETimeLoop, XYPosLoop, ZStackLoop]
+ExpLoop = Union[TimeLoop, NETimeLoop, XYPosLoop, ZStackLoop, CustomLoop]
 LoopParams = Union[TimeLoopParams, NETimeLoopParams, XYPosLoopParams, ZStackLoopParams]
 
 # metadata #################
@@ -286,6 +298,7 @@ class LoopIndices:
     TimeLoop: int | None = None
     XYPosLoop: int | None = None
     ZStackLoop: int | None = None
+    CustomLoop: int | None = field(default=None, repr=False, compare=False)
 
 
 @dataclass
@@ -384,7 +397,7 @@ class XYZPoint(NamedTuple):
 
 class ExtrudedShape(NamedTuple):
     sizeZ: float = 0
-    basePoints: list[XYPoint] = []
+    basePoints: list[XYPoint] = field(default_factory=list)
 
     @classmethod
     def _from_meta_dict(cls, val: dict) -> ExtrudedShape:
@@ -409,20 +422,34 @@ class ROI:
     def __post_init__(self) -> None:
         if isinstance(self.info, dict):
             self.info = RoiInfo(**self.info)
-        self.animParams = [AnimParam(**i) for i in self.animParams]  # type: ignore
+        self.animParams = [
+            AnimParam(**i) if isinstance(i, dict) else i for i in self.animParams
+        ]
 
     @classmethod
     def _from_meta_dict(cls, val: dict) -> ROI:
+        # val has keys:
+        # 'Id', 'Info', 'GUID', 'AnimParams_Size', 'AnimParams_{i}'
+        # where GUID and AnimParams keys are optional
         anim_params = [
-            {_lower0(k): v for k, v in val[f"AnimParams_{i}"].items()}
-            for i in range(val.pop("AnimParams_Size", 0))
+            AnimParam(**{_lower0(k): v for k, v in val[f"AnimParams_{i}"].items()})
+            for i in range(val.get("AnimParams_Size", 0))
         ]
+        info = RoiInfo(**{_lower0(k): v for k, v in val["Info"].items()})
         return cls(
             id=val["Id"],
-            info={_lower0(k): v for k, v in val["Info"].items()},  # type: ignore
+            info=info,
             guid=val.get("GUID", ""),
-            animParams=anim_params,  # type: ignore
+            animParams=anim_params,
         )
+
+
+class T(TypedDict):
+    Id: int
+    Info: dict
+    GUID: str
+    AnimParams_Size: int
+    # AnimParams_{i}: dict
 
 
 @dataclass

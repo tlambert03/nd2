@@ -315,7 +315,7 @@ def rescue_nd2(
 
     Parameters
     ----------
-    handle : Union[BinaryIO,str]
+    handle : BinaryIO | str
         Filepath string, or binary file handle (For example
         `handle = open('some.nd2', 'rb')`)
     frame_shape : Tuple[int, ...], optional

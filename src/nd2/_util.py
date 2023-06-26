@@ -125,6 +125,7 @@ class AXIS:
         "XYPosLoop": POSITION,
         "ZStackLoop": Z,
         "NETimeLoop": TIME,
+        "CustomLoop": UNKNOWN,
     }
 
 

@@ -110,6 +110,7 @@ ignore = [
 [tool.ruff.per-file-ignores]
 "src/nd2/structures.py" = ["D101", "D105"] # Fix someday
 "tests/*.py" = ["D", "S"]
+"benchmarks/*.py" = ["D", "S"]
 "scripts/*.py" = ["D", "S"]
 
 # https://docs.pytest.org/en/6.2.x/customize.html

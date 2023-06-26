@@ -295,9 +295,16 @@ class ND2File:
 
         data = cast("LatestSDKReader", self._rdr)._decode_chunk(key)
         data = data.get("RoiMetadata_v1", {}).copy()
-        data.pop("Global_Size", None)
+        dicts: list[dict] = []
+        if "Global_Size" in data:
+            dicts.extend(data[f"Global_{i}"] for i in range(data["Global_Size"]))
+        if "2PerMPoint_Size" in data:
+            for i in range(data.get("2PerMPoint_Size", 0)):
+                item: dict = data[f"2PerMPoint_{i}"]
+                dicts.extend(item[str(idx)] for idx in range(item.get("Size", 0)))
+
         try:
-            _rois = [ROI._from_meta_dict(d) for d in data.values()]
+            _rois = [ROI._from_meta_dict(d) for d in dicts]
         except Exception as e:  # pragma: no cover
             raise ValueError(f"Could not parse ROI metadata: {e}") from e
         return {r.id: r for r in _rois}

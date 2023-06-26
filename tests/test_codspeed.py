@@ -9,18 +9,20 @@ if all(x not in {"--codspeed", "--benchmark", "tests/test_bench.py"} for x in sy
     pytest.skip("use --benchmark to run benchmark", allow_module_level=True)
 
 
-DATA = Path(__file__).parent.parent / "tests" / "data"
+DATA = Path(__file__).parent / "data"
 TEST_FILE = DATA / "train_TR67_Inj7_fr50.nd2"
 
 
-def test_time_imread(benchmark: Callable) -> None:
+@pytest.mark.parametrize("file", [TEST_FILE], ids=lambda x: x.stem)
+def test_time_imread(benchmark: Callable, file: Path) -> None:
     """Test time to read a file."""
-    _ = nd2.imread(TEST_FILE)
+    _ = nd2.imread(file)
 
 
-def test_time_all_metadata(benchmark: Callable) -> None:
+@pytest.mark.parametrize("file", [TEST_FILE], ids=lambda x: x.stem)
+def test_time_all_metadata(benchmark: Callable, file: Path) -> None:
     """Test time to read all metadata."""
-    with nd2.ND2File(TEST_FILE) as nd:
+    with nd2.ND2File(file) as nd:
         _ = nd.metadata
         _ = nd.frame_metadata(0)
         _ = nd.attributes

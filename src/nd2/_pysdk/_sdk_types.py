@@ -322,8 +322,19 @@ if TYPE_CHECKING:
 
     class RawTagDict(TypedDict):
         ID: str  # name of the tag
-        Type: int
-        Group: int
+        Type: Literal[
+            0,  # Unknown
+            1,  # String
+            2,  # Int
+            3,  # Double
+        ]
+        Group: Literal[
+            0,  # Undefined
+            1,  # Device
+            2,  # Camera
+            3,  # Plugin
+            4,  # Macro
+        ]
         Size: int
         Desc: str
         Unit: str

@@ -14,9 +14,9 @@ __all__ = [
     "is_supported_file",
     "is_legacy",
     "ND2File",
-    "read_chunkmap",
     "rescue_nd2",
     "structures",
+    "__version__",
 ]
 
 

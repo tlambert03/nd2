@@ -618,7 +618,9 @@ def load_metadata(raw_meta: RawMetaDict, global_meta: GlobalMetadata) -> strct.M
         channel = strct.Channel(
             channel=channel_meta,
             loops=loops,
-            microscope=strct.Microscope(**microscope, modalityFlags=flags),
+            microscope=strct.Microscope(
+                **microscope, modalityFlags=flags  # type: ignore
+            ),
             volume=strct.Volume(
                 **volume,
                 componentCount=compCount,

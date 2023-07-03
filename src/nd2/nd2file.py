@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     import dask.array
     import dask.array.core
     import xarray as xr
+    from ome_types import OME
     from typing_extensions import Literal
 
     from ._binary import BinaryLayers
@@ -1262,6 +1263,12 @@ class ND2File:
         from ._binary import BinaryLayers
 
         return BinaryLayers.from_nd2file(self)
+
+    def ome_metadata(self) -> OME:
+        """Return OME metadata for the file."""
+        from ._ome import nd2_ome_metadata
+
+        return nd2_ome_metadata(self)
 
 
 @overload

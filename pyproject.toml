@@ -26,17 +26,17 @@ dependencies = ["resource-backed-dask-array", "typing-extensions", "numpy"]
 [project.optional-dependencies]
 legacy = ["imagecodecs"]
 test = [
-    "lxml",
     "aicsimageio",
     "dask[array]",
     "imagecodecs",
-    "psutil",
-    "pytest-cov",
-    "pytest>=6.0",
-    "pytest-pretty",
-    "pytest-codspeed",
-    "xarray",
+    "lxml",
     "ome-types",
+    "psutil",
+    "pytest-codspeed",
+    "pytest-cov",
+    "pytest-pretty",
+    "pytest>=6.0",
+    "xarray",
 ]
 dev = [
     "aicsimageio",

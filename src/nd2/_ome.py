@@ -9,6 +9,7 @@ from ._util import AXIS
 
 try:
     import ome_types.model as m
+    from ome_types.model.pixels import DimensionOrder
 except ImportError:
     raise ImportError("ome-types is required to read OME metadata") from None
 
@@ -77,10 +78,13 @@ def nd2_ome_metadata(nd2: ND2File) -> m.OME:
             )
             for c_idx in range(nd2.attributes.channelCount or 1)
         )
+
+    dims = "".join(reversed(nd2.sizes))
+    dim_order = next((x for x in DimensionOrder if x.value.startswith(dims)), None)
     pixels = m.Pixels(
         channels=channels,
         planes=planes,
-        dimension_order="".join(reversed(nd2.sizes)),
+        dimension_order=dim_order or DimensionOrder.XYCZT,
         type=str(nd2.dtype),
         significant_bits=nd2.attributes.bitsPerComponentSignificant,
         size_x=nd2.sizes.get(AXIS.X, 1),
@@ -96,11 +100,10 @@ def nd2_ome_metadata(nd2: ND2File) -> m.OME:
         # physical_size_z_unit='um',  # default is um
     )
 
-    date: tuple = rdr._acquisition_date().timetuple()[:6]  # type: ignore
     image = m.Image(
         name=Path(nd2.path).stem,
         pixels=pixels,
-        acquisition_date=(*date, 0, None),
+        acquisition_date=rdr._acquisition_date(),
     )
 
     instruments: list[m.Instrument] = []

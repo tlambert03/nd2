@@ -22,11 +22,11 @@ if TYPE_CHECKING:
     )
 
 
-def nd2_ome_metadata(nd2: ND2File) -> m.OME:
-    if nd2.is_legacy:
+def nd2_ome_metadata(f: ND2File) -> m.OME:
+    if f.is_legacy:
         raise NotImplementedError("OME metadata is not available for legacy files")
-    rdr = cast("LatestSDKReader", nd2._rdr)
-    meta = cast("Metadata", nd2.metadata)
+    rdr = cast("LatestSDKReader", f._rdr)
+    meta = cast("Metadata", f.metadata)
 
     ch0 = next(iter(meta.channels or ()), None)
     channels = [
@@ -54,7 +54,7 @@ def nd2_ome_metadata(nd2: ND2File) -> m.OME:
         for ch in (meta.channels or ())
     ]
 
-    coord_axes = [x for x in nd2.sizes if x not in {AXIS.CHANNEL, AXIS.Y, AXIS.X}]
+    coord_axes = [x for x in f.sizes if x not in {AXIS.CHANNEL, AXIS.Y, AXIS.X}]
     # FIXME: this is so stupid... we go through a similar loop in many places
     # in the code.  fix it up to be more efficient.
     planes: list[m.Plane] = []
@@ -76,32 +76,32 @@ def nd2_ome_metadata(nd2: ND2File) -> m.OME:
                 # position_z=...,
                 # position_z_unit=...,
             )
-            for c_idx in range(nd2.attributes.channelCount or 1)
+            for c_idx in range(f.attributes.channelCount or 1)
         )
 
-    dims = "".join(reversed(nd2.sizes))
+    dims = "".join(reversed(f.sizes.keys()))
     dim_order = next((x for x in DimensionOrder if x.value.startswith(dims)), None)
     pixels = m.Pixels(
         channels=channels,
         planes=planes,
         dimension_order=dim_order or DimensionOrder.XYCZT,
-        type=str(nd2.dtype),
-        significant_bits=nd2.attributes.bitsPerComponentSignificant,
-        size_x=nd2.sizes.get(AXIS.X, 1),
-        size_y=nd2.sizes.get(AXIS.Y, 1),
-        size_z=nd2.sizes.get(AXIS.Z, 1),
-        size_c=nd2.sizes.get(AXIS.CHANNEL, 1),
-        size_t=nd2.sizes.get(AXIS.TIME, 1),
-        physical_size_x=nd2.voxel_size().x,
-        physical_size_y=nd2.voxel_size().y,
-        physical_size_z=nd2.voxel_size().z,
+        type=str(f.dtype),
+        significant_bits=f.attributes.bitsPerComponentSignificant,
+        size_x=f.sizes.get(AXIS.X, 1),
+        size_y=f.sizes.get(AXIS.Y, 1),
+        size_z=f.sizes.get(AXIS.Z, 1),
+        size_c=f.sizes.get(AXIS.CHANNEL, 1),
+        size_t=f.sizes.get(AXIS.TIME, 1),
+        physical_size_x=f.voxel_size().x,
+        physical_size_y=f.voxel_size().y,
+        physical_size_z=f.voxel_size().z,
         # physical_size_x_unit='um',  # default is um
         # physical_size_y_unit='um',  # default is um
         # physical_size_z_unit='um',  # default is um
     )
 
     image = m.Image(
-        name=Path(nd2.path).stem,
+        name=Path(f.path).stem,
         pixels=pixels,
         acquisition_date=rdr._acquisition_date(),
     )

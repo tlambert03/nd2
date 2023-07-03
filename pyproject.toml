@@ -36,6 +36,7 @@ test = [
     "pytest-pretty",
     "pytest-codspeed",
     "xarray",
+    "ome-types",
 ]
 dev = [
     "aicsimageio",

@@ -79,7 +79,7 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
             for c_idx in range(f.attributes.channelCount or 1)
         )
 
-    dims = "".join(reversed(f.sizes.keys()))
+    dims = "".join(reversed(list(f.sizes)))
     dim_order = next((x for x in DimensionOrder if x.value.startswith(dims)), None)
     pixels = m.Pixels(
         channels=channels,

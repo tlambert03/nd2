@@ -287,13 +287,34 @@ if TYPE_CHECKING:
         dRelayLensZoom: float
         dScalingToIntensity: float
         matCameraToStage: dict
-        pCameraSetting: dict
+        pCameraSetting: CameraSettingDict
         pDeviceSetting: dict  # tons of keys in here
         pObjectiveSetting: dict
         sOpticalConfigs: dict[str, dict]
         sSpecSettings: str
         uiModeFQ: int
         uiOpticalConfigs: int
+
+    class CameraSettingDict(TypedDict, total=False):
+        CameraUniqueName: str
+        CameraUserName: str
+        CameraFamilyName: str
+        ModifiedAtJDN: float
+        FormatFast: dict
+        FormatQuality: dict
+        PropertiesFast: dict
+        PropertiesFast_Extra: dict
+        PropertiesQuality: dict  # tons of good stuff in here
+        PropertiesQuality_Extra: dict
+        Metadata: dict
+        LightPath: dict
+        ROI: ROIDict
+
+    class ROIDict(TypedDict, total=False):
+        Left: int
+        Right: int
+        Top: int
+        Bottom: int
 
     class MatrixDict(TypedDict):
         Columns: int

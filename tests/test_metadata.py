@@ -67,7 +67,8 @@ def test_metadata_extraction(new_nd2: Path):
 
         # TODO: deal with typing when metadata is completely missing
         assert isinstance(nd.metadata, structures.Metadata)
-        assert isinstance(nd.frame_metadata(0), structures.FrameMetadata)
+        for i in range(nd._rdr._seq_count()):
+            assert isinstance(nd.frame_metadata(i), structures.FrameMetadata)
         assert isinstance(nd.experiment, list)
         assert isinstance(nd.text_info, dict)
         assert isinstance(nd.sizes, dict)

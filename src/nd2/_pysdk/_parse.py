@@ -16,13 +16,15 @@ from ._sdk_types import ELxModalityMask, EventMeaning, StimulationType
 if TYPE_CHECKING:
     from typing_extensions import TypeGuard
 
-    from nd2.structures import AxisInterpretation, ExpLoop, XYPosLoopParams
+    from nd2.structures import ExpLoop, XYPosLoopParams
 
     from ._sdk_types import (
+        AxisInterpretation,
         CompressionType,
         FilterDict,
         FluorescentProbeDict,
         GlobalMetadata,
+        LoopTypeString,
         NETimeLoopPars,
         PicturePlanesDict,
         PlaneDict,
@@ -465,41 +467,24 @@ def load_global_metadata(
     exp_loops: list[ExpLoop],
     text_info: strct.TextInfo,
 ) -> GlobalMetadata:
-    axesInterpretation: list[AxisInterpretation] = ["distance", "distance", "distance"]
-    axesCalibrated: list[bool] = [False, False, False]
-    axesCalibration: list[float] = [1.0, 1.0, 1.0]
-    if raw_meta.get("ePictureXAxis") == 2:
-        axesInterpretation[0] = "time"
-    if raw_meta.get("ePictureYAxis") == 2:
-        axesInterpretation[1] = "time"
-    axesCalibrated[:2] = [raw_meta["bCalibrated"]] * 2
-    axesCalibration[:2] = [raw_meta["dCalibration"]] * 2
+    axesCalibrated: tuple[bool, bool, bool] = (raw_meta["bCalibrated"],) * 2 + (False,)
+    axesCalibration: list[float] = [raw_meta["dCalibration"]] * 2 + [1.0]
+    axInterp: tuple[AxisInterpretation, AxisInterpretation, AxisInterpretation] = (
+        "time" if raw_meta.get("ePictureXAxis") == 2 else "distance",
+        "time" if raw_meta.get("ePictureYAxis") == 2 else "distance",
+        "distance",
+    )
 
     voxel_count: list[int] = [attrs.widthPx or 0, attrs.heightPx or 0, 1]
-    loops: dict[str, int] = {}
+    loops: dict[LoopTypeString, int] = {}
     for i, loop in enumerate(exp_loops):
-        loops[str(loop.type)] = i
+        loops[loop.type] = i
         if loop.type == "ZStackLoop":
             voxel_count[2] = loop.count
             axesCalibration[2] = abs(loop.parameters.stepUm)
-            axesCalibrated[2] = bool(axesCalibration[2] > 0)
+            axesCalibrated = axesCalibrated[:2] + (bool(axesCalibration[2] > 0),)
 
     dtype = "float" if attrs.bitsPerComponentSignificant == 32 else "unsigned"
-    volume = {
-        "axesCalibrated": axesCalibrated,
-        "axesCalibration": [i if i > 0 else 1.0 for i in axesCalibration],
-        "axesInterpretation": axesInterpretation,
-        "bitsPerComponentInMemory": attrs.bitsPerComponentInMemory,
-        "bitsPerComponentSignificant": attrs.bitsPerComponentSignificant,
-        "cameraTransformationMatrix": [
-            raw_meta.get("dStgLgCT11", 1.0),
-            raw_meta.get("dStgLgCT12", 0.0),
-            raw_meta.get("dStgLgCT21", 0.0),
-            raw_meta.get("dStgLgCT22", 1.0),
-        ],
-        "componentDataType": dtype,
-        "voxelCount": voxel_count,
-    }
     mag = raw_meta.get("dObjectiveMag", 0.0)
     if mag <= 0 and "optics" in text_info:
         match = re.search(r"\s?(\d+)?x", text_info["optics"], re.IGNORECASE)
@@ -512,32 +497,45 @@ def load_global_metadata(
     na = raw_meta.get("dObjectiveNA", -1)
     zoom = raw_meta.get("dZoom", -1)
     imm = raw_meta.get("dRefractIndex1") or raw_meta.get("dRefractIndex2")
-    microscope = {
-        "objectiveMagnification": mag if mag > 0 else None,
-        "objectiveName": raw_meta.get("wsObjectiveName") or None,
-        "objectiveNumericalAperture": na if na > 0 else None,
-        "projectiveMagnification": projectiveMagnification,
-        "zoomMagnification": zoom if zoom > 0 else None,
-        "immersionRefractiveIndex": imm if imm and imm > 0 else None,
-        "pinholeDiameterUm": pinhole if pinhole > 0 else None,
-    }
 
     return {
         "contents": {"frameCount": attrs.sequenceCount},
         "loops": loops,
-        "microscope": microscope,
+        "microscope": {
+            "objectiveMagnification": mag if mag > 0 else None,
+            "objectiveName": raw_meta.get("wsObjectiveName") or None,
+            "objectiveNumericalAperture": na if na > 0 else None,
+            "projectiveMagnification": projectiveMagnification,
+            "zoomMagnification": zoom if zoom > 0 else None,
+            "immersionRefractiveIndex": imm if imm and imm > 0 else None,
+            "pinholeDiameterUm": pinhole if pinhole > 0 else None,
+        },
         "position": {
-            "stagePositionUm": [
+            "stagePositionUm": (
                 raw_meta.get("dXPos", 0.0),
                 raw_meta.get("dYPos", 0.0),
                 raw_meta.get("dZPos", 0.0),
-            ]
+            )
         },
         "time": {
             "relativeTimeMs": raw_meta.get("dTimeMSec", 0.0),
             "absoluteJulianDayNumber": raw_meta.get("dTimeAbsolute", 0.0),
         },
-        "volume": volume,
+        "volume": {
+            "axesCalibrated": axesCalibrated,
+            "axesCalibration": tuple(i if i > 0 else 1.0 for i in axesCalibration),  # type: ignore  # noqa: E501
+            "axesInterpretation": axInterp,
+            "bitsPerComponentInMemory": attrs.bitsPerComponentInMemory,
+            "bitsPerComponentSignificant": attrs.bitsPerComponentSignificant,
+            "cameraTransformationMatrix": (
+                raw_meta.get("dStgLgCT11", 1.0),
+                raw_meta.get("dStgLgCT12", 0.0),
+                raw_meta.get("dStgLgCT21", 0.0),
+                raw_meta.get("dStgLgCT22", 1.0),
+            ),
+            "componentDataType": dtype,  # type: ignore
+            "voxelCount": tuple(voxel_count),  # type: ignore
+        },
     }
 
 
@@ -576,7 +574,9 @@ def load_metadata(raw_meta: RawMetaDict, global_meta: GlobalMetadata) -> strct.M
         if matrix and (matrix.get("Columns") == 2 and matrix.get("Rows") == 2):
             # matrix["Data"] is a list of int64, we need to recast to float
             data = bytearray(matrix["Data"])
-            matrix_data: list[float] = [i[0] for i in strctd.iter_unpack(data)]
+            matrix_data: tuple[float, float, float, float] = tuple(  # type: ignore
+                i[0] for i in strctd.iter_unpack(data)
+            )
             volume["cameraTransformationMatrix"] = matrix_data
 
         _pixel_to_stage = pixel_to_stage
@@ -608,19 +608,29 @@ def load_metadata(raw_meta: RawMetaDict, global_meta: GlobalMetadata) -> strct.M
                         if _pixel_to_stage is not None:
                             pixel_to_stage = _pixel_to_stage
 
-        volume["pixelToStageTransformationMatrix"] = _pixel_to_stage
         if plane.get("dPinholeDiameter", -1) > 0:
             microscope["pinholeDiameterUm"] = plane["dPinholeDiameter"]
 
-        loops = (
-            strct.LoopIndices(**global_meta["loops"]) if global_meta["loops"] else None
-        )
+        if glb_loops := global_meta["loops"]:
+            loops = strct.LoopIndices(
+                NETimeLoop=glb_loops.get("NETimeLoop"),
+                TimeLoop=glb_loops.get("TimeLoop"),
+                XYPosLoop=glb_loops.get("XYPosLoop"),
+                ZStackLoop=glb_loops.get("ZStackLoop"),
+                CustomLoop=glb_loops.get("CustomLoop"),
+            )
+        else:
+            loops = None
+
         channel = strct.Channel(
             channel=channel_meta,
             loops=loops,
             microscope=strct.Microscope(**microscope, modalityFlags=flags),
             volume=strct.Volume(
                 **volume,
+                pixelToStageTransformationMatrix=(
+                    None if _pixel_to_stage is None else tuple(_pixel_to_stage)  # type: ignore  # noqa
+                ),
                 componentCount=compCount,
                 componentMinima=[0.0] * compCount,  # FIXME
                 componentMaxima=[0.0] * compCount,  # FIXME
@@ -637,16 +647,16 @@ def load_frame_metadata(
     meta: strct.Metadata,
     exp_loops: list[ExpLoop],
     frame_time: float,
-    seq_index: int,
+    loop_indices: tuple[int, ...],
 ) -> strct.FrameMetadata:
     xy_loop_idx = global_meta["loops"].get("XYPosLoop", -1)
     z_loop_idx = global_meta["loops"].get("ZStackLoop", -1)
     if 0 <= xy_loop_idx < len(exp_loops):
-        params = cast("XYPosLoopParams", exp_loops[xy_loop_idx].parameters)
-        point = params.points[seq_index]
+        xy_params = cast("XYPosLoopParams", exp_loops[xy_loop_idx].parameters)
+        point = xy_params.points[loop_indices[xy_loop_idx]]
         name = point.name
         x, y, z = point.stagePositionUm
-        if not params.isSettingZ:
+        if not xy_params.isSettingZ:
             z = global_meta["position"]["stagePositionUm"][2]
     else:
         name = None

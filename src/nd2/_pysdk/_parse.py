@@ -611,7 +611,8 @@ def load_metadata(raw_meta: RawMetaDict, global_meta: GlobalMetadata) -> strct.M
         if plane.get("dPinholeDiameter", -1) > 0:
             microscope["pinholeDiameterUm"] = plane["dPinholeDiameter"]
 
-        if glb_loops := global_meta["loops"]:
+        glb_loops = global_meta["loops"]
+        if glb_loops:
             loops = strct.LoopIndices(
                 NETimeLoop=glb_loops.get("NETimeLoop"),
                 TimeLoop=glb_loops.get("TimeLoop"),

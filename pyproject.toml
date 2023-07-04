@@ -52,7 +52,7 @@ dev = [
     "rich",
     "ruff",
     "xarray",
-    "lxml-stubs",
+    "types-lxml",
 ]
 docs = ["mkdocs", "mkdocs-material", "mkdocstrings-python"]
 
@@ -130,6 +130,10 @@ disallow_any_generics = false
 show_column_numbers = true
 show_error_codes = true
 pretty = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_typed = false
 
 [[tool.mypy.overrides]]
 module = ["imagecodecs", "resource_backed_dask_array"]

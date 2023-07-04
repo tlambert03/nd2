@@ -127,7 +127,7 @@ def _node_name_value(
         val = node.attrib.get("value")
         value: JsonValue = _XMLCAST[runtype](val)
     else:
-        value = dict(node.attrib) if include_attrs else {}  # type: ignore
+        value = dict(node.attrib) if include_attrs else {}
         for i, child in enumerate(node):
             cname, cval = _node_name_value(
                 child, strip_prefix, include_attrs  # type: ignore

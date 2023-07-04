@@ -31,7 +31,7 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
     ch0 = next(iter(meta.channels or ()), None)
     channels = [
         m.Channel(
-            # id=...,
+            id=f"Channel:{c_idx}",
             name=ch.channel.name,
             acquisition_mode=ch.microscope.ome_acquisition_mode(),
             color=ch.channel.colorRGB,
@@ -51,7 +51,7 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
             # nd_filter=...,
             # samples_per_pixel=...,
         )
-        for ch in (meta.channels or ())
+        for c_idx, ch in enumerate(meta.channels or ())
     ]
 
     coord_axes = [x for x in f.sizes if x not in {AXIS.CHANNEL, AXIS.Y, AXIS.X}]
@@ -82,6 +82,7 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
     dims = "".join(reversed(list(f.sizes)))
     dim_order = next((x for x in DimensionOrder if x.value.startswith(dims)), None)
     pixels = m.Pixels(
+        id="Pixels:0",
         channels=channels,
         planes=planes,
         dimension_order=dim_order or DimensionOrder.XYCZT,
@@ -101,6 +102,7 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
     )
 
     image = m.Image(
+        id="Image:0",
         name=Path(f.path).stem,
         pixels=pixels,
         acquisition_date=rdr._acquisition_date(),
@@ -111,13 +113,15 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
         scope = ch0.microscope
         instruments.append(
             m.Instrument(
+                id="Instrument:0",
                 objectives=[
                     m.Objective(
+                        id="Objective:0",
                         nominal_magnification=scope.objectiveMagnification,
                         lens_na=scope.objectiveNumericalAperture,
                         # immersion=scope.ome_objective_immersion(),
                     )
-                ]
+                ],
             )
         )
 

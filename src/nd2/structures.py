@@ -287,6 +287,38 @@ class LoopIndices:
     CustomLoop: int | None = field(default=None, repr=False, compare=False)
 
 
+ModalityFlags = Literal[
+    "aux",
+    "brightfield",
+    "camera",
+    "diContrast",
+    "dsdConfocal",
+    "fluorescence",
+    "gaasp",
+    "iSIM",
+    "laserScanConfocal",
+    "liveSR",
+    "multiphoton",
+    "nonDescannedDetector",
+    "phaseContrast",
+    "pmt",
+    "RCM",
+    "remainder",
+    "SIM",
+    "sora",
+    "spectral",
+    "spinningDiskConfocal",
+    "sweptFieldConfocalPinhole",
+    "sweptFieldConfocalSlit",
+    "TIRF",
+    "transmitDetector",
+    "vaasIF",
+    "vaasNF",
+    "VCS",
+    "virtualFilter",
+]
+
+
 @dataclass
 class Microscope:
     objectiveMagnification: float | None = None
@@ -296,7 +328,7 @@ class Microscope:
     immersionRefractiveIndex: float | None = None
     projectiveMagnification: float | None = None
     pinholeDiameterUm: float | None = None
-    modalityFlags: list[str] = field(default_factory=list)
+    modalityFlags: list[ModalityFlags] = field(default_factory=list)
 
 
 @dataclass

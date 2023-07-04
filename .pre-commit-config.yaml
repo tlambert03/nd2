@@ -6,12 +6,11 @@ ci:
 default_install_hook_types: [pre-commit, commit-msg]
 
 repos:
-
   # - repo: https://github.com/compilerla/conventional-pre-commit
-    # rev: v2.3.0
-    # hooks:
-    #   - id: conventional-pre-commit
-    #     stages: [commit-msg]
+  # rev: v2.3.0
+  # hooks:
+  #   - id: conventional-pre-commit
+  #     stages: [commit-msg]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
@@ -42,7 +41,12 @@ repos:
       - id: mypy
         files: "^src/"
         exclude: scripts
-        additional_dependencies: [numpy, lxml-stubs]
+        additional_dependencies:
+          - numpy
+          - types-lxml
+          - ome-types
+          - pydantic
+
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.5

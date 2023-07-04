@@ -51,7 +51,7 @@ def elem2dict(node: etree._Element) -> Any:
     attrs = node.attrib
     attrs.pop("runtype", "")
     attrs.pop("version", "")
-    result.update(node.attrib)  # type: ignore
+    result.update(node.attrib)
 
     # [<Element CustomTagDescription_v1.0 at 0x12a29ac40>]
     for element in node:

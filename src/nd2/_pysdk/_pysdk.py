@@ -132,7 +132,7 @@ class ND2Reader:
             attrs = self._decode_chunk(k, strip_prefix=False)
             attrs = attrs.get("SLxImageAttributes", attrs)  # for v3 only
             self._raw_attributes = cast("RawAttributesDict", attrs)
-            raw_meta = self._get_raw_image_metadata()  # ugly
+            raw_meta = self._cached_raw_metadata()  # ugly
             n_channels = raw_meta.get("sPicturePlanes", {}).get("uiCount", 1)
             self._attributes = load_attributes(self._raw_attributes, n_channels)
         return self._attributes
@@ -189,7 +189,7 @@ class ND2Reader:
                 raise
         return self._version
 
-    def _get_raw_image_metadata(self) -> RawMetaDict:
+    def _cached_raw_metadata(self) -> RawMetaDict:
         if self._raw_image_metadata is None:
             k = (
                 b"ImageMetadataSeqLV|0!"
@@ -205,7 +205,7 @@ class ND2Reader:
         if not self._global_metadata:
             self._global_metadata = load_global_metadata(
                 attrs=self.attributes,
-                raw_meta=self._get_raw_image_metadata(),
+                raw_meta=self._cached_raw_metadata(),
                 exp_loops=self.experiment(),
                 text_info=self.text_info(),
             )
@@ -218,7 +218,7 @@ class ND2Reader:
     def metadata(self) -> structures.Metadata:
         if not self._metadata:
             self._metadata = load_metadata(
-                raw_meta=self._get_raw_image_metadata(),
+                raw_meta=self._cached_raw_metadata(),
                 global_meta=self._cached_global_metadata(),
             )
         return self._metadata

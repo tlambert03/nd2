@@ -26,15 +26,16 @@ dependencies = ["resource-backed-dask-array", "typing-extensions", "numpy"]
 [project.optional-dependencies]
 legacy = ["imagecodecs"]
 test = [
-    "lxml",
     "aicsimageio",
     "dask[array]",
     "imagecodecs",
+    "lxml",
+    "ome-types",
     "psutil",
-    "pytest-cov",
-    "pytest>=6.0",
-    "pytest-pretty",
     "pytest-codspeed",
+    "pytest-cov",
+    "pytest-pretty",
+    "pytest>=6.0",
     "xarray",
 ]
 dev = [
@@ -51,7 +52,7 @@ dev = [
     "rich",
     "ruff",
     "xarray",
-    "lxml-stubs",
+    "types-lxml",
 ]
 docs = ["mkdocs", "mkdocs-material", "mkdocstrings-python"]
 
@@ -129,6 +130,10 @@ disallow_any_generics = false
 show_column_numbers = true
 show_error_codes = true
 pretty = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_typed = false
 
 [[tool.mypy.overrides]]
 module = ["imagecodecs", "resource_backed_dask_array"]
@@ -145,6 +150,8 @@ exclude_lines = [
     "except ImportError",
     "except NotImplementedError",
     "if __name__ == .__main__.:",
+    " in flags:",                 # all the OME modality flags... don't need to test
+    "return None",                # just there for mypy
 ]
 
 [tool.coverage.run]

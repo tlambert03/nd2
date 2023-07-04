@@ -272,6 +272,7 @@ class ND2File:
                 'optics': 'Plan Fluor 10x Ph1 DLL'
             }
             ```
+
         Returns
         -------
         TextInfo | dict

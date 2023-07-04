@@ -10,8 +10,6 @@ from typing_extensions import Literal, TypedDict
 from ._pysdk._sdk_types import EventMeaning, StimulationType
 
 if TYPE_CHECKING:
-    import ome_types.model.channel as channel
-
     from ._pysdk._sdk_types import AxisInterpretation, LoopTypeString
 
 
@@ -331,61 +329,6 @@ class Microscope:
     projectiveMagnification: float | None = None
     pinholeDiameterUm: float | None = None
     modalityFlags: list[ModalityFlags] = field(default_factory=list)
-
-    def ome_contrast_method(self) -> channel.ContrastMethod | None:
-        """Return the ome_types ContrastMethod for this channel, if known."""
-        from ome_types.model.channel import ContrastMethod
-
-        # TODO: this is not exhaustive, and we need to check if a given
-        # channel has flags for multiple contrast methods
-        if "fluorescence" in self.modalityFlags:
-            return ContrastMethod.FLUORESCENCE
-        if "brightfield" in self.modalityFlags:
-            return ContrastMethod.BRIGHTFIELD
-        if "phaseContrast" in self.modalityFlags:
-            return ContrastMethod.PHASE
-        if "diContrast" in self.modalityFlags:
-            return ContrastMethod.DIC
-        return None
-
-    def ome_acquisition_mode(self) -> channel.AcquisitionMode | None:
-        """Return the ome_types AcquisitionMode for this channel, if known."""
-        from ome_types.model.channel import AcquisitionMode
-
-        # TODO: this is not exhaustive, and we need to check if a given
-        # channel has flags for multiple contrast methods
-        if "laserScanConfocal" in self.modalityFlags:
-            return AcquisitionMode.LASER_SCANNING_CONFOCAL_MICROSCOPY
-        if "spinningDiskConfocal" in self.modalityFlags:
-            return AcquisitionMode.SPINNING_DISK_CONFOCAL
-        if "sweptFieldConfocalPinhole" in self.modalityFlags:
-            return AcquisitionMode.SWEPT_FIELD_CONFOCAL
-        if "sweptFieldConfocalSlit" in self.modalityFlags:
-            return AcquisitionMode.SLIT_SCAN_CONFOCAL
-        if "brightfield" in self.modalityFlags:
-            return AcquisitionMode.BRIGHT_FIELD
-        if "SIM" in self.modalityFlags:
-            return AcquisitionMode.STRUCTURED_ILLUMINATION
-        if "TIRF" in self.modalityFlags:
-            return AcquisitionMode.TOTAL_INTERNAL_REFLECTION
-        if "multiphoton" in self.modalityFlags:
-            return AcquisitionMode.MULTI_PHOTON_MICROSCOPY
-        if "fluorescence" in self.modalityFlags:
-            return AcquisitionMode.WIDE_FIELD
-
-        return None
-
-    def ome_illumination_type(self) -> channel.IlluminationType | None:
-        """Return the ome_types IlluminationType for this channel, if known."""
-        from ome_types.model.channel import IlluminationType
-
-        if "fluorescence" in self.modalityFlags:
-            return IlluminationType.EPIFLUORESCENCE
-        if "brightfield" in self.modalityFlags:
-            return IlluminationType.TRANSMITTED
-        if "multiphoton" in self.modalityFlags:
-            return IlluminationType.NON_LINEAR
-        return None
 
 
 @dataclass

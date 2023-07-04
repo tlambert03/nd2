@@ -9,17 +9,19 @@ from ._util import AXIS
 
 try:
     import ome_types.model as m
-    from ome_types.model.pixels import DimensionOrder
 except ImportError:
     raise ImportError("ome-types is required to read OME metadata") from None
+
+import ome_types.model.channel as channel
+from ome_types.model.channel import AcquisitionMode, ContrastMethod, IlluminationType
+from ome_types.model.pixels import DimensionOrder
+from ome_types.model.simple_types import UnitsLength, UnitsTime
 
 if TYPE_CHECKING:
     from nd2 import ND2File
 
     from ._pysdk._pysdk import ND2Reader as LatestSDKReader
-    from .structures import (
-        Metadata,
-    )
+    from .structures import Metadata, ModalityFlags
 
 
 def nd2_ome_metadata(f: ND2File) -> m.OME:
@@ -33,16 +35,16 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
         m.Channel(
             id=f"Channel:{c_idx}",
             name=ch.channel.name,
-            acquisition_mode=ch.microscope.ome_acquisition_mode(),
+            acquisition_mode=ome_acquisition_mode(ch.microscope.modalityFlags),
             color=ch.channel.colorRGB,
-            contrast_method=ch.microscope.ome_contrast_method(),
+            contrast_method=ome_contrast_method(ch.microscope.modalityFlags),
             pinhole_size=ch.microscope.pinholeDiameterUm,
-            # pinhole_size_unit='um',  # default is "um"
+            pinhole_size_unit=UnitsLength.MICROMETER,  # default is "um"
             emission_wavelength=ch.channel.emissionLambdaNm,
-            # emission_wavelength_unit='nm',  # default is "nm"
+            emission_wavelength_unit=UnitsLength.NANOMETER,  # default is "nm"
             excitation_wavelength=ch.channel.excitationLambdaNm,
-            # excitation_wavelength_unit='nm',  # default is "nm"
-            illumination_type=ch.microscope.ome_illumination_type(),
+            excitation_wavelength_unit=UnitsLength.NANOMETER,  # default is "nm"
+            illumination_type=ome_illumination_type(ch.microscope.modalityFlags),
             # detector_settings=...,
             # filter_set_ref=...,
             # fluor=...,
@@ -54,38 +56,39 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
         for c_idx, ch in enumerate(meta.channels or ())
     ]
 
-    coord_axes = [x for x in f.sizes if x not in {AXIS.CHANNEL, AXIS.Y, AXIS.X}]
-    # FIXME: this is so stupid... we go through a similar loop in many places
-    # in the code.  fix it up to be more efficient.
+    axes = [AXIS._MAP[x.type] for x in f.experiment]
     planes: list[m.Plane] = []
-    for p_idx in range(rdr._seq_count()):
-        coords = dict(zip(coord_axes, rdr._coords_from_seq_index(p_idx)))
+    for s_idx, loop_idx in zip(range(rdr._seq_count()), rdr.loop_indices()):
+        coords = dict(zip(axes, loop_idx))
+        fm = rdr.frame_metadata(s_idx)
         planes.extend(
             m.Plane(
-                the_z=coords.get(AXIS.Z, 0),
-                the_t=coords.get(AXIS.TIME, 0),
+                the_z=coords.get(AXIS.Z, 0),  # or loop_idx[fm_ch.loops.ZStackLoop]
+                the_t=coords.get(AXIS.TIME, 0),  # or loop_idx[fm_ch.loops.TimeLoop]
                 the_c=c_idx,
                 # exposure_time=...,
                 # exposure_time_unit=...,
-                # delta_t=...,
-                # delta_t_unit=...,
-                # position_x=...,
-                # position_x_unit=...,
-                # position_y=...,
-                # position_y_unit=...,
-                # position_z=...,
-                # position_z_unit=...,
+                delta_t=round(fm_ch.time.relativeTimeMs, 6),
+                delta_t_unit=UnitsTime.MILLISECOND,  # default is "s"
+                position_x=round(fm_ch.position.stagePositionUm.x, 6),
+                position_y=round(fm_ch.position.stagePositionUm.y, 6),
+                position_z=round(fm_ch.position.stagePositionUm.z, 6),
+                position_x_unit=UnitsLength.MICROMETER,  # default is 'reference frame'
+                position_y_unit=UnitsLength.MICROMETER,  # default is 'reference frame'
+                position_z_unit=UnitsLength.MICROMETER,  # default is 'reference frame'
             )
-            for c_idx in range(f.attributes.channelCount or 1)
+            for c_idx, fm_ch in enumerate(fm.channels)
         )
 
     dims = "".join(reversed(list(f.sizes)))
-    dim_order = next((x for x in DimensionOrder if x.value.startswith(dims)), None)
+    dim_order = next(
+        (x for x in DimensionOrder if x.value.startswith(dims)), DimensionOrder.XYCZT
+    )
     pixels = m.Pixels(
         id="Pixels:0",
         channels=channels,
         planes=planes,
-        dimension_order=dim_order or DimensionOrder.XYCZT,
+        dimension_order=dim_order,
         type=str(f.dtype),
         significant_bits=f.attributes.bitsPerComponentSignificant,
         size_x=f.sizes.get(AXIS.X, 1),
@@ -96,9 +99,10 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
         physical_size_x=f.voxel_size().x,
         physical_size_y=f.voxel_size().y,
         physical_size_z=f.voxel_size().z,
-        # physical_size_x_unit='um',  # default is um
-        # physical_size_y_unit='um',  # default is um
-        # physical_size_z_unit='um',  # default is um
+        physical_size_x_unit=UnitsLength.MICROMETER,  # default is um
+        physical_size_y_unit=UnitsLength.MICROMETER,  # default is um
+        physical_size_z_unit=UnitsLength.MICROMETER,  # default is um
+        metadata_only=True,
     )
 
     image = m.Image(
@@ -125,4 +129,61 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
             )
         )
 
-    return m.OME(images=[image], creator=f"nd2 v{__version__}", instruments=instruments)
+    return m.OME(
+        images=[image],
+        creator=f"nd2 v{__version__}",
+        instruments=instruments,
+    )
+
+
+def ome_contrast_method(flags: list[ModalityFlags]) -> channel.ContrastMethod | None:
+    """Return the ome_types ContrastMethod for this channel, if known."""
+    # TODO: this is not exhaustive, and we need to check if a given
+    # channel has flags for multiple contrast methods
+    if "fluorescence" in flags:
+        return ContrastMethod.FLUORESCENCE
+    if "brightfield" in flags:
+        return ContrastMethod.BRIGHTFIELD
+    if "phaseContrast" in flags:
+        return ContrastMethod.PHASE
+    if "diContrast" in flags:
+        return ContrastMethod.DIC
+    return None
+
+
+def ome_acquisition_mode(flags: list[ModalityFlags]) -> channel.AcquisitionMode | None:
+    """Return the ome_types AcquisitionMode for this channel, if known."""
+    # TODO: this is not exhaustive, and we need to check if a given
+    # channel has flags for multiple contrast methods
+    if "laserScanConfocal" in flags:
+        return AcquisitionMode.LASER_SCANNING_CONFOCAL_MICROSCOPY
+    if "spinningDiskConfocal" in flags:
+        return AcquisitionMode.SPINNING_DISK_CONFOCAL
+    if "sweptFieldConfocalPinhole" in flags:
+        return AcquisitionMode.SWEPT_FIELD_CONFOCAL
+    if "sweptFieldConfocalSlit" in flags:
+        return AcquisitionMode.SLIT_SCAN_CONFOCAL
+    if "brightfield" in flags:
+        return AcquisitionMode.BRIGHT_FIELD
+    if "SIM" in flags:
+        return AcquisitionMode.STRUCTURED_ILLUMINATION
+    if "TIRF" in flags:
+        return AcquisitionMode.TOTAL_INTERNAL_REFLECTION
+    if "multiphoton" in flags:
+        return AcquisitionMode.MULTI_PHOTON_MICROSCOPY
+    if "fluorescence" in flags:
+        return AcquisitionMode.WIDE_FIELD
+    return None
+
+
+def ome_illumination_type(
+    flags: list[ModalityFlags],
+) -> channel.IlluminationType | None:
+    """Return the ome_types IlluminationType for this channel, if known."""
+    if "fluorescence" in flags:
+        return IlluminationType.EPIFLUORESCENCE
+    if "brightfield" in flags:
+        return IlluminationType.TRANSMITTED
+    if "multiphoton" in flags:
+        return IlluminationType.NON_LINEAR
+    return None

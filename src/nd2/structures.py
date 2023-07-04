@@ -3,11 +3,14 @@ from __future__ import annotations
 import builtins
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import NamedTuple, Union
+from typing import TYPE_CHECKING, NamedTuple, Union
 
-from typing_extensions import Literal, TypeAlias, TypedDict
+from typing_extensions import Literal, TypedDict
 
 from ._pysdk._sdk_types import EventMeaning, StimulationType
+
+if TYPE_CHECKING:
+    from ._pysdk._sdk_types import AxisInterpretation, LoopTypeString
 
 
 class TextInfo(TypedDict, total=False):
@@ -42,9 +45,6 @@ class LoopType(IntEnum):
     ZStackLoopAccurate = 10
 
 
-AxisInterpretation: TypeAlias = Literal["distance", "time"]
-
-
 # tuples
 
 
@@ -72,20 +72,6 @@ class ImageInfo(NamedTuple):
 
 
 # experiment #################
-
-LoopTypeString = Literal[
-    "Unknown",
-    "TimeLoop",
-    "XYPosLoop",
-    "XYDiscrLoop",
-    "ZStackLoop",
-    "PolarLoop",
-    "SpectLoop",
-    "CustomLoop",
-    "NETimeLoop",
-    "ManTimeLoop",
-    "ZStackLoopAccurate",
-]
 
 
 @dataclass

@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from nd2 import ND2File
 
     from ._pysdk._pysdk import ND2Reader as LatestSDKReader
+    from ._pysdk._sdk_types import RawMetaDict
     from .structures import Metadata, ModalityFlags
 
 
@@ -112,27 +113,31 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
         acquisition_date=rdr._acquisition_date(),
     )
 
-    instruments: list[m.Instrument] = []
+    instrument = m.Instrument(
+        id="Instrument:0",
+        detectors=ome_detectors(rdr._cached_raw_metadata()),
+        # TODO:
+        # dichroics: List[Dichroic]
+        # filter_sets: List[FilterSet]
+        # filters: List[Filter]
+        # light_source_group: List[LightSourceGroupType]
+        # microscope: Optional[Microscope]
+    )
     if ch0 is not None:
         scope = ch0.microscope
-        instruments.append(
-            m.Instrument(
-                id="Instrument:0",
-                objectives=[
-                    m.Objective(
-                        id="Objective:0",
-                        nominal_magnification=scope.objectiveMagnification,
-                        lens_na=scope.objectiveNumericalAperture,
-                        # immersion=scope.ome_objective_immersion(),
-                    )
-                ],
+        instrument.objectives.append(
+            m.Objective(
+                id="Objective:0",
+                nominal_magnification=scope.objectiveMagnification,
+                lens_na=scope.objectiveNumericalAperture,
+                # immersion=scope.ome_objective_immersion(),
             )
         )
 
     return m.OME(
         images=[image],
         creator=f"nd2 v{__version__}",
-        instruments=instruments,
+        instruments=[instrument],
     )
 
 
@@ -187,3 +192,30 @@ def ome_illumination_type(
     if "multiphoton" in flags:
         return IlluminationType.NON_LINEAR
     return None
+
+
+def ome_detectors(raw_meta: RawMetaDict) -> list[m.Detector]:
+    pplanes = raw_meta.get("sPicturePlanes", {})
+    sample_settings = pplanes.get("sSampleSetting", {})
+    info: set[tuple[str | None, str | None]] = set()
+    for ch_settings in sample_settings.values():
+        camdict = ch_settings.get("pCameraSetting")
+        if camdict:
+            model = camdict.get("CameraFamilyName") or camdict.get("CameraUserName")
+            info.add((model, camdict.get("CameraUniqueName")))
+
+        # other info that could be added:
+        # lot_number: Optional[str] = None
+        # amplification_gain: Optional[float]
+        # annotation_ref: List[AnnotationRef]
+        # gain: Optional[float]
+        # offset: Optional[float]
+        # type_: Optional[Type]
+        # voltage: Optional[float]
+        # voltage_unit: Optional[UnitsElectricPotential]
+        # zoom: Optional[float]
+
+    return [
+        m.Detector(id=f"Detector:{idx}", model=model, serial_number=sn)
+        for idx, (model, sn) in enumerate(info)
+    ]

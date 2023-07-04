@@ -146,6 +146,7 @@ exclude_lines = [
     "except ImportError",
     "except NotImplementedError",
     "if __name__ == .__main__.:",
+    "in self.modalityFlags"
 ]
 
 [tool.coverage.run]

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
         dCompressionParam: float
         uiVirtualComponents: int
 
-    class RawMetaDict(TypedDict, total=False):
+    class RawMetaDict(TypedDict):
         ePictureXAxis: int
         ePictureYAxis: int
         bCalibrated: bool
@@ -342,18 +342,60 @@ if TYPE_CHECKING:
     # These dicts are intermediate dicts created in the process of parsing raw meta
     # they mimic intermediate parsing done by the SDK... but needn't stay this way.
 
+    AxisInterpretation = Literal["distance", "time"]
     CompressionType = Literal["lossless", "lossy", "none"]
+    LoopTypeString = Literal[
+        "Unknown",
+        "TimeLoop",
+        "XYPosLoop",
+        "XYDiscrLoop",
+        "ZStackLoop",
+        "PolarLoop",
+        "SpectLoop",
+        "CustomLoop",
+        "NETimeLoop",
+        "ManTimeLoop",
+        "ZStackLoopAccurate",
+    ]
 
     class ContentsDict(TypedDict):
         frameCount: int
 
     class GlobalMetadata(TypedDict):
         contents: ContentsDict
-        loops: dict
-        microscope: dict
-        position: dict
-        time: dict
-        volume: dict
+        loops: dict[LoopTypeString, int]
+        microscope: MicroscopeDict
+        position: PositionDict
+        time: TimeDict
+        volume: VolumeDict
+
+    class MicroscopeDict(TypedDict):
+        objectiveMagnification: float | None
+        objectiveName: str | None
+        objectiveNumericalAperture: float | None
+        projectiveMagnification: float | None
+        zoomMagnification: float | None
+        immersionRefractiveIndex: float | None
+        pinholeDiameterUm: float | None
+
+    class PositionDict(TypedDict):
+        stagePositionUm: tuple[float, float, float]
+
+    class TimeDict(TypedDict):
+        relativeTimeMs: float
+        absoluteJulianDayNumber: float
+
+    class VolumeDict(TypedDict):
+        axesCalibrated: tuple[bool, bool, bool]
+        axesCalibration: tuple[float, float, float]
+        axesInterpretation: tuple[
+            AxisInterpretation, AxisInterpretation, AxisInterpretation
+        ]
+        bitsPerComponentInMemory: int
+        bitsPerComponentSignificant: int
+        cameraTransformationMatrix: tuple[float, float, float, float]
+        componentDataType: Literal["float", "unsigned"]
+        voxelCount: tuple[int, int, int]
 
 
 class ELxModalityMask(IntEnum):

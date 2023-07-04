@@ -3,6 +3,7 @@ from __future__ import annotations
 import mmap
 import os
 import warnings
+from itertools import product
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterable, Sequence, cast
 
@@ -189,18 +190,15 @@ class ND2Reader:
         return self._version
 
     def _get_raw_image_metadata(self) -> RawMetaDict:
-        if not self._raw_image_metadata:
+        if self._raw_image_metadata is None:
             k = (
                 b"ImageMetadataSeqLV|0!"
                 if self.version >= (3, 0)
                 else b"ImageMetadataSeq|0!"
             )
-            if k not in self.chunkmap:
-                self._raw_image_metadata = {}
-            else:
-                meta = self._decode_chunk(k, strip_prefix=False)
-                meta = meta.get("SLxPictureMetadata", meta)  # for v3 only
-                self._raw_image_metadata = cast("RawMetaDict", meta)
+            meta = self._decode_chunk(k, strip_prefix=False)
+            meta = meta.get("SLxPictureMetadata", meta)  # for v3 only
+            self._raw_image_metadata = cast("RawMetaDict", meta)
         return self._raw_image_metadata
 
     def _cached_global_metadata(self) -> GlobalMetadata:
@@ -228,8 +226,9 @@ class ND2Reader:
     def frame_metadata(self, seq_index: int) -> structures.FrameMetadata:
         frame_time = self._cached_frame_times()[seq_index]
         global_meta = self._cached_global_metadata()
+        loop_indices = self.loop_indices()[seq_index]
         return load_frame_metadata(
-            global_meta, self.metadata(), self.experiment(), frame_time, seq_index
+            global_meta, self.metadata(), self.experiment(), frame_time, loop_indices
         )
 
     def text_info(self) -> structures.TextInfo:
@@ -255,6 +254,9 @@ class ND2Reader:
                 self._raw_experiment = cast("RawExperimentDict", exp)
                 self._experiment = load_experiment(0, self._raw_experiment)
         return self._experiment
+
+    def loop_indices(self) -> list[tuple[int, ...]]:
+        return list(product(*[range(x.count) for x in self.experiment()]))
 
     def _img_exp_events(self) -> list[structures.ExperimentEvent]:
         """Parse and return all Image and Experiment events."""

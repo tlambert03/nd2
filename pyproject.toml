@@ -150,7 +150,8 @@ exclude_lines = [
     "except ImportError",
     "except NotImplementedError",
     "if __name__ == .__main__.:",
-    "in self.modalityFlags"
+    " in flags:",                 # all the OME modality flags... don't need to test
+    "return None",                # just there for mypy
 ]
 
 [tool.coverage.run]

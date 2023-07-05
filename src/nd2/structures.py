@@ -498,7 +498,11 @@ class AnimParam:
     def __post_init__(self) -> None:
         if isinstance(self.boxShape, dict):
             self.boxShape = BoxShape(
-                **{_lower0(k): v for k, v in self.boxShape.items()}
+                **{
+                    _lower0(k): v
+                    for k, v in self.boxShape.items()
+                    if _lower0(k) in BoxShape.__annotations__
+                }
             )
         if isinstance(self.extrudedShape, dict):
             self.extrudedShape = ExtrudedShape._from_meta_dict(self.extrudedShape)

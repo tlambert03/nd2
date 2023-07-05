@@ -1,5 +1,28 @@
 # Changelog
 
+## [v0.7.0](https://github.com/tlambert03/nd2/tree/v0.7.0) (2023-07-05)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.6.1...v0.7.0)
+
+**Implemented enhancements:**
+
+- feat: add ome\_metadata output to ome-types [\#153](https://github.com/tlambert03/nd2/pull/153) ([tlambert03](https://github.com/tlambert03))
+- feat: add row filtering to nd2.index, as well as binary/roi data [\#151](https://github.com/tlambert03/nd2/pull/151) ([tlambert03](https://github.com/tlambert03))
+
+**Fixed bugs:**
+
+- fix: fix extra kwargs to roi info [\#158](https://github.com/tlambert03/nd2/pull/158) ([tlambert03](https://github.com/tlambert03))
+- fix: fix frame\_metadata and various metadata typing [\#155](https://github.com/tlambert03/nd2/pull/155) ([tlambert03](https://github.com/tlambert03))
+- fix: improve roi parsing for some files [\#150](https://github.com/tlambert03/nd2/pull/150) ([tlambert03](https://github.com/tlambert03))
+
+**Tests & CI:**
+
+- ci: add codspeed benchmarks [\#152](https://github.com/tlambert03/nd2/pull/152) ([tlambert03](https://github.com/tlambert03))
+
+**Documentation:**
+
+- docs: adding docs [\#149](https://github.com/tlambert03/nd2/pull/149) ([tlambert03](https://github.com/tlambert03))
+
 ## [v0.6.1](https://github.com/tlambert03/nd2/tree/v0.6.1) (2023-06-24)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.6.0...v0.6.1)

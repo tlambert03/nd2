@@ -450,10 +450,22 @@ class ROI:
         # 'Id', 'Info', 'GUID', 'AnimParams_Size', 'AnimParams_{i}'
         # where GUID and AnimParams keys are optional
         anim_params = [
-            AnimParam(**{_lower0(k): v for k, v in val[f"AnimParams_{i}"].items()})
+            AnimParam(
+                **{
+                    _lower0(k): v
+                    for k, v in val[f"AnimParams_{i}"].items()
+                    if _lower0(k) in AnimParam.__annotations__
+                }
+            )
             for i in range(val.get("AnimParams_Size", 0))
         ]
-        info = RoiInfo(**{_lower0(k): v for k, v in val["Info"].items()})
+        info = RoiInfo(
+            **{
+                _lower0(k): v
+                for k, v in val["Info"].items()
+                if _lower0(k) in RoiInfo.__annotations__
+            }
+        )
         return cls(
             id=val["Id"],
             info=info,

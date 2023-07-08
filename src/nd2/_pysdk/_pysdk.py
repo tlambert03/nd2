@@ -533,7 +533,7 @@ class ND2Reader:
                     for i in range(count):
                         word = buffer_[i * chunk_size : (i + 1) * chunk_size]
                         rows.append(word.decode("utf-16").split("\x00", 1)[0])
-                except Exception as e:
+                except Exception as e:  # pragma: no cover
                     warnings.warn(
                         f"Failed to parse {tag['Desc']!r} column: {e}. Please open an "
                         "issue with this nd2 file at "

@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 import struct
 import warnings
+import zlib
 from typing import TYPE_CHECKING, Iterator, NamedTuple, Sequence, cast, overload
 
 import numpy as np
@@ -220,8 +221,6 @@ def _decode_binary_mask(data: bytes, dtype: DTypeLike = "uint16") -> np.ndarray:
 
     # NOTE it is up to ND2File to strip the first 4 bytes... and not call this if there
     # is no data (i.e. if the chunk is just '\x00')
-    import zlib
-
     decomp = zlib.decompress(data)
     stream = io.BytesIO(decomp)
 

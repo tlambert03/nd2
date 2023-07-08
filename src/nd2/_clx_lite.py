@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import re
 import struct
+import zlib
 from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
 if TYPE_CHECKING:
@@ -114,17 +115,15 @@ def _chunk_name_and_dtype(
         return ("", -1)
 
     data_type, name_length = strctBB.unpack(header)
-    if data_type == ELxLiteVariantType.COMPRESS:
-        # NOTE: the rois.nd2 test file has compressed metadata
-        # in b'CustomData|CustomDescriptionV1_0!'
-        raise NotImplementedError("Compressed metadata not yet implemented.")
     if data_type in (ELxLiteVariantType.DEPRECATED, ELxLiteVariantType.UNKNOWN):
         raise ValueError(f"Unknown data type in metadata header: {data_type}")
-
-    # name of the section is a utf16 string of length `name_length * 2`
-    name = stream.read(name_length * 2).decode("utf16")[:-1]
-    if strip_prefix:
-        name = lower.sub("", name)
+    elif data_type == ELxLiteVariantType.COMPRESS:
+        name = ""
+    else:
+        # name of the section is a utf16 string of length `name_length * 2`
+        name = stream.read(name_length * 2).decode("utf16")[:-1]
+        if strip_prefix:
+            name = lower.sub("", name)
     return (name, data_type)
 
 
@@ -142,6 +141,12 @@ def json_from_clx_lite_variant(
         curs = stream.tell()
 
         name, data_type = _chunk_name_and_dtype(stream, strip_prefix)
+
+        if data_type == ELxLiteVariantType.COMPRESS:
+            stream.seek(10, 1)
+            deflated = zlib.decompress(stream.read())
+            return json_from_clx_lite_variant(deflated, strip_prefix)
+
         if data_type == -1:
             break
 

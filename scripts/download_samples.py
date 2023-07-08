@@ -11,10 +11,10 @@ URL = "https://www.dropbox.com/sh/pg9my6hnjj918x8/AACiKLlcDsljRgjJOec-9PQwa?dl=1
 
 # this is just here to invalidate the github actions cache
 # change it when a new file is added to the test data in the dropbox folder
-__HASH__ = "2b6b31e6-8606-42c4-9011-5e233581e53b"
+__HASH__ = "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6"
 
 
-def main():
+def main() -> None:
     response = requests.get(URL, stream=True)
     total_length = response.headers.get("content-length")
 

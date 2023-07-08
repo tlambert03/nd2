@@ -175,3 +175,10 @@ def test_events(new_nd2: Path, orient: Literal["records", "dict", "list"]) -> No
 
     pd = pytest.importorskip("pandas")
     print(pd.DataFrame(events))
+
+
+def test_compressed_metadata() -> None:
+    with ND2File(DATA / "rois.nd2") as f:
+        chunk = f._rdr._decode_chunk(b"CustomData|CustomDescriptionV1_0!")
+        assert "CLxCustomDescription" in chunk
+        assert "Name" in chunk["CLxCustomDescription"]

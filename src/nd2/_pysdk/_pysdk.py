@@ -3,6 +3,7 @@ from __future__ import annotations
 import mmap
 import os
 import warnings
+import zlib
 from itertools import product
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterable, Sequence, cast
@@ -360,8 +361,6 @@ class ND2Reader:
             return self._missing_frame(index)
 
     def _read_compressed_frame(self, index: int) -> np.ndarray:
-        import zlib
-
         ch = self._load_chunk(f"ImageDataSeq|{index}!".encode())
         return np.ndarray(
             shape=self._actual_frame_shape(),
@@ -513,16 +512,6 @@ class ND2Reader:
         # }
         tags = cast("Iterable[RawTagDict]", cd["CustomTagDescription_v1.0"].values())
         for tag in tags:
-            if tag["Type"] == 1:
-                warnings.warn(
-                    f"{tag['Desc']!r} column skipped: "
-                    "(parsing string data is not yet implemented).  Please open an "
-                    "issue with this nd2 file at "
-                    "https://github.com/tlambert03/nd2/issues/new",
-                    stacklevel=2,
-                )
-                continue
-
             col_header = tag["Desc"]
             if col_header in data:  # pragma: no cover
                 # sourcery skip: hoist-if-from-if
@@ -534,8 +523,28 @@ class ND2Reader:
                 col_header += f" [{tag['Unit']}]"
 
             buffer_ = self._load_chunk(f"CustomData|{tag['ID']}!".encode())
-            dtype = {3: np.float64, 2: np.int32}[tag["Type"]]
-            data[col_header] = np.frombuffer(buffer_, dtype=dtype, count=tag["Size"])
+            count = tag["Size"]
+            if tag["Type"] == 1:
+                # string data, so far I've only seen this as wide-strings of utf-16
+                # in 512 byte chunks. (I'm not sure if this is always the case)
+                try:
+                    chunk_size = len(buffer_) // count
+                    rows: Any = []
+                    for i in range(count):
+                        word = buffer_[i * chunk_size : (i + 1) * chunk_size]
+                        rows.append(word.decode("utf-16").split("\x00", 1)[0])
+                except Exception as e:
+                    warnings.warn(
+                        f"Failed to parse {tag['Desc']!r} column: {e}. Please open an "
+                        "issue with this nd2 file at "
+                        "https://github.com/tlambert03/nd2/issues/new",
+                        stacklevel=2,
+                    )
+                    continue
+            else:
+                dtype = {3: np.float64, 2: np.int32}[tag["Type"]]
+                rows = np.frombuffer(buffer_, dtype=dtype, count=count)
+            data[col_header] = rows
 
         return data
 

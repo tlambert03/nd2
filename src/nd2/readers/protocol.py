@@ -38,7 +38,17 @@ class ND2Reader(abc.ABC):
         path: str,
         error_radius: int | None = None,
     ) -> ND2Reader:
-        """Create an ND2Reader for the given path, using the appropriate subclass."""
+        """Create an ND2Reader for the given path, using the appropriate subclass.
+
+        Parameters
+        ----------
+        path : str
+            Path to the ND2 file.
+        error_radius : int, optional
+            If b"ND2 FILEMAP SIGNATURE NAME 0001!" is not found at expected location and
+            `error_radius` is not None, then an area of +/- `error_radius` bytes will be
+            searched for the signature.
+        """
         from nd2.readers import LegacyReader, ModernReader
 
         with open(path, "rb") as fh:
@@ -98,7 +108,8 @@ class ND2Reader(abc.ABC):
 
     def binary_data(self) -> BinaryLayers | None:
         """Return BinaryLayers in the file."""
-        raise NotImplementedError("binary_data not available for legacy files")
+        warnings.warn("binary_data not implemented for legacy files", stacklevel=2)
+        return None
 
     @abc.abstractmethod
     def attributes(self) -> Attributes:
@@ -144,10 +155,6 @@ class ND2Reader(abc.ABC):
     @abc.abstractmethod
     def voxel_size(self) -> tuple[float, float, float]:
         """Return tuple of (x, y, z) voxel size in microns."""
-
-    @abc.abstractmethod
-    def channel_names(self) -> list[str]:
-        """Return list of channel names."""
 
     def custom_data(self) -> dict:
         """Return all data from CustomData chunks in the file."""

@@ -399,10 +399,6 @@ class LegacyReader(ND2Reader):
         xy = self._frame0_meta().get("Calibration") or 1
         return _util.VoxelSize(xy, xy, z or 1)
 
-    def channel_names(self) -> list[str]:
-        planes = self._frame0_meta()["PicturePlanes"]["Plane"]
-        return [p["OpticalConfigName"] for p in planes.values()]
-
     def time_stamps(self) -> list[str]:
         planes = self._frame0_meta()["PicturePlanes"]["Plane"]
         return [p["OpticalConfigName"] for p in planes.values()]

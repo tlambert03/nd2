@@ -22,14 +22,14 @@ if TYPE_CHECKING:
 
     from ._sdk_types import RawMetaDict
     from .readers import ModernReader
-    from .structures import Metadata, ModalityFlags
+    from .structures import ModalityFlags
 
 
 def nd2_ome_metadata(f: ND2File) -> m.OME:
     if f.is_legacy:
         raise NotImplementedError("OME metadata is not available for legacy files")
     rdr = cast("ModernReader", f._rdr)
-    meta = cast("Metadata", f.metadata)
+    meta = f.metadata
 
     ch0 = next(iter(meta.channels or ()), None)
     channels = [

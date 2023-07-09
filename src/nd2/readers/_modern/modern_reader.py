@@ -259,9 +259,6 @@ class ModernReader(ND2Reader):
                 return ch[0].volume.axesCalibration
         return (1, 1, 1)
 
-    def channel_names(self) -> list[str]:
-        return [c.channel.name for c in self.metadata().channels or []]
-
     def _coords_from_seq_index(self, seq_index: int) -> tuple[int, ...]:
         """Convert a sequence index to a coordinate tuple."""
         coords: list[int] = []

@@ -444,7 +444,7 @@ class ND2File:
         return self._rdr.unstructured_metadata(strip_prefix, include, exclude)
 
     @cached_property
-    def metadata(self) -> Metadata | dict:
+    def metadata(self) -> Metadata:
         """Various metadata (will be `dict` only if legacy format).
 
         ??? example "Example output"
@@ -1117,7 +1117,7 @@ class ND2File:
 
     @property
     def _channel_names(self) -> list[str]:
-        return self._rdr.channel_names()
+        return [c.channel.name for c in self.metadata.channels or []]
 
     def __repr__(self) -> str:
         """Return a string representation of the ND2File."""

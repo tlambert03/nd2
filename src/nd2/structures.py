@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, NamedTuple, Union
 
 from typing_extensions import Literal, TypedDict
 
-from ._pysdk._sdk_types import EventMeaning, StimulationType
+from ._sdk_types import EventMeaning, StimulationType
 
 if TYPE_CHECKING:
-    from ._pysdk._sdk_types import AxisInterpretation, LoopTypeString
+    from ._sdk_types import AxisInterpretation, LoopTypeString
 
 
 class TextInfo(TypedDict, total=False):

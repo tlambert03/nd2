@@ -20,16 +20,16 @@ from ome_types.model.simple_types import UnitsLength, UnitsTime
 if TYPE_CHECKING:
     from nd2 import ND2File
 
-    from ._pysdk._pysdk import ND2Reader as LatestSDKReader
-    from ._pysdk._sdk_types import RawMetaDict
-    from .structures import Metadata, ModalityFlags
+    from ._sdk_types import RawMetaDict
+    from .readers import ModernReader
+    from .structures import ModalityFlags
 
 
 def nd2_ome_metadata(f: ND2File) -> m.OME:
     if f.is_legacy:
         raise NotImplementedError("OME metadata is not available for legacy files")
-    rdr = cast("LatestSDKReader", f._rdr)
-    meta = cast("Metadata", f.metadata)
+    rdr = cast("ModernReader", f._rdr)
+    meta = f.metadata
 
     ch0 = next(iter(meta.channels or ()), None)
     channels = [

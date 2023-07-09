@@ -5,8 +5,8 @@ from typing import Any
 
 import pytest
 from nd2 import structures
-from nd2._pysdk import _parse
-from nd2._pysdk._pysdk import ND2Reader
+from nd2._parse import _parse
+from nd2.readers import ModernReader
 
 
 @lru_cache(maxsize=None)
@@ -19,7 +19,7 @@ def test_parse_raw_metadata(new_nd2: Path):
     expected = readlim_output()
     if new_nd2.name not in expected:
         pytest.skip(f"{new_nd2.name} not in readlim_output.json")
-    with ND2Reader(new_nd2) as rdr:
+    with ModernReader(new_nd2) as rdr:
         rdr._cached_global_metadata()  # force metadata to be read
         meta = {
             "Attributes": rdr._raw_attributes,

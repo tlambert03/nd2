@@ -12,8 +12,6 @@ import numpy as np
 if TYPE_CHECKING:
     from numpy.typing import DTypeLike
 
-    from ._pysdk._pysdk import ND2Reader as LatestSDKReader
-    from .nd2file import ND2File
 
 I7 = struct.Struct("<" + "I" * 7)
 I9 = struct.Struct("<" + "I" * 9)
@@ -154,61 +152,6 @@ class BinaryLayers(Sequence[BinaryLayer]):
             if d is not None:
                 out.append(d)
         return np.stack(out)
-
-    @classmethod
-    def from_nd2file(cls, nd2file: ND2File) -> BinaryLayers | None:
-        """Extract binary layers from an ND2 file."""
-        if nd2file.is_legacy:  # pragma: no cover
-            warnings.warn(
-                "`binary_data` is not supported for legacy ND2 files",
-                UserWarning,
-                stacklevel=2,
-            )
-            return None
-        rdr = cast("LatestSDKReader", nd2file._rdr)
-
-        try:
-            binary_meta = rdr._decode_chunk(
-                b"CustomDataVar|BinaryMetadata_v1!", strip_prefix=True
-            )
-        except KeyError:
-            return None
-
-        try:
-            items: dict = binary_meta["BinaryMetadata_v1"]
-        except KeyError:  # pragma: no cover
-            warnings.warn(
-                "Could not find 'BinaryMetadata_v1' tag, please open an "
-                "issue with this file at https://github.com/tlambert03/nd2/issues/new",
-                stacklevel=2,
-            )
-            return None
-
-        binseqs = sorted(x for x in rdr.chunkmap if b"RleZipBinarySequence" in x)
-        mask_items = []
-        for _, item in sorted(items.items()):
-            key = item["FileTag"].encode()
-            _masks: list[np.ndarray | None] = []
-            for bs in binseqs:
-                if key in bs:
-                    data = rdr._load_chunk(bs)[4:]
-                    _masks.append(_decode_binary_mask(data) if data else None)
-            mask_items.append(
-                BinaryLayer(
-                    data=_masks,
-                    name=item["Name"],
-                    comp_name=item["CompName"],
-                    comp_order=item["CompOrder"],
-                    color_mode=item["ColorMode"],
-                    state=item["State"],
-                    color=item["Color"],
-                    file_tag=key,
-                    layer_id=item["BinLayerID"],
-                    coordinate_shape=nd2file._coord_shape,
-                )
-            )
-
-        return cls(mask_items)
 
 
 def _unpack(stream: io.BufferedIOBase, strct: struct.Struct) -> tuple:

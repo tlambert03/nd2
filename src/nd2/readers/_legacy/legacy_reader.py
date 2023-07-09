@@ -11,16 +11,15 @@ import numpy as np
 
 from nd2 import _util
 from nd2 import structures as strct
+from nd2._parse._legacy_xml import parse_xml_block
 from nd2.readers.protocol import ND2Reader
-
-from ._legacy_xml import parse_xml_block
 
 if TYPE_CHECKING:
     from collections import defaultdict
     from io import BufferedReader
     from pathlib import Path
 
-    from nd2.readers._chunk_decode import ChunkMap
+    from nd2._parse._chunk_decode import ChunkMap
 
 try:
     from functools import cached_property
@@ -190,7 +189,7 @@ class LegacyReader(ND2Reader):
             return {}
 
     def _img_exp_events(self) -> list[strct.ExperimentEvent]:
-        from nd2.readers._modern._parse import load_legacy_events
+        from nd2._parse._parse import load_legacy_events
 
         _events = self._get_xml_dict(b"IEVE")
         events: list[dict] = _events.get("FirstEvent", {}).get("no_name", [])
@@ -299,9 +298,6 @@ class LegacyReader(ND2Reader):
             "bits_per_component": t + 1,
             "compression": z,
         }
-
-    def _custom_data(self) -> dict:
-        return {}
 
     def events(self, orient: str, null_value: Any) -> dict[str, Sequence[Any]]:
         warnings.warn(

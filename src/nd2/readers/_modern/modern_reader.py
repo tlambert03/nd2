@@ -9,18 +9,15 @@ from typing import TYPE_CHECKING, Any, Iterable, Literal, Sequence, cast
 import numpy as np
 
 from nd2 import _util, structures
-from nd2._clx_lite import json_from_clx_lite_variant
-from nd2._clx_xml import json_from_clx_variant
-from nd2.readers._chunk_decode import (
+from nd2._parse._chunk_decode import (
     ND2_FILE_SIGNATURE,
     _robustly_read_named_chunk,
     get_chunkmap,
     read_nd2_chunk,
 )
-from nd2.readers.protocol import ND2Reader
-from nd2.structures import ROI
-
-from ._parse import (
+from nd2._parse._clx_lite import json_from_clx_lite_variant
+from nd2._parse._clx_xml import json_from_clx_variant
+from nd2._parse._parse import (
     load_attributes,
     load_events,
     load_experiment,
@@ -29,6 +26,8 @@ from ._parse import (
     load_metadata,
     load_text_info,
 )
+from nd2.readers.protocol import ND2Reader
+from nd2.structures import ROI
 
 if TYPE_CHECKING:
     import datetime
@@ -39,6 +38,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
     from nd2._binary import BinaryLayers
+    from nd2._parse._chunk_decode import ChunkMap
     from nd2._sdk_types import (
         GlobalMetadata,
         RawAttributesDict,
@@ -48,7 +48,6 @@ if TYPE_CHECKING:
         RawTagDict,
         RawTextInfoDict,
     )
-    from nd2.readers._chunk_decode import ChunkMap
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]
@@ -388,7 +387,7 @@ class ModernReader(ND2Reader):
             attr.componentCount // (attr.channelCount or 1),
         )
 
-    def _custom_data(self) -> dict[str, Any]:
+    def custom_data(self) -> dict[str, Any]:
         return {
             k.decode()[14:-1]: self._decode_chunk(k)
             for k in self.chunkmap

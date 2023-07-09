@@ -5,7 +5,7 @@ import mmap
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Sequence
 
-from ._chunk_decode import get_version  # FIXME
+from nd2._parse._chunk_decode import get_version  # FIXME
 
 if TYPE_CHECKING:
     from io import BufferedReader
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     import numpy as np
 
     from nd2._binary import BinaryLayers
-    from nd2.readers._chunk_decode import ChunkMap
+    from nd2._parse._chunk_decode import ChunkMap
     from nd2.structures import (
         ROI,
         Attributes,
@@ -50,7 +50,7 @@ class ND2Reader(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def _load_chunkmap(cls, fh: BufferedReader, error_radius: int) -> ChunkMap:
+    def _load_chunkmap(cls, fh: BufferedReader, error_radius: int | None) -> ChunkMap:
         ...
 
     def is_legacy(self) -> bool:
@@ -93,7 +93,7 @@ class ND2Reader(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def frame_metadata(self, seq_index: int | tuple) -> FrameMetadata | dict:
+    def frame_metadata(self, seq_index: int) -> FrameMetadata | dict:
         ...
 
     @abc.abstractmethod
@@ -147,3 +147,6 @@ class ND2Reader(abc.ABC):
         raise OSError(
             f"file {path} not recognized as ND2.  First 4 bytes: {magic_num!r}"
         )
+
+    def custom_data(self) -> dict:
+        return {}

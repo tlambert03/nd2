@@ -9,7 +9,7 @@ import dask.array as da
 import pytest
 import xarray as xr
 from nd2 import ND2File, _util, structures
-from nd2.readers._chunk_decode import ND2_FILE_SIGNATURE
+from nd2._parse._chunk_decode import ND2_FILE_SIGNATURE
 
 sys.path.append(str(Path(__file__).parent.parent / "scripts"))
 from nd2_describe import get_nd2_stats  # noqa: E402

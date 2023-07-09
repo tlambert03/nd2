@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import cast
 
-from nd2._clx_xml import json_from_clx_variant
+from nd2._parse._clx_xml import json_from_clx_variant
 
 XML = (Path(__file__).parent / "variant.xml").read_bytes()
 

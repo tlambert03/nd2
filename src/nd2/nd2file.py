@@ -10,8 +10,8 @@ import numpy as np
 
 from nd2 import _util
 
+from ._parse._chunk_decode import get_version
 from ._util import AXIS, is_supported_file
-from .readers._chunk_decode import get_version
 from .readers.protocol import ND2Reader
 
 try:
@@ -718,7 +718,7 @@ class ND2File:
     @cached_property
     def custom_data(self) -> dict[str, Any]:
         """Dict of various unstructured custom metadata."""
-        return self._rdr._custom_data()
+        return self._rdr.custom_data()
 
     @cached_property
     def ndim(self) -> int:

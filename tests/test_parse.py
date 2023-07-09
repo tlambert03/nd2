@@ -5,8 +5,8 @@ from typing import Any
 
 import pytest
 from nd2 import structures
+from nd2._parse import _parse
 from nd2.readers import ModernReader
-from nd2.readers._modern import _parse
 
 
 @lru_cache(maxsize=None)

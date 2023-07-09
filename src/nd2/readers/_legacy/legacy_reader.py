@@ -5,18 +5,12 @@ import re
 import struct
 import threading
 import warnings
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    BinaryIO,
-    DefaultDict,
-    Sequence,
-)
+from typing import TYPE_CHECKING, Any, BinaryIO, DefaultDict, Sequence
 
 import numpy as np
 
+from nd2 import _util
 from nd2 import structures as strct
-from nd2._util import AXIS, VoxelSize
 from nd2.readers.protocol import ND2Reader
 
 from ._legacy_xml import parse_xml_block
@@ -40,7 +34,7 @@ IHDR = struct.Struct(">iihBB")  # yxc-dtype in jpeg 2000
 
 
 class LegacyReader(ND2Reader):
-    HEADER_MAGIC = b"\x00\x00\x00\x0c"
+    HEADER_MAGIC = _util.OLD_HEADER_MAGIC
 
     def __init__(self, path: str | Path, error_radius: int | None = None) -> None:
         super().__init__(path, error_radius)
@@ -264,7 +258,7 @@ class LegacyReader(ND2Reader):
             **self._get_xml_dict(b"VIMD", index),
         }
 
-    def voxel_size(self) -> VoxelSize:
+    def voxel_size(self) -> _util.VoxelSize:
         z: float | None = None
         d = self.text_info().get("description") or ""
         _z = re.search(r"Z Stack Loop: 5\s+-\s+Step\s+([.\d]+)", d)
@@ -277,7 +271,7 @@ class LegacyReader(ND2Reader):
                     z = e.parameters.stepUm
                     break
         xy = self._get_xml_dict(b"VIMD", 0).get("Calibration") or 1
-        return VoxelSize(xy, xy, z or 1)
+        return _util.VoxelSize(xy, xy, z or 1)
 
     def channel_names(self) -> list[str]:
         xml = self._get_xml_dict(b"VIMD", 0)
@@ -346,6 +340,6 @@ def _dims_from_description(desc: str | None) -> dict:
     if not match:
         return {}
     dims = match.groups()[0]
-    dims = dims.replace("λ", AXIS.CHANNEL)
-    dims = dims.replace("XY", AXIS.POSITION)
+    dims = dims.replace("λ", _util.AXIS.CHANNEL)
+    dims = dims.replace("XY", _util.AXIS.POSITION)
     return {k: int(v) for k, v in DIMSIZE.findall(dims)}

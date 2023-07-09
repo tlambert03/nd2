@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 
 
 class ModernReader(ND2Reader):
-    HEADER_MAGIC = b"\xda\xce\xbe\n"
+    HEADER_MAGIC = _util.NEW_HEADER_MAGIC
 
     def __init__(self, path: str | Path, error_radius: int | None = None) -> None:
         super().__init__(path, error_radius)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import re
+import warnings
 from datetime import datetime
 from itertools import product
 from typing import TYPE_CHECKING, Mapping, NamedTuple
@@ -10,8 +11,7 @@ if TYPE_CHECKING:
     from os import PathLike
     from typing import IO, Any, Callable, ClassVar, Sequence, Union
 
-    from ._legacy import LegacyND2Reader
-    from ._pysdk._pysdk import ND2Reader
+    from nd2.readers import ND2Reader
 
     StrOrBytesPath = Union[str, bytes, PathLike[str], PathLike[bytes]]
 
@@ -63,27 +63,16 @@ def is_legacy(path: StrOrBytesPath) -> bool:
 
 
 def get_reader(
-    path: str,
-    validate_frames: bool = False,
-    search_window: int = 100,
-) -> ND2Reader | LegacyND2Reader:
-    with open(path, "rb") as fh:
-        magic_num = fh.read(4)
-        if magic_num == NEW_HEADER_MAGIC:
-            from ._pysdk._pysdk import ND2Reader
+    path: str, validate_frames: bool = False, search_window: int = 100
+) -> ND2Reader:
+    warnings.warn(
+        "Deprecated, use nd2.readers.ND2Reader.create if you want to "
+        "directly instantiate a reader subclass.",
+        stacklevel=2,
+    )
+    from nd2.readers import ND2Reader
 
-            return ND2Reader(
-                path,
-                validate_frames=validate_frames,
-                search_window=search_window,
-            )
-        elif magic_num == OLD_HEADER_MAGIC:
-            from ._legacy._legacy import LegacyND2Reader
-
-            return LegacyND2Reader(path)
-        raise OSError(
-            f"file {path} not recognized as ND2.  First 4 bytes: {magic_num!r}"
-        )
+    return ND2Reader.create(path, search_window * 1000 if validate_frames else None)
 
 
 def is_new_format(path: str) -> bool:

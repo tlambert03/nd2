@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import mmap
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 from nd2._parse._chunk_decode import get_version  # FIXME
 
@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from io import BufferedReader
 
     import numpy as np
+    from typing_extensions import Literal
 
     from nd2._binary import BinaryLayers
     from nd2._parse._chunk_decode import ChunkMap

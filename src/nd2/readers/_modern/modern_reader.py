@@ -4,7 +4,7 @@ import os
 import warnings
 import zlib
 from itertools import product
-from typing import TYPE_CHECKING, Any, Iterable, Literal, Sequence, cast
+from typing import TYPE_CHECKING, Any, Iterable, Literal, Mapping, Sequence, cast
 
 import numpy as np
 
@@ -31,7 +31,6 @@ from nd2.structures import ROI
 
 if TYPE_CHECKING:
     import datetime
-    from io import BufferedReader
     from os import PathLike
     from pathlib import Path
 
@@ -79,8 +78,8 @@ class ModernReader(ND2Reader):
         self._raw_text_info: RawTextInfoDict | None = None
         self._raw_image_metadata: RawMetaDict | None = None
 
-    @classmethod
-    def _load_chunkmap(cls, fh: BufferedReader, error_radius: int) -> ChunkMap:
+    @property
+    def chunkmap(self) -> ChunkMap:
         """Load and return the chunkmap.
 
         a Chunkmap is mapping of chunk names (bytes) to (offset, size) pairs.
@@ -91,7 +90,11 @@ class ModernReader(ND2Reader):
             ...
         }
         """
-        return get_chunkmap(fh, error_radius=error_radius)
+        if not self._chunkmap:
+            if self._fh is None:
+                raise OSError("File not open")
+            self._chunkmap = get_chunkmap(self._fh, error_radius=self._error_radius)
+        return cast("ChunkMap", self._chunkmap)
 
     def attributes(self) -> structures.Attributes:
         """Load and return the image attributes."""
@@ -580,7 +583,7 @@ class ModernReader(ND2Reader):
 
     def events(
         self, orient: Literal["records", "list", "dict"], null_value: Any
-    ) -> dict[str, Sequence[Any]]:
+    ) -> list | Mapping:
         acq_data = self._acquisition_data()  # comes back as a dict of lists
         acq_data.update(self._custom_tags())
 
@@ -606,8 +609,8 @@ class ModernReader(ND2Reader):
 
     def rois(self) -> list[ROI]:
         key = b"CustomData|RoiMetadata_v1!"
-        if key not in self.chunkmap:  # type: ignore
-            return {}  # pragma: no cover
+        if key not in self.chunkmap:
+            return []  # pragma: no cover
 
         data = self._decode_chunk(key)
         data = data.get("RoiMetadata_v1", {}).copy()

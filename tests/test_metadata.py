@@ -25,9 +25,11 @@ DATA = Path(__file__).parent / "data"
 
 
 @pytest.mark.parametrize("path", EXPECTED, ids=lambda x: f'{x}_{EXPECTED[x]["ver"]}')
-def test_metadata_integrity(path: str):
+def test_metadata_integrity(path: str) -> None:
     """Test that the current API matches the expected output for sample data."""
     target = Path("tests/data") / path
+    if _util.is_legacy(target):
+        pytest.skip()
     name, stats = get_nd2_stats(target)
 
     # normalize serizalized stuff
@@ -48,14 +50,14 @@ def _clear_names(*exps):
                     point.pop("name", None)
 
 
-def test_decode_all_chunks(new_nd2):
+def test_decode_all_chunks(new_nd2: Path) -> None:
     with ND2File(new_nd2) as f:
         for key in f._rdr.chunkmap:
             if not key.startswith((b"ImageDataSeq", b"CustomData", ND2_FILE_SIGNATURE)):
                 f._rdr._decode_chunk(key)
 
 
-def test_metadata_extraction(new_nd2: Path):
+def test_metadata_extraction(new_nd2: Path) -> None:
     assert ND2File.is_supported_file(new_nd2)
     with ND2File(new_nd2) as nd:
         assert repr(nd)
@@ -103,6 +105,7 @@ def test_metadata_extraction_legacy(old_nd2):
         # assert isinstance(nd.metadata, structures.Metadata)
         assert isinstance(nd.experiment, list)
         assert isinstance(nd.text_info, dict)
+        assert isinstance(nd.metadata, structures.Metadata)
         xarr = nd.to_xarray()
         assert isinstance(xarr, xr.DataArray)
         assert isinstance(xarr.data, da.Array)

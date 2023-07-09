@@ -3,16 +3,15 @@ from __future__ import annotations
 
 import mmap
 import struct
-from contextlib import contextmanager
-from io import BufferedReader
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO, Iterator, cast
+from typing import TYPE_CHECKING, BinaryIO, ContextManager, cast
 
 import numpy as np
 
 if TYPE_CHECKING:
     from os import PathLike
-    from typing import Final
+    from typing import Final, Iterator
 
     from numpy.typing import DTypeLike
 
@@ -71,7 +70,7 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
 
     Parameters
     ----------
-    fh : BufferedReader | str | bytes | Path
+    fh : BinaryIO | str | bytes | Path
         The file handle or path to the ND2 file.
 
     Returns
@@ -84,12 +83,14 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
     ValueError
         If the file is not a valid ND2 file or the header chunk is corrupt.
     """
-    if not isinstance(fh, (BinaryIO, BufferedReader)):
-        with open(fh, "rb") as fh:
-            chunk = START_FILE_CHUNK.unpack(fh.read(START_FILE_CHUNK.size))
+    if hasattr(fh, "read"):
+        ctx: ContextManager[BinaryIO] = nullcontext(cast("BinaryIO", fh))
     else:
-        # leave it open if it came in open
+        ctx = open(fh, "rb")
+
+    with ctx as fh:
         fh.seek(0)
+        fname = str(fh.name)
         chunk = START_FILE_CHUNK.unpack(fh.read(START_FILE_CHUNK.size))
 
     magic, name_length, data_length, name, data = cast("StartFileChunk", chunk)
@@ -98,15 +99,15 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
     if magic != ND2_CHUNK_MAGIC:
         if magic == JP2_MAGIC:
             return (1, 0)  # legacy JP2 files are version 1.0
-        raise ValueError(f"Not a valid ND2 file: {fh.name}. (magic: {magic!r})")
+        raise ValueError(f"Not a valid ND2 file: {fname}. (magic: {magic!r})")
     if name_length != 32 or data_length != 64 or name != ND2_FILE_SIGNATURE:
-        raise ValueError(f"Corrupt ND2 file header chunk: {fh.name}")
+        raise ValueError(f"Corrupt ND2 file header chunk: {fname}")
 
     # data will now be something like Ver2.0, Ver3.0, etc.
     return (int(chr(data[3])), int(chr(data[5])))
 
 
-def get_chunkmap(fh: BufferedReader, error_radius: int | None = None) -> ChunkMap:
+def get_chunkmap(fh: BinaryIO, error_radius: int | None = None) -> ChunkMap:
     """Read the map of the chunks at the end of an ND2 file.
 
     A Chunkmap is mapping of chunk names (bytes) to (offset, size) pairs.
@@ -122,7 +123,7 @@ def get_chunkmap(fh: BufferedReader, error_radius: int | None = None) -> ChunkMa
 
     Parameters
     ----------
-    fh : BufferedReader
+    fh : BinaryIO
         An open nd2 file.  File is assumed to be a valid ND2 file.  (use `get_version`)
     error_radius : int, optional
         If b"ND2 FILEMAP SIGNATURE NAME 0001!" is not found at expected location and
@@ -176,7 +177,7 @@ def get_chunkmap(fh: BufferedReader, error_radius: int | None = None) -> ChunkMa
 
 
 def read_nd2_chunk(
-    fh: BufferedReader, start_position: int, expect_name: bytes | None = None
+    fh: BinaryIO, start_position: int, expect_name: bytes | None = None
 ) -> bytes:
     """Read a single chunk in an ND2 file at `start_position`.
 
@@ -191,7 +192,7 @@ def read_nd2_chunk(
 
     Parameters
     ----------
-    fh : BufferedReader
+    fh : BinaryIO
         An open nd2 file.  File is assumed to be a valid ND2 file.  (use `get_version`)
     start_position : int
         The position in the file to start reading the chunk.
@@ -229,7 +230,7 @@ def read_nd2_chunk(
 
 
 def _robustly_read_named_chunk(
-    fh: BufferedReader,
+    fh: BinaryIO,
     start_position: int,
     expect_name: bytes = ND2_FILEMAP_SIGNATURE,
     search_radius: int | None = None,
@@ -242,7 +243,7 @@ def _robustly_read_named_chunk(
 
     Parameters
     ----------
-    fh : BufferedReader
+    fh : BinaryIO
         An open nd2 file.  File is assumed to be a valid ND2 file.
     start_position : int
         The position in the file to start reading the chunk.
@@ -276,7 +277,7 @@ def _robustly_read_named_chunk(
         raise ValueError(err_msg) from e
 
 
-def iter_chunks(handle: BufferedReader) -> Iterator[tuple[str, int, int]]:
+def iter_chunks(handle: BinaryIO) -> Iterator[tuple[str, int, int]]:
     file_size = handle.seek(0, 2)
     handle.seek(0)
     pos = 0

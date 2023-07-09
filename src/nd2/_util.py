@@ -5,15 +5,16 @@ import re
 import warnings
 from datetime import datetime
 from itertools import product
-from typing import TYPE_CHECKING, Mapping, NamedTuple
+from typing import TYPE_CHECKING, BinaryIO, NamedTuple
 
 if TYPE_CHECKING:
     from os import PathLike
-    from typing import IO, Any, Callable, ClassVar, Sequence, Union
+    from typing import Any, Callable, ClassVar, Mapping, Sequence, Union
 
     from nd2.readers import ND2Reader
 
-    StrOrBytesPath = Union[str, bytes, PathLike[str], PathLike[bytes]]
+    StrOrPath = Union[str, PathLike]
+    FileOrBinaryIO = Union[StrOrPath, BinaryIO]
 
     ListOfDicts = list[dict[str, Any]]
     DictOfLists = Mapping[str, Sequence[Any]]
@@ -24,8 +25,13 @@ OLD_HEADER_MAGIC = b"\x00\x00\x00\x0c"
 VERSION = re.compile(r"^ND2 FILE SIGNATURE CHUNK NAME01!Ver([\d\.]+)$")
 
 
+def _open_binary(path: StrOrPath) -> BinaryIO:
+    return open(path, "rb")
+
+
 def is_supported_file(
-    path: StrOrBytesPath, open_: Callable[[StrOrBytesPath, str], IO[Any]] = open
+    path: FileOrBinaryIO,
+    open_: Callable[[StrOrPath], BinaryIO] = _open_binary,
 ) -> bool:
     """Return `True` if `path` can be opened as an nd2 file.
 
@@ -33,7 +39,7 @@ def is_supported_file(
     ----------
     path : Union[str, bytes, PathLike]
         A path to query
-    open_ : Callable[[StrOrBytesPath, str], IO[Any]]
+    open_ : Callable[[StrOrBytesPath, str], BinaryIO]
         Filesystem opener, by default `builtins.open`
 
     Returns
@@ -41,11 +47,16 @@ def is_supported_file(
     bool
         Whether the can be opened.
     """
-    with open_(path, "rb") as fh:
-        return fh.read(4) in (NEW_HEADER_MAGIC, OLD_HEADER_MAGIC)
+    if isinstance(path, BinaryIO):
+        path.seek(0)
+        magic = path.read(4)
+    else:
+        with open_(path) as fh:
+            magic = fh.read(4)
+    return magic in (NEW_HEADER_MAGIC, OLD_HEADER_MAGIC)
 
 
-def is_legacy(path: StrOrBytesPath) -> bool:
+def is_legacy(path: StrOrPath) -> bool:
     """Return `True` if `path` is a legacy ND2 file.
 
     Parameters

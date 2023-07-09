@@ -265,3 +265,14 @@ def test_gc_triggers_cleanup(single_nd2):
     with pytest.warns(UserWarning, match="ND2File file not closed"):
         f = None  # noqa: F841
         gc.collect()
+
+
+def test_file_handles(single_nd2: Path) -> None:
+    """Test that we can open a file with a file handle also"""
+    with open(single_nd2, "rb") as fh:
+        f = ND2File(fh)
+        assert f.path == str(single_nd2)
+        assert f.version == (3, 0)
+        assert isinstance(f.asarray(), np.ndarray)
+    assert fh.closed
+    assert f.closed

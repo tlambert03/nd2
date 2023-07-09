@@ -6,7 +6,7 @@ import struct
 import threading
 import warnings
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any, BinaryIO, DefaultDict, Mapping, cast
+from typing import TYPE_CHECKING, DefaultDict, cast
 
 import numpy as np
 
@@ -22,10 +22,11 @@ except ImportError:
 
 if TYPE_CHECKING:
     from collections import defaultdict
-    from io import BufferedReader
-    from pathlib import Path
+    from typing import Any, BinaryIO, Mapping
 
     from typing_extensions import TypedDict
+
+    from nd2._util import FileOrBinaryIO
 
     class RawExperimentLoop(TypedDict, total=False):
         Type: int
@@ -143,7 +144,7 @@ IHDR = struct.Struct(">iihBB")  # yxc-dtype in jpeg 2000
 class LegacyReader(ND2Reader):
     HEADER_MAGIC = _util.OLD_HEADER_MAGIC
 
-    def __init__(self, path: str | Path, error_radius: int | None = None) -> None:
+    def __init__(self, path: FileOrBinaryIO, error_radius: int | None = None) -> None:
         super().__init__(path, error_radius)
         self._attributes: strct.Attributes | None = None
         # super().__init__ called open()
@@ -415,7 +416,7 @@ class LegacyReader(ND2Reader):
             pos = self.chunkmap[b"jp2h"][0]
         except (KeyError, IndexError) as e:
             raise KeyError("No valid jp2h header found in file") from e
-        fh = cast("BufferedReader", self._fh)
+        fh = cast("BinaryIO", self._fh)
         fh.seek(pos + I4s.size + 4)  # 4 bytes for "label"
         if fh.read(4) != b"ihdr":
             raise KeyError("No valid ihdr header found in jp2h header")

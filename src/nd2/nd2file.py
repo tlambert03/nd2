@@ -3,14 +3,12 @@ from __future__ import annotations
 import threading
 import warnings
 from itertools import product
-from pathlib import Path
 from typing import TYPE_CHECKING, cast, overload
 
 import numpy as np
 
 from nd2 import _util
 
-from ._parse._chunk_decode import get_version
 from ._util import AXIS, is_supported_file
 from .readers.protocol import ND2Reader
 
@@ -21,6 +19,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from typing import Any, Sequence, Sized, SupportsInt
 
     import dask.array
@@ -30,7 +29,13 @@ if TYPE_CHECKING:
     from typing_extensions import Literal
 
     from ._binary import BinaryLayers
-    from ._util import DictOfDicts, DictOfLists, ListOfDicts, StrOrBytesPath
+    from ._util import (
+        DictOfDicts,
+        DictOfLists,
+        FileOrBinaryIO,
+        ListOfDicts,
+        StrOrPath,
+    )
     from .structures import (
         ROI,
         Attributes,
@@ -91,7 +96,7 @@ class ND2File:
 
     def __init__(
         self,
-        path: Path | str,
+        path: FileOrBinaryIO,
         *,
         validate_frames: bool = False,
         search_window: int = 100,
@@ -104,16 +109,15 @@ class ND2File:
                 FutureWarning,
                 stacklevel=2,
             )
-        self._path = str(path)
         self._error_radius: int | None = (
             search_window * 1000 if validate_frames else None
         )
-        self._rdr = ND2Reader.create(self._path, self._error_radius)
-        self._closed = False
+        self._rdr = ND2Reader.create(path, self._error_radius)
+        self._path = self._rdr._path
         self._lock = threading.RLock()
 
     @staticmethod
-    def is_supported_file(path: StrOrBytesPath) -> bool:
+    def is_supported_file(path: StrOrPath) -> bool:
         """Return `True` if the file is supported by this reader."""
         return is_supported_file(path)
 
@@ -138,12 +142,12 @@ class ND2File:
         ValueError
             If the file is not a valid nd2 file.
         """
-        return get_version(self._path)
+        return self._rdr.version()
 
     @property
     def path(self) -> str:
         """Path of the image."""
-        return self._path
+        return str(self._path)
 
     @property
     def is_legacy(self) -> bool:
@@ -166,7 +170,6 @@ class ND2File:
         """
         if self.closed:
             self._rdr.open()
-            self._closed = False
 
     def close(self) -> None:
         """Close file.
@@ -184,12 +187,11 @@ class ND2File:
         """
         if not self.closed:
             self._rdr.close()
-            self._closed = True
 
     @property
     def closed(self) -> bool:
         """Return `True` if the file is closed."""
-        return self._closed
+        return self._rdr._closed
 
     def __enter__(self) -> ND2File:
         """Open file for reading."""
@@ -198,7 +200,8 @@ class ND2File:
 
     def __del__(self) -> None:
         """Delete file handle on garbage collection."""
-        if not getattr(self, "_closed", True):
+        # if it came in as an open file handle, it's ok to remain open after deletion
+        if not getattr(self, "closed", True) and not self._rdr._was_open:
             warnings.warn(
                 "ND2File file not closed before garbage collection. "
                 "Please use `with ND2File(...):` context or call `.close()`.",
@@ -215,15 +218,17 @@ class ND2File:
         state = self.__dict__.copy()
         del state["_rdr"]
         del state["_lock"]
+        state["_closed"] = self.closed
         return state
 
     def __setstate__(self, d: dict[str, Any]) -> None:
         """Load state from pickling."""
+        _was_closed = d.pop("_closed", False)
         self.__dict__ = d
         self._lock = threading.RLock()
         self._rdr = ND2Reader.create(self._path, self._error_radius)
 
-        if self._closed:
+        if _was_closed:
             self._rdr.close()
 
     @cached_property
@@ -1119,7 +1124,7 @@ class ND2File:
         """Return a string representation of the ND2File."""
         try:
             details = " (closed)" if self.closed else f" {self.dtype}: {self.sizes!r}"
-            extra = f": {Path(self.path).name!r}{details}"
+            extra = f": {self._path.name!r}{details}"
         except Exception:
             extra = ""
         return f"<ND2File at {hex(id(self))}{extra}>"

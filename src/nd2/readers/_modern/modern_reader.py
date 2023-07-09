@@ -32,7 +32,6 @@ from nd2.structures import ROI
 if TYPE_CHECKING:
     import datetime
     from os import PathLike
-    from pathlib import Path
 
     from typing_extensions import Literal, TypeAlias
 
@@ -47,6 +46,7 @@ if TYPE_CHECKING:
         RawTagDict,
         RawTextInfoDict,
     )
+    from nd2._util import FileOrBinaryIO
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]
@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 class ModernReader(ND2Reader):
     HEADER_MAGIC = _util.NEW_HEADER_MAGIC
 
-    def __init__(self, path: str | Path, error_radius: int | None = None) -> None:
+    def __init__(self, path: FileOrBinaryIO, error_radius: int | None = None) -> None:
         super().__init__(path, error_radius)
 
         self._cached_decoded_chunks: dict[bytes, Any] = {}

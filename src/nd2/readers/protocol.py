@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import abc
 import mmap
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
-from nd2._parse._chunk_decode import get_version  # FIXME
+from nd2._parse._chunk_decode import get_version
 
 if TYPE_CHECKING:
     from io import BufferedReader
@@ -92,7 +93,7 @@ class ND2Reader(abc.ABC):
 
     def rois(self) -> list[ROI]:
         """Return ROIs in the file."""
-        # not implemented for legacy files
+        warnings.warn("ROI extraction not implemented for legacy files", stacklevel=2)
         return []
 
     def binary_data(self) -> BinaryLayers | None:
@@ -150,4 +151,5 @@ class ND2Reader(abc.ABC):
 
     def custom_data(self) -> dict:
         """Return all data from CustomData chunks in the file."""
+        warnings.warn("CustomData is not relevant for legacy files", stacklevel=2)
         return {}

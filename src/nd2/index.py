@@ -74,7 +74,7 @@ def index_file(path: Path) -> Record:
                 "shape": list(shape),
                 "axes": "".join(axes),
                 "binary": binary,
-                "rois": bool(nd.rois),
+                "rois": False if nd.is_legacy else bool(nd.rois),
                 "software_name": software.get("SWNameString", ""),
                 "software_version": software.get("VersionString", ""),
                 "grabber": software.get("GrabberString", ""),

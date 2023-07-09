@@ -22,10 +22,11 @@ except ImportError:
 
 if TYPE_CHECKING:
     from collections import defaultdict
-    from pathlib import Path
     from typing import Any, BinaryIO, Mapping
 
     from typing_extensions import TypedDict
+
+    from nd2._util import FileOrBinaryIO
 
     class RawExperimentLoop(TypedDict, total=False):
         Type: int
@@ -143,9 +144,7 @@ IHDR = struct.Struct(">iihBB")  # yxc-dtype in jpeg 2000
 class LegacyReader(ND2Reader):
     HEADER_MAGIC = _util.OLD_HEADER_MAGIC
 
-    def __init__(
-        self, path: str | Path | BinaryIO, error_radius: int | None = None
-    ) -> None:
+    def __init__(self, path: FileOrBinaryIO, error_radius: int | None = None) -> None:
         super().__init__(path, error_radius)
         self._attributes: strct.Attributes | None = None
         # super().__init__ called open()

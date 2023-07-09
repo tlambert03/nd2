@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 
     from nd2.readers import ND2Reader
 
-    StrOrBytesPath = Union[str, bytes, PathLike[str], PathLike[bytes]]
+    StrOrPath = Union[str, PathLike]
+    FileOrBinaryIO = Union[StrOrPath, BinaryIO]
 
     ListOfDicts = list[dict[str, Any]]
     DictOfLists = Mapping[str, Sequence[Any]]
@@ -24,13 +25,13 @@ OLD_HEADER_MAGIC = b"\x00\x00\x00\x0c"
 VERSION = re.compile(r"^ND2 FILE SIGNATURE CHUNK NAME01!Ver([\d\.]+)$")
 
 
-def _open_binary(path: StrOrBytesPath) -> BinaryIO:
+def _open_binary(path: StrOrPath) -> BinaryIO:
     return open(path, "rb")
 
 
 def is_supported_file(
-    path: StrOrBytesPath | BinaryIO,
-    open_: Callable[[StrOrBytesPath], BinaryIO] = _open_binary,
+    path: FileOrBinaryIO,
+    open_: Callable[[StrOrPath], BinaryIO] = _open_binary,
 ) -> bool:
     """Return `True` if `path` can be opened as an nd2 file.
 
@@ -55,7 +56,7 @@ def is_supported_file(
     return magic in (NEW_HEADER_MAGIC, OLD_HEADER_MAGIC)
 
 
-def is_legacy(path: StrOrBytesPath) -> bool:
+def is_legacy(path: StrOrPath) -> bool:
     """Return `True` if `path` is a legacy ND2 file.
 
     Parameters

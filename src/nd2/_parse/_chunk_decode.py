@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import mmap
 import struct
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO, cast
+from typing import TYPE_CHECKING, BinaryIO, ContextManager, cast
 
 import numpy as np
 
@@ -83,12 +83,14 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
     ValueError
         If the file is not a valid ND2 file or the header chunk is corrupt.
     """
-    if not isinstance(fh, (BinaryIO, BinaryIO)):
-        with open(fh, "rb") as fh:
-            chunk = START_FILE_CHUNK.unpack(fh.read(START_FILE_CHUNK.size))
+    if hasattr(fh, "read"):
+        ctx: ContextManager[BinaryIO] = nullcontext(cast("BinaryIO", fh))
     else:
-        # leave it open if it came in open
+        ctx = open(fh, "rb")
+
+    with ctx as fh:
         fh.seek(0)
+        fname = str(fh.name)
         chunk = START_FILE_CHUNK.unpack(fh.read(START_FILE_CHUNK.size))
 
     magic, name_length, data_length, name, data = cast("StartFileChunk", chunk)
@@ -97,9 +99,9 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
     if magic != ND2_CHUNK_MAGIC:
         if magic == JP2_MAGIC:
             return (1, 0)  # legacy JP2 files are version 1.0
-        raise ValueError(f"Not a valid ND2 file: {fh.name}. (magic: {magic!r})")
+        raise ValueError(f"Not a valid ND2 file: {fname}. (magic: {magic!r})")
     if name_length != 32 or data_length != 64 or name != ND2_FILE_SIGNATURE:
-        raise ValueError(f"Corrupt ND2 file header chunk: {fh.name}")
+        raise ValueError(f"Corrupt ND2 file header chunk: {fname}")
 
     # data will now be something like Ver2.0, Ver3.0, etc.
     return (int(chr(data[3])), int(chr(data[5])))

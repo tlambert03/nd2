@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from typing_extensions import Literal
 
     from nd2._binary import BinaryLayers
+    from nd2._util import FileOrBinaryIO
     from nd2.structures import (
         ROI,
         Attributes,
@@ -36,7 +37,7 @@ class ND2Reader(abc.ABC):
     @classmethod
     def create(
         cls,
-        path: str | Path | BinaryIO,
+        path: FileOrBinaryIO,
         error_radius: int | None = None,
     ) -> ND2Reader:
         """Create an ND2Reader for the given path, using the appropriate subclass.
@@ -54,7 +55,6 @@ class ND2Reader(abc.ABC):
 
         if hasattr(path, "read"):
             path = cast(BinaryIO, path)
-            path.seek(0)
             if "b" not in path.mode:
                 raise ValueError(
                     "File handles passed to ND2File must be in binary mode"
@@ -64,26 +64,28 @@ class ND2Reader(abc.ABC):
             ctx = open(path, "rb")
 
         with ctx as fh:
+            fname = fh.name
+            fh.seek(0)
             magic_num = fh.read(4)
 
         for subcls in (ModernReader, LegacyReader):
             if magic_num == subcls.HEADER_MAGIC:
                 return subcls(path, error_radius=error_radius)
         raise OSError(
-            f"file {path} not recognized as ND2.  First 4 bytes: {magic_num!r}"
+            f"file {fname} not recognized as ND2.  First 4 bytes: {magic_num!r}"
         )
 
-    def __init__(
-        self, path: str | Path | BinaryIO, error_radius: int | None = None
-    ) -> None:
+    def __init__(self, path: FileOrBinaryIO, error_radius: int | None = None) -> None:
         self._chunkmap: dict | None = None
 
         self._mmap: mmap.mmap | None = None
-        if isinstance(path, BinaryIO):
-            self._fh: BinaryIO | None = path
-            self._path: Path = Path(path.name)
+        if hasattr(path, "read"):
+            self._fh: BinaryIO | None = cast("BinaryIO", path)
+            self._was_open = not self._fh.closed
+            self._path: Path = Path(self._fh.name)
             self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
         else:
+            self._was_open = False
             self._path = Path(path)
             self._fh = None
         self._error_radius: int | None = error_radius
@@ -107,6 +109,10 @@ class ND2Reader(abc.ABC):
         if self._mmap is not None:
             self._mmap.close()
             self._mmap = None
+
+    @property
+    def _closed(self) -> bool:
+        return self._fh is None or self._fh.closed
 
     def __enter__(self) -> ND2Reader:
         """Context manager enter method."""

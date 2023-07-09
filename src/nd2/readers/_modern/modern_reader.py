@@ -4,7 +4,7 @@ import os
 import warnings
 import zlib
 from itertools import product
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence, cast
+from typing import TYPE_CHECKING, Any, BinaryIO, Iterable, Mapping, Sequence, cast
 
 import numpy as np
 
@@ -55,7 +55,9 @@ if TYPE_CHECKING:
 class ModernReader(ND2Reader):
     HEADER_MAGIC = _util.NEW_HEADER_MAGIC
 
-    def __init__(self, path: str | Path, error_radius: int | None = None) -> None:
+    def __init__(
+        self, path: str | Path | BinaryIO, error_radius: int | None = None
+    ) -> None:
         super().__init__(path, error_radius)
 
         self._cached_decoded_chunks: dict[bytes, Any] = {}

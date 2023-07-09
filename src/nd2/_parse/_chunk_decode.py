@@ -4,15 +4,14 @@ from __future__ import annotations
 import mmap
 import struct
 from contextlib import contextmanager
-from io import BufferedReader
 from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO, Iterator, cast
+from typing import TYPE_CHECKING, BinaryIO, cast
 
 import numpy as np
 
 if TYPE_CHECKING:
     from os import PathLike
-    from typing import Final
+    from typing import Final, Iterator
 
     from numpy.typing import DTypeLike
 
@@ -71,7 +70,7 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
 
     Parameters
     ----------
-    fh : BufferedReader | str | bytes | Path
+    fh : BinaryIO | str | bytes | Path
         The file handle or path to the ND2 file.
 
     Returns
@@ -84,7 +83,7 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
     ValueError
         If the file is not a valid ND2 file or the header chunk is corrupt.
     """
-    if not isinstance(fh, (BinaryIO, BufferedReader)):
+    if not isinstance(fh, (BinaryIO, BinaryIO)):
         with open(fh, "rb") as fh:
             chunk = START_FILE_CHUNK.unpack(fh.read(START_FILE_CHUNK.size))
     else:
@@ -106,7 +105,7 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
     return (int(chr(data[3])), int(chr(data[5])))
 
 
-def get_chunkmap(fh: BufferedReader, error_radius: int | None = None) -> ChunkMap:
+def get_chunkmap(fh: BinaryIO, error_radius: int | None = None) -> ChunkMap:
     """Read the map of the chunks at the end of an ND2 file.
 
     A Chunkmap is mapping of chunk names (bytes) to (offset, size) pairs.
@@ -122,7 +121,7 @@ def get_chunkmap(fh: BufferedReader, error_radius: int | None = None) -> ChunkMa
 
     Parameters
     ----------
-    fh : BufferedReader
+    fh : BinaryIO
         An open nd2 file.  File is assumed to be a valid ND2 file.  (use `get_version`)
     error_radius : int, optional
         If b"ND2 FILEMAP SIGNATURE NAME 0001!" is not found at expected location and
@@ -176,7 +175,7 @@ def get_chunkmap(fh: BufferedReader, error_radius: int | None = None) -> ChunkMa
 
 
 def read_nd2_chunk(
-    fh: BufferedReader, start_position: int, expect_name: bytes | None = None
+    fh: BinaryIO, start_position: int, expect_name: bytes | None = None
 ) -> bytes:
     """Read a single chunk in an ND2 file at `start_position`.
 
@@ -191,7 +190,7 @@ def read_nd2_chunk(
 
     Parameters
     ----------
-    fh : BufferedReader
+    fh : BinaryIO
         An open nd2 file.  File is assumed to be a valid ND2 file.  (use `get_version`)
     start_position : int
         The position in the file to start reading the chunk.
@@ -229,7 +228,7 @@ def read_nd2_chunk(
 
 
 def _robustly_read_named_chunk(
-    fh: BufferedReader,
+    fh: BinaryIO,
     start_position: int,
     expect_name: bytes = ND2_FILEMAP_SIGNATURE,
     search_radius: int | None = None,
@@ -242,7 +241,7 @@ def _robustly_read_named_chunk(
 
     Parameters
     ----------
-    fh : BufferedReader
+    fh : BinaryIO
         An open nd2 file.  File is assumed to be a valid ND2 file.
     start_position : int
         The position in the file to start reading the chunk.
@@ -276,7 +275,7 @@ def _robustly_read_named_chunk(
         raise ValueError(err_msg) from e
 
 
-def iter_chunks(handle: BufferedReader) -> Iterator[tuple[str, int, int]]:
+def iter_chunks(handle: BinaryIO) -> Iterator[tuple[str, int, int]]:
     file_size = handle.seek(0, 2)
     handle.seek(0)
     pos = 0

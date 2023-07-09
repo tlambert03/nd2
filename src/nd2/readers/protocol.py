@@ -3,13 +3,14 @@ from __future__ import annotations
 import abc
 import mmap
 import warnings
+from contextlib import nullcontext
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from typing import TYPE_CHECKING, BinaryIO, cast
 
 from nd2._parse._chunk_decode import get_version
 
 if TYPE_CHECKING:
-    from io import BufferedReader
+    from typing import Any, ContextManager, Mapping, Sequence
 
     import numpy as np
     from typing_extensions import Literal
@@ -35,7 +36,7 @@ class ND2Reader(abc.ABC):
     @classmethod
     def create(
         cls,
-        path: str,
+        path: str | Path | BinaryIO,
         error_radius: int | None = None,
     ) -> ND2Reader:
         """Create an ND2Reader for the given path, using the appropriate subclass.
@@ -51,7 +52,18 @@ class ND2Reader(abc.ABC):
         """
         from nd2.readers import LegacyReader, ModernReader
 
-        with open(path, "rb") as fh:
+        if hasattr(path, "read"):
+            path = cast(BinaryIO, path)
+            path.seek(0)
+            if "b" not in path.mode:
+                raise ValueError(
+                    "File handles passed to ND2File must be in binary mode"
+                )
+            ctx: ContextManager[BinaryIO] = nullcontext(path)
+        else:
+            ctx = open(path, "rb")
+
+        with ctx as fh:
             magic_num = fh.read(4)
 
         for subcls in (ModernReader, LegacyReader):
@@ -61,11 +73,19 @@ class ND2Reader(abc.ABC):
             f"file {path} not recognized as ND2.  First 4 bytes: {magic_num!r}"
         )
 
-    def __init__(self, path: str | Path, error_radius: int | None = None) -> None:
+    def __init__(
+        self, path: str | Path | BinaryIO, error_radius: int | None = None
+    ) -> None:
         self._chunkmap: dict | None = None
-        self._path: Path = Path(path)
-        self._fh: BufferedReader | None = None
+
         self._mmap: mmap.mmap | None = None
+        if isinstance(path, BinaryIO):
+            self._fh: BinaryIO | None = path
+            self._path: Path = Path(path.name)
+            self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
+        else:
+            self._path = Path(path)
+            self._fh = None
         self._error_radius: int | None = error_radius
         self.open()
 

@@ -4,7 +4,7 @@ import os
 import warnings
 import zlib
 from itertools import product
-from typing import TYPE_CHECKING, Any, Iterable, Literal, Mapping, Sequence, cast
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence, cast
 
 import numpy as np
 
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from os import PathLike
     from pathlib import Path
 
-    from typing_extensions import TypeAlias
+    from typing_extensions import Literal, TypeAlias
 
     from nd2._binary import BinaryLayers
     from nd2._parse._chunk_decode import ChunkMap

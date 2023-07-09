@@ -1,25 +1,26 @@
 from __future__ import annotations
 
-import mmap
 import os
 import warnings
 import zlib
 from itertools import product
-from pathlib import Path
-from typing import TYPE_CHECKING, Iterable, Sequence, cast
+from typing import TYPE_CHECKING, Any, Iterable, Literal, Sequence, cast
 
 import numpy as np
 
-from nd2 import structures
+from nd2 import _util, structures
 from nd2._clx_lite import json_from_clx_lite_variant
 from nd2._clx_xml import json_from_clx_variant
-from nd2._pysdk._chunk_decode import (
+from nd2.readers._chunk_decode import (
+    ND2_FILE_SIGNATURE,
     _robustly_read_named_chunk,
     get_chunkmap,
-    get_version,
     read_nd2_chunk,
 )
-from nd2._pysdk._parse import (
+from nd2.readers.protocol import ND2Reader
+from nd2.structures import ROI
+
+from ._parse import (
     load_attributes,
     load_events,
     load_experiment,
@@ -28,18 +29,17 @@ from nd2._pysdk._parse import (
     load_metadata,
     load_text_info,
 )
-from nd2._util import TIME_KEY, Z_SERIES_KEY
 
 if TYPE_CHECKING:
     import datetime
     from io import BufferedReader
     from os import PathLike
-    from typing import Any
+    from pathlib import Path
 
     from typing_extensions import TypeAlias
 
-    from ._chunk_decode import ChunkMap
-    from ._sdk_types import (
+    from nd2._binary import BinaryLayers
+    from nd2._sdk_types import (
         GlobalMetadata,
         RawAttributesDict,
         RawExperimentDict,
@@ -48,25 +48,20 @@ if TYPE_CHECKING:
         RawTagDict,
         RawTextInfoDict,
     )
+    from nd2.readers._chunk_decode import ChunkMap
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]
 
 
-class ND2Reader:
-    def __init__(
-        self, path: str | Path, validate_frames: bool = False, search_window: int = 100
-    ) -> None:
-        self._path = Path(path)
-        self._fh: BufferedReader | None = None
-        self._mmap: mmap.mmap | None = None
-        self._chunkmap: ChunkMap = {}
-        self._cached_decoded_chunks: dict[bytes, Any] = {}
-        self._error_radius: int | None = (
-            search_window * 1000 if validate_frames else None
-        )
+class ModernReader(ND2Reader):
+    HEADER_MAGIC = b"\xda\xce\xbe\n"
 
-        self._version: tuple[int, int] | None = None
+    def __init__(self, path: str | Path, error_radius: int | None = None) -> None:
+        super().__init__(path, error_radius)
+
+        self._cached_decoded_chunks: dict[bytes, Any] = {}
+
         self._attributes: structures.Attributes | None = None
         self._experiment: list[structures.ExpLoop] | None = None
         self._text_info: structures.TextInfo | None = None
@@ -85,30 +80,8 @@ class ND2Reader:
         self._raw_text_info: RawTextInfoDict | None = None
         self._raw_image_metadata: RawMetaDict | None = None
 
-        self.open()
-
-    def open(self) -> None:
-        if self._fh is None:
-            self._fh = open(self._path, "rb")
-            self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
-
-    def close(self) -> None:
-        if self._fh is not None:
-            self._fh.close()
-            self._fh = None
-        if self._mmap is not None:
-            self._mmap.close()
-            self._mmap = None
-
-    def __enter__(self) -> ND2Reader:
-        self.open()
-        return self
-
-    def __exit__(self, *_: Any) -> None:
-        self.close()
-
-    @property
-    def chunkmap(self) -> ChunkMap:
+    @classmethod
+    def _load_chunkmap(cls, fh: BufferedReader, error_radius: int) -> ChunkMap:
         """Load and return the chunkmap.
 
         a Chunkmap is mapping of chunk names (bytes) to (offset, size) pairs.
@@ -119,22 +92,21 @@ class ND2Reader:
             ...
         }
         """
-        if not self._chunkmap:
-            if self._fh is None:
-                raise OSError("File not open")
-            self._chunkmap = get_chunkmap(self._fh, error_radius=self._error_radius)
-        return self._chunkmap
+        return get_chunkmap(fh, error_radius=error_radius)
 
-    @property
     def attributes(self) -> structures.Attributes:
         """Load and return the image attributes."""
         if self._attributes is None:
-            k = b"ImageAttributesLV!" if self.version >= (3, 0) else b"ImageAttributes!"
+            k = (
+                b"ImageAttributesLV!"
+                if self.version() >= (3, 0)
+                else b"ImageAttributes!"
+            )
             attrs = self._decode_chunk(k, strip_prefix=False)
             attrs = attrs.get("SLxImageAttributes", attrs)  # for v3 only
-            self._raw_attributes = cast("RawAttributesDict", attrs)
             raw_meta = self._cached_raw_metadata()  # ugly
             n_channels = raw_meta.get("sPicturePlanes", {}).get("uiCount", 1)
+            self._raw_attributes = cast("RawAttributesDict", attrs)
             self._attributes = load_attributes(self._raw_attributes, n_channels)
         return self._attributes
 
@@ -179,22 +151,11 @@ class ND2Reader:
             self._cached_decoded_chunks[name] = decoded
         return self._cached_decoded_chunks[name]
 
-    @property
-    def version(self) -> tuple[int, int]:
-        """Return the file format version as a tuple of ints."""
-        if self._version is None:
-            try:
-                self._version = get_version(self._fh or self._path)
-            except Exception:
-                self._version = (-1, -1)
-                raise
-        return self._version
-
     def _cached_raw_metadata(self) -> RawMetaDict:
         if self._raw_image_metadata is None:
             k = (
                 b"ImageMetadataSeqLV|0!"
-                if self.version >= (3, 0)
+                if self.version() >= (3, 0)
                 else b"ImageMetadataSeq|0!"
             )
             meta = self._decode_chunk(k, strip_prefix=False)
@@ -205,7 +166,7 @@ class ND2Reader:
     def _cached_global_metadata(self) -> GlobalMetadata:
         if not self._global_metadata:
             self._global_metadata = load_global_metadata(
-                attrs=self.attributes,
+                attrs=self.attributes(),
                 raw_meta=self._cached_raw_metadata(),
                 exp_loops=self.experiment(),
                 text_info=self.text_info(),
@@ -234,7 +195,7 @@ class ND2Reader:
 
     def text_info(self) -> structures.TextInfo:
         if self._text_info is None:
-            k = b"ImageTextInfoLV!" if self.version >= (3, 0) else b"ImageTextInfo!"
+            k = b"ImageTextInfoLV!" if self.version() >= (3, 0) else b"ImageTextInfo!"
             if k not in self.chunkmap:
                 self._text_info = {}
             else:
@@ -246,7 +207,7 @@ class ND2Reader:
 
     def experiment(self) -> list[structures.ExpLoop]:
         if not self._experiment:
-            k = b"ImageMetadataLV!" if self.version >= (3, 0) else b"ImageMetadata!"
+            k = b"ImageMetadataLV!" if self.version() >= (3, 0) else b"ImageMetadata!"
             if k not in self.chunkmap:
                 self._experiment = []
             else:
@@ -315,7 +276,7 @@ class ND2Reader:
         return [(i, x.type, x.count) for i, x in enumerate(self.experiment())]
 
     def _seq_count(self) -> int:
-        # this differs from self.attributes.SequenceCount in that it
+        # this differs from self.attributes().SequenceCount in that it
         # includes the actual number of frames in the experiment,
         # excluding "invalid" frames.
         return int(np.prod([x.count for x in self.experiment()]))
@@ -334,7 +295,7 @@ class ND2Reader:
             }
         return self._cached_frame_offsets
 
-    def _read_image(self, index: int) -> np.ndarray:
+    def read_frame(self, index: int) -> np.ndarray:
         """Read a chunk directly without using SDK."""
         if index > self._seq_count():
             raise IndexError(f"Frame out of range: {index}")
@@ -344,7 +305,7 @@ class ND2Reader:
         if offset is None:
             return self._missing_frame(index)
 
-        if self.attributes.compressionType == "lossless":
+        if self.attributes().compressionType == "lossless":
             return self._read_compressed_frame(index)
 
         try:
@@ -375,7 +336,7 @@ class ND2Reader:
 
     def _raw_frame_shape(self) -> tuple[int, ...]:
         if self._raw_frame_shape_ is None:
-            attr = self.attributes
+            attr = self.attributes()
             ncomp = attr.componentCount
             self._raw_frame_shape_ = (
                 attr.heightPx,
@@ -386,11 +347,11 @@ class ND2Reader:
         return self._raw_frame_shape_
 
     def _bytes_per_pixel(self) -> int:
-        return self.attributes.bitsPerComponentInMemory // 8
+        return self.attributes().bitsPerComponentInMemory // 8
 
     def _dtype(self) -> np.dtype:
         if self._dtype_ is None:
-            a = self.attributes
+            a = self.attributes()
             d = a.pixelDataType[0] if a.pixelDataType else "u"
             self._dtype_ = np.dtype(f"{d}{self._bytes_per_pixel()}")
         return self._dtype_
@@ -398,7 +359,7 @@ class ND2Reader:
     @property
     def _strides(self) -> tuple[int, ...] | None:
         if self._strides_ is None:
-            a = self.attributes
+            a = self.attributes()
             widthP = a.widthPx
             widthB = a.widthBytes
             if not (widthP and widthB):
@@ -419,7 +380,7 @@ class ND2Reader:
         return self._strides_
 
     def _actual_frame_shape(self) -> tuple[int, ...]:
-        attr = self.attributes
+        attr = self.attributes()
         return (
             attr.heightPx,
             attr.widthPx or 1,
@@ -445,7 +406,7 @@ class ND2Reader:
         data: dict[str, np.ndarray | Sequence] = {}
         frame_times = self._cached_frame_times()
         if frame_times:
-            data[TIME_KEY] = [x / 1000 for x in frame_times]
+            data[_util.TIME_KEY] = [x / 1000 for x in frame_times]
 
         # FIXME: this whole thing is dumb... must be a better way
         experiment = self.experiment()
@@ -471,7 +432,9 @@ class ND2Reader:
                 raise ValueError("Invalid sequence index or z_idx")
 
             seq_count = self._seq_count()
-            data[Z_SERIES_KEY] = np.array([_seq_z_pos(i) for i in range(seq_count)])
+            data[_util.Z_SERIES_KEY] = np.array(
+                [_seq_z_pos(i) for i in range(seq_count)]
+            )
 
         return data  # type: ignore [return-value]
 
@@ -479,7 +442,7 @@ class ND2Reader:
         """Return tags mentioned in in CustomDataVar|CustomDataV2_0.
 
         This is a dict of {header: [values]}, where
-        len([values]) == self.attributes.sequenceCount
+        len([values]) == self.attributes().sequenceCount
 
         {
             "Camera_ExposureTime1": [0.0, 0.0, 0.0, ...],
@@ -560,19 +523,139 @@ class ND2Reader:
         but if that fails, the raw string is returned.  Use isinstance() to
         be safe.
         """
-        from nd2._util import parse_time
-
         date = self.text_info().get("date")
         if date:
             try:
-                return parse_time(date)
+                return _util.parse_time(date)
             except ValueError:
                 return date
 
         time = self._cached_global_metadata().get("time", {})
         jdn = time.get("absoluteJulianDayNumber")
         if jdn:
-            from nd2._util import jdn_to_datetime_utc
-
-            return jdn_to_datetime_utc(jdn)
+            return _util.jdn_to_datetime_utc(jdn)
         return None
+
+    def binary_data(self) -> BinaryLayers | None:
+        from nd2._binary import BinaryLayer, BinaryLayers, _decode_binary_mask
+
+        chunk_key = b"CustomDataVar|BinaryMetadata_v1!"
+        if chunk_key not in self.chunkmap:
+            return None
+        binary_meta = self._decode_chunk(chunk_key, strip_prefix=True)
+
+        try:
+            items: dict = binary_meta["BinaryMetadata_v1"]
+        except KeyError:  # pragma: no cover
+            warnings.warn(
+                "Could not find 'BinaryMetadata_v1' tag, please open an "
+                "issue with this file at https://github.com/tlambert03/nd2/issues/new",
+                stacklevel=2,
+            )
+            return None
+
+        binseqs = sorted(x for x in self.chunkmap if b"RleZipBinarySequence" in x)
+        mask_items = []
+        coord_shape = tuple(x.count for x in self.experiment())
+
+        for _, item in sorted(items.items()):
+            key = item["FileTag"].encode()
+            _masks: list[np.ndarray | None] = []
+            for bs in binseqs:
+                if key in bs:
+                    data = self._load_chunk(bs)[4:]
+                    _masks.append(_decode_binary_mask(data) if data else None)
+            mask_items.append(
+                BinaryLayer(
+                    data=_masks,
+                    name=item["Name"],
+                    comp_name=item["CompName"],
+                    comp_order=item["CompOrder"],
+                    color_mode=item["ColorMode"],
+                    state=item["State"],
+                    color=item["Color"],
+                    file_tag=key,
+                    layer_id=item["BinLayerID"],
+                    coordinate_shape=coord_shape,
+                )
+            )
+
+        return BinaryLayers(mask_items)
+
+    def events(
+        self, orient: Literal["records", "list", "dict"], null_value: Any
+    ) -> dict[str, Sequence[Any]]:
+        acq_data = self._acquisition_data()  # comes back as a dict of lists
+        acq_data.update(self._custom_tags())
+
+        img_events = self._img_exp_events()
+        if not img_events and orient == "list":
+            # by default, acq_data is already oriented as a dict of lists,
+            # so if we don't have any image events, we can just return it
+            return acq_data
+
+        # re-orient acq_data as a list of dicts, to combine with events
+        records = _util.convert_dict_of_lists_to_records(acq_data)
+        for e in img_events:
+            records.append({_util.TIME_KEY: e.time / 1000, "Events": e.description})
+
+        # sort by time
+        records.sort(key=lambda x: x.get(_util.TIME_KEY, 0))
+
+        if orient == "dict":
+            return _util.convert_records_to_dict_of_dicts(records, null_val=null_value)
+        elif orient == "list":
+            return _util.convert_records_to_dict_of_lists(records, null_val=null_value)
+        return records
+
+    def rois(self) -> list[ROI]:
+        key = b"CustomData|RoiMetadata_v1!"
+        if key not in self.chunkmap:  # type: ignore
+            return {}  # pragma: no cover
+
+        data = self._decode_chunk(key)
+        data = data.get("RoiMetadata_v1", {}).copy()
+        dicts: list[dict] = []
+        if "Global_Size" in data:
+            dicts.extend(data[f"Global_{i}"] for i in range(data["Global_Size"]))
+        if "2PerMPoint_Size" in data:
+            for i in range(data.get("2PerMPoint_Size", 0)):
+                item: dict = data[f"2PerMPoint_{i}"]
+                dicts.extend(item[str(idx)] for idx in range(item.get("Size", 0)))
+
+        try:
+            return [ROI._from_meta_dict(d) for d in dicts]
+        except Exception as e:  # pragma: no cover
+            raise ValueError(f"Could not parse ROI metadata: {e}") from e
+
+    def unstructured_metadata(
+        self,
+        strip_prefix: bool = True,
+        include: set[str] | None = None,
+        exclude: set[str] | None = None,
+    ) -> dict[str, Any]:
+        keys = {
+            k.decode()[:-1]
+            for k in self.chunkmap
+            if not k.startswith((b"ImageDataSeq", b"CustomData", ND2_FILE_SIGNATURE))
+        }
+
+        if include:
+            _keys: set[str] = set()
+            for i in include:
+                if i not in keys:
+                    warnings.warn(f"Key {i!r} not found in metadata", stacklevel=2)
+                else:
+                    _keys.add(i)
+            keys = _keys
+        if exclude:
+            keys = {k for k in keys if k not in exclude}
+
+        output: dict[str, Any] = {}
+        for key in sorted(keys):
+            name = f"{key}!".encode()
+            try:
+                output[key] = self._decode_chunk(name, strip_prefix=strip_prefix)
+            except Exception:  # pragma: no cover
+                output[key] = self._load_chunk(name)
+        return output

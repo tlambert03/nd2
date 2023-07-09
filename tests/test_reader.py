@@ -18,7 +18,7 @@ DATA = Path(__file__).parent / "data"
 def test_read_safety(new_nd2: Path):
     with ND2File(new_nd2) as nd:
         for i in range(nd._frame_count):
-            nd._rdr._read_image(i)
+            nd._rdr.read_frame(i)
 
 
 def test_position(new_nd2: Path):

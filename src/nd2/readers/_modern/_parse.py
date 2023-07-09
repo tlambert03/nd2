@@ -10,15 +10,12 @@ from typing import TYPE_CHECKING, Iterable, cast
 import numpy as np
 
 from nd2 import structures as strct
-
-from ._sdk_types import ELxModalityMask, EventMeaning, StimulationType
+from nd2._sdk_types import ELxModalityMask, EventMeaning, StimulationType
 
 if TYPE_CHECKING:
     from typing_extensions import TypeGuard
 
-    from nd2.structures import ExpLoop, XYPosLoopParams
-
-    from ._sdk_types import (
+    from nd2._sdk_types import (
         AxisInterpretation,
         CompressionType,
         FilterDict,
@@ -40,6 +37,7 @@ if TYPE_CHECKING:
         XYPosLoopPars,
         ZStackLoopPars,
     )
+    from nd2.structures import ExpLoop, XYPosLoopParams
 
 
 strctd = Struct("d")

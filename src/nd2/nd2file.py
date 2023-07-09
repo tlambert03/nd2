@@ -10,9 +10,9 @@ import numpy as np
 
 from nd2 import _util
 
-from ._pysdk._chunk_decode import ND2_FILE_SIGNATURE, get_version
-from ._util import AXIS, TIME_KEY, is_supported_file
-from .structures import ROI
+from ._util import AXIS, is_supported_file
+from .readers._chunk_decode import get_version
+from .readers.protocol import ND2Reader
 
 try:
     from functools import cached_property
@@ -21,7 +21,6 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    import mmap
     from typing import Any, Sequence, Sized, SupportsInt
 
     import dask.array
@@ -31,9 +30,9 @@ if TYPE_CHECKING:
     from typing_extensions import Literal
 
     from ._binary import BinaryLayers
-    from ._pysdk._pysdk import ND2Reader as LatestSDKReader
     from ._util import DictOfDicts, DictOfLists, ListOfDicts, StrOrBytesPath
     from .structures import (
+        ROI,
         Attributes,
         ExpLoop,
         FrameMetadata,
@@ -90,7 +89,6 @@ class ND2File:
         `read_using_sdk=False` on a compressed file will result in a ValueError.
     """
 
-    _memmap: mmap.mmap
     _is_legacy: bool
 
     def __init__(
@@ -109,11 +107,11 @@ class ND2File:
                 stacklevel=2,
             )
         self._path = str(path)
-        self._rdr = _util.get_reader(
-            self._path,
-            validate_frames=validate_frames,
-            search_window=search_window,
+        self._error_radius: int | None = (
+            search_window * 1000 if validate_frames else None
         )
+
+        self._rdr = ND2Reader.create(self._path, self._error_radius)
         self._closed = False
         self._is_legacy = "Legacy" in type(self._rdr).__name__
         self._lock = threading.RLock()
@@ -124,7 +122,7 @@ class ND2File:
         """Return `True` if the file is supported by this reader."""
         return is_supported_file(path)
 
-    @property
+    @cached_property
     def version(self) -> tuple[int, ...]:
         """Return the file format version as a tuple of ints.
 
@@ -134,13 +132,10 @@ class ND2File:
         - `(2, 0)`, `(2, 1)` = non-JPEG2000 nd2 with xml metadata
         - `(3, 0)` = new format nd2 file with lite variant metadata
         """
-        if self._version is None:
-            try:
-                self._version = get_version(self._rdr._fh or self._rdr._path)
-            except Exception:
-                self._version = (-1, -1)
-                raise
-        return self._version
+        try:
+            return get_version(self._path)
+        except Exception:
+            return (-1, -1)
 
     @property
     def path(self) -> str:
@@ -150,7 +145,7 @@ class ND2File:
     @property
     def is_legacy(self) -> bool:
         """Whether file is a legacy nd2 (JPEG2000) file."""
-        return self._is_legacy
+        return self._rdr.is_legacy()
 
     def open(self) -> None:
         """Open file for reading.
@@ -223,7 +218,8 @@ class ND2File:
         """Load state from pickling."""
         self.__dict__ = d
         self._lock = threading.RLock()
-        self._rdr = _util.get_reader(self._path)
+        self._rdr = ND2Reader.create(self._path, self._error_radius)
+
         if self._closed:
             self._rdr.close()
 
@@ -257,7 +253,7 @@ class ND2File:
         attrs : Attributes
             Core image attributes
         """
-        return self._rdr.attributes
+        return self._rdr.attributes()
 
     @cached_property
     def text_info(self) -> TextInfo | dict:
@@ -291,26 +287,7 @@ class ND2File:
         dict[int, ROI]
             The dict of ROIs is keyed by the ROI ID.
         """
-        key = b"CustomData|RoiMetadata_v1!"
-        if self.is_legacy or key not in self._rdr.chunkmap:  # type: ignore
-            return {}  # pragma: no cover
-
-        data = cast("LatestSDKReader", self._rdr)._decode_chunk(key)
-        data = data.get("RoiMetadata_v1", {}).copy()
-        dicts: list[dict] = []
-        if "Global_Size" in data:
-            dicts.extend(data[f"Global_{i}"] for i in range(data["Global_Size"]))
-        if "2PerMPoint_Size" in data:
-            for i in range(data.get("2PerMPoint_Size", 0)):
-                item: dict = data[f"2PerMPoint_{i}"]
-                dicts.extend(item[str(idx)] for idx in range(item.get("Size", 0)))
-
-        try:
-            _rois = [ROI._from_meta_dict(d) for d in dicts]
-        except Exception as e:  # pragma: no cover
-            return {}
-            raise ValueError(f"Could not parse ROI metadata: {e}") from e
-        return {r.id: r for r in _rois}
+        return {r.id: r for r in self._rdr.rois()}
 
     @cached_property
     def experiment(self) -> list[ExpLoop]:
@@ -412,37 +389,7 @@ class ND2File:
         if orient not in ("records", "dict", "list"):  # pragma: no cover
             raise ValueError("orient must be one of 'records', 'dict', or 'list'")
 
-        if self.is_legacy:  # pragma: no cover
-            warnings.warn(
-                "`recorded_data` is not implemented for legacy ND2 files",
-                UserWarning,
-                stacklevel=2,
-            )
-            return [] if orient == "records" else {}  # type: ignore[return-value]
-
-        rdr = cast("LatestSDKReader", self._rdr)
-        acq_data = rdr._acquisition_data()  # comes back as a dict of lists
-        acq_data.update(rdr._custom_tags())
-
-        img_events = rdr._img_exp_events()
-        if not img_events and orient == "list":
-            # by default, acq_data is already oriented as a dict of lists,
-            # so if we don't have any image events, we can just return it
-            return acq_data
-
-        # re-orient acq_data as a list of dicts, to combine with events
-        records = _util.convert_dict_of_lists_to_records(acq_data)
-        for e in img_events:
-            records.append({TIME_KEY: e.time / 1000, "Events": e.description})
-
-        # sort by time
-        records.sort(key=lambda x: x.get(TIME_KEY, 0))
-
-        if orient == "dict":
-            return _util.convert_records_to_dict_of_dicts(records, null_val=null_value)
-        elif orient == "list":
-            return _util.convert_records_to_dict_of_lists(records, null_val=null_value)
-        return records
+        return self._rdr.events(orient=orient, null_value=null_value)
 
     def unstructured_metadata(
         self,
@@ -485,44 +432,13 @@ class ND2File:
             metadata chunk (things like 'CustomData|RoiMetadata_v1' or
             'ImageMetadataLV'), and values that are associated metadata chunk.
         """
-        if self.is_legacy:  # pragma: no cover
-            raise NotImplementedError(
-                "unstructured_metadata not available for legacy files"
-            )
-
         if unnest is not None:
             warnings.warn(
                 "The unnest parameter is deprecated, and no longer has any effect.",
                 FutureWarning,
                 stacklevel=2,
             )
-
-        rdr = cast("LatestSDKReader", self._rdr)
-        keys = {
-            k.decode()[:-1]
-            for k in rdr.chunkmap
-            if not k.startswith((b"ImageDataSeq", b"CustomData", ND2_FILE_SIGNATURE))
-        }
-
-        if include:
-            _keys: set[str] = set()
-            for i in include:
-                if i not in keys:
-                    warnings.warn(f"Key {i!r} not found in metadata", stacklevel=2)
-                else:
-                    _keys.add(i)
-            keys = _keys
-        if exclude:
-            keys = {k for k in keys if k not in exclude}
-
-        output: dict[str, Any] = {}
-        for key in sorted(keys):
-            name = f"{key}!".encode()
-            try:
-                output[key] = rdr._decode_chunk(name, strip_prefix=strip_prefix)
-            except Exception:  # pragma: no cover
-                output[key] = rdr._load_chunk(name)
-        return output
+        return self._rdr.unstructured_metadata()
 
     @cached_property
     def metadata(self) -> Metadata | dict:
@@ -820,6 +736,9 @@ class ND2File:
         """
         return self._coord_shape + self._frame_shape
 
+    def _coord_info(self) -> list[tuple[int, str, int]]:
+        return [(i, x.type, x.count) for i, x in enumerate(self.experiment)]
+
     @cached_property
     def sizes(self) -> dict[str, int]:
         """Names and sizes for each axis.
@@ -835,7 +754,7 @@ class ND2File:
         (3, 5, 2, 512, 512)
         """
         attrs = self.attributes
-        dims = {AXIS._MAP[c[1]]: c[2] for c in self._rdr._coord_info()}
+        dims = {AXIS._MAP[c[1]]: c[2] for c in self._coord_info()}
         dims[AXIS.CHANNEL] = (
             dims.pop(AXIS.CHANNEL)
             if AXIS.CHANNEL in dims
@@ -1130,7 +1049,7 @@ class ND2File:
         return int(np.prod(self._coord_shape))
 
     def _get_frame(self, index: SupportsInt) -> np.ndarray:
-        frame = self._rdr._read_image(int(index))
+        frame = self._rdr.read_frame(int(index))
         frame.shape = self._raw_frame_shape
         return frame.transpose((2, 0, 1, 3)).squeeze()
 
@@ -1261,9 +1180,7 @@ class ND2File:
         >>> np.asarray(f.binary_data).shape  # cast all layers to array
         (4, 3, 4, 5, 32, 32)
         """
-        from ._binary import BinaryLayers
-
-        return BinaryLayers.from_nd2file(self)
+        return self._rdr.binary_data()
 
     def ome_metadata(self) -> OME:
         """Return OME metadata for the file."""

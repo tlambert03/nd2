@@ -1,7 +1,7 @@
 import nd2
 import numpy as np
 import pytest
-from nd2._pysdk._chunk_decode import get_chunkmap
+from nd2.readers._chunk_decode import get_chunkmap
 
 
 @pytest.fixture()

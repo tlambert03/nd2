@@ -4,23 +4,29 @@ import contextlib
 import re
 import struct
 import threading
+import warnings
 from typing import (
     TYPE_CHECKING,
     Any,
     BinaryIO,
     DefaultDict,
+    Sequence,
 )
 
 import numpy as np
 
 from nd2 import structures as strct
 from nd2._util import AXIS, VoxelSize
+from nd2.readers.protocol import ND2Reader
 
 from ._legacy_xml import parse_xml_block
 
 if TYPE_CHECKING:
     from collections import defaultdict
+    from io import BufferedReader
     from pathlib import Path
+
+    from nd2.readers._chunk_decode import ChunkMap
 
 try:
     from functools import cached_property
@@ -33,36 +39,23 @@ JP2_MAP_CHUNK = struct.Struct("<4s4sI")
 IHDR = struct.Struct(">iihBB")  # yxc-dtype in jpeg 2000
 
 
-class LegacyND2Reader:
-    _fh: BinaryIO
+class LegacyReader(ND2Reader):
+    HEADER_MAGIC = b"\x00\x00\x00\x0c"
 
-    def __init__(self, path: Path | str):
-        self._path = str(path)
-        self._fh = open(self._path, mode="rb")
+    def __init__(self, path: str | Path, error_radius: int | None = None) -> None:
+        super().__init__(path, error_radius)
+        self._attributes: strct.Attributes | None = None
         length, box_type = I4s.unpack(self._fh.read(I4s.size))
         if length != 12 and box_type == b"jP  ":
             raise ValueError("File not recognized as Legacy ND2 (JPEG2000) format.")
-        self._chunkmap = legacy_nd2_chunkmap(self._fh)
         self.lock = threading.RLock()
 
-    def open(self) -> None:
-        if self.closed:
-            self._fh = open(self._path, mode="rb")
+    def is_legacy(self) -> bool:
+        return True
 
-    def close(self) -> None:
-        if not self.closed:
-            self._fh.close()
-
-    @property
-    def closed(self) -> bool:
-        return self._fh.closed
-
-    def __enter__(self) -> LegacyND2Reader:
-        self.open()
-        return self
-
-    def __exit__(self, *_: Any) -> None:
-        self.close()
+    @classmethod
+    def _load_chunkmap(cls, fh: BufferedReader, error_radius: int) -> ChunkMap:
+        return legacy_nd2_chunkmap(fh)
 
     @cached_property
     def ddim(self) -> dict:
@@ -92,9 +85,6 @@ class LegacyND2Reader:
                 meta = meta.get("NextLevelEx")  # type: ignore
                 i += 1
         return exp
-
-    def _coord_info(self) -> list[tuple[int, str, int]]:
-        return [(i, x.type, x.count) for i, x in enumerate(self.experiment())]
 
     def _make_loop(self, meta_level: dict, nest_level: int = 0) -> strct.ExpLoop | None:
         """Converts an old style metadata loop dict to a new ExpLoop structure."""
@@ -169,49 +159,48 @@ class LegacyND2Reader:
 
         raise ValueError(f"unrecognized type: {type_}")
 
-    @cached_property
     def attributes(self) -> strct.Attributes:
-        head = self.header
-        bpcim = head["bits_per_component"]
-        bpcs = self._advanced_image_attributes.get("SignificantBits", bpcim)
-        widthPx = head.get("columns")
+        """Load and return the image attributes."""
+        if self._attributes is None:
+            head = self.header
+            bpcim = head["bits_per_component"]
+            bpcs = self._advanced_image_attributes.get("SignificantBits", bpcim)
+            widthPx = head.get("columns")
 
-        try:
-            picplanes = self._get_xml_dict(b"VIMD", 0)["PicturePlanes"]
-            nC = picplanes["Count"]
-            compCount = picplanes["CompCount"]
-        except Exception:
-            compCount = nC = 1
+            try:
+                picplanes = self._get_xml_dict(b"VIMD", 0)["PicturePlanes"]
+                nC = picplanes["Count"]
+                compCount = picplanes["CompCount"]
+            except Exception:
+                compCount = nC = 1
 
-        return strct.Attributes(
-            bitsPerComponentInMemory=bpcim,
-            bitsPerComponentSignificant=bpcs,
-            componentCount=compCount,
-            heightPx=head.get("rows", -1),
-            widthPx=widthPx,
-            widthBytes=widthPx * bpcim // 8 * compCount,
-            pixelDataType="unsigned",
-            sequenceCount=len(self._chunkmap[b"VCAL"]),
-            compressionLevel=head.get("compression"),
-            channelCount=nC,
-        )
+            self._attributes = strct.Attributes(
+                bitsPerComponentInMemory=bpcim,
+                bitsPerComponentSignificant=bpcs,
+                componentCount=compCount,
+                heightPx=head.get("rows", -1),
+                widthPx=widthPx,
+                widthBytes=widthPx * bpcim // 8 * compCount,
+                pixelDataType="unsigned",
+                sequenceCount=len(self.chunkmap[b"VCAL"]),
+                compressionLevel=head.get("compression"),
+                channelCount=nC,
+            )
+        return self._attributes
 
     def _get_xml_dict(self, key: bytes, index: int = 0) -> dict:
         try:
-            bxml = self._read_chunk(self._chunkmap[key][index])
+            bxml = self._read_chunk(self.chunkmap[key][index])
             return parse_xml_block(bxml)
         except KeyError:
             return {}
 
     def _img_exp_events(self) -> list[strct.ExperimentEvent]:
-        from nd2._pysdk._parse import load_legacy_events
+        from nd2.readers._modern._parse import load_legacy_events
 
         _events = self._get_xml_dict(b"IEVE")
         events: list[dict] = _events.get("FirstEvent", {}).get("no_name", [])
         return load_legacy_events(events)
-
-    # def sizes(self):
-    #     attrs = cast(Attributes, self.attributes)
 
     def text_info(self) -> dict:
         d = self._get_xml_dict(b"TINF")
@@ -252,7 +241,7 @@ class LegacyND2Reader:
             length, box_type = I4s.unpack(self._fh.read(I4s.size))
             return self._fh.read(length - I4s.size)
 
-    def _read_image(self, index: int) -> np.ndarray:
+    def read_frame(self, index: int) -> np.ndarray:
         try:
             from imagecodecs import jpeg2k_decode
         except ModuleNotFoundError as e:
@@ -263,9 +252,9 @@ class LegacyND2Reader:
             ) from e
 
         data = []
-        cc = self.attributes.channelCount or 1
+        cc = self.attributes().channelCount or 1
         for i in range(cc):
-            d = self._read_chunk(self._chunkmap[b"LUNK"][index * cc + i])
+            d = self._read_chunk(self.chunkmap[b"LUNK"][index * cc + i])
             data.append(jpeg2k_decode(d))
         return np.stack(data, axis=-1)
 
@@ -301,7 +290,7 @@ class LegacyND2Reader:
     @cached_property
     def header(self) -> dict:
         try:
-            pos = self._chunkmap[b"jp2h"][0]
+            pos = self.chunkmap[b"jp2h"][0]
         except (KeyError, IndexError) as e:
             raise KeyError("No valid jp2h header found in file") from e
         self._fh.seek(pos + I4s.size + 4)  # 4 bytes for "label"
@@ -319,6 +308,14 @@ class LegacyND2Reader:
 
     def _custom_data(self) -> dict:
         return {}
+
+    def events(self, orient: str, null_value: Any) -> dict[str, Sequence[Any]]:
+        warnings.warn(
+            "`recorded_data` is not implemented for legacy ND2 files",
+            UserWarning,
+            stacklevel=2,
+        )
+        return [] if orient == "records" else {}
 
 
 def legacy_nd2_chunkmap(fh: BinaryIO) -> dict[bytes, list[int]]:

@@ -128,6 +128,10 @@ class AXIS:
         "CustomLoop": UNKNOWN,
     }
 
+    @classmethod
+    def frame_coords(cls) -> set[str]:
+        return {cls.X, cls.Y, cls.CHANNEL, cls.RGB}
+
 
 class VoxelSize(NamedTuple):
     x: float

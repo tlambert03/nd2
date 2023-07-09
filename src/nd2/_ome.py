@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from nd2 import ND2File
 
     from ._pysdk._pysdk import ND2Reader as LatestSDKReader
-    from ._pysdk._sdk_types import RawMetaDict
+    from ._sdk_types import RawMetaDict
     from .structures import Metadata, ModalityFlags
 
 

@@ -11,7 +11,7 @@
 
 This reader provides a pure python implementation the official Nikon ND2 SDK.
 
-> It *used* to wrap the official SDK with Cython, but has since been completely
+> It _used_ to wrap the official SDK with Cython, but has since been completely
 > rewritten to be pure python (for performance, ease of distribution, and
 > maintenance) while retaining complete API parity with the official SDK.
 >
@@ -42,7 +42,7 @@ conda install -c conda-forge nd2
 
 ### Legacy nd2 file support
 
-Legacy nd2 (JPEG2000) files are also supported, but require `imagecodecs`.  To
+Legacy nd2 (JPEG2000) files are also supported, but require `imagecodecs`. To
 install with support for these files use the `legacy` extra:
 
 ```sh
@@ -51,9 +51,9 @@ pip install nd2[legacy]
 
 ### Faster XML parsing
 
-Much of the metadata in the file stored as XML.  If found in the environment,
+Much of the metadata in the file stored as XML. If found in the environment,
 `nd2` will use [`lxml`](https://pypi.org/project/lxml/) which is much faster
-than the built-in `xml` module.  To install with support for `lxml` use:
+than the built-in `xml` module. To install with support for `lxml` use:
 
 ```sh
 pip install nd2 lxml
@@ -107,15 +107,17 @@ f.attributes        # nd2.structures.Attributes
 f.metadata          # nd2.structures.Metadata
 f.frame_metadata(0) # nd2.structures.FrameMetadata (frame-specific meta)
 f.experiment        # List[nd2.structures.ExpLoop]
-f.rois              # Dict[int, nd2.structures.ROI]
-f.voxel_size()      # VoxelSize(x=0.65, y=0.65, z=1.0)
 f.text_info         # dict of misc info
+f.voxel_size()      # VoxelSize(x=0.65, y=0.65, z=1.0)
 
+f.rois              # Dict[int, nd2.structures.ROI]
 f.binary_data       # any binary masks stored in the file.  See below.
-f.custom_data       # bits of unstructured metadata that start with CustomData
 f.events()          # returns tabular "Recorded Data" view from in NIS Elements/Viewer
                     # with info for each frame in the experiment.
                     # output is passabled to pandas.DataFrame
+
+f.ome_metadata()    # returns metadata as an ome_types.OME object
+                    # (requires ome-types package)
 
 # allll the metadata we can find...
 # no attempt made to standardize or parse it
@@ -160,7 +162,7 @@ Attributes(
 
 <summary><code>metadata</code></summary>
 
-*Note: the `metadata` for legacy (JPEG2000) files will be a plain unstructured dict.*
+_Note: the `metadata` for legacy (JPEG2000) files will be a plain unstructured dict._
 
 ```python
 Metadata(
@@ -350,7 +352,7 @@ This property returns an `nd2.BinaryLayers` object representing all of the
 binary masks in the nd2 file.
 
 A `nd2.BinaryLayers` object is a sequence of individual `nd2.BinaryLayer`
-objects (one for each binary layer found in the file).  Each `BinaryLayer` in
+objects (one for each binary layer found in the file). Each `BinaryLayer` in
 the sequence is a named tuple that has, among other things, a `name` attribute,
 and a `data` attribute that is list of numpy arrays (one for each frame in the
 experiment) or `None` if the binary layer had no data in that frame.
@@ -370,7 +372,7 @@ or an individual `BinaryLayer` to a `numpy.ndarray`:
 
 For example, if the data in the nd2 file has shape `(nT, nZ, nC, nY, nX)`, and
 there are 4 binary layers, then the output of `np.asarray(nd2file.binary_data)` will
-have shape `(4, nT, nZ, nY, nX)`.  (Note that the `nC` dimension is not present
+have shape `(4, nT, nZ, nY, nX)`. (Note that the `nC` dimension is not present
 in the output array, and the binary layers are always in the first axis).
 
 You can also cast an individual `BinaryLayer` to a numpy array:
@@ -384,276 +386,7 @@ You can also cast an individual `BinaryLayer` to a numpy array:
 
 <details>
 
-<summary><code>custom_data</code></summary>
-
-No attempt is made to parse this data.  It will vary from file to file, but you may find something useful here:
-
-```python
-{
-    'StreamDataV1_0': {
-        'Vector_StreamAnalogIn': '',
-        'Vector_StreamDigitalIn': '',
-        'Vector_AnalogIn': '',
-        'Vector_DigitalIn': '',
-        'Vector_Other': '',
-        'Vector_StreamAnalogOut': '',
-        'Vector_StreamDigitalOut': '',
-        'Vector_AnalogOut': '',
-        'Vector_DigitalOut': ''
-    },
-    'NDControlV1_0': {
-        'NDControl': {
-            'LoopState': {'no_name': [529, 529, 529, 529, 529]},
-            'PlayFPS': {'no_name': [20.0, 20.0, 0.0, 20.0, 0.0]},
-            'LoopSize': {'no_name': [3, 4, 0, 5, 0]},
-            'LoopPosition': {'no_name': [2, 3, 0, 4, 0]},
-            'LoopSelection': {'no_name': [b'AAAA', b'AAAAAA==', b'', b'AAAAAAA=', b'']},
-            'LoopRangeSelection': {'no_name': [b'AQEB', b'AQEBAQ==', b'', b'AQEBAQE=', b'']},
-            'LoopEventSelection': {'no_name': [b'AAAA', b'AAAAAA==', b'', b'AAAAAAA=', b'']},
-            'FramesInRange': '',
-            'LoopStep': {'no_name': [0, 0, 0, 0, 0]},
-            'UserEventType': 2,
-            'SelectionStyle': 0,
-            'FramesBefore': 2,
-            'FramesAfter': 1,
-            'TimeBefore': 1.0,
-            'TimeAfter': 1.0
-        }
-    },
-    'LUTDataV1_0': {
-        'ViewLut': True,
-        'LutParam': {
-            'Gradient': 0,
-            'GradientBrightField': 0,
-            'MinSrc': 0,
-            'MaxSrc': 65535,
-            'GammaSrc': 1.0,
-            'MinDst': 0,
-            'MaxDst': 65535,
-            'ColorSpace': 4,
-            'Representation': 0,
-            'LutComponentCount': 2,
-            'GroupCount': 1,
-            'CompLutParam': {
-                '00': {'MinSrc': [82, 0.0], 'MaxSrc': [113, 1.0], 'GammaSrc': 1.0, 'MinDst': 0, 'MaxDst': 65535, 'Group': 0},
-                '01': {'MinSrc': [82, 0.0], 'MaxSrc': [114, 1.0], 'GammaSrc': 1.0, 'MinDst': 0, 'MaxDst': 65535, 'Group': 0},
-                '02': {'MinSrc': [0, 0.0], 'MaxSrc': [65535, 1.0], 'GammaSrc': 1.0, 'MinDst': 0, 'MaxDst': 65535, 'Group': 0}
-            },
-            'LutDataSpectral': {
-                'GainTrueColor': 1.0,
-                'OffsetTrueColor': 0.0,
-                'GainGrayScale': 1.0,
-                'OffsetGrayScal': 0.0,
-                'SpectralColorMode': 0,
-                'Group00': {
-                    'ColorGroup': 16711680,
-                    'ColorCustom': 16711680,
-                    'GainCustom': 1.0,
-                    'OffsetCustom': 0.0,
-                    'GainGrouped': 1.0,
-                    'OffsetGrouped': 0.0
-                }
-            }
-        },
-        'EnableAutoContrast': True,
-        'EnableAutoWhite': True,
-        'AutoWhiteColor': 16777215,
-        'RatioDesc': {
-            'Numer': 0,
-            'Denom': 1,
-            'NumOffset': 0,
-            'DenOffset': 0,
-            'Min': 0.0,
-            'Max': 2.0,
-            'BkgndSize': 0,
-            'Calibrated': True,
-            'Cal.dKd': 224.0,
-            'Cal.dVisc': 1.0,
-            'Cal.dFmin': 255.0,
-            'Cal.dFmax': 1.0,
-            'Cal.dRmin': 0.0,
-            'Cal.dRmax': 2.0,
-            'Cal.dTMeasCalMin': 0.0,
-            'Cal.dTMeasCalMax': 0.0,
-            'PickFromGraph': True,
-            'RatioViewEnabled': True
-        },
-        'GraphSelected': -1,
-        'GraphVerticalSplit': True,
-        'GrayGraph': True,
-        'ShowAllComp': True,
-        'ShowSpectralGraph': True,
-        'GraphScale': 0,
-        'GraphZoom00': 1.0,
-        'GraphOffset00': 0.0,
-        'GraphZoom01': 1.0,
-        'GraphOffset01': 0.0,
-        'GraphZoom02': 1.0,
-        'GraphOffset02': 0.0
-    },
-    'GrabberCameraSettingsV1_0': {
-        'GrabberCameraSettings': {
-            'CameraUniqueName': 'Hamamatsu C11440-22C SN:101412',
-            'CameraUserName': 'Flash4.0, SN:101412',
-            'CameraFamilyName': 'ecmC11440_22C',
-            'OverloadedUniqueName': '',
-            'ModifiedAtJDN': 2459486.07103009,
-            'FormatFast': {
-                'Desc': {
-                    'UniqueName': 'FMT 1x1 16',
-                    'Interpretation': 1,
-                    'FQModeUsage': 15,
-                    'CanExecAsyncSampleGet': True,
-                    'Fps': 30.00300030003,
-                    'Sensitivity': 1.0,
-                    'SensorPixels': {'cx': 2048, 'cy': 2044},
-                    'SensorMicrons': {'cx': 13312, 'cy': 13286},
-                    'SensorMin': {'cx': 4, 'cy': 4},
-                    'SensorStep': {'cx': 2, 'cy': 2},
-                    'BinningX': 1.0,
-                    'BinningY': 1.0,
-                    'SensorSource': {'left': 0, 'top': 0, 'right': 2048, 'bottom': 2044},
-                    'FormatText': '16-bit - No Binning',
-                    'FormatDesc': '16-bit - No Binning (30.0 FPS)',
-                    'CamCorrReq': True,
-                    'Comp': 1,
-                    'Bpc': 16,
-                    'UsageFlags': 1
-                },
-                'SensorUser': {'left': 512, 'top': 512, 'right': 544, 'bottom': 544}
-            },
-            'FormatQuality': {
-                'Desc': {
-                    'UniqueName': 'FMT 1x1 16',
-                    'Interpretation': 1,
-                    'FQModeUsage': 15,
-                    'CanExecAsyncSampleGet': True,
-                    'Fps': 30.00300030003,
-                    'Sensitivity': 1.0,
-                    'SensorPixels': {'cx': 2048, 'cy': 2044},
-                    'SensorMicrons': {'cx': 13312, 'cy': 13286},
-                    'SensorMin': {'cx': 4, 'cy': 4},
-                    'SensorStep': {'cx': 2, 'cy': 2},
-                    'BinningX': 1.0,
-                    'BinningY': 1.0,
-                    'SensorSource': {'left': 0, 'top': 0, 'right': 2048, 'bottom': 2044},
-                    'FormatText': '16-bit - No Binning',
-                    'FormatDesc': '16-bit - No Binning (30.0 FPS)',
-                    'CamCorrReq': True,
-                    'Comp': 1,
-                    'Bpc': 16,
-                    'UsageFlags': 1
-                },
-                'SensorUser': {'left': 512, 'top': 512, 'right': 544, 'bottom': 544}
-            },
-            'PropertiesFast': {
-                'Exposure': 100.0,
-                'LiveSpeedUp': 1,
-                'CaptureQuality': 75,
-                'CaptureMaxExposure': 10000.0,
-                'QuantilRelative': True,
-                'QuantilPromile': 0.1,
-                'QuantilPixels': 100,
-                'EnableAutoExposure': True,
-                'ScanMode': 2,
-                'Average': 1,
-                'Integrate': 1,
-                'AverageToQuality': 0.0,
-                'AverageCH': '',
-                'IntegrateCH': '',
-                'AverageToQualityCH': '',
-                'IntegrateToQualityCH': '',
-                'FlexibleHeight': -1,
-                'Negate': 0,
-                'MultiExcitation': ''
-            },
-            'PropertiesFast_Extra': {'PropGroupCount': 0, 'PropGroupUsageArray': {}, 'PropGroupNameArray': {}},
-            'PropertiesQuality': {
-                'Exposure': 100.0,
-                'LiveSpeedUp': 1,
-                'CaptureQuality': 75,
-                'CaptureMaxExposure': 10000.0,
-                'QuantilRelative': True,
-                'QuantilPromile': 0.1,
-                'QuantilPixels': 100,
-                'EnableAutoExposure': True,
-                'ScanMode': 2,
-                'Average': 1,
-                'Integrate': 1,
-                'AverageToQuality': 0.0,
-                'AverageCH': '',
-                'IntegrateCH': '',
-                'AverageToQualityCH': '',
-                'IntegrateToQualityCH': '',
-                'FlexibleHeight': -1,
-                'Negate': 0,
-                'MultiExcitation': ''
-            },
-            'PropertiesQuality_Extra': {
-                'PropGroupCount': 1,
-                'PropGroupUsageArray': {'0': 0},
-                'PropGroupNameArray': {'0': 'Use Stored ROI'}
-            },
-            'Metadata': {
-                'Key': 'MV=0,TA=0,CH=1',
-                'ChannelCount': 1,
-                'Channels': {
-                    'Channel_0': {
-                        'Color': 22015,
-                        'Name': 'Widefield Red',
-                        'EmWavelength': 620.0,
-                        'ChannelIsActive': True,
-                        'ExWavelength': 540.5,
-                        'MaxSaturatedValue': 4294967295
-                    }
-                }
-            },
-            'LightPath': {
-                'TypeID': 0,
-                'ExcitationSourceKey': 'LIGHT-EPI',
-                'ExcitationSourceName': '',
-                'EPIAdditionalFilterKey': '',
-                'EPIAdditionalFilterName': '',
-                'DIAAdditionalFilterKey': '',
-                'DIAAdditionalFilterName': '',
-                'LastEmissionFilterKey1': 'Turret-Lo',
-                'LastEmissionFilterName1': 'Nikon Ti2, FilterChanger(Turret-Lo)',
-                'SetColorManually': True,
-                'MultiViewEnabled': True,
-                'UpdateLPAutomatically': True
-            },
-            'ROI': {'Left': 512, 'Top': 512, 'Right': 544, 'Bottom': 544}
-        },
-        'GrabberCameraSettingsFQMode': 1
-    },
-    'CustomDataV2_0': {
-        'CustomTagDescription_v1.0': {
-            'Tag0': {'ID': 'Camera_ExposureTime1', 'Type': 3, 'Group': 2, 'Size': 60, 'Desc': 'Exposure Time', 'Unit': 'ms'},
-            'Tag1': {'ID': 'PFS_OFFSET', 'Type': 2, 'Group': 1, 'Size': 60, 'Desc': 'PFS Offset', 'Unit': ''},
-            'Tag2': {'ID': 'PFS_STATUS', 'Type': 2, 'Group': 1, 'Size': 60, 'Desc': 'PFS Status', 'Unit': ''},
-            'Tag3': {'ID': 'X', 'Type': 3, 'Group': 1, 'Size': 60, 'Desc': 'X Coord', 'Unit': 'µm'},
-            'Tag4': {'ID': 'Y', 'Type': 3, 'Group': 1, 'Size': 60, 'Desc': 'Y Coord', 'Unit': 'µm'},
-            'Tag5': {'ID': 'Z', 'Type': 3, 'Group': 1, 'Size': 60, 'Desc': 'Z Coord', 'Unit': 'µm'},
-            'Tag6': {'ID': 'Z1', 'Type': 3, 'Group': 1, 'Size': 60, 'Desc': 'Ti2 ZDrive', 'Unit': 'µm'}
-        }
-    },
-    'AppInfo_V1_0': {
-        'SWNameString': 'NIS-Elements AR',
-        'GrabberString': 'Hamamatsu',
-        'VersionString': '5.20.02 (Build 1453)',
-        'CopyrightString': 'Copyright © 1991-2019  Laboratory Imaging,  http://www.lim.cz',
-        'CompanyString': 'NIKON Corporation',
-        'NFRString': ''
-    },
-    'AcqTimeV1_0': 2459486.07044662
-}
-```
-
-</details>
-
-<details>
-
-<summary><code>events</code></summary>
+<summary><code>events()</code></summary>
 
 This property returns the tabular data reported in the `Image Properties >
 Recorded Data` tab of the NIS Viewer.
@@ -664,8 +397,8 @@ Recorded Data` tab of the NIS Viewer.
 The format of the return type data is controlled by the `orient` argument:
 
 - `'records'` : list of dicts - `[{column -> value}, ...]` (default)
-- `'dict'` :    dict of dicts - `{column -> {index -> value}, ...}`
-- `'list'` :    dict of lists - `{column -> [value, ...]}`
+- `'dict'` : dict of dicts - `{column -> {index -> value}, ...}`
+- `'list'` : dict of lists - `{column -> [value, ...]}`
 
 Not every column header appears in every event, so when `orient` is either
 `'dict'` or `'list'`, `float('nan')` will be inserted to maintain a consistent
@@ -764,8 +497,8 @@ length for each column.
 You can pass the output of `events()` to `pandas.DataFrame`:
 
 ```python
-In [13]: pd.DataFrame(nd2file.events())
-Out[13]:
+In [1]: pd.DataFrame(nd2file.events())
+Out[1]:
      Time [s]  Z-Series  Exposure Time [ms]  PFS Offset  PFS Status []  X Coord [µm]  Y Coord [µm]  Z Coord [µm]  Ti2 ZDrive [µm]
 0    1.326867      -2.0               100.0              0              0       31452.2       -1801.6        552.74           552.74
 1    1.690897      -1.0               100.0              0              0       31452.2       -1801.6        553.74           553.74
@@ -787,9 +520,41 @@ Out[13]:
 
 </details>
 
+<details>
+
+<summary><code>ome_metadata()</code></summary>
+
+See the [ome-types documentation](https://ome-types.readthedocs.io/) for details on
+the `OME` type returned by this method.
+
+```python
+In [1]: ome = nd2file.ome_metadata()
+
+In [2]: print(ome)
+OME(
+    instruments=[<1 Instrument>],
+    images=[<1 Image>],
+    creator='nd2 v0.7.1'
+)
+
+In [3]: print(ome.to_xml())
+<OME xmlns="http://www.openmicroscopy.org/Schemas/OME/2016-06"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd"
+     Creator="nd2 v0.7.1.dev2+g4ea166e.d20230709">
+  <Instrument ID="Instrument:0">
+    <Detector Model="Hamamatsu Dual C14440-20UP" SerialNumber="Hamamatsu Dual C14440-20UP" ID="Detector:0"/>
+  </Instrument>
+  <Image ID="Image:0" Name="test39">
+    <AcquisitionDate>2023-07-08T09:30:55</AcquisitionDate>
+    ...
+```
+
+</details>
+
 ## Contributing / Development
 
-To test locally and contribute.  Clone this repo, then:
+To test locally and contribute. Clone this repo, then:
 
 ```
 pip install -e .[dev]
@@ -815,15 +580,15 @@ pytest
 Here are some other nd2 readers that I know of, though many
 of them are unmaintained:
 
-- [pims_nd2](https://github.com/soft-matter/pims_nd2) - *pims-based reader.
-  ctypes wrapper around the v9.00 (2015) SDK*
-- [nd2reader](https://github.com/rbnvrw/nd2reader) - *pims-based reader, using
+- [pims_nd2](https://github.com/soft-matter/pims_nd2) - _pims-based reader.
+  ctypes wrapper around the v9.00 (2015) SDK_
+- [nd2reader](https://github.com/rbnvrw/nd2reader) - _pims-based reader, using
   reverse-engineered file headers. mostly tested on files from NIS Elements
-  4.30.02*
-- [nd2file](https://github.com/csachs/nd2file) - *another pure-python, chunk map
-  reader, unmaintained?*
-- [pyND2SDK](https://github.com/aarpon/pyND2SDK) - *windows-only cython wrapper
-  around the v9.00 (2015) SDK. not on PyPI*
+  4.30.02_
+- [nd2file](https://github.com/csachs/nd2file) - _another pure-python, chunk map
+  reader, unmaintained?_
+- [pyND2SDK](https://github.com/aarpon/pyND2SDK) - _windows-only cython wrapper
+  around the v9.00 (2015) SDK. not on PyPI_
 
 The motivating factors for this library were:
 

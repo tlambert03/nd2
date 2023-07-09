@@ -64,7 +64,7 @@ def is_legacy(path: StrOrBytesPath) -> bool:
 
 def get_reader(
     path: str, validate_frames: bool = False, search_window: int = 100
-) -> ND2Reader:
+) -> ND2Reader:  # pragma: no cover
     warnings.warn(
         "Deprecated, use nd2.readers.ND2Reader.create if you want to "
         "directly instantiate a reader subclass.",

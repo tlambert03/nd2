@@ -1023,10 +1023,6 @@ class ND2File:
         return x.squeeze() if squeeze else x
 
     @property
-    def _frame_coords(self) -> set[str]:
-        return {AXIS.X, AXIS.Y, AXIS.CHANNEL, AXIS.RGB}
-
-    @property
     def _raw_frame_shape(self) -> tuple[int, int, int, int]:
         """Sizes of each frame coordinate, prior to reshape."""
         attr = self.attributes
@@ -1040,12 +1036,12 @@ class ND2File:
     @property
     def _frame_shape(self) -> tuple[int, ...]:
         """Sizes of each frame coordinate, after reshape & squeeze."""
-        return tuple(v for k, v in self.sizes.items() if k in self._frame_coords)
+        return tuple(v for k, v in self.sizes.items() if k in AXIS.frame_coords())
 
     @cached_property
     def _coord_shape(self) -> tuple[int, ...]:
         """Sizes of each *non-frame* coordinate."""
-        return tuple(v for k, v in self.sizes.items() if k not in self._frame_coords)
+        return tuple(v for k, v in self.sizes.items() if k not in AXIS.frame_coords())
 
     @property
     def _frame_count(self) -> int:

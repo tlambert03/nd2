@@ -115,7 +115,12 @@ class ND2Reader(abc.ABC):
     ) -> dict[str, Sequence[Any]]:
         ...
 
-    def unstructured_metadata(self) -> dict[str, Any]:
+    def unstructured_metadata(
+        self,
+        strip_prefix: bool = True,
+        include: set[str] | None = None,
+        exclude: set[str] | None = None,
+    ) -> dict[str, Any]:
         raise NotImplementedError(
             "unstructured_metadata not available for legacy files"
         )

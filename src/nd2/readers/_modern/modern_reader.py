@@ -271,9 +271,6 @@ class ModernReader(ND2Reader):
     def _coord_size(self) -> int:
         return len(self.experiment())
 
-    def _coord_info(self) -> list[tuple[int, str, int]]:
-        return [(i, x.type, x.count) for i, x in enumerate(self.experiment())]
-
     def _seq_count(self) -> int:
         # this differs from self.attributes().SequenceCount in that it
         # includes the actual number of frames in the experiment,

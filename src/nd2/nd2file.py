@@ -89,8 +89,6 @@ class ND2File:
         `read_using_sdk=False` on a compressed file will result in a ValueError.
     """
 
-    _is_legacy: bool
-
     def __init__(
         self,
         path: Path | str,
@@ -110,12 +108,9 @@ class ND2File:
         self._error_radius: int | None = (
             search_window * 1000 if validate_frames else None
         )
-
         self._rdr = ND2Reader.create(self._path, self._error_radius)
         self._closed = False
-        self._is_legacy = "Legacy" in type(self._rdr).__name__
         self._lock = threading.RLock()
-        self._version: tuple[int, ...] | None = None
 
     @staticmethod
     def is_supported_file(path: StrOrBytesPath) -> bool:
@@ -131,11 +126,19 @@ class ND2File:
         - `(1, 0)` = a legacy nd2 file (JPEG2000)
         - `(2, 0)`, `(2, 1)` = non-JPEG2000 nd2 with xml metadata
         - `(3, 0)` = new format nd2 file with lite variant metadata
+        - `(-1, -1)` =
+
+        Returns
+        -------
+        tuple[int, ...]
+            The file format version as a tuple of ints.
+
+        Raises
+        ------
+        ValueError
+            If the file is not a valid nd2 file.
         """
-        try:
-            return get_version(self._path)
-        except Exception:
-            return (-1, -1)
+        return get_version(self._path)
 
     @property
     def path(self) -> str:
@@ -256,7 +259,7 @@ class ND2File:
         return self._rdr.attributes()
 
     @cached_property
-    def text_info(self) -> TextInfo | dict:
+    def text_info(self) -> TextInfo:
         r"""Miscellaneous text info.
 
         ??? example "Example Output"
@@ -438,7 +441,7 @@ class ND2File:
                 FutureWarning,
                 stacklevel=2,
             )
-        return self._rdr.unstructured_metadata()
+        return self._rdr.unstructured_metadata(strip_prefix, include, exclude)
 
     @cached_property
     def metadata(self) -> Metadata | dict:

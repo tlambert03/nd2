@@ -149,7 +149,7 @@ class LegacyReader(ND2Reader):
         self._attributes: strct.Attributes | None = None
         # super().__init__ called open()
         length, box_type = I4s.unpack(self._fh.read(I4s.size))  # type: ignore
-        if length != 12 and box_type == b"jP  ":
+        if length != 12 and box_type == b"jP  ":  # pragma: no cover
             raise ValueError("File not recognized as Legacy ND2 (JPEG2000) format.")
         self.lock = threading.RLock()
         self._frame0_meta_cache: FrameMetaDict | None = None

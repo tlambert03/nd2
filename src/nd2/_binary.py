@@ -158,7 +158,7 @@ def _unpack(stream: io.BufferedIOBase, strct: struct.Struct) -> tuple:
     return strct.unpack(stream.read(strct.size))
 
 
-def _decode_binary_mask(data: bytes, dtype: DTypeLike = "uint16") -> np.ndarray:
+def decode_binary_mask(data: bytes, dtype: DTypeLike = "uint16") -> np.ndarray:
     # this receives data as would be extracted from a
     # `CustomDataSeq|RleZipBinarySequence...` section in the metadata
 
@@ -170,7 +170,7 @@ def _decode_binary_mask(data: bytes, dtype: DTypeLike = "uint16") -> np.ndarray:
     # still not sure what _q is
     # tot_bytes should be length of the stream remaining after this
     (v, ncols, nrows, nmasks, tot_bytes, _q, _zero) = _unpack(stream, I7)
-    if v != 3:
+    if v != 3:  # pragma: no cover
         warnings.warn(
             f"Expected first byte to be 3 but got {v}. "
             "Please submit this file :) https://github.com/tlambert03/nd2/issues/.",

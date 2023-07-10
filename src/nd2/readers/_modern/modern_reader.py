@@ -533,7 +533,7 @@ class ModernReader(ND2Reader):
         return None
 
     def binary_data(self) -> BinaryLayers | None:
-        from nd2._binary import BinaryLayer, BinaryLayers, _decode_binary_mask
+        from nd2._binary import BinaryLayer, BinaryLayers, decode_binary_mask
 
         chunk_key = b"CustomDataVar|BinaryMetadata_v1!"
         if chunk_key not in self.chunkmap:
@@ -560,7 +560,7 @@ class ModernReader(ND2Reader):
             for bs in binseqs:
                 if key in bs:
                     data = self._load_chunk(bs)[4:]
-                    _masks.append(_decode_binary_mask(data) if data else None)
+                    _masks.append(decode_binary_mask(data) if data else None)
             mask_items.append(
                 BinaryLayer(
                     data=_masks,

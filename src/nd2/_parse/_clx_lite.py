@@ -116,7 +116,9 @@ def _chunk_name_and_dtype(
 
     data_type, name_length = strctBB.unpack(header)
     if data_type in (ELxLiteVariantType.DEPRECATED, ELxLiteVariantType.UNKNOWN):
-        raise ValueError(f"Unknown data type in metadata header: {data_type}")
+        raise ValueError(  # pragma: no cover
+            f"Unknown data type in metadata header: {data_type}"
+        )
     elif data_type == ELxLiteVariantType.COMPRESS:
         name = ""
     else:
@@ -148,7 +150,8 @@ def json_from_clx_lite_variant(
             return json_from_clx_lite_variant(deflated, strip_prefix)
 
         if data_type == -1:
-            break
+            # never seen this, but it's in the sdk
+            break  # pragma: no cover
 
         value: JsonValueType
         if data_type == ELxLiteVariantType.LEVEL:
@@ -170,7 +173,8 @@ def json_from_clx_lite_variant(
         elif data_type in _PARSERS:
             value = _PARSERS[data_type](stream)
         else:
-            value = None
+            # also never seen this
+            value = None  # pragma: no cover
         if name == "" and name in output:
             # nd2 uses empty strings as keys for lists
             if not isinstance(output[name], list):

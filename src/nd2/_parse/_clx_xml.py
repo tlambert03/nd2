@@ -28,7 +28,7 @@ LOWER = re.compile("^[a-z_]+")
 def _float_or_nan(x: str) -> float:
     try:
         return float(x)
-    except ValueError:
+    except ValueError:  # pragma: no cover
         return float("nan")
 
 
@@ -150,7 +150,8 @@ def _node_name_value(
                     # skip empty nodes ... the sdk does this too
                     continue
                 cname = f"i{i:010}"
-            if cname in value:
+            if cname in value:  # pragma: no cover
+                # don't see this in tests anymore. but just in case...
                 warnings.warn(f"Duplicate key {cname} in {name}", stacklevel=2)
             value[cname] = cval
 

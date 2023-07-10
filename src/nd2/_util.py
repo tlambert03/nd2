@@ -5,7 +5,7 @@ import re
 import warnings
 from datetime import datetime
 from itertools import product
-from typing import TYPE_CHECKING, BinaryIO, NamedTuple
+from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
 
 if TYPE_CHECKING:
     from os import PathLike
@@ -47,7 +47,8 @@ def is_supported_file(
     bool
         Whether the can be opened.
     """
-    if isinstance(path, BinaryIO):
+    if hasattr(path, "read"):
+        path = cast("BinaryIO", path)
         path.seek(0)
         magic = path.read(4)
     else:
@@ -155,7 +156,7 @@ def parse_time(time_str: str) -> datetime:
             return datetime.strptime(time_str, fmt_str)
         except ValueError:
             continue
-    raise ValueError(f"Could not parse {time_str}")
+    raise ValueError(f"Could not parse {time_str}")  # pragma: no cover
 
 
 # utils for converting records to dicts, in recorded_data method

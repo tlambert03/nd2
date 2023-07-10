@@ -149,7 +149,7 @@ class LegacyReader(ND2Reader):
         self._attributes: strct.Attributes | None = None
         # super().__init__ called open()
         length, box_type = I4s.unpack(self._fh.read(I4s.size))  # type: ignore
-        if length != 12 and box_type == b"jP  ":
+        if length != 12 and box_type == b"jP  ":  # pragma: no cover
             raise ValueError("File not recognized as Legacy ND2 (JPEG2000) format.")
         self.lock = threading.RLock()
         self._frame0_meta_cache: FrameMetaDict | None = None
@@ -161,7 +161,7 @@ class LegacyReader(ND2Reader):
     def chunkmap(self) -> dict[bytes, list[int]]:
         """Return the chunkmap for the file."""
         if not self._chunkmap:
-            if self._fh is None:
+            if self._fh is None:  # pragma: no cover
                 raise OSError("File not open")
             self._chunkmap = legacy_nd2_chunkmap(self._fh)
         return self._chunkmap
@@ -272,7 +272,7 @@ class LegacyReader(ND2Reader):
             params = cast("LoopPars6", params)
             return None
 
-        raise ValueError(f"unrecognized type: {type_}")
+        raise ValueError(f"unrecognized type: {type_}")  # pragma: no cover
 
     def attributes(self) -> strct.Attributes:
         """Load and return the image attributes."""
@@ -351,7 +351,7 @@ class LegacyReader(ND2Reader):
         return self._decode_chunk(b"ACAL")
 
     def _load_chunk(self, key: bytes, index: int = 0) -> bytes:
-        if not self._fh:
+        if not self._fh:  # pragma: no cover
             raise ValueError("Attempt to read from closed nd2 file")
         pos = self.chunkmap[key][index]
         with self.lock:
@@ -360,12 +360,12 @@ class LegacyReader(ND2Reader):
             return self._fh.read(length - I4s.size)
 
     def read_frame(self, index: int) -> np.ndarray:
-        if not self._fh:
+        if not self._fh:  # pragma: no cover
             raise ValueError("Attempt to read from closed nd2 file")
 
         try:
             from imagecodecs import jpeg2k_decode
-        except ModuleNotFoundError as e:
+        except ModuleNotFoundError as e:  # pragma: no cover
             raise ModuleNotFoundError(
                 f"{e}\n"
                 f"Reading legacy format nd2 {self._fh.name!r} requires imagecodecs.\n"
@@ -414,7 +414,7 @@ class LegacyReader(ND2Reader):
     def header(self) -> dict:
         try:
             pos = self.chunkmap[b"jp2h"][0]
-        except (KeyError, IndexError) as e:
+        except (KeyError, IndexError) as e:  # pragma: no cover
             raise KeyError("No valid jp2h header found in file") from e
         fh = cast("BinaryIO", self._fh)
         fh.seek(pos + I4s.size + 4)  # 4 bytes for "label"
@@ -442,7 +442,7 @@ class LegacyReader(ND2Reader):
 def legacy_nd2_chunkmap(fh: BinaryIO) -> dict[bytes, list[int]]:
     fh.seek(-40, 2)
     sig, map_start = struct.unpack("<32sQ", fh.read())
-    if sig != b"LABORATORY IMAGING ND BOX MAP 00":
+    if sig != b"LABORATORY IMAGING ND BOX MAP 00":  # pragma: no cover
         raise ValueError("Not a legacy ND2 file")
     fh.seek(-map_start, 2)
     n_chunks = int.from_bytes(fh.read(4), "big")

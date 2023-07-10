@@ -9,7 +9,8 @@ import numpy as np
 import pytest
 import xarray as xr
 from nd2 import ND2File, imread
-from nd2._util import AXIS
+from nd2._parse._chunk_decode import get_version
+from nd2._util import AXIS, is_supported_file
 from resource_backed_dask_array import ResourceBackedDaskArray
 
 DATA = Path(__file__).parent / "data"
@@ -269,7 +270,11 @@ def test_gc_triggers_cleanup(single_nd2):
 
 def test_file_handles(single_nd2: Path) -> None:
     """Test that we can open a file with a file handle also"""
+    # just for coverage, since usually it will use the filehandle
+    assert get_version(single_nd2) == (3, 0)
+
     with open(single_nd2, "rb") as fh:
+        assert is_supported_file(fh)
         f = ND2File(fh)
         assert f.path == str(single_nd2)
         assert f.version == (3, 0)

@@ -99,9 +99,11 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
     if magic != ND2_CHUNK_MAGIC:
         if magic == JP2_MAGIC:
             return (1, 0)  # legacy JP2 files are version 1.0
-        raise ValueError(f"Not a valid ND2 file: {fname}. (magic: {magic!r})")
+        raise ValueError(  # pragma: no cover
+            f"Not a valid ND2 file: {fname}. (magic: {magic!r})"
+        )
     if name_length != 32 or data_length != 64 or name != ND2_FILE_SIGNATURE:
-        raise ValueError(f"Corrupt ND2 file header chunk: {fname}")
+        raise ValueError(f"Corrupt ND2 file header chunk: {fname}")  # pragma: no cover
 
     # data will now be something like Ver2.0, Ver3.0, etc.
     return (int(chr(data[3])), int(chr(data[5])))
@@ -143,7 +145,7 @@ def get_chunkmap(fh: BinaryIO, error_radius: int | None = None) -> ChunkMap:
     # the last (32,8) bytes of the file contain the (signature, location) of chunkmap
     fh.seek(-40, 2)
     sig, location = SIG_CHUNKMAP_LOC.unpack(fh.read(SIG_CHUNKMAP_LOC.size))
-    if sig != ND2_CHUNKMAP_SIGNATURE:
+    if sig != ND2_CHUNKMAP_SIGNATURE:  # pragma: no cover
         raise ValueError(f"Invalid ChunkMap signature {sig!r} in file {fh.name!r}")
 
     # get all of the data in the chunkmap
@@ -286,7 +288,7 @@ def iter_chunks(handle: BinaryIO) -> Iterator[tuple[str, int, int]]:
         if magic:
             try:
                 name = handle.read(shift).split(b"\x00", 1)[0].decode("utf-8")
-            except UnicodeDecodeError:
+            except UnicodeDecodeError:  # pragma: no cover
                 name = "?"
             yield (name, pos + +CHUNK_HEADER.size + shift, length)
         pos += CHUNK_HEADER.size + shift + length
@@ -388,7 +390,7 @@ def rescue_nd2(
                             buffer=mm,
                             offset=end_hdr + shift + 8,
                         )
-                    except TypeError as e:
+                    except TypeError as e:  # pragma: no cover
                         # buffer is likely too small
                         if verbose:
                             print(f"Error at offset {offset}: {e}")

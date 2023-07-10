@@ -91,7 +91,7 @@ class ModernReader(ND2Reader):
         }
         """
         if not self._chunkmap:
-            if self._fh is None:
+            if self._fh is None:  # pragma: no cover
                 raise OSError("File not open")
             self._chunkmap = get_chunkmap(self._fh, error_radius=self._error_radius)
         return cast("ChunkMap", self._chunkmap)
@@ -117,7 +117,7 @@ class ModernReader(ND2Reader):
 
         `name` must be a valid key in the chunkmap.
         """
-        if self._fh is None:
+        if self._fh is None:  # pragma: no cover
             raise OSError("File not open")
 
         try:
@@ -295,7 +295,7 @@ class ModernReader(ND2Reader):
         """Read a chunk directly without using SDK."""
         if index > self._seq_count():
             raise IndexError(f"Frame out of range: {index}")
-        if not self._fh:
+        if not self._fh:  # pragma: no cover
             raise ValueError("Attempt to read from closed nd2 file")
         offset = self._frame_offsets.get(index, None)
         if offset is None:

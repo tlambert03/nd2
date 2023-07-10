@@ -155,7 +155,7 @@ def parse_time(time_str: str) -> datetime:
             return datetime.strptime(time_str, fmt_str)
         except ValueError:
             continue
-    raise ValueError(f"Could not parse {time_str}")
+    raise ValueError(f"Could not parse {time_str}")  # pragma: no cover
 
 
 # utils for converting records to dicts, in recorded_data method

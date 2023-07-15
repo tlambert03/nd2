@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from nd2._binary import BinaryLayers
     from nd2._parse._chunk_decode import ChunkMap
     from nd2._sdk_types import (
+        BinaryMetaDict,
         GlobalMetadata,
         RawAttributesDict,
         RawExperimentDict,
@@ -541,7 +542,7 @@ class ModernReader(ND2Reader):
         binary_meta = self._decode_chunk(chunk_key, strip_prefix=True)
 
         try:
-            items: dict = binary_meta["BinaryMetadata_v1"]
+            items = cast("dict[str, BinaryMetaDict]", binary_meta["BinaryMetadata_v1"])
         except KeyError:  # pragma: no cover
             warnings.warn(
                 "Could not find 'BinaryMetadata_v1' tag, please open an "
@@ -550,28 +551,30 @@ class ModernReader(ND2Reader):
             )
             return None
 
-        binseqs = sorted(x for x in self.chunkmap if b"RleZipBinarySequence" in x)
         mask_items = []
         coord_shape = tuple(x.count for x in self.experiment())
-
         for _, item in sorted(items.items()):
-            key = item["FileTag"].encode()
+            # something like: RleZipBinarySequence_1bd900c
+            key = item["FileTag"]
             _masks: list[np.ndarray | None] = []
-            for bs in binseqs:
-                if key in bs:
-                    data = self._load_chunk(bs)[4:]
-                    _masks.append(decode_binary_mask(data) if data else None)
+            for plane in range(self._seq_count()):
+                # this will be something like
+                # b'CustomDataSeq|RleZipBinarySequence_1bd900c|1153!
+                chunk_key = f"CustomDataSeq|{key}|{plane}!".encode()
+                data = self._load_chunk(chunk_key)[4:]
+                _masks.append(decode_binary_mask(data) if data else None)
+
             mask_items.append(
                 BinaryLayer(
                     data=_masks,
-                    name=item["Name"],
-                    comp_name=item["CompName"],
-                    comp_order=item["CompOrder"],
-                    color_mode=item["ColorMode"],
-                    state=item["State"],
-                    color=item["Color"],
                     file_tag=key,
-                    layer_id=item["BinLayerID"],
+                    name=item["Name"],
+                    comp_name=item.get("CompName"),
+                    comp_order=item.get("CompOrder"),
+                    color_mode=item.get("ColorMode"),
+                    state=item.get("State"),
+                    color=item.get("Color"),
+                    layer_id=item.get("BinLayerID"),
                     coordinate_shape=coord_shape,
                 )
             )

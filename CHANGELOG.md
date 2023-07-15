@@ -1,5 +1,30 @@
 # Changelog
 
+## [v0.7.1](https://github.com/tlambert03/nd2/tree/v0.7.1) (2023-07-15)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.7.0...v0.7.1)
+
+**Implemented enhancements:**
+
+- feat: accept file handles as well as paths [\#161](https://github.com/tlambert03/nd2/pull/161) ([tlambert03](https://github.com/tlambert03))
+- feat: decode compressed lite variant, and read string type tags [\#159](https://github.com/tlambert03/nd2/pull/159) ([tlambert03](https://github.com/tlambert03))
+
+**Fixed bugs:**
+
+- fix: fix binary reshaping [\#164](https://github.com/tlambert03/nd2/pull/164) ([tlambert03](https://github.com/tlambert03))
+
+**Tests & CI:**
+
+- test: bump coverage [\#163](https://github.com/tlambert03/nd2/pull/163) ([tlambert03](https://github.com/tlambert03))
+
+**Documentation:**
+
+- docs: update readme [\#162](https://github.com/tlambert03/nd2/pull/162) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- refactor: use common base class for legacy and modern reader, move logic from nd2file [\#160](https://github.com/tlambert03/nd2/pull/160) ([tlambert03](https://github.com/tlambert03))
+
 ## [v0.7.0](https://github.com/tlambert03/nd2/tree/v0.7.0) (2023-07-05)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.6.1...v0.7.0)

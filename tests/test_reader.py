@@ -1,5 +1,4 @@
 import json
-import os
 import pickle
 import sys
 from pathlib import Path
@@ -53,7 +52,6 @@ def test_dask_closed(single_nd2):
     assert isinstance(dsk.compute(), np.ndarray)
 
 
-@pytest.mark.skipif(bool(os.getenv("CIBUILDWHEEL")), reason="slow")
 def test_full_read(new_nd2):
     with ND2File(new_nd2) as nd:
         if new_nd2.stat().st_size > 500_000_000:
@@ -74,7 +72,6 @@ def test_dask_legacy(old_nd2):
         assert arr.shape == nd.shape[-2:]
 
 
-@pytest.mark.skipif(bool(os.getenv("CIBUILDWHEEL")), reason="slow")
 def test_full_read_legacy(old_nd2):
     with ND2File(old_nd2) as nd:
         if (old_nd2.stat().st_size > 500_000) and "--runslow" not in sys.argv:

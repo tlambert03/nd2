@@ -22,15 +22,13 @@ with open("tests/samples_metadata.json") as f:
     EXPECTED = json.load(f)
 
 DATA = Path(__file__).parent / "data"
+EXPECTED = {k: v for k, v in EXPECTED.items() if not _util.is_legacy(DATA / k)}
 
 
 @pytest.mark.parametrize("path", EXPECTED, ids=lambda x: f'{x}_{EXPECTED[x]["ver"]}')
 def test_metadata_integrity(path: str) -> None:
     """Test that the current API matches the expected output for sample data."""
-    target = Path("tests/data") / path
-    if _util.is_legacy(target):
-        pytest.skip()
-    name, stats = get_nd2_stats(target)
+    name, stats = get_nd2_stats(DATA / path)
 
     # normalize serizalized stuff
     stats = json.loads(json.dumps(stats, default=str))

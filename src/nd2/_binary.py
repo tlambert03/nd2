@@ -56,13 +56,13 @@ class BinaryLayer(NamedTuple):
 
     data: list[np.ndarray | None]
     name: str
-    comp_name: str
-    comp_order: int
-    color: int
-    color_mode: int
-    state: int
     file_tag: str
-    layer_id: int
+    comp_name: str | None
+    comp_order: int | None
+    color: int | None
+    color_mode: int | None
+    state: int | None
+    layer_id: int | None
     coordinate_shape: tuple[int, ...]
 
     @property

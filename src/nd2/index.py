@@ -282,7 +282,7 @@ def _filter_data(
         # against each row. For example, "'TimeLoop' in experiment"
         for f in filters:
             try:
-                data = [row for row in data if bool(eval(f, None, row))]
+                data = [row for row in data if bool(eval(f, None, row))]  # noqa: S307
             except Exception as e:  # pragma: no cover
                 print(f"Error evaluating filter {f!r}: {e}", file=sys.stderr)
                 sys.exit(1)

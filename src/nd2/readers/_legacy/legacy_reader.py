@@ -185,7 +185,7 @@ class LegacyReader(ND2Reader):
             while meta:
                 # ugh... another hack for weird metadata
                 if len(meta) == 1:
-                    meta = cast("RawExperimentLoop", list(meta.values())[0])
+                    meta = cast("RawExperimentLoop", next(iter(meta.values())))
                     if meta and isinstance(meta, list):
                         meta = meta[0]
                 loop = self._make_loop(meta, i)

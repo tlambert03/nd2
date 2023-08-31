@@ -66,7 +66,7 @@ def elem2dict(node: etree._Element) -> Any:
         else:
             value = elem2dict(element)
         if key in result:
-            if type(result[key]) is list:
+            if isinstance(result[key], list):
                 result[key].append(value)
             else:
                 result[key] = [result[key], value]

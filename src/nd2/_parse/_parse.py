@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Iterable, cast
 
 import numpy as np
 
-from nd2 import structures as strct
 from nd2 import _util
+from nd2 import structures as strct
 from nd2._sdk_types import ELxModalityMask, EventMeaning, StimulationType
 
 if TYPE_CHECKING:

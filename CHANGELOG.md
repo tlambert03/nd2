@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.7.2](https://github.com/tlambert03/nd2/tree/v0.7.2) (2023-08-31)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.7.1...v0.7.2)
+
+**Implemented enhancements:**
+
+- fix: fix Z series values in events\(\) output, and add individual axis indices [\#167](https://github.com/tlambert03/nd2/pull/167) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- ci\(pre-commit.ci\): autoupdate [\#165](https://github.com/tlambert03/nd2/pull/165) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+
 ## [v0.7.1](https://github.com/tlambert03/nd2/tree/v0.7.1) (2023-07-15)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.7.0...v0.7.1)

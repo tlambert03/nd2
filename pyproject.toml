@@ -60,6 +60,7 @@ docs = ["mkdocs", "mkdocs-material", "mkdocstrings-python"]
 homepage = "https://github.com/tlambert03/nd2"
 repository = "https://github.com/tlambert03/nd2"
 changelog = "https://github.com/tlambert03/nd2/blob/main/CHANGELOG.md"
+documentation = "https://tlambert03.github.io/nd2/"
 
 # https://hatch.pypa.io/latest/config/metadata/
 [tool.hatch.version]

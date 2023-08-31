@@ -11,6 +11,8 @@ if TYPE_CHECKING:
     from os import PathLike
     from typing import Any, Callable, ClassVar, Mapping, Sequence, Union
 
+    from typing_extensions import Final
+
     from nd2.readers import ND2Reader
 
     StrOrPath = Union[str, PathLike]
@@ -108,17 +110,18 @@ def rgb_int_to_tuple(rgb: int) -> tuple[int, int, int]:
 # these are used has headers in the events() table
 TIME_KEY = "Time [s]"
 Z_SERIES_KEY = "Z-Series"
+POSITION_NAME = "Position Name"
 
 
 class AXIS:
-    X = "X"
-    Y = "Y"
-    Z = "Z"
-    CHANNEL = "C"
-    RGB = "S"
-    TIME = "T"
-    POSITION = "P"
-    UNKNOWN = "U"
+    X: Final = "X"
+    Y: Final = "Y"
+    Z: Final = "Z"
+    CHANNEL: Final = "C"
+    RGB: Final = "S"
+    TIME: Final = "T"
+    POSITION: Final = "P"
+    UNKNOWN: Final = "U"
 
     _MAP: ClassVar[dict[str, str]] = {
         "Unknown": UNKNOWN,

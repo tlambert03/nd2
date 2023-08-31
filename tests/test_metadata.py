@@ -125,6 +125,9 @@ def test_recorded_data() -> None:
         row_0 = [rd[h][0] for h in headers]
         assert headers == [
             _util.TIME_KEY,
+            "Index",
+            "T Index",
+            "Z Index",
             "Z-Series",
             "Camera 1 Temperature [°C]",
             "Laser Power; 1.channel [%]",
@@ -145,6 +148,9 @@ def test_recorded_data() -> None:
         ]
         assert row_0 == [
             0.44508349828422067,
+            0,
+            0,
+            0,
             -2.0,
             -5.0,
             0.0,

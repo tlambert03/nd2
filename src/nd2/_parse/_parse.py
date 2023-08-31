@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Iterable, cast
 import numpy as np
 
 from nd2 import structures as strct
+from nd2 import _util
 from nd2._sdk_types import ELxModalityMask, EventMeaning, StimulationType
 
 if TYPE_CHECKING:
@@ -648,13 +649,13 @@ def load_frame_metadata(
     meta: strct.Metadata,
     exp_loops: list[ExpLoop],
     frame_time: float,
-    loop_indices: tuple[int, ...],
+    loop_indices: dict[str, int],
 ) -> strct.FrameMetadata:
     xy_loop_idx = global_meta["loops"].get("XYPosLoop", -1)
     z_loop_idx = global_meta["loops"].get("ZStackLoop", -1)
     if 0 <= xy_loop_idx < len(exp_loops):
         xy_params = cast("XYPosLoopParams", exp_loops[xy_loop_idx].parameters)
-        point = xy_params.points[loop_indices[xy_loop_idx]]
+        point = xy_params.points[loop_indices[_util.AXIS.POSITION]]
         name = point.name
         x, y, z = point.stagePositionUm
         if not xy_params.isSettingZ:

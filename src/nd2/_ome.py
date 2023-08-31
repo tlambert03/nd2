@@ -57,15 +57,13 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
         for c_idx, ch in enumerate(meta.channels or ())
     ]
 
-    axes = [AXIS._MAP[x.type] for x in f.experiment]
     planes: list[m.Plane] = []
     for s_idx, loop_idx in zip(range(rdr._seq_count()), rdr.loop_indices()):
-        coords = dict(zip(axes, loop_idx))
         fm = rdr.frame_metadata(s_idx)
         planes.extend(
             m.Plane(
-                the_z=coords.get(AXIS.Z, 0),  # or loop_idx[fm_ch.loops.ZStackLoop]
-                the_t=coords.get(AXIS.TIME, 0),  # or loop_idx[fm_ch.loops.TimeLoop]
+                the_z=loop_idx.get(AXIS.Z, 0),
+                the_t=loop_idx.get(AXIS.TIME, 0),
                 the_c=c_idx,
                 # exposure_time=...,
                 # exposure_time_unit=...,

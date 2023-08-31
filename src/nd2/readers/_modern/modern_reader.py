@@ -220,8 +220,23 @@ class ModernReader(ND2Reader):
                 self._experiment = load_experiment(0, self._raw_experiment)
         return self._experiment
 
-    def loop_indices(self) -> list[tuple[int, ...]]:
-        return list(product(*[range(x.count) for x in self.experiment()]))
+    def loop_indices(self) -> list[dict[str, int]]:
+        """Return a list of dicts of loop indices for each frame.
+
+        Examples
+        --------
+        >>> with nd2.ND2File("path/to/file.nd2") as f:
+        ...     f.loop_indices()
+        [
+            {'Z': 0, 'T': 0, 'C': 0},
+            {'Z': 0, 'T': 0, 'C': 1},
+            {'Z': 0, 'T': 0, 'C': 2},
+            ...
+        ]
+        """
+        axes = [_util.AXIS._MAP[x.type] for x in self.experiment()]
+        indices = product(*(range(x.count) for x in self.experiment()))
+        return [dict(zip(axes, x)) for x in indices]
 
     def _img_exp_events(self) -> list[structures.ExperimentEvent]:
         """Parse and return all Image and Experiment events."""
@@ -398,40 +413,41 @@ class ModernReader(ND2Reader):
         {
             "Time [s]": [0.0, 0.0, 0.0, ...],
             "Z-Series": [-1.0, 0., 1.0, ...],
+            "Index": [0, 1, 2, ...],
+            "T Index": [0, 0, 0, ...],
+            "Z Index": [0, 1, 2, ...],
         }
         """
-        data: dict[str, np.ndarray | Sequence] = {}
+        data: dict[str, list] = {}
         frame_times = self._cached_frame_times()
         if frame_times:
             data[_util.TIME_KEY] = [x / 1000 for x in frame_times]
 
-        # FIXME: this whole thing is dumb... must be a better way
-        experiment = self.experiment()
-        for i, z_loop in enumerate(experiment):
-            if not isinstance(z_loop, structures.ZStackLoop):
-                continue
+        loop_indices = self.loop_indices()
+        for frame_idx, loop_idx in enumerate(loop_indices):
+            data.setdefault("Index", []).append(frame_idx)
+            for axis, value in loop_idx.items():
+                data.setdefault(f"{axis} Index", []).append(value)
 
-            z_positions = [
-                z_loop.parameters.stepUm * (i - z_loop.parameters.homeIndex)
-                for i in range(z_loop.count)
-            ]
-            if not z_loop.parameters.bottomToTop:
-                z_positions.reverse()
-
-            def _seq_z_pos(
-                seq_index: int, z_idx: int = i, _zp: list[float] = z_positions
-            ) -> float:
-                """Convert a sequence index to a coordinate tuple."""
-                for n, _loop in enumerate(experiment):
-                    if n == z_idx:
-                        return _zp[seq_index % _loop.count]
-                    seq_index //= _loop.count
-                raise ValueError("Invalid sequence index or z_idx")
-
-            seq_count = self._seq_count()
-            data[_util.Z_SERIES_KEY] = np.array(
-                [_seq_z_pos(i) for i in range(seq_count)]
-            )
+        for loop in self.experiment():
+            if isinstance(loop, structures.ZStackLoop):
+                # zpos is a list of actual z positions at each z-index in a single stack
+                # e.g. [-1, -.5, 0, 0.5, 1]
+                params = loop.parameters
+                zpos = [
+                    params.stepUm * (i - params.homeIndex) for i in range(loop.count)
+                ]
+                if not params.bottomToTop:
+                    zpos.reverse()
+                data[_util.Z_SERIES_KEY] = [
+                    zpos[frame_index[_util.AXIS.Z]] for frame_index in loop_indices
+                ]
+            elif isinstance(loop, structures.XYPosLoop):
+                names = [p.name or "" for p in loop.parameters.points]
+                data[_util.POSITION_NAME] = [
+                    names[frame_index[_util.AXIS.POSITION]]
+                    for frame_index in loop_indices
+                ]
 
         return data  # type: ignore [return-value]
 

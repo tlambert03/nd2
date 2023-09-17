@@ -937,7 +937,7 @@ class ND2File:
             return self._NO_IDX
         return np.ravel_multi_index(coords, self._coord_shape)  # type: ignore
 
-    def _dask_block(self, copy: bool, block_id: tuple[int]) -> np.ndarray:
+    def _dask_block(self, copy: bool, block_id: tuple[int, ...]) -> np.ndarray:
         if isinstance(block_id, np.ndarray):
             return None
         with self._lock:

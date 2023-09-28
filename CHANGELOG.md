@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.7.3](https://github.com/tlambert03/nd2/tree/v0.7.3) (2023-09-28)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.7.2...v0.7.3)
+
+**Fixed bugs:**
+
+- fix: fix key error in binary data [\#176](https://github.com/tlambert03/nd2/pull/176) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- ci\(dependabot\): bump actions/checkout from 3 to 4 [\#171](https://github.com/tlambert03/nd2/pull/171) ([dependabot[bot]](https://github.com/apps/dependabot))
+- build: support python 3.12 [\#168](https://github.com/tlambert03/nd2/pull/168) ([tlambert03](https://github.com/tlambert03))
+
 ## [v0.7.2](https://github.com/tlambert03/nd2/tree/v0.7.2) (2023-08-31)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.7.1...v0.7.2)
@@ -7,10 +20,6 @@
 **Implemented enhancements:**
 
 - fix: fix Z series values in events\(\) output, and add individual axis indices [\#167](https://github.com/tlambert03/nd2/pull/167) ([tlambert03](https://github.com/tlambert03))
-
-**Merged pull requests:**
-
-- ci\(pre-commit.ci\): autoupdate [\#165](https://github.com/tlambert03/nd2/pull/165) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 
 ## [v0.7.1](https://github.com/tlambert03/nd2/tree/v0.7.1) (2023-07-15)
 

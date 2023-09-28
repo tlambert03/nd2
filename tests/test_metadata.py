@@ -7,12 +7,16 @@ from typing import TYPE_CHECKING
 
 import dask.array as da
 import pytest
-import xarray as xr
 from nd2 import ND2File, _util, structures
 from nd2._parse._chunk_decode import ND2_FILE_SIGNATURE
 
 sys.path.append(str(Path(__file__).parent.parent / "scripts"))
 from nd2_describe import get_nd2_stats  # noqa: E402
+
+try:
+    import xarray as xr
+except ImportError:
+    xr = None
 
 if TYPE_CHECKING:
     from typing_extensions import Literal
@@ -104,9 +108,10 @@ def test_metadata_extraction_legacy(old_nd2):
         assert isinstance(nd.experiment, list)
         assert isinstance(nd.text_info, dict)
         assert isinstance(nd.metadata, structures.Metadata)
-        xarr = nd.to_xarray()
-        assert isinstance(xarr, xr.DataArray)
-        assert isinstance(xarr.data, da.Array)
+        if xr is not None:
+            xarr = nd.to_xarray()
+            assert isinstance(xarr, xr.DataArray)
+            assert isinstance(xarr.data, da.Array)
 
         with pytest.warns(UserWarning, match="not implemented"):
             nd.events()

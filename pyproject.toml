@@ -39,7 +39,7 @@ test = [
     "pytest-cov",
     "pytest-pretty",
     "pytest>=6.0",
-    "xarray",
+    "xarray; python_version < '3.12'",
 ]
 dev = [
     "aicsimageio",

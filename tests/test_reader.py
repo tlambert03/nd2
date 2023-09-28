@@ -6,7 +6,6 @@ from pathlib import Path
 import dask.array as da
 import numpy as np
 import pytest
-import xarray as xr
 from nd2 import ND2File, imread
 from nd2._parse._chunk_decode import get_version
 from nd2._util import AXIS, is_supported_file
@@ -23,6 +22,7 @@ def test_read_safety(new_nd2: Path):
 
 def test_position(new_nd2: Path):
     """use position to extract a single stage position with asarray."""
+    pytest.importorskip("xarray")
     if new_nd2.stat().st_size > 250_000_000:
         pytest.skip("skipping read on big files")
     with ND2File(new_nd2) as nd:
@@ -53,6 +53,7 @@ def test_dask_closed(single_nd2):
 
 
 def test_full_read(new_nd2):
+    pytest.importorskip("xarray")
     with ND2File(new_nd2) as nd:
         if new_nd2.stat().st_size > 500_000_000:
             pytest.skip("skipping full read on big files")
@@ -82,6 +83,7 @@ def test_full_read_legacy(old_nd2):
 
 
 def test_xarray(new_nd2):
+    xr = pytest.importorskip("xarray")
     with ND2File(new_nd2) as nd:
         xarr = nd.to_xarray()
         assert isinstance(xarr, xr.DataArray)
@@ -90,6 +92,7 @@ def test_xarray(new_nd2):
 
 
 def test_xarray_legacy(old_nd2):
+    xr = pytest.importorskip("xarray")
     with ND2File(old_nd2) as nd:
         xarr = nd.to_xarray()
         assert isinstance(xarr, xr.DataArray)

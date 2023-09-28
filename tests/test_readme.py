@@ -9,6 +9,8 @@ SAMPLE = Path(__file__).parent / "data" / "dims_c2y32x32.nd2"
 
 @pytest.mark.skipif(os.name == "nt", reason="paths annoying on windows")
 def test_readme(capsys):
+    pytest.importorskip("xarray")
+
     code = README.read_text().split("```python")[1].split("```")[0]
     code = code.replace("some_file.nd2", str(SAMPLE.absolute()))
     exec(code)

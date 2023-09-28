@@ -38,6 +38,8 @@ jobs:
             platform: "ubuntu-latest"
           - python-version: "3.8"
             platform: "windows-latest"
+          - python-version: "3.12-dev"
+            platform: "ubuntu-latest"
 
     steps:
       - uses: actions/checkout@v4

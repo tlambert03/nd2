@@ -545,9 +545,7 @@ class ModernReader(ND2Reader):
 
         time = self._cached_global_metadata().get("time", {})
         jdn = time.get("absoluteJulianDayNumber")
-        if jdn:
-            return _util.jdn_to_datetime_utc(jdn)
-        return None
+        return _util.jdn_to_datetime(jdn) if jdn else None
 
     def binary_data(self) -> BinaryLayers | None:
         from nd2._binary import BinaryLayer, BinaryLayers, decode_binary_mask

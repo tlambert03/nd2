@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import re
 import warnings
-from datetime import datetime
+from datetime import UTC, datetime, timezone
 from itertools import product
 from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
 
@@ -95,12 +95,8 @@ def is_new_format(path: str) -> bool:
         return fh.read(4) == NEW_HEADER_MAGIC
 
 
-def jdn_to_datetime_local(jdn: float) -> datetime:
-    return datetime.fromtimestamp((jdn - 2440587.5) * 86400.0)
-
-
-def jdn_to_datetime_utc(jdn: float) -> datetime:
-    return datetime.utcfromtimestamp((jdn - 2440587.5) * 86400.0)
+def jdn_to_datetime(jdn: float, tz: timezone = UTC) -> datetime:
+    return datetime.fromtimestamp((jdn - 2440587.5) * 86400.0, UTC)
 
 
 def rgb_int_to_tuple(rgb: int) -> tuple[int, int, int]:

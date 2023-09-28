@@ -582,7 +582,7 @@ class ModernReader(ND2Reader):
                 else:
                     # it's conceivable that some frames don't have binary
                     # sequence masks written, so we'll just fill in None
-                    data = None
+                    data = None  # pragma: no cover
                 _masks.append(decode_binary_mask(data) if data else None)
 
             mask_items.append(

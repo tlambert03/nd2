@@ -27,12 +27,12 @@ dependencies = ["resource-backed-dask-array", "typing-extensions", "numpy"]
 [project.optional-dependencies]
 legacy = ["imagecodecs"]
 test = [
-    "aicsimageio",
+    "aicsimageio; python_version < '3.12'",
     "dask[array]",
     "imagecodecs",
     "lxml",
     "numpy >=1.26; python_version >= '3.12'",
-    "numpy >=1.2; python_version < '3.12'",
+    "numpy; python_version < '3.12'",
     "ome-types",
     "psutil",
     "pytest-codspeed",

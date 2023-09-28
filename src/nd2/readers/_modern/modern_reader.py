@@ -577,7 +577,12 @@ class ModernReader(ND2Reader):
                 # this will be something like
                 # b'CustomDataSeq|RleZipBinarySequence_1bd900c|1153!
                 chunk_key = f"CustomDataSeq|{key}|{plane}!".encode()
-                data = self._load_chunk(chunk_key)[4:]
+                if chunk_key in self.chunkmap:
+                    data = self._load_chunk(chunk_key)[4:]
+                else:
+                    # it's conceivable that some frames don't have binary
+                    # sequence masks written, so we'll just fill in None
+                    data = None
                 _masks.append(decode_binary_mask(data) if data else None)
 
             mask_items.append(

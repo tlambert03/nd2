@@ -1162,6 +1162,8 @@ class ND2File:
         attribute which is list of numpy arrays (or `None` if there was no binary mask
         for that frame).  The length of the list will be the same as the number of
         sequence frames in this file (i.e. `self.attributes.sequenceCount`).
+        `BinaryLayers` can be indexed directly with an integer corresponding to the
+        *frame* index.
 
         Both the `BinaryLayers` and individual `BinaryLayer` objects can be cast to a
         numpy array with `np.asarray()`, or by using the `.asarray()` method

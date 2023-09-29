@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.7.4](https://github.com/tlambert03/nd2/tree/v0.7.4) (2023-09-29)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.7.3...v0.7.4)
+
+**Implemented enhancements:**
+
+- refactor: make binarylayer a dataclass [\#178](https://github.com/tlambert03/nd2/pull/178) ([tlambert03](https://github.com/tlambert03))
+
 ## [v0.7.3](https://github.com/tlambert03/nd2/tree/v0.7.3) (2023-09-28)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.7.2...v0.7.3)

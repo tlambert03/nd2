@@ -1155,11 +1155,15 @@ class ND2File:
         """Return binary layers embedded in the file.
 
         The returned `BinaryLayers` object is an immutable sequence of `BinaryLayer`
-        objects, one for each binary layer in the file.  Each `BinaryLayer` object in
-        the sequence has a `name` attribute, and a `data` attribute which is list of
-        numpy arrays (or `None` if there was no binary mask for that frame).  The length
-        of the list will be the same as the number of sequence frames in this file
-        (i.e. `self.attributes.sequenceCount`).
+        objects, one for each binary layer in the file (there will usually be a binary
+        layer associated with each channel in the dataset).
+
+        Each `BinaryLayer` object in the sequence has a `name` attribute, and a `data`
+        attribute which is list of numpy arrays (or `None` if there was no binary mask
+        for that frame).  The length of the list will be the same as the number of
+        sequence frames in this file (i.e. `self.attributes.sequenceCount`).
+        `BinaryLayers` can be indexed directly with an integer corresponding to the
+        *frame* index.
 
         Both the `BinaryLayers` and individual `BinaryLayer` objects can be cast to a
         numpy array with `np.asarray()`, or by using the `.asarray()` method
@@ -1175,12 +1179,15 @@ class ND2File:
         >>> f = ND2File("path/to/file.nd2")
         >>> f.binary_data
         <BinaryLayers with 4 layers>
-        >>> f.binary_data[0]  # the first binary layer
+        >>> first_layer = f.binary_data[0]  # the first binary layer
+        >>> first_layer
         BinaryLayer(name='attached Widefield green (green color)',
         comp_name='Widefield Green', comp_order=2, color=65280, color_mode=0,
         state=524288, file_tag='RleZipBinarySequence_1_v1', layer_id=2)
-        >>> f.binary_data[0].data  # list of arrays
-        >>> np.asarray(f.binary_data[0])  # just the first binary mask
+        >>> first_layer.data  # list of arrays
+        # you can also index in to the BinaryLayers object itself
+        >>> first_layer[0]  # get binary data for first frame (or None if missing)
+        >>> np.asarray(first_layer)  # cast to array matching shape of full sequence
         >>> np.asarray(f.binary_data).shape  # cast all layers to array
         (4, 3, 4, 5, 32, 32)
         """

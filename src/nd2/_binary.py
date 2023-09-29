@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import io
 import struct
+import sys
 import warnings
 import zlib
-from typing import TYPE_CHECKING, Iterator, NamedTuple, Sequence, cast, overload
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Iterator, Sequence, cast, overload
 
 import numpy as np
 
@@ -17,12 +19,21 @@ I7 = struct.Struct("<" + "I" * 7)
 I9 = struct.Struct("<" + "I" * 9)
 I2 = struct.Struct("<" + "I" * 2)
 
+SLOTS = {}
+if sys.version_info >= (3, 9):
+    SLOTS["slots"] = True
 
-class BinaryLayer(NamedTuple):
+
+@dataclass(frozen=True, **SLOTS)
+class BinaryLayer:
     """Wrapper for data from a single binary layer in an [`nd2.ND2File`][].
 
-    `data` will have length of num_sequences, with `None` for any frames
-    that lack binary data.
+    A "layer" is a set of binary data that can be associated with a
+    specific component in an ND2 file, such as a single channel.
+
+    This object behaves like a `list[numpy.ndarray] | None`.
+    It will have a length matching the number of frames in the file, with `None` for
+    any frames that lack binary data.
 
     Attributes
     ----------
@@ -54,7 +65,7 @@ class BinaryLayer(NamedTuple):
         to reshape the data into a 3D array in `asarray`.
     """
 
-    data: list[np.ndarray | None]
+    data: list[np.ndarray | None] = field(repr=False)
     name: str
     file_tag: str
     comp_name: str | None
@@ -64,6 +75,14 @@ class BinaryLayer(NamedTuple):
     state: int | None
     layer_id: int | None
     coordinate_shape: tuple[int, ...]
+
+    def __len__(self) -> int:
+        """Return the number of frames in the data."""
+        return len(self.data)
+
+    def __getitem__(self, key: int) -> np.ndarray | None:
+        """Return the data for a single frame."""
+        return self.data[key]
 
     @property
     def frame_shape(self) -> tuple[int, ...]:
@@ -93,12 +112,6 @@ class BinaryLayer(NamedTuple):
         return cast(
             "np.ndarray", np.stack(d).reshape(self.coordinate_shape + frame_shape)
         )
-
-    def __repr__(self) -> str:
-        """Return a nicely formatted string."""
-        field_names = (f for f in self._fields if f != "data")
-        repr_fmt = "(" + ", ".join(f"{name}=%r" for name in field_names) + ")"
-        return self.__class__.__name__ + repr_fmt % self[1:]
 
 
 class BinaryLayers(Sequence[BinaryLayer]):

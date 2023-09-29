@@ -20,7 +20,7 @@ I9 = struct.Struct("<" + "I" * 9)
 I2 = struct.Struct("<" + "I" * 2)
 
 SLOTS = {}
-if sys.version_info >= (3, 9):
+if sys.version_info >= (3, 10):
     SLOTS["slots"] = True
 
 

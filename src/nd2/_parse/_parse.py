@@ -522,7 +522,7 @@ def load_global_metadata(
         },
         "volume": {
             "axesCalibrated": axesCalibrated,
-            "axesCalibration": tuple(i if i > 0 else 1.0 for i in axesCalibration),  # type: ignore  # noqa: E501
+            "axesCalibration": tuple(i if i > 0 else 1.0 for i in axesCalibration),  # type: ignore
             "axesInterpretation": axInterp,
             "bitsPerComponentInMemory": attrs.bitsPerComponentInMemory,
             "bitsPerComponentSignificant": attrs.bitsPerComponentSignificant,
@@ -631,7 +631,7 @@ def load_metadata(raw_meta: RawMetaDict, global_meta: GlobalMetadata) -> strct.M
             volume=strct.Volume(
                 **volume,
                 pixelToStageTransformationMatrix=(
-                    None if _pixel_to_stage is None else tuple(_pixel_to_stage)  # type: ignore  # noqa
+                    None if _pixel_to_stage is None else tuple(_pixel_to_stage)  # type: ignore
                 ),
                 componentCount=compCount,
                 componentMinima=[0.0] * compCount,  # FIXME

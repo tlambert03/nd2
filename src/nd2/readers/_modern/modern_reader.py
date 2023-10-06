@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import warnings
 import zlib
-from itertools import product
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence, cast
 
 import numpy as np
@@ -78,6 +77,8 @@ class ModernReader(ND2Reader):
         self._raw_experiment: RawExperimentDict | None = None
         self._raw_text_info: RawTextInfoDict | None = None
         self._raw_image_metadata: RawMetaDict | None = None
+
+        self._loop_indices: list[dict[str, int]] | None = None
 
     @property
     def chunkmap(self) -> ChunkMap:
@@ -234,9 +235,9 @@ class ModernReader(ND2Reader):
             ...
         ]
         """
-        axes = [_util.AXIS._MAP[x.type] for x in self.experiment()]
-        indices = product(*(range(x.count) for x in self.experiment()))
-        return [dict(zip(axes, x)) for x in indices]
+        if self._loop_indices is None:
+            self._loop_indices = _util.loop_indices(self.experiment())
+        return self._loop_indices
 
     def _img_exp_events(self) -> list[structures.ExperimentEvent]:
         """Parse and return all Image and Experiment events."""

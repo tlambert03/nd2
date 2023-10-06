@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from typing_extensions import Final
 
     from nd2.readers import ND2Reader
+    from nd2.structures import ExpLoop
 
     StrOrPath = Union[str, PathLike]
     FileOrBinaryIO = Union[StrOrPath, BinaryIO]
@@ -234,3 +235,22 @@ def convert_dict_of_lists_to_records(
         }
         for row_data in zip(*columns.values())
     ]
+
+
+def loop_indices(experiment: list[ExpLoop]) -> list[dict[str, int]]:
+    """Return a list of dicts of loop indices for each frame.
+
+    Examples
+    --------
+    >>> with nd2.ND2File("path/to/file.nd2") as f:
+    ...     f.loop_indices()
+    [
+        {'Z': 0, 'T': 0, 'C': 0},
+        {'Z': 0, 'T': 0, 'C': 1},
+        {'Z': 0, 'T': 0, 'C': 2},
+        ...
+    ]
+    """
+    axes = [AXIS._MAP[x.type] for x in experiment]
+    indices = product(*(range(x.count) for x in experiment))
+    return [dict(zip(axes, x)) for x in indices]

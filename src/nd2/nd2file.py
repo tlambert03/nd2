@@ -1052,9 +1052,10 @@ class ND2File:
     def _frame_count(self) -> int:
         return int(np.prod(self._coord_shape))
 
-    def _get_frame(self, index: SupportsInt) -> np.ndarray:
+    def _get_frame(self, index: SupportsInt) -> np.ndarray:  # pragma: no cover
         warnings.warn(
-            'Use of "_get_frame" is deprecated, use "read_frame" instead.', stacklevel=2
+            'Use of "_get_frame" is deprecated, use the public "read_frame" instead.',
+            stacklevel=2,
         )
         return self.read_frame(index)
 

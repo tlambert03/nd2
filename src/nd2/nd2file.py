@@ -874,7 +874,7 @@ class ND2File:
                 seqs = self._seq_index_from_coords(coords)  # type: ignore
                 final_shape[pidx] = 1
 
-        arr: np.ndarray = np.stack([self._get_frame(i) for i in seqs])
+        arr: np.ndarray = np.stack([self.read_frame(i) for i in seqs])
         return arr.reshape(final_shape)
 
     def __array__(self) -> np.ndarray:
@@ -954,7 +954,7 @@ class ND2File:
                             f"Cannot get chunk {block_id} for single frame image."
                         )
                     idx = 0
-                data = self._get_frame(int(idx))  # type: ignore
+                data = self.read_frame(int(idx))  # type: ignore
                 data = data.copy() if copy else data
                 return data[(np.newaxis,) * ncoords]
             finally:
@@ -1053,9 +1053,33 @@ class ND2File:
         return int(np.prod(self._coord_shape))
 
     def _get_frame(self, index: SupportsInt) -> np.ndarray:
-        frame = self._rdr.read_frame(int(index))
+        warnings.warn(
+            'Use of "_get_frame" is deprecated, use "read_frame" instead.', stacklevel=2
+        )
+        return self.read_frame(index)
+
+    def read_frame(self, frame_index: SupportsInt) -> np.ndarray:
+        """Read a single frame from the file, indexed by frame number."""
+        frame = self._rdr.read_frame(int(frame_index))
         frame.shape = self._raw_frame_shape
         return frame.transpose((2, 0, 1, 3)).squeeze()
+
+    @cached_property
+    def loop_indices(self) -> list[dict[str, int]]:
+        """Return a list of dicts of loop indices for each frame.
+
+        Examples
+        --------
+        >>> with nd2.ND2File("path/to/file.nd2") as f:
+        ...     f.loop_indices
+        [
+            {'Z': 0, 'T': 0, 'C': 0},
+            {'Z': 0, 'T': 0, 'C': 1},
+            {'Z': 0, 'T': 0, 'C': 2},
+            ...
+        ]
+        """
+        return _util.loop_indices(self.experiment)
 
     def _expand_coords(self, squeeze: bool = True) -> dict:
         """Return a dict that can be used as the coords argument to xr.DataArray.

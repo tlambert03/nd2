@@ -1,5 +1,17 @@
 # Changelog
 
+## [v0.8.0](https://github.com/tlambert03/nd2/tree/v0.8.0) (2023-10-10)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.7.4...v0.8.0)
+
+**Implemented enhancements:**
+
+- feat: add `read_frame` and `loop_indices` to public api [\#181](https://github.com/tlambert03/nd2/pull/181) ([tlambert03](https://github.com/tlambert03))
+
+**Fixed bugs:**
+
+- fix: fix extraction of xy points in extruded shapes [\#183](https://github.com/tlambert03/nd2/pull/183) ([tlambert03](https://github.com/tlambert03))
+
 ## [v0.7.4](https://github.com/tlambert03/nd2/tree/v0.7.4) (2023-09-29)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.7.3...v0.7.4)
@@ -316,7 +328,7 @@
 
 ## [v0.2.0](https://github.com/tlambert03/nd2/tree/v0.2.0) (2022-02-20)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5-1...v0.2.0)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.6...v0.2.0)
 
 **Merged pull requests:**
 
@@ -329,13 +341,13 @@
 - \[pre-commit.ci\] pre-commit autoupdate [\#34](https://github.com/tlambert03/nd2/pull/34) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 - \[pre-commit.ci\] pre-commit autoupdate [\#33](https://github.com/tlambert03/nd2/pull/33) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 
-## [v0.1.5-1](https://github.com/tlambert03/nd2/tree/v0.1.5-1) (2021-11-12)
-
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.6...v0.1.5-1)
-
 ## [v0.1.6](https://github.com/tlambert03/nd2/tree/v0.1.6) (2021-11-12)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5...v0.1.6)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5-1...v0.1.6)
+
+## [v0.1.5-1](https://github.com/tlambert03/nd2/tree/v0.1.5-1) (2021-11-12)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5...v0.1.5-1)
 
 ## [v0.1.5](https://github.com/tlambert03/nd2/tree/v0.1.5) (2021-11-12)
 

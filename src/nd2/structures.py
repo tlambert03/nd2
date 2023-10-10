@@ -422,7 +422,7 @@ class ExtrudedShape(NamedTuple):
         return cls(
             sizeZ=val.get("SizeZ") or val.get("sizeZ") or 0,
             basePoints=[
-                XYPoint(*val[f"BasePoints_{i}"].get("", []))
+                XYPoint(*val[f"BasePoints_{i}"].values())
                 for i in range(val.get("BasePoints_Size", 0))
             ],
         )

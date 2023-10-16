@@ -541,6 +541,7 @@ class InterpType(IntEnum):
     ReferenceROI = 3
     StimulationROI = 4
 
+
 class ScopeType(IntEnum):
     Any = 0
     Global = 1

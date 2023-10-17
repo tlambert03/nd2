@@ -466,7 +466,6 @@ class ROI:
                 if _lower0(k) in RoiInfo.__annotations__
             }
         )
-        breakpoint()
         return cls(
             id=val["Id"],
             info=info,

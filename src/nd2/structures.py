@@ -516,25 +516,35 @@ class AnimParam:
 class RoiShapeType(IntEnum):
     """The type of ROI shape."""
 
+    Any = 0
     Raster = 1
-    Unknown2 = 2
+    Point = 2
     Rectangle = 3
     Ellipse = 4
     Polygon = 5
     Bezier = 6
-    Unknown7 = 7
-    Unknown8 = 8
+    Line = 7
+    PolyLine = 8
     Circle = 9
     Square = 10
+    Ring = 11
+    Spiral = 12
 
 
 class InterpType(IntEnum):
     """The role that the ROI plays."""
 
+    AnyROI = 0
     StandardROI = 1
     BackgroundROI = 2
     ReferenceROI = 3
     StimulationROI = 4
+
+
+class ScopeType(IntEnum):
+    Any = 0
+    Global = 1
+    MPoint = 2
 
 
 @dataclass
@@ -549,7 +559,7 @@ class RoiInfo:
     # everything will default to zero, EVEN if "use as stimulation" is not checked
     # use interpType to determine if it's a stimulation ROI
     stimulationGroup: int = 0
-    scope: int = 1
+    scope: ScopeType = ScopeType.Global
     appData: int = 0
     multiFrame: bool = False
     locked: bool = False
@@ -568,6 +578,8 @@ class RoiInfo:
                 self.shapeType = RoiShapeType(self.shapeType)
             elif key == "interpType":
                 self.interpType = InterpType(self.interpType)
+            elif key == "scope":
+                self.scope = ScopeType(self.scope)
             else:
                 type_ = getattr(builtins, anno)
                 setattr(self, key, type_(getattr(self, key)))

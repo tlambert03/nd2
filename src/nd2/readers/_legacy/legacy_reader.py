@@ -327,7 +327,7 @@ class LegacyReader(ND2Reader):
 
     @cached_property
     def _advanced_image_attributes(self) -> dict:
-        return self._decode_chunk(b"ARTT").get("AdvancedImageAttributes", {})
+        return self._decode_chunk(b"ARTT").get("AdvancedImageAttributes") or {}
 
     @cached_property
     def _raw_exp_loops(self) -> RawExperimentLoop:

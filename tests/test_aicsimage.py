@@ -8,6 +8,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import pytest
+from ome_types import OME
 
 pytest.importorskip("aicsimageio")
 from aicsimageio.readers.nd2_reader import ND2Reader  # noqa
@@ -25,6 +26,7 @@ DATA = Path(__file__).parent / "data"
         "expected_dims_order",
         "expected_channel_names",
         "expected_physical_pixel_sizes",
+        "expected_metadata_type",
     ),
     [
         pytest.param(
@@ -36,6 +38,7 @@ DATA = Path(__file__).parent / "data"
             "TCYX",
             ["20phase", "20xDiO"],
             (1, 50, 50),
+            dict,
         ),
         (
             "ND2_jonas_header_test2.nd2",
@@ -46,6 +49,7 @@ DATA = Path(__file__).parent / "data"
             "CTZYX",
             ["Jonas_DIC"],
             (0.5, 0.12863494437945, 0.12863494437945),
+            OME,
         ),
         (
             "ND2_maxime_BF007.nd2",
@@ -56,6 +60,7 @@ DATA = Path(__file__).parent / "data"
             "CYX",
             ["405/488/561/633nm"],
             (1.0, 0.158389678930686, 0.158389678930686),
+            OME,
         ),
         (
             "ND2_dims_p4z5t3c2y32x32.nd2",
@@ -66,6 +71,7 @@ DATA = Path(__file__).parent / "data"
             "TZCYX",
             ["Widefield Green", "Widefield Red"],
             (1.0, 0.652452890023035, 0.652452890023035),
+            OME,
         ),
         (
             "ND2_dims_c2y32x32.nd2",
@@ -76,6 +82,7 @@ DATA = Path(__file__).parent / "data"
             "CYX",
             ["Widefield Green", "Widefield Red"],
             (1.0, 0.652452890023035, 0.652452890023035),
+            OME,
         ),
         (
             "ND2_dims_p1z5t3c2y32x32.nd2",
@@ -86,6 +93,7 @@ DATA = Path(__file__).parent / "data"
             "TZCYX",
             ["Widefield Green", "Widefield Red"],
             (1.0, 0.652452890023035, 0.652452890023035),
+            OME,
         ),
         (
             "ND2_dims_p2z5t3-2c4y32x32.nd2",
@@ -96,6 +104,7 @@ DATA = Path(__file__).parent / "data"
             "TZCYX",
             ["Widefield Green", "Widefield Red", "Widefield Far-Red", "Brightfield"],
             (1.0, 0.652452890023035, 0.652452890023035),
+            OME,
         ),
         (
             "ND2_dims_t3c2y32x32.nd2",
@@ -106,6 +115,7 @@ DATA = Path(__file__).parent / "data"
             "TCYX",
             ["Widefield Green", "Widefield Red"],
             (1.0, 0.652452890023035, 0.652452890023035),
+            OME,
         ),
         (
             "ND2_dims_rgb_t3p2c2z3x64y64.nd2",
@@ -116,6 +126,7 @@ DATA = Path(__file__).parent / "data"
             "TZCYXS",
             ["Brightfield", "Brightfield"],
             (0.01, 0.34285714285714286, 0.34285714285714286),
+            OME,
         ),
         (
             "ND2_dims_rgb.nd2",
@@ -126,6 +137,7 @@ DATA = Path(__file__).parent / "data"
             "CYXS",
             ["Brightfield"],
             (1.0, 0.34285714285714286, 0.34285714285714286),
+            OME,
         ),
     ],
 )
@@ -138,6 +150,7 @@ def test_nd2_reader(
     expected_dims_order: str,
     expected_channel_names: List[str],
     expected_physical_pixel_sizes: Tuple[float, float, float],
+    expected_metadata_type: type,
 ) -> None:
     if filename.startswith("ND2_"):
         filename = filename[4:]
@@ -154,7 +167,7 @@ def test_nd2_reader(
         expected_dims_order=expected_dims_order,
         expected_channel_names=expected_channel_names,
         expected_physical_pixel_sizes=expected_physical_pixel_sizes,
-        expected_metadata_type=dict,
+        expected_metadata_type=expected_metadata_type,
     )
 
 

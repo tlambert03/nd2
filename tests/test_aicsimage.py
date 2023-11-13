@@ -16,6 +16,7 @@ from aicsimageio.readers.nd2_reader import ND2Reader  # noqa
 
 DATA = Path(__file__).parent / "data"
 
+
 @pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher")
 @pytest.mark.parametrize(
     (

@@ -310,12 +310,15 @@ class ModernReader(ND2Reader):
 
     def read_frame(self, index: int) -> np.ndarray:
         """Read a chunk directly without using SDK."""
-        if index > self._seq_count():
-            raise IndexError(f"Frame out of range: {index}")
         if not self._fh:  # pragma: no cover
             raise ValueError("Attempt to read from closed nd2 file")
-        offset = self._frame_offsets.get(index, None)
-        if offset is None:
+
+        # sometimes a frame index has a valid offset even if it's greater than
+        # _seq_count() (for example, if experiment parsing misses stuff)
+        # so, it sould still be accessible.        
+        if (offset := self._frame_offsets.get(index, None)) is None:
+            if index > self._seq_count():
+                raise IndexError(f"Frame out of range: {index}")
             return self._missing_frame(index)
 
         if self.attributes().compressionType == "lossless":

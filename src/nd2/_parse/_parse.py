@@ -187,7 +187,7 @@ def _parse_ne_time_loop(item: NETimeLoopPars) -> strct.NETimeLoop:
 
 
 def load_experiment(
-    level: int, src: RawExperimentDict, dest: list[ExpLoop] | None = None
+    src: RawExperimentDict, level: int = 0, dest: list[ExpLoop] | None = None
 ) -> list[ExpLoop]:
     """Parse the "ImageMetadata[LV]!" section of an nd2 file."""
     dest = dest or []
@@ -208,10 +208,21 @@ def load_experiment(
             if prev.count < loop.count:
                 dest[-1] = loop
 
+    # hack for file in https://github.com/tlambert03/nd2/issues/190
+    loop_params = src.get("uLoopPars", {})
+    if "pSubLoops" in loop_params:
+        loop_params = cast("NETimeLoopPars", loop_params)
+        subloops = loop_params["pSubLoops"]
+        if "i0000000000" in subloops:
+            subnext = subloops["i0000000000"]["ppNextLevelEx"]
+            if "i0000000000" in subnext:
+                experiment = subnext["i0000000000"]["SLxExperiment"]
+                dest.extend(load_experiment(experiment))
+
     next_level_src = src.get("ppNextLevelEx")
     if next_level_src:
         for item in next_level_src.values():
-            dest = load_experiment(level + 1, item, dest)
+            dest = load_experiment(item, level + 1, dest)
 
     return dest
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [v0.8.1](https://github.com/tlambert03/nd2/tree/v0.8.1) (2023-11-15)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.8.0...v0.8.1)
+
+**Fixed bugs:**
+
+- fix: access more frames via direct read\_frame\(\) method [\#192](https://github.com/tlambert03/nd2/pull/192) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- docs: fix emoji links in docs build [\#191](https://github.com/tlambert03/nd2/pull/191) ([tlambert03](https://github.com/tlambert03))
+- test: fix aicsimageio test [\#188](https://github.com/tlambert03/nd2/pull/188) ([tlambert03](https://github.com/tlambert03))
+- chore: minor ROI updates [\#186](https://github.com/tlambert03/nd2/pull/186) ([tlambert03](https://github.com/tlambert03))
+
 ## [v0.8.0](https://github.com/tlambert03/nd2/tree/v0.8.0) (2023-10-10)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.7.4...v0.8.0)

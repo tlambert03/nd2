@@ -316,7 +316,8 @@ class ModernReader(ND2Reader):
         # sometimes a frame index has a valid offset even if it's greater than
         # _seq_count() (for example, if experiment parsing misses stuff)
         # so, it should still be accessible.
-        if (offset := self._frame_offsets.get(index, None)) is None:
+        offset = self._frame_offsets.get(index, None)
+        if offset is None:
             if index > self._seq_count():  # pragma: no cover
                 raise IndexError(f"Frame out of range: {index}")
             return self._missing_frame(index)

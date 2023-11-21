@@ -377,7 +377,9 @@ class ModernReader(ND2Reader):
     def _strides(self) -> tuple[int, ...] | None:
         if self._strides_ is None:
             a = self.attributes()
-            if not (widthP := a.widthPx) or not (widthB := a.widthBytes):
+            widthP = a.widthPx
+            widthB = a.widthBytes
+            if not (widthP and widthB):
                 self._strides_ = None
             else:
                 n_components = a.componentCount

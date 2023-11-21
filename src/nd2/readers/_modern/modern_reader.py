@@ -386,7 +386,8 @@ class ModernReader(ND2Reader):
                     self._strides_ = None
                 else:
                     # the extra bypc is because we shape this as
-                    # (height, width, channels, RGBcompents)
+                    # (width, height, channels, RGBcompents)
+                    # see _actual_frame_shape() below
                     self._strides_ = (widthB, n_components * bypc, bypc, bypc)
         return self._strides_
 

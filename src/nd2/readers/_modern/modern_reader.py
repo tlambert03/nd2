@@ -382,28 +382,21 @@ class ModernReader(ND2Reader):
             if not (widthP and widthB):
                 self._strides_ = None
             else:
-                bypc = self._bytes_per_pixel()
-                compCount = a.componentCount
-                array_stride = widthB - (bypc * widthP * compCount)
-                if array_stride == 0:
+                n_components = a.componentCount
+                bypc = a.bitsPerComponentInMemory // 8
+                if widthB == (widthP * bypc * n_components):
                     self._strides_ = None
                 else:
-                    self._strides_ = (
-                        array_stride + widthP * bypc * compCount,
-                        compCount * bypc,
-                        compCount // (a.channelCount or 1) * bypc,
-                        bypc,
-                    )
+                    # the extra bypc is because we shape this as
+                    # (width, height, channels, RGBcompents)
+                    # see _actual_frame_shape() below
+                    self._strides_ = (widthB, n_components * bypc, bypc, bypc)
         return self._strides_
 
     def _actual_frame_shape(self) -> tuple[int, ...]:
         attr = self.attributes()
-        return (
-            attr.heightPx,
-            attr.widthPx or 1,
-            attr.channelCount or 1,
-            attr.componentCount // (attr.channelCount or 1),
-        )
+        nC = attr.channelCount or 1
+        return (attr.heightPx, attr.widthPx or 1, nC, attr.componentCount // nC)
 
     def custom_data(self) -> dict[str, Any]:
         return {

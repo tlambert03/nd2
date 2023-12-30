@@ -95,7 +95,7 @@ jobs:
         run: python -m pip install .[test]
 
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@v1
+        uses: CodSpeedHQ/action@v2
         with:
           run: pytest --codspeed -v --color=yes
 

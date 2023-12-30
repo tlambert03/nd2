@@ -573,7 +573,7 @@ def load_metadata(raw_meta: RawMetaDict, global_meta: GlobalMetadata) -> strct.M
         if matrix and (matrix.get("Columns") == 2 and matrix.get("Rows") == 2):
             # matrix["Data"] is a list of int64, we need to recast to float
             data = bytearray(matrix["Data"])
-            matrix_data: tuple[float, float, float, float] = tuple(  # type: ignore
+            matrix_data: tuple[float, float, float, float] = tuple(
                 i[0] for i in strctd.iter_unpack(data)
             )
             volume["cameraTransformationMatrix"] = matrix_data
@@ -626,7 +626,8 @@ def load_metadata(raw_meta: RawMetaDict, global_meta: GlobalMetadata) -> strct.M
             channel=channel_meta,
             loops=loops,
             microscope=strct.Microscope(
-                **microscope, modalityFlags=flags  # type: ignore
+                **microscope,
+                modalityFlags=flags,  # type: ignore
             ),
             volume=strct.Volume(
                 **volume,

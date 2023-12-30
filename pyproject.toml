@@ -30,7 +30,7 @@ test = [
     "aicsimageio; python_version < '3.12'",
     "dask[array]",
     "imagecodecs",
-    "lxml",
+    "lxml; python_version >= '3.9'",
     "numpy >=1.26; python_version >= '3.12'",
     "numpy; python_version < '3.12'",
     "ome-types",

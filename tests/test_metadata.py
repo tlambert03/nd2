@@ -11,7 +11,7 @@ from nd2 import ND2File, _util, structures
 from nd2._parse._chunk_decode import ND2_FILE_SIGNATURE
 
 sys.path.append(str(Path(__file__).parent.parent / "scripts"))
-from nd2_describe import get_nd2_stats  # noqa: E402
+from nd2_describe import get_nd2_stats
 
 try:
     import xarray as xr

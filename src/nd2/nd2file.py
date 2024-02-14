@@ -343,16 +343,17 @@ class ND2File:
     @overload
     def events(
         self, *, orient: Literal["records"] = ..., null_value: Any = ...
-    ) -> ListOfDicts:
-        ...
+    ) -> ListOfDicts: ...
 
     @overload
-    def events(self, *, orient: Literal["list"], null_value: Any = ...) -> DictOfLists:
-        ...
+    def events(
+        self, *, orient: Literal["list"], null_value: Any = ...
+    ) -> DictOfLists: ...
 
     @overload
-    def events(self, *, orient: Literal["dict"], null_value: Any = ...) -> DictOfDicts:
-        ...
+    def events(
+        self, *, orient: Literal["dict"], null_value: Any = ...
+    ) -> DictOfDicts: ...
 
     def events(
         self,
@@ -717,9 +718,11 @@ class ND2File:
         """
         idx = cast(
             int,
-            self._seq_index_from_coords(seq_index)
-            if isinstance(seq_index, tuple)
-            else seq_index,
+            (
+                self._seq_index_from_coords(seq_index)
+                if isinstance(seq_index, tuple)
+                else seq_index
+            ),
         )
         return self._rdr.frame_metadata(idx)
 
@@ -1233,8 +1236,7 @@ def imread(
     xarray: Literal[False] = ...,
     validate_frames: bool = ...,
     read_using_sdk: bool | None = None,
-) -> np.ndarray:
-    ...
+) -> np.ndarray: ...
 
 
 @overload
@@ -1245,8 +1247,7 @@ def imread(
     xarray: Literal[True],
     validate_frames: bool = ...,
     read_using_sdk: bool | None = None,
-) -> xr.DataArray:
-    ...
+) -> xr.DataArray: ...
 
 
 @overload
@@ -1257,8 +1258,7 @@ def imread(
     xarray: Literal[False] = ...,
     validate_frames: bool = ...,
     read_using_sdk: bool | None = None,
-) -> dask.array.core.Array:
-    ...
+) -> dask.array.core.Array: ...
 
 
 def imread(

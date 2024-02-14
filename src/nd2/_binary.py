@@ -1,4 +1,5 @@
 """Utilities for binary layers in ND2 files."""
+
 from __future__ import annotations
 
 import io
@@ -131,12 +132,10 @@ class BinaryLayers(Sequence[BinaryLayer]):
         self._data = data
 
     @overload
-    def __getitem__(self, key: int) -> BinaryLayer:
-        ...
+    def __getitem__(self, key: int) -> BinaryLayer: ...
 
     @overload
-    def __getitem__(self, key: slice) -> list[BinaryLayer]:
-        ...
+    def __getitem__(self, key: slice) -> list[BinaryLayer]: ...
 
     def __getitem__(self, key: int | slice) -> BinaryLayer | list[BinaryLayer]:
         return self._data[key]

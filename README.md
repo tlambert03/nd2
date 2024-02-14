@@ -9,7 +9,7 @@
 
 `.nd2` (Nikon NIS Elements) file reader.
 
-This reader provides a pure python implementation the official Nikon ND2 SDK.
+This reader provides a pure python implementation of the Nikon ND2 SDK.
 
 > It _used_ to wrap the official SDK with Cython, but has since been completely
 > rewritten to be pure python (for performance, ease of distribution, and

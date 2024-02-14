@@ -1,4 +1,5 @@
 """FIXME: this has a lot of code duplication with _chunkmap.py."""
+
 from __future__ import annotations
 
 import mmap

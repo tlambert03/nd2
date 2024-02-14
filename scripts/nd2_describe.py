@@ -4,6 +4,7 @@ Run using:
 
     python scripts/nd2_describe.py > tests/samples_metadata.json
 """
+
 import struct
 from dataclasses import asdict
 from pathlib import Path

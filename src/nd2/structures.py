@@ -346,9 +346,9 @@ class Volume:
     voxelCount: tuple[int, int, int]
     componentMaxima: list[float] | None = None
     componentMinima: list[float] | None = None
-    pixelToStageTransformationMatrix: tuple[
-        float, float, float, float, float, float
-    ] | None = None
+    pixelToStageTransformationMatrix: (
+        tuple[float, float, float, float, float, float] | None
+    ) = None
 
     # NIS Microscope Absolute frame in um =
     # pixelToStageTransformationMatrix * (X_in_px,  Y_in_px,  1) + stagePositionUm

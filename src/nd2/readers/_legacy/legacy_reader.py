@@ -22,9 +22,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from collections import defaultdict
-    from typing import Any, BinaryIO, Mapping
-
-    from typing_extensions import TypedDict
+    from typing import Any, BinaryIO, Mapping, TypedDict
 
     from nd2._util import FileOrBinaryIO
 

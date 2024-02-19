@@ -8,9 +8,7 @@ from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
 
 if TYPE_CHECKING:
     from os import PathLike
-    from typing import Any, Callable, ClassVar, Mapping, Sequence, Union
-
-    from typing_extensions import Final
+    from typing import Any, Callable, ClassVar, Final, Mapping, Sequence, Union
 
     from nd2.structures import ExpLoop
 

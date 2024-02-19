@@ -20,13 +20,12 @@ except ImportError:
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Any, Sequence, Sized, SupportsInt
+    from typing import Any, Literal, Sequence, Sized, SupportsInt
 
     import dask.array
     import dask.array.core
     import xarray as xr
     from ome_types import OME
-    from typing_extensions import Literal
 
     from ._binary import BinaryLayers
     from ._util import (

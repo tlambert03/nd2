@@ -1,4 +1,5 @@
 """nd2: A Python library for reading and writing ND2 files."""
+
 from importlib.metadata import PackageNotFoundError, version
 
 try:

@@ -10,10 +10,9 @@ from typing import TYPE_CHECKING, BinaryIO, cast
 from nd2._parse._chunk_decode import get_version
 
 if TYPE_CHECKING:
-    from typing import Any, ContextManager, Mapping, Sequence
+    from typing import Any, ContextManager, Literal, Mapping, Sequence
 
     import numpy as np
-    from typing_extensions import Literal
 
     from nd2._binary import BinaryLayers
     from nd2._util import FileOrBinaryIO

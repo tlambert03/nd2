@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Literal
 
 import dask.array as da
 import pytest
@@ -17,9 +17,6 @@ try:
     import xarray as xr
 except ImportError:
     xr = None
-
-if TYPE_CHECKING:
-    from typing_extensions import Literal
 
 
 with open("tests/samples_metadata.json") as f:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import dask.array as da
 import pytest
@@ -44,7 +44,7 @@ def test_metadata_integrity(path: str) -> None:
         assert stats[key] == EXPECTED[name][key], f"{key} mismatch"
 
 
-def _clear_names(*exps):
+def _clear_names(*exps: Any) -> None:
     for exp in exps:
         for item in exp:
             if item["type"] == "XYPosLoop":
@@ -94,7 +94,7 @@ def test_metadata_extraction(new_nd2: Path) -> None:
     assert nd.closed
 
 
-def test_metadata_extraction_legacy(old_nd2) -> None:
+def test_metadata_extraction_legacy(old_nd2: Path) -> None:
     assert ND2File.is_supported_file(old_nd2)
     with ND2File(old_nd2) as nd:
         assert repr(nd)

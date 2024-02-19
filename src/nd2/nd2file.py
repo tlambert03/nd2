@@ -328,16 +328,17 @@ class ND2File:
     @overload
     def events(
         self, *, orient: Literal["records"] = ..., null_value: Any = ...
-    ) -> ListOfDicts:
-        ...
+    ) -> ListOfDicts: ...
 
     @overload
-    def events(self, *, orient: Literal["list"], null_value: Any = ...) -> DictOfLists:
-        ...
+    def events(
+        self, *, orient: Literal["list"], null_value: Any = ...
+    ) -> DictOfLists: ...
 
     @overload
-    def events(self, *, orient: Literal["dict"], null_value: Any = ...) -> DictOfDicts:
-        ...
+    def events(
+        self, *, orient: Literal["dict"], null_value: Any = ...
+    ) -> DictOfDicts: ...
 
     def events(
         self,
@@ -1189,8 +1190,7 @@ def imread(
     dask: Literal[False] = ...,
     xarray: Literal[False] = ...,
     validate_frames: bool = ...,
-) -> np.ndarray:
-    ...
+) -> np.ndarray: ...
 
 
 @overload
@@ -1200,8 +1200,7 @@ def imread(
     dask: bool = ...,
     xarray: Literal[True],
     validate_frames: bool = ...,
-) -> xr.DataArray:
-    ...
+) -> xr.DataArray: ...
 
 
 @overload
@@ -1211,8 +1210,7 @@ def imread(
     dask: Literal[True],
     xarray: Literal[False] = ...,
     validate_frames: bool = ...,
-) -> dask.array.core.Array:
-    ...
+) -> dask.array.core.Array: ...
 
 
 def imread(

@@ -1,19 +1,16 @@
 name: CI
 
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0" # run once a week
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-on:
-  push:
-    branches:
-      - main
-    tags:
-      - "v*"
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
 
 jobs:
   check-manifest:
@@ -24,45 +21,24 @@ jobs:
       - run: pipx run check-manifest
 
   test:
-    name: ${{ matrix.platform }} (${{ matrix.python-version }})
-    runs-on: ${{ matrix.platform }}
+    name: Test
+    uses: pyapp-kit/workflows/.github/workflows/test-pyrepo.yml@main
+    with:
+      os: ${{ matrix.os }}
+      python-version: ${{ matrix.python-version }}
+      fail-on-coverage-error: false
+      pip-install-pre-release: ${{ github.event_name == 'schedule' }}
+      report-failures: ${{ github.event_name == 'schedule' }}
+      cache-key: 65a8e27d8879283831b664bd8b7f0ad4  # change to reset cache
+      cache-path: tests/data
+      cache-script: "pip install requests && python scripts/download_samples.py"
+    secrets:
+      codecov-token: ${{ secrets.CODECOV_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, windows-latest, "ubuntu-latest"]
+        os: [macos-latest, windows-latest, "ubuntu-latest"]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - uses: actions/cache@v4
-        id: cache
-        with:
-          path: tests/data
-          key: ${{ hashFiles('scripts/download_samples.py') }}
-
-      - name: Download Samples
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          pip install requests
-          python scripts/download_samples.py
-
-      - name: Build
-        # -e seems necessary for coverage to work
-        run: pip install -e .[test]
-
-      - name: Test
-        run: pytest -v --cov=nd2 --cov-report=xml --cov-report=term
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   benchmarks:
     runs-on: ubuntu-latest

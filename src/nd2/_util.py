@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import math
 import re
-import warnings
 from datetime import datetime, timezone
 from itertools import product
 from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
@@ -11,7 +10,6 @@ if TYPE_CHECKING:
     from os import PathLike
     from typing import Any, Callable, ClassVar, Final, Mapping, Sequence, Union
 
-    from nd2.readers import ND2Reader
     from nd2.structures import ExpLoop
 
     StrOrPath = Union[str, PathLike]
@@ -73,19 +71,6 @@ def is_legacy(path: StrOrPath) -> bool:
     """
     with open(path, "rb") as fh:
         return fh.read(4) == OLD_HEADER_MAGIC
-
-
-def get_reader(
-    path: str, validate_frames: bool = False, search_window: int = 100
-) -> ND2Reader:  # pragma: no cover
-    warnings.warn(
-        "Deprecated, use nd2.readers.ND2Reader.create if you want to "
-        "directly instantiate a reader subclass.",
-        stacklevel=2,
-    )
-    from nd2.readers import ND2Reader
-
-    return ND2Reader.create(path, search_window * 1000 if validate_frames else None)
 
 
 def is_new_format(path: str) -> bool:
@@ -155,9 +140,6 @@ def parse_time(time_str: str) -> datetime:
         except ValueError:
             continue
     raise ValueError(f"Could not parse {time_str}")  # pragma: no cover
-
-
-# utils for converting records to dicts, in recorded_data method
 
 
 def convert_records_to_dict_of_lists(

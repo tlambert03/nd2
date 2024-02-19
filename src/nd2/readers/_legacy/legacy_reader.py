@@ -430,7 +430,7 @@ class LegacyReader(ND2Reader):
 
     def events(self, orient: str, null_value: Any) -> list | Mapping:
         warnings.warn(
-            "`recorded_data` is not implemented for legacy ND2 files",
+            "`events` is not implemented for legacy ND2 files",
             UserWarning,
             stacklevel=2,
         )

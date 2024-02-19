@@ -176,7 +176,7 @@ def test_events() -> None:
 
 
 @pytest.mark.parametrize("orient", ["records", "dict", "list"])
-def test_events(new_nd2: Path, orient: Literal["records", "dict", "list"]) -> None:
+def test_events2(new_nd2: Path, orient: Literal["records", "dict", "list"]) -> None:
     with ND2File(new_nd2) as f:
         events = f.events(orient=orient)
 

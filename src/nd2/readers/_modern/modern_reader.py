@@ -31,8 +31,9 @@ from nd2.structures import ROI
 if TYPE_CHECKING:
     import datetime
     from os import PathLike
+    from typing import Literal
 
-    from typing_extensions import Literal, TypeAlias
+    from typing_extensions import TypeAlias
 
     from nd2._binary import BinaryLayers
     from nd2._parse._chunk_decode import ChunkMap

@@ -90,13 +90,11 @@ def test_metadata_extraction(new_nd2: Path) -> None:
 
         assert isinstance(nd.unstructured_metadata(), dict)
         assert isinstance(nd.events(), list)
-        with pytest.warns(FutureWarning):
-            assert isinstance(nd.recorded_data, dict)
 
     assert nd.closed
 
 
-def test_metadata_extraction_legacy(old_nd2):
+def test_metadata_extraction_legacy(old_nd2) -> None:
     assert ND2File.is_supported_file(old_nd2)
     with ND2File(old_nd2) as nd:
         assert repr(nd)
@@ -121,12 +119,11 @@ def test_metadata_extraction_legacy(old_nd2):
     assert nd.closed
 
 
-def test_recorded_data() -> None:
+def test_events() -> None:
     # this method is smoke-tested for every file above...
     # but specific values are asserted here:
     with ND2File(DATA / "cluster.nd2") as f:
-        with pytest.warns(FutureWarning, match="deprecated"):
-            rd = f.recorded_data
+        rd = f.events(orient="list")
 
         headers = list(rd)
         row_0 = [rd[h][0] for h in headers]

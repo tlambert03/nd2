@@ -208,7 +208,6 @@ def load_experiment(
             if prev.count < loop.count:
                 dest[-1] = loop
 
-
     # FIXME:
     # hack for file in https://github.com/tlambert03/nd2/issues/190
     # there is a better fix, but this is a very rare case

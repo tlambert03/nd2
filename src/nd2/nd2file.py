@@ -20,13 +20,12 @@ except ImportError:
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Any, Sequence, Sized, SupportsInt
+    from typing import Any, Literal, Sequence, Sized, SupportsInt
 
     import dask.array
     import dask.array.core
     import xarray as xr
     from ome_types import OME
-    from typing_extensions import Literal
 
     from ._binary import BinaryLayers
     from ._util import (
@@ -85,13 +84,6 @@ class ND2File:
     search_window : int
         When validate_frames is true, this is the search window (in KB) that will
         be used to try to find the actual chunk position. by default 100 KB
-    read_using_sdk : Optional[bool]
-        :warning: **DEPRECATED**.  No longer does anything.
-
-        If `True`, use the SDK to read the file. If `False`, inspects the chunkmap
-        and reads from a `numpy.memmap`. If `None` (the default), uses the SDK if
-        the file is compressed, otherwise uses the memmap. Note: using
-        `read_using_sdk=False` on a compressed file will result in a ValueError.
     """
 
     def __init__(
@@ -100,15 +92,7 @@ class ND2File:
         *,
         validate_frames: bool = False,
         search_window: int = 100,
-        read_using_sdk: bool | None = None,
     ) -> None:
-        if read_using_sdk is not None:
-            warnings.warn(
-                "The `read_using_sdk` argument is deprecated and will be removed in "
-                "a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
         self._error_radius: int | None = (
             search_window * 1000 if validate_frames else None
         )
@@ -343,16 +327,17 @@ class ND2File:
     @overload
     def events(
         self, *, orient: Literal["records"] = ..., null_value: Any = ...
-    ) -> ListOfDicts:
-        ...
+    ) -> ListOfDicts: ...
 
     @overload
-    def events(self, *, orient: Literal["list"], null_value: Any = ...) -> DictOfLists:
-        ...
+    def events(
+        self, *, orient: Literal["list"], null_value: Any = ...
+    ) -> DictOfLists: ...
 
     @overload
-    def events(self, *, orient: Literal["dict"], null_value: Any = ...) -> DictOfDicts:
-        ...
+    def events(
+        self, *, orient: Literal["dict"], null_value: Any = ...
+    ) -> DictOfDicts: ...
 
     def events(
         self,
@@ -405,7 +390,6 @@ class ND2File:
         strip_prefix: bool = True,
         include: set[str] | None = None,
         exclude: set[str] | None = None,
-        unnest: bool | None = None,
     ) -> dict[str, Any]:
         """Exposes, and attempts to decode, each metadata chunk in the file.
 
@@ -430,8 +414,6 @@ class ND2File:
             all metadata sections found in the file are included.
         exclude : set[str] | None, optional
             If provided, exclude the specified keys from the output. by default `None`
-        unnest : bool, optional
-            :warning: **DEPRECATED**.  No longer does anything.
 
         Returns
         -------
@@ -440,12 +422,6 @@ class ND2File:
             metadata chunk (things like 'CustomData|RoiMetadata_v1' or
             'ImageMetadataLV'), and values that are associated metadata chunk.
         """
-        if unnest is not None:
-            warnings.warn(
-                "The unnest parameter is deprecated, and no longer has any effect.",
-                FutureWarning,
-                stacklevel=2,
-            )
         return self._rdr.unstructured_metadata(strip_prefix, include, exclude)
 
     @cached_property
@@ -717,9 +693,11 @@ class ND2File:
         """
         idx = cast(
             int,
-            self._seq_index_from_coords(seq_index)
-            if isinstance(seq_index, tuple)
-            else seq_index,
+            (
+                self._seq_index_from_coords(seq_index)
+                if isinstance(seq_index, tuple)
+                else seq_index
+            ),
         )
         return self._rdr.frame_metadata(idx)
 
@@ -1154,27 +1132,6 @@ class ND2File:
             extra = ""
         return f"<ND2File at {hex(id(self))}{extra}>"
 
-    @property
-    def recorded_data(self) -> DictOfLists:
-        """Return tabular data recorded for each frame of the experiment.
-
-        !!! warning "Deprecated"
-
-            This method is deprecated and will be removed in a future version.
-            Please use the [`events`][nd2.ND2File.events] method instead. To get the
-            same dict-of-lists output that `recorded_data` returns, use
-            `ndfile.events(orient='list')`
-        """
-        warnings.warn(
-            "recorded_data is deprecated and will be removed in a future version."
-            "Please use the `events` method instead. To get the same dict-of-lists "
-            "output, use `events(orient='list')`",
-            FutureWarning,
-            stacklevel=2,
-        )
-
-        return self.events(orient="list")
-
     @cached_property
     def binary_data(self) -> BinaryLayers | None:
         """Return binary layers embedded in the file.
@@ -1232,9 +1189,7 @@ def imread(
     dask: Literal[False] = ...,
     xarray: Literal[False] = ...,
     validate_frames: bool = ...,
-    read_using_sdk: bool | None = None,
-) -> np.ndarray:
-    ...
+) -> np.ndarray: ...
 
 
 @overload
@@ -1244,9 +1199,7 @@ def imread(
     dask: bool = ...,
     xarray: Literal[True],
     validate_frames: bool = ...,
-    read_using_sdk: bool | None = None,
-) -> xr.DataArray:
-    ...
+) -> xr.DataArray: ...
 
 
 @overload
@@ -1256,9 +1209,7 @@ def imread(
     dask: Literal[True],
     xarray: Literal[False] = ...,
     validate_frames: bool = ...,
-    read_using_sdk: bool | None = None,
-) -> dask.array.core.Array:
-    ...
+) -> dask.array.core.Array: ...
 
 
 def imread(
@@ -1267,7 +1218,6 @@ def imread(
     dask: bool = False,
     xarray: bool = False,
     validate_frames: bool = False,
-    read_using_sdk: bool | None = None,
 ) -> np.ndarray | xr.DataArray | dask.array.core.Array:
     """Open `file`, return requested array type, and close `file`.
 
@@ -1290,23 +1240,13 @@ def imread(
         shifted relative to the predicted offset (i.e. in a corrupted file).
         This comes at a slight performance penalty at file open, but may "rescue"
         some corrupt files. by default False.
-    read_using_sdk : Optional[bool]
-        :warning: **DEPRECATED**.  No longer used.
-
-        If `True`, use the SDK to read the file. If `False`, inspects the chunkmap and
-        reads from a `numpy.memmap`. If `None` (the default), uses the SDK if the file
-        is compressed, otherwise uses the memmap.
-        Note: using `read_using_sdk=False` on a compressed file will result in a
-        ValueError.
 
     Returns
     -------
     Union[np.ndarray, dask.array.Array, xarray.DataArray]
         Array subclass, depending on arguments used.
     """
-    with ND2File(
-        file, validate_frames=validate_frames, read_using_sdk=read_using_sdk
-    ) as nd2:
+    with ND2File(file, validate_frames=validate_frames) as nd2:
         if xarray:
             return nd2.to_xarray(delayed=dask)
         elif dask:

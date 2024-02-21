@@ -22,9 +22,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from collections import defaultdict
-    from typing import Any, BinaryIO, Mapping
-
-    from typing_extensions import TypedDict
+    from typing import Any, BinaryIO, Mapping, TypedDict
 
     from nd2._util import FileOrBinaryIO
 
@@ -432,7 +430,7 @@ class LegacyReader(ND2Reader):
 
     def events(self, orient: str, null_value: Any) -> list | Mapping:
         warnings.warn(
-            "`recorded_data` is not implemented for legacy ND2 files",
+            "`events` is not implemented for legacy ND2 files",
             UserWarning,
             stacklevel=2,
         )

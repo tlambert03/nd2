@@ -9,7 +9,7 @@
 
 `.nd2` (Nikon NIS Elements) file reader.
 
-This reader provides a pure python implementation the official Nikon ND2 SDK.
+This reader provides a pure python implementation of the Nikon ND2 SDK.
 
 > It _used_ to wrap the official SDK with Cython, but has since been completely
 > rewritten to be pure python (for performance, ease of distribution, and
@@ -73,7 +73,7 @@ import numpy as np
 my_array = nd2.imread('some_file.nd2')                          # read to numpy array
 my_array = nd2.imread('some_file.nd2', dask=True)               # read to dask array
 my_array = nd2.imread('some_file.nd2', xarray=True)             # read to xarray
-my_array = nd2.imread('some_file.nd2', xarray=True, dask=True)  # read file to dask-xarray
+my_array = nd2.imread('some_file.nd2', xarray=True, dask=True)  # read to dask-xarray
 
 # or open a file with nd2.ND2File
 f = nd2.ND2File('some_file.nd2')

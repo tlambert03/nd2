@@ -7,9 +7,7 @@ from argparse import RawTextHelpFormatter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Sequence, cast, no_type_check
-
-from typing_extensions import TypedDict
+from typing import Any, Iterable, Iterator, Sequence, TypedDict, cast, no_type_check
 
 import nd2
 

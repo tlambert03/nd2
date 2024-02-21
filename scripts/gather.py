@@ -1,4 +1,5 @@
 """gather metadata from all files in test/data with all nd readers."""
+
 import contextlib
 import json
 from pathlib import Path

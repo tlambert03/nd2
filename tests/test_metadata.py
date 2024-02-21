@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Any, Literal
 
 import dask.array as da
 import pytest
@@ -11,15 +11,12 @@ from nd2 import ND2File, _util, structures
 from nd2._parse._chunk_decode import ND2_FILE_SIGNATURE
 
 sys.path.append(str(Path(__file__).parent.parent / "scripts"))
-from nd2_describe import get_nd2_stats  # noqa: E402
+from nd2_describe import get_nd2_stats
 
 try:
     import xarray as xr
 except ImportError:
     xr = None
-
-if TYPE_CHECKING:
-    from typing_extensions import Literal
 
 
 with open("tests/samples_metadata.json") as f:
@@ -44,7 +41,7 @@ def test_metadata_integrity(path: str) -> None:
         assert stats[key] == EXPECTED[name][key], f"{key} mismatch"
 
 
-def _clear_names(*exps):
+def _clear_names(*exps: Any) -> None:
     for exp in exps:
         for item in exp:
             if item["type"] == "XYPosLoop":
@@ -90,13 +87,11 @@ def test_metadata_extraction(new_nd2: Path) -> None:
 
         assert isinstance(nd.unstructured_metadata(), dict)
         assert isinstance(nd.events(), list)
-        with pytest.warns(FutureWarning):
-            assert isinstance(nd.recorded_data, dict)
 
     assert nd.closed
 
 
-def test_metadata_extraction_legacy(old_nd2):
+def test_metadata_extraction_legacy(old_nd2: Path) -> None:
     assert ND2File.is_supported_file(old_nd2)
     with ND2File(old_nd2) as nd:
         assert repr(nd)
@@ -121,12 +116,11 @@ def test_metadata_extraction_legacy(old_nd2):
     assert nd.closed
 
 
-def test_recorded_data() -> None:
+def test_events() -> None:
     # this method is smoke-tested for every file above...
     # but specific values are asserted here:
     with ND2File(DATA / "cluster.nd2") as f:
-        with pytest.warns(FutureWarning, match="deprecated"):
-            rd = f.recorded_data
+        rd = f.events(orient="list")
 
         headers = list(rd)
         row_0 = [rd[h][0] for h in headers]
@@ -179,7 +173,7 @@ def test_recorded_data() -> None:
 
 
 @pytest.mark.parametrize("orient", ["records", "dict", "list"])
-def test_events(new_nd2: Path, orient: Literal["records", "dict", "list"]) -> None:
+def test_events2(new_nd2: Path, orient: Literal["records", "dict", "list"]) -> None:
     with ND2File(new_nd2) as f:
         events = f.events(orient=orient)
 

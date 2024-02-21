@@ -5,6 +5,7 @@ Todo:
 all of this logic is duplicated in _clx_xml.py.
 _legacy.py just needs some slight updates to deal with different parsing results.
 """
+
 from __future__ import annotations
 
 import re

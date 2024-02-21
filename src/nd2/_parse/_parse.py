@@ -208,15 +208,19 @@ def load_experiment(
             if prev.count < loop.count:
                 dest[-1] = loop
 
+
+    # FIXME:
     # hack for file in https://github.com/tlambert03/nd2/issues/190
+    # there is a better fix, but this is a very rare case
     loop_params = src.get("uLoopPars", {})
     if "pSubLoops" in loop_params:
         loop_params = cast("NETimeLoopPars", loop_params)
         subloops = loop_params["pSubLoops"]
-        if "i0000000000" in subloops:
-            subnext = subloops["i0000000000"]["ppNextLevelEx"]
-            if "i0000000000" in subnext:
-                experiment = subnext["i0000000000"]["SLxExperiment"]
+        i0 = "i0000000000"
+        if i0 in subloops:
+            subnext = subloops[i0]["ppNextLevelEx"]
+            if i0 in subnext:
+                experiment = subnext[i0]["SLxExperiment"]
                 dest.extend(load_experiment(experiment))
 
     next_level_src = src.get("ppNextLevelEx")

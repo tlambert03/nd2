@@ -1,5 +1,27 @@
 # Changelog
 
+## [v0.9.0](https://github.com/tlambert03/nd2/tree/v0.9.0) (2024-02-22)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.8.1...v0.9.0)
+
+**Fixed bugs:**
+
+- fix: hacky fix for files with subloops [\#193](https://github.com/tlambert03/nd2/pull/193) ([tlambert03](https://github.com/tlambert03))
+
+**Tests & CI:**
+
+- tests: lxml on \>=39 [\#200](https://github.com/tlambert03/nd2/pull/200) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- chore: remove old deprecations [\#209](https://github.com/tlambert03/nd2/pull/209) ([tlambert03](https://github.com/tlambert03))
+- build: drop python 3.7 [\#208](https://github.com/tlambert03/nd2/pull/208) ([tlambert03](https://github.com/tlambert03))
+- ci\(dependabot\): bump codecov/codecov-action from 3 to 4 [\#205](https://github.com/tlambert03/nd2/pull/205) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump actions/cache from 3 to 4 [\#204](https://github.com/tlambert03/nd2/pull/204) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump actions/setup-python from 4 to 5 [\#198](https://github.com/tlambert03/nd2/pull/198) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump CodSpeedHQ/action from 1 to 2 [\#196](https://github.com/tlambert03/nd2/pull/196) ([dependabot[bot]](https://github.com/apps/dependabot))
+- refactor: simplify strides [\#194](https://github.com/tlambert03/nd2/pull/194) ([tlambert03](https://github.com/tlambert03))
+
 ## [v0.8.1](https://github.com/tlambert03/nd2/tree/v0.8.1) (2023-11-15)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.8.0...v0.8.1)

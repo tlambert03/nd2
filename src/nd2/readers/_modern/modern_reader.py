@@ -219,7 +219,7 @@ class ModernReader(ND2Reader):
                 exp = self._decode_chunk(k, strip_prefix=False)
                 exp = exp.get("SLxExperiment", exp)  # for v3 only
                 self._raw_experiment = cast("RawExperimentDict", exp)
-                self._experiment = load_experiment(0, self._raw_experiment)
+                self._experiment = load_experiment(self._raw_experiment)
         return self._experiment
 
     def loop_indices(self) -> list[dict[str, int]]:

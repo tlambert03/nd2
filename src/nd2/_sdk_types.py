@@ -157,6 +157,14 @@ if TYPE_CHECKING:
         pPlanes: PicturePlanesDict
         uiCount: NotRequired[int]
 
+    class SLxExperimentDict(TypedDict):
+        SLxExperiment: RawExperimentDict
+
+    class SubLoopDict(TypedDict):
+        uiNextLevelCount: int
+        # this is a dict of keys 'i0000000000', 'i0000000001', etc.
+        ppNextLevelEx: dict[str, SLxExperimentDict]
+
     class NETimeLoopPars(TypedDict):
         # keys are '_00' or 'i0000000000' ...
         pPeriod: dict[str, PeriodDict]
@@ -167,6 +175,8 @@ if TYPE_CHECKING:
         uiPeriodCount: int
         wsCommandAfterPeriod: str
         wsCommandBeforePeriod: str
+        # this is a dict of keys 'i0000000000', 'i0000000001', etc.
+        pSubLoops: NotRequired[dict[str, SubLoopDict]]
 
     LoopParsDict: TypeAlias = Union[
         TimeLoopPars, XYPosLoopPars, ZStackLoopPars, SpectLoopPars, NETimeLoopPars

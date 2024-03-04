@@ -199,7 +199,7 @@ def convert_dict_of_lists_to_records(
 
     Examples
     --------
-    >>> lists = {'a': [1, 4, float('nan')], 'b': [float('nan'), 5, 8], 'c': [3, 6, 9]}
+    >>> lists = {"a": [1, 4, float("nan")], "b": [float("nan"), 5, 8], "c": [3, 6, 9]}
     >>> convert_dict_of_lists_to_records(records)
     [
         {"a": 1, "c": 3},

@@ -42,7 +42,6 @@ test = [
 ]
 dev = [
     "aicsimageio",
-    "black",
     "dask[array]",
     "imagecodecs",
     "ipython",
@@ -72,15 +71,20 @@ source = "vcs"
 only-include = ["src"]
 sources = ["src"]
 
-# https://beta.ruff.rs/docs/rules/
+# https://docs.astral.sh/ruff/rules
 [tool.ruff]
 line-length = 88
 target-version = "py38"
 src = ["src/nd2", "tests"]
+
+[tool.ruff.lint]
+pydocstyle = { convention = "numpy" }
 select = [
     "E",      # style errors
+    "W",      # style warnings
     "F",      # flakes
     "D",      # pydocstyle
+    "D417",   # Missing argument descriptions in Docstrings
     "I",      # isort
     "UP",     # pyupgrade
     "S",      # bandit
@@ -93,22 +97,18 @@ select = [
     "TCH",    # flake8-type-checking
 ]
 ignore = [
-    "D100", # Missing docstring in public module
-    "D107", # Missing docstring in __init__
-    "D203", # 1 blank line required before class docstring
-    "D212", # Multi-line docstring summary should start at the first line
-    "D213", # Multi-line docstring summary should start at the second line
-    "D400", # First line should end with a period
     "D401", # First line should be in imperative mood
-    "D413", # Missing blank line after last section
-    "D416", # Section name should end with a colon
-    "C901", # Function is too complex
+    "D100", # Missing docstring in public module
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "src/nd2/structures.py" = ["D101", "D105"] # Fix someday
 "tests/*.py" = ["D", "S"]
 "scripts/*.py" = ["D", "S"]
+
+# https://docs.astral.sh/ruff/formatter/
+[tool.ruff.format]
+docstring-code-format = true
 
 # https://docs.pytest.org/en/6.2.x/customize.html
 [tool.pytest.ini_options]
@@ -165,3 +165,9 @@ ignore = [
     "tests/**/*",
     "src/nd2/_version.py",
 ]
+
+[tool.typos.default]
+extend-ignore-identifiers-re = ["nd2?.*", "ND2?.*"]
+
+[tool.typos.files]
+extend-exclude = ["*.json", "**/_sdk_types.py"]

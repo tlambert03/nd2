@@ -227,7 +227,7 @@ class ND2File:
                 bitsPerComponentSignificant=16,
                 componentCount=2,
                 heightPx=32,
-                pixelDataType='unsigned',
+                pixelDataType="unsigned",
                 sequenceCount=60,
                 widthBytes=128,
                 widthPx=32,
@@ -235,7 +235,7 @@ class ND2File:
                 compressionType=None,
                 tileHeightPx=None,
                 tileWidthPx=None,
-                channelCount=2
+                channelCount=2,
             )
             ```
 
@@ -299,10 +299,10 @@ class ND2File:
                         periodDiff=PeriodDiff(
                             avg=3674.199951171875,
                             max=3701.219970703125,
-                            min=3647.179931640625
-                        )
+                            min=3647.179931640625,
+                        ),
                     ),
-                    type='TimeLoop'
+                    type="TimeLoop",
                 ),
                 ZStackLoop(
                     count=5,
@@ -311,10 +311,10 @@ class ND2File:
                         homeIndex=2,
                         stepUm=1.0,
                         bottomToTop=True,
-                        deviceName='Ti2 ZDrive'
+                        deviceName="Ti2 ZDrive",
                     ),
-                    type='ZStackLoop'
-                )
+                    type="ZStackLoop",
+                ),
             ]
             ```
 
@@ -436,101 +436,87 @@ class ND2File:
                 channels=[
                     Channel(
                         channel=ChannelMeta(
-                            name='Widefield Green',
+                            name="Widefield Green",
                             index=0,
                             colorRGB=65371,
                             emissionLambdaNm=535.0,
-                            excitationLambdaNm=None
+                            excitationLambdaNm=None,
                         ),
                         loops=LoopIndices(
-                            NETimeLoop=None,
-                            TimeLoop=0,
-                            XYPosLoop=None,
-                            ZStackLoop=1
+                            NETimeLoop=None, TimeLoop=0, XYPosLoop=None, ZStackLoop=1
                         ),
                         microscope=Microscope(
                             objectiveMagnification=10.0,
-                            objectiveName='Plan Fluor 10x Ph1 DLL',
+                            objectiveName="Plan Fluor 10x Ph1 DLL",
                             objectiveNumericalAperture=0.3,
                             zoomMagnification=1.0,
                             immersionRefractiveIndex=1.0,
                             projectiveMagnification=None,
                             pinholeDiameterUm=None,
-                            modalityFlags=['fluorescence']
+                            modalityFlags=["fluorescence"],
                         ),
                         volume=Volume(
                             axesCalibrated=[True, True, True],
-                            axesCalibration=[
-                                0.652452890023035,
-                                0.652452890023035,
-                                1.0
-                            ],
-                            axesInterpretation=['distance', 'distance', 'distance'],
+                            axesCalibration=[0.652452890023035, 0.652452890023035, 1.0],
+                            axesInterpretation=["distance", "distance", "distance"],
                             bitsPerComponentInMemory=16,
                             bitsPerComponentSignificant=16,
                             cameraTransformationMatrix=[
                                 -0.9998932296054086,
                                 -0.014612644841559427,
                                 0.014612644841559427,
-                                -0.9998932296054086
+                                -0.9998932296054086,
                             ],
                             componentCount=1,
-                            componentDataType='unsigned',
+                            componentDataType="unsigned",
                             voxelCount=[32, 32, 5],
                             componentMaxima=[0.0],
                             componentMinima=[0.0],
-                            pixelToStageTransformationMatrix=None
-                        )
+                            pixelToStageTransformationMatrix=None,
+                        ),
                     ),
                     Channel(
                         channel=ChannelMeta(
-                            name='Widefield Red',
+                            name="Widefield Red",
                             index=1,
                             colorRGB=22015,
                             emissionLambdaNm=620.0,
-                            excitationLambdaNm=None
+                            excitationLambdaNm=None,
                         ),
                         loops=LoopIndices(
-                            NETimeLoop=None,
-                            TimeLoop=0,
-                            XYPosLoop=None,
-                            ZStackLoop=1
+                            NETimeLoop=None, TimeLoop=0, XYPosLoop=None, ZStackLoop=1
                         ),
                         microscope=Microscope(
                             objectiveMagnification=10.0,
-                            objectiveName='Plan Fluor 10x Ph1 DLL',
+                            objectiveName="Plan Fluor 10x Ph1 DLL",
                             objectiveNumericalAperture=0.3,
                             zoomMagnification=1.0,
                             immersionRefractiveIndex=1.0,
                             projectiveMagnification=None,
                             pinholeDiameterUm=None,
-                            modalityFlags=['fluorescence']
+                            modalityFlags=["fluorescence"],
                         ),
                         volume=Volume(
                             axesCalibrated=[True, True, True],
-                            axesCalibration=[
-                                0.652452890023035,
-                                0.652452890023035,
-                                1.0
-                            ],
-                            axesInterpretation=['distance', 'distance', 'distance'],
+                            axesCalibration=[0.652452890023035, 0.652452890023035, 1.0],
+                            axesInterpretation=["distance", "distance", "distance"],
                             bitsPerComponentInMemory=16,
                             bitsPerComponentSignificant=16,
                             cameraTransformationMatrix=[
                                 -0.9998932296054086,
                                 -0.014612644841559427,
                                 0.014612644841559427,
-                                -0.9998932296054086
+                                -0.9998932296054086,
                             ],
                             componentCount=1,
-                            componentDataType='unsigned',
+                            componentDataType="unsigned",
                             voxelCount=[32, 32, 5],
                             componentMaxima=[0.0],
                             componentMinima=[0.0],
-                            pixelToStageTransformationMatrix=None
-                        )
-                    )
-                ]
+                            pixelToStageTransformationMatrix=None,
+                        ),
+                    ),
+                ],
             )
             ```
 
@@ -557,127 +543,109 @@ class ND2File:
                 channels=[
                     FrameChannel(
                         channel=ChannelMeta(
-                            name='Widefield Green',
+                            name="Widefield Green",
                             index=0,
                             colorRGB=65371,
                             emissionLambdaNm=535.0,
-                            excitationLambdaNm=None
+                            excitationLambdaNm=None,
                         ),
                         loops=LoopIndices(
-                            NETimeLoop=None,
-                            TimeLoop=0,
-                            XYPosLoop=None,
-                            ZStackLoop=1
+                            NETimeLoop=None, TimeLoop=0, XYPosLoop=None, ZStackLoop=1
                         ),
                         microscope=Microscope(
                             objectiveMagnification=10.0,
-                            objectiveName='Plan Fluor 10x Ph1 DLL',
+                            objectiveName="Plan Fluor 10x Ph1 DLL",
                             objectiveNumericalAperture=0.3,
                             zoomMagnification=1.0,
                             immersionRefractiveIndex=1.0,
                             projectiveMagnification=None,
                             pinholeDiameterUm=None,
-                            modalityFlags=['fluorescence']
+                            modalityFlags=["fluorescence"],
                         ),
                         volume=Volume(
                             axesCalibrated=[True, True, True],
-                            axesCalibration=[
-                                0.652452890023035,
-                                0.652452890023035,
-                                1.0
-                            ],
-                            axesInterpretation=['distance', 'distance', 'distance'],
+                            axesCalibration=[0.652452890023035, 0.652452890023035, 1.0],
+                            axesInterpretation=["distance", "distance", "distance"],
                             bitsPerComponentInMemory=16,
                             bitsPerComponentSignificant=16,
                             cameraTransformationMatrix=[
                                 -0.9998932296054086,
                                 -0.014612644841559427,
                                 0.014612644841559427,
-                                -0.9998932296054086
+                                -0.9998932296054086,
                             ],
                             componentCount=1,
-                            componentDataType='unsigned',
+                            componentDataType="unsigned",
                             voxelCount=[32, 32, 5],
                             componentMaxima=[0.0],
                             componentMinima=[0.0],
-                            pixelToStageTransformationMatrix=None
+                            pixelToStageTransformationMatrix=None,
                         ),
                         position=Position(
                             stagePositionUm=StagePosition(
-                                x=26950.2,
-                                y=-1801.6000000000001,
-                                z=494.3
+                                x=26950.2, y=-1801.6000000000001, z=494.3
                             ),
                             pfsOffset=None,
-                            name=None
+                            name=None,
                         ),
                         time=TimeStamp(
                             absoluteJulianDayNumber=2459486.0682717753,
-                            relativeTimeMs=580.3582921028137
-                        )
+                            relativeTimeMs=580.3582921028137,
+                        ),
                     ),
                     FrameChannel(
                         channel=ChannelMeta(
-                            name='Widefield Red',
+                            name="Widefield Red",
                             index=1,
                             colorRGB=22015,
                             emissionLambdaNm=620.0,
-                            excitationLambdaNm=None
+                            excitationLambdaNm=None,
                         ),
                         loops=LoopIndices(
-                            NETimeLoop=None,
-                            TimeLoop=0,
-                            XYPosLoop=None,
-                            ZStackLoop=1
+                            NETimeLoop=None, TimeLoop=0, XYPosLoop=None, ZStackLoop=1
                         ),
                         microscope=Microscope(
                             objectiveMagnification=10.0,
-                            objectiveName='Plan Fluor 10x Ph1 DLL',
+                            objectiveName="Plan Fluor 10x Ph1 DLL",
                             objectiveNumericalAperture=0.3,
                             zoomMagnification=1.0,
                             immersionRefractiveIndex=1.0,
                             projectiveMagnification=None,
                             pinholeDiameterUm=None,
-                            modalityFlags=['fluorescence']
+                            modalityFlags=["fluorescence"],
                         ),
                         volume=Volume(
                             axesCalibrated=[True, True, True],
-                            axesCalibration=[
-                                0.652452890023035,
-                                0.652452890023035,
-                                1.0
-                            ],
-                            axesInterpretation=['distance', 'distance', 'distance'],
+                            axesCalibration=[0.652452890023035, 0.652452890023035, 1.0],
+                            axesInterpretation=["distance", "distance", "distance"],
                             bitsPerComponentInMemory=16,
                             bitsPerComponentSignificant=16,
                             cameraTransformationMatrix=[
                                 -0.9998932296054086,
                                 -0.014612644841559427,
                                 0.014612644841559427,
-                                -0.9998932296054086
+                                -0.9998932296054086,
                             ],
                             componentCount=1,
-                            componentDataType='unsigned',
+                            componentDataType="unsigned",
                             voxelCount=[32, 32, 5],
                             componentMaxima=[0.0],
                             componentMinima=[0.0],
-                            pixelToStageTransformationMatrix=None
+                            pixelToStageTransformationMatrix=None,
                         ),
                         position=Position(
                             stagePositionUm=StagePosition(
-                                x=26950.2,
-                                y=-1801.6000000000001,
-                                z=494.3
+                                x=26950.2, y=-1801.6000000000001, z=494.3
                             ),
                             pfsOffset=None,
-                            name=None
+                            name=None,
                         ),
                         time=TimeStamp(
                             absoluteJulianDayNumber=2459486.0682717753,
-                            relativeTimeMs=580.3582921028137
-                        )
-                    )
-                ]
+                            relativeTimeMs=580.3582921028137,
+                        ),
+                    ),
+                ],
             )
             ```
 

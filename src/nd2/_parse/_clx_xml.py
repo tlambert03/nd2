@@ -130,7 +130,9 @@ def _node_name_value(
         value = dict(node.attrib) if include_attrs else {}
         for i, child in enumerate(node):
             cname, cval = _node_name_value(
-                child, strip_prefix, include_attrs  # type: ignore
+                child,  # type: ignore
+                strip_prefix,
+                include_attrs,
             )
             # NOTE: "no_name" is the standard name for a list-type node
             # "BinaryItem" is a special case found in the BinaryMetadata_v1 tag...

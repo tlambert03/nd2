@@ -1,11 +1,11 @@
 """Functions for converting nd2 to tiff files."""
 
+from __future__ import annotations
+
 import warnings
 from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator
-
-import numpy as np
 
 from nd2._ome import nd2_ome_metadata
 from nd2.nd2file import ND2File
@@ -33,7 +33,9 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from .nd2file import ND2File  # noqa: TCH004
+    import numpy as np
+
+    from .nd2file import ND2File
 
 
 def nd2_to_tiff(

@@ -47,7 +47,6 @@ if TYPE_CHECKING:
         FrameMetadata,
         Metadata,
         TextInfo,
-        XYPosLoop,
     )
 
 __all__ = ["ND2File", "imread"]
@@ -1184,8 +1183,10 @@ class ND2File:
                 # maybe find a better way. If 'T' in sizes, the 'P' index is the
                 # second index, else it's the first
                 data = (
-                    self.to_dask() if num_p == 1
-                    else self.to_dask()[:, p] if self.sizes.get("T")
+                    self.to_dask()
+                    if num_p == 1
+                    else self.to_dask()[:, p]
+                    if self.sizes.get("T")
                     else self.to_dask()[p]
                 )
 
@@ -1215,7 +1216,6 @@ class ND2File:
         new_ome_images: list[Image] = []
 
         for index, pos in enumerate(positions):
-
             # this is one way to group the planes by x, y position. Probably not the
             # best way to do it. Find a better way
             x, y = round(pos.stagePositionUm.x, 4), round(pos.stagePositionUm.y, 4)

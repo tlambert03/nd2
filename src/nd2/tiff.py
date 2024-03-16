@@ -93,7 +93,6 @@ def nd2_to_tiff(
 
         # Create OME-XML
         ome_xml: bytes | None = None
-        is_ome: bool | None = None
         if use_ome:
             if nd2f.is_legacy:
                 warnings.warn(
@@ -106,11 +105,12 @@ def nd2_to_tiff(
                 # note, Christoph suggests encode("ascii")... but that changes µm to m
                 # that could be addressed in ome_types, by serializing to um?
                 ome_xml = ome.to_xml().encode("utf-8")
-                is_ome = True
 
+        # if we have ome_xml, we tell tifffile not to worry about it (ome=False)
+        tf_ome = False if ome_xml else None
         # Write the tiff file
         pixelsize = nd2f.voxel_size().x
-        with tf.TiffWriter(dest_path, bigtiff=True, ome=is_ome) as tif:
+        with tf.TiffWriter(dest_path, bigtiff=True, ome=tf_ome) as tif:
             tif.write(
                 iter(dataiter()),
                 shape=shape,

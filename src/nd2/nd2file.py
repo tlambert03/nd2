@@ -19,6 +19,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
+    from os import PathLike
     from pathlib import Path
     from typing import Any, Literal, Sequence, Sized, SupportsInt
 
@@ -752,12 +753,13 @@ class ND2File:
         return np.dtype(f"{d}{attrs.bitsPerComponentInMemory // 8}")
 
     def voxel_size(self, channel: int = 0) -> _util.VoxelSize:
-        """XYZ voxel size.
+        """XYZ voxel size in microns.
 
         Parameters
         ----------
         channel : int
-            Channel for which to retrieve voxel info, by default 0
+            Channel for which to retrieve voxel info, by default 0.
+            (Not yet implemented.)
 
         Returns
         -------
@@ -827,11 +829,22 @@ class ND2File:
         """Array protocol."""
         return self.asarray()
 
-    def to_tiff(self, dest: str | Path, flush_every: int = 10) -> None:
-        """Export an ND2 file to a TIFF file."""
+    def write_tiff(self, dest: str | PathLike, progress: bool = False) -> None:
+        """Export as to a TIFF file.
+
+        To include OME-XML metadata, please use the extension `.ome.tif` or
+        `.ome.tiff`.
+
+        Parameters
+        ----------
+        dest : str  | PathLike
+            The destination TIFF file.
+        progress : bool
+            Whether to display a progress bar.
+        """
         from .tiff import nd2_to_tiff
 
-        return nd2_to_tiff(self, dest, flush_every=flush_every)
+        return nd2_to_tiff(self, dest, progress=progress)
 
     def to_dask(self, wrapper: bool = True, copy: bool = True) -> dask.array.core.Array:
         """Create dask array (delayed reader) representing image.
@@ -1002,6 +1015,8 @@ class ND2File:
 
     @property
     def _frame_count(self) -> int:
+        if hasattr(self._rdr, "_seq_count"):
+            return cast(int, self._rdr._seq_count())
         return int(np.prod(self._coord_shape))
 
     def _get_frame(self, index: SupportsInt) -> np.ndarray:  # pragma: no cover

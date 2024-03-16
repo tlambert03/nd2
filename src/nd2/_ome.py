@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -23,7 +24,21 @@ if TYPE_CHECKING:
     from .structures import ModalityFlags
 
 
-def nd2_ome_metadata(f: ND2File, exhaustive: bool = True) -> m.OME:
+def nd2_ome_metadata(
+    f: ND2File, exhaustive: bool = True, tiff_file_name: str | None = None
+) -> m.OME:
+    """Generate an ome_types.OME object for an ND2 file.
+
+    Parameters
+    ----------
+    f : ND2File
+        The ND2 file.
+    exhaustive : bool
+        Whether to include all available metadata in the OME file.
+    tiff_file_name : str | None
+        The name of the TIFF file output, if available. If provided, this is used to
+        generate TiffData block entries for each plane in the OME file.
+    """
     if f.is_legacy:
         raise NotImplementedError("OME metadata is not available for legacy files")
 
@@ -45,38 +60,55 @@ def nd2_ome_metadata(f: ND2File, exhaustive: bool = True) -> m.OME:
             excitation_wavelength=ch.channel.excitationLambdaNm,
             excitation_wavelength_unit=UnitsLength.NANOMETER,  # default is "nm"
             illumination_type=ome_illumination_type(ch.microscope.modalityFlags),
+            samples_per_pixel=1,  # Todo
             # detector_settings=...,
             # filter_set_ref=...,
             # fluor=...,
             # light_path=...,
             # light_source_settings=...,
             # nd_filter=...,
-            # samples_per_pixel=...,
         )
         for c_idx, ch in enumerate(meta.channels or ())
     ]
 
     planes: list[m.Plane] = []
+    tiff_blocks: list[m.TiffData] = []
+    n = 0
+    id_ = f"urn:uuid:{uuid.uuid4()}"
     for s_idx, loop_idx in zip(range(rdr._seq_count()), rdr.loop_indices()):
         fm = rdr.frame_metadata(s_idx)
-        planes.extend(
-            m.Plane(
-                the_z=loop_idx.get(AXIS.Z, 0),
-                the_t=loop_idx.get(AXIS.TIME, 0),
-                the_c=c_idx,
-                # exposure_time=...,
-                # exposure_time_unit=...,
-                delta_t=round(fm_ch.time.relativeTimeMs, 6),
-                delta_t_unit=UnitsTime.MILLISECOND,  # default is "s"
-                position_x=round(fm_ch.position.stagePositionUm.x, 6),
-                position_y=round(fm_ch.position.stagePositionUm.y, 6),
-                position_z=round(fm_ch.position.stagePositionUm.z, 6),
-                position_x_unit=UnitsLength.MICROMETER,  # default is 'reference frame'
-                position_y_unit=UnitsLength.MICROMETER,  # default is 'reference frame'
-                position_z_unit=UnitsLength.MICROMETER,  # default is 'reference frame'
+        for c_idx, fm_ch in enumerate(fm.channels):
+            z_idx = loop_idx.get(AXIS.Z, 0)
+            t_idx = loop_idx.get(AXIS.TIME, 0)
+            planes.append(
+                m.Plane(
+                    the_z=z_idx,
+                    the_t=t_idx,
+                    the_c=c_idx,
+                    # exposure_time=...,
+                    # exposure_time_unit=...,
+                    delta_t=round(fm_ch.time.relativeTimeMs, 6),
+                    delta_t_unit=UnitsTime.MILLISECOND,  # default is "s"
+                    position_x=round(fm_ch.position.stagePositionUm.x, 6),
+                    position_y=round(fm_ch.position.stagePositionUm.y, 6),
+                    position_z=round(fm_ch.position.stagePositionUm.z, 6),
+                    position_x_unit=UnitsLength.MICROMETER,
+                    position_y_unit=UnitsLength.MICROMETER,
+                    position_z_unit=UnitsLength.MICROMETER,
+                )
             )
-            for c_idx, fm_ch in enumerate(fm.channels)
-        )
+            if tiff_file_name is not None:
+                tiff_blocks.append(
+                    m.TiffData(
+                        uuid=m.TiffData.UUID(value=id_, file_name=tiff_file_name),
+                        ifd=n,
+                        first_c=c_idx,
+                        first_t=t_idx,
+                        first_z=z_idx,
+                        plane_count=1,
+                    )
+                )
+            n += 1
 
     dims = "".join(reversed(list(f.sizes)))
     dim_order = next(
@@ -86,6 +118,7 @@ def nd2_ome_metadata(f: ND2File, exhaustive: bool = True) -> m.OME:
         id="Pixels:0",
         channels=channels,
         planes=planes,
+        tiff_data_blocks=tiff_blocks,
         dimension_order=dim_order,
         type=str(f.dtype),
         significant_bits=f.attributes.bitsPerComponentSignificant,

@@ -1,8 +1,13 @@
 """Functions for converting nd2 to tiff files."""
 
+import warnings
 from os import PathLike
-from typing import TYPE_CHECKING, Any
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Iterator
 
+import numpy as np
+
+from nd2._ome import nd2_ome_metadata
 from nd2.nd2file import ND2File
 
 try:
@@ -14,11 +19,17 @@ except ImportError as e:
     ) from e
 
 try:
-    from tqdm import tqdm
+    from tqdm import tqdm as _progress
 except ImportError:
 
-    def tqdm(iterator, *args, **kwargs):
-        return iterator
+    def _progress(
+        iterator: Iterable, *, total: int | None = None, **kwargs: Any
+    ) -> Any:
+        print(kwargs.get("desc", ""))
+        for i in iterator:
+            print(f"  Writing frame {i + 1} of {total or '?'}", end="\r")
+            yield i
+        print()
 
 
 if TYPE_CHECKING:
@@ -28,9 +39,9 @@ if TYPE_CHECKING:
 def nd2_to_tiff(
     source: str | PathLike | ND2File,
     dest: str | PathLike,
-    flush_every: int = 100,
-    progress: bool = False,
-):
+    progress: bool = True,
+    on_frame: Callable[[int, int], None] | None = None,
+) -> None:
     """Export an ND2 file to a TIFF file.
 
     Parameters
@@ -39,53 +50,78 @@ def nd2_to_tiff(
         The source ND2 file.
     dest : str  | PathLike
         The destination TIFF file.
-    flush_every : int
-        The number of frames to write before flushing the memory-mapped array to disk.
     progress : bool
         Whether to display a progress bar.
+    on_frame : Callable[[int, int], None]
+        A function to call after each frame is written. The function should accept
+        two arguments: the current frame number, and the total number of frames.
     """
-    close = False
+    dest_path = Path(dest)
+    use_ome = dest_path.name.lower().endswith((".ome.tif", ".ome.tiff"))
+
+    close_when_done = False
     if isinstance(source, (str, PathLike)):
         from .nd2file import ND2File
 
-        source = ND2File(source)
-        close = True
+        nd2f = ND2File(source)
+        close_when_done = True
+    else:
+        nd2f = source
 
     try:
-        dims, shape = zip(*source.sizes.items())
-        axes = "".join(dims).upper().replace("U", "Q")  # Q : other (OME)
+        # get shape and axes
+        dims, shape = zip(*nd2f.sizes.items())
+        # U (Unknown) -> Q : other (OME)
+        # P (Position) -> R : tile (OME)
+        # if "P" in dims:
+        # raise NotImplementedError("Positions not written yet")
+        axes = "".join(dims).upper().replace("U", "Q").replace("P", "R")
         metadata: dict[str, Any] = {"axes": axes}
 
-        # write empty file to disk
-        tf.imwrite(
-            dest,
-            shape=shape,
-            dtype=source.dtype,
-            bigtiff=True,
-            metadata=metadata,
-            ome=True,
-        )
+        # create an iterator with progress bar if requested
+        nframes = nd2f._frame_count
+        indices: Iterable[int] = range(nframes)
+        if progress:
+            indices = _progress(indices, total=nframes, desc=f"Exporting {nd2f.path}")
 
-        # memory-mapped NumPy array of image data stored in TIFF file.
-        mmap = tf.memmap(dest, dtype=source.dtype)
-        # This line is important, as tifffile.memmap appears to lose singleton dims
-        mmap.shape = shape
+        def dataiter() -> Iterator[np.ndarray]:
+            for frame_num in indices:
+                yield nd2f.read_frame(frame_num)
+                # call on_frame callback if provided
+                if on_frame is not None:
+                    on_frame(frame_num, nframes)
 
-        tot = source._frame_count
-        for frame_num, frame_index in tqdm(
-            enumerate(source.loop_indices), total=tot, desc=f"Exporting {source.path}"
-        ):
-            index = tuple(v for k, v in frame_index.items() if k in dims)
-            frame_data = source.read_frame(frame_num)
+        # Create OME-XML
+        ome_xml: bytes | None = None
+        is_ome: bool | None = None
+        if use_ome:
+            if nd2f.is_legacy:
+                warnings.warn(
+                    "Cannot write OME metadata for legacy nd2 files."
+                    "Please use a different file extension to avoid confusion",
+                    stacklevel=2,
+                )
+            else:
+                ome = nd2_ome_metadata(nd2f, tiff_file_name=dest_path.name)
+                # note, Christoph suggests encode("ascii")... but that changes µm to m
+                # that could be addressed in ome_types, by serializing to um?
+                ome_xml = ome.to_xml().encode("utf-8")
+                is_ome = True
 
-            # WRITE DATA TO DISK
-            mmap[index] = frame_data
-            if frame_num % flush_every == 0:
-                mmap.flush()
-
-        # Write ome metadata
-        tf.tiffcomment(dest, source.ome_metadata().to_xml().encode("ascii", "ignore"))
-
+        # Write the tiff file
+        pixelsize = nd2f.voxel_size().x
+        with tf.TiffWriter(dest_path, bigtiff=True, ome=is_ome) as tif:
+            tif.write(
+                iter(dataiter()),
+                shape=shape,
+                dtype=nd2f.dtype,
+                resolution=(1 / pixelsize, 1 / pixelsize),
+                resolutionunit=tf.TIFF.RESUNIT.MICROMETER,
+                photometric=tf.TIFF.PHOTOMETRIC.MINISBLACK,
+                metadata=metadata,
+                description=ome_xml,
+            )
     finally:
-        if close:
-            source.close()
+        # close the nd2 file if we opened it
+        if close_when_done:
+            nd2f.close()

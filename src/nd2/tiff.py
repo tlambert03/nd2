@@ -42,7 +42,10 @@ def nd2_to_tiff(
     progress: bool = True,
     on_frame: Callable[[int, int], None] | None = None,
 ) -> None:
-    """Export an ND2 file to a TIFF file.
+    """Export an ND2 file to an OME TIFF file.
+
+    To include OME-XML metadata, please use the extension `.ome.tif` or
+    `.ome.tiff`.
 
     Parameters
     ----------
@@ -56,7 +59,7 @@ def nd2_to_tiff(
         A function to call after each frame is written. The function should accept
         two arguments: the current frame number, and the total number of frames.
     """
-    dest_path = Path(dest)
+    dest_path = Path(dest).expanduser().resolve()
     use_ome = dest_path.name.lower().endswith((".ome.tif", ".ome.tiff"))
 
     close_when_done = False

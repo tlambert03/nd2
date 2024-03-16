@@ -66,6 +66,7 @@ plugins:
             - https://docs.python.org/3/objects.inv
             - https://docs.xarray.dev/en/stable/objects.inv
             - https://docs.dask.org/en/stable/objects.inv
+            - https://ome-types.readthedocs.io/en/latest/objects.inv
 
 extra_css:
   - styles/extra.css

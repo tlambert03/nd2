@@ -25,19 +25,26 @@ if TYPE_CHECKING:
 
 
 def nd2_ome_metadata(
-    f: ND2File, exhaustive: bool = True, tiff_file_name: str | None = None
+    f: ND2File, include_unstructured: bool = True, tiff_file_name: str | None = None
 ) -> m.OME:
-    """Generate an ome_types.OME object for an ND2 file.
+    """Generate an [`ome_types.OME`][] object for an ND2 file.
 
     Parameters
     ----------
     f : ND2File
         The ND2 file.
-    exhaustive : bool
-        Whether to include all available metadata in the OME file.
+    include_unstructured : bool
+        Whether to include all available metadata in the OME file. If `True`, (the
+        default), the `unstructured_metadata` method is used to fetch all retrievable
+        metadata, and the output is added to OME.structured_annotations, where each key
+        is the chunk key, and the value is a JSON-serialized dict of the metadata. If
+        `False`, only metadata which can be directly added to the OME data model are
+        included.
     tiff_file_name : str | None
-        The name of the TIFF file output, if available. If provided, this is used to
-        generate TiffData block entries for each plane in the OME file.
+        If provided, [`ome_types.model.TiffData`][] block entries are added for each
+        [`ome_types.model.Plane`][] in the OME object, with the
+        `TiffData.uuid.file_name` set to this value.  (Useful for exporting to
+        tiff.)
     """
     if f.is_legacy:
         raise NotImplementedError("OME metadata is not available for legacy files")
@@ -165,7 +172,7 @@ def nd2_ome_metadata(
         )
 
     annotations = m.StructuredAnnotations()
-    if exhaustive:
+    if include_unstructured:
         big_dump = m.MapAnnotation(
             description="ND2 unstructured metadata, encoded as a JSON string. "
             "Each key in this MapAnnotation is the name of a metadata chunk found in "

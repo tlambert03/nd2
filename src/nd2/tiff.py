@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 def nd2_to_tiff(
     source: str | PathLike | ND2File,
     dest: str | PathLike,
-    progress: bool = True,
+    progress: bool = False,
     on_frame: Callable[[int, int], None] | None = None,
     modify_ome: Callable[[ome_types.OME], None] | None = None,
 ) -> None:
@@ -60,6 +60,7 @@ def nd2_to_tiff(
     progress : bool
         Whether to display progress bar.  If `True` and `tqdm` is installed, it will
         be used. Otherwise, a simple text counter will be printed to the console.
+        By default `False`.
     on_frame : Callable[[int, int], None]
         A function to call after each frame is written. The function should accept
         two arguments: the current frame number, and the total number of frames.

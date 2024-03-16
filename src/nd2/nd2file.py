@@ -833,6 +833,7 @@ class ND2File:
     def write_tiff(
         self,
         dest: str | PathLike,
+        *,
         progress: bool = False,
         on_frame: Callable[[int, int], None] | None = None,
         modify_ome: Callable[[ome_types.OME], None] | None = None,
@@ -848,6 +849,7 @@ class ND2File:
         progress : bool
             Whether to display progress bar.  If `True` and `tqdm` is installed, it will
             be used. Otherwise, a simple text counter will be printed to the console.
+            By default `False`.
         on_frame : Callable[[int, int], None]
             A function to call after each frame is written. The function should accept
             two arguments: the current frame number, and the total number of frames.
@@ -1182,11 +1184,45 @@ class ND2File:
         """
         return self._rdr.binary_data()
 
-    def ome_metadata(self) -> OME:
-        """Return OME metadata for the file."""
+    def ome_metadata(
+        self, *, include_unstructured: bool = True, tiff_file_name: str | None = None
+    ) -> OME:
+        """Return `ome_types.OME` metadata object for this file.
+
+        See the [`ome_types.OME`][] documentation for details on this object.
+
+        Parameters
+        ----------
+        include_unstructured : bool
+            Whether to include all available metadata in the OME file. If `True`,
+            (the default), the `unstructured_metadata` method is used to fetch
+            all retrievable metadata, and the output is added to
+            OME.structured_annotations, where each key is the chunk key, and the
+            value is a JSON-serialized dict of the metadata. If `False`, only metadata
+            which can be directly added to the OME data model are included.
+        tiff_file_name : str | None
+            If provided, [`ome_types.model.TiffData`][] block entries are added for
+            each [`ome_types.model.Plane`][] in the OME object, with the
+            `TiffData.uuid.file_name` set to this value. (Useful for exporting to
+            tiff.)
+
+        Examples
+        --------
+        ```python
+        import nd2
+
+        with nd2.ND2File("path/to/file.nd2") as f:
+            ome = f.ome_metadata()
+            xml = ome.to_xml()
+        ```
+        """
         from ._ome import nd2_ome_metadata
 
-        return nd2_ome_metadata(self)
+        return nd2_ome_metadata(
+            self,
+            include_unstructured=include_unstructured,
+            tiff_file_name=tiff_file_name,
+        )
 
 
 @overload

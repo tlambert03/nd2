@@ -189,7 +189,7 @@ def nd2_ome_metadata(
 def _default_encoder(obj: Any) -> Any:
     if isinstance(obj, bytearray):
         return obj.decode("utf-8")
-    return str(obj)
+    return str(obj)  # pragma: no cover
 
 
 def ome_contrast_method(flags: list[ModalityFlags]) -> ContrastMethod | None:

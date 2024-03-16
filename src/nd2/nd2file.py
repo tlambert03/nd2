@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 import warnings
 from itertools import product
-from typing import TYPE_CHECKING, cast, overload
+from typing import TYPE_CHECKING, Callable, cast, overload
 
 import numpy as np
 
@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
     import dask.array
     import dask.array.core
+    import ome_types
     import xarray as xr
     from ome_types import OME
 
@@ -829,22 +830,39 @@ class ND2File:
         """Array protocol."""
         return self.asarray()
 
-    def write_tiff(self, dest: str | PathLike, progress: bool = False) -> None:
-        """Export as to a TIFF file.
+    def write_tiff(
+        self,
+        dest: str | PathLike,
+        progress: bool = False,
+        on_frame: Callable[[int, int], None] | None = None,
+        modify_ome: Callable[[ome_types.OME], None] | None = None,
+    ) -> None:
+        """Export to an (OME)-TIFF file.
 
-        To include OME-XML metadata, please use the extension `.ome.tif` or
-        `.ome.tiff`.
+        To include OME-XML metadata, use extension `.ome.tif` or `.ome.tiff`.
 
         Parameters
         ----------
         dest : str  | PathLike
             The destination TIFF file.
         progress : bool
-            Whether to display a progress bar.
+            Whether to display progress bar.  If `True` and `tqdm` is installed, it will
+            be used. Otherwise, a simple text counter will be printed to the console.
+        on_frame : Callable[[int, int], None]
+            A function to call after each frame is written. The function should accept
+            two arguments: the current frame number, and the total number of frames.
+            (Useful for integrating custom progress bars or logging.)
+        modify_ome : Callable[[ome_types.OME], None]
+            A function to modify the OME metadata before writing it to the file.
+            Accepts an `ome_types.OME` object and should modify it in place.
+            (reminder: OME-XML is only written if the file extension is `.ome.tif` or
+            `.ome.tiff`)
         """
         from .tiff import nd2_to_tiff
 
-        return nd2_to_tiff(self, dest, progress=progress)
+        return nd2_to_tiff(
+            self, dest, progress=progress, on_frame=on_frame, modify_ome=modify_ome
+        )
 
     def to_dask(self, wrapper: bool = True, copy: bool = True) -> dask.array.core.Array:
         """Create dask array (delayed reader) representing image.

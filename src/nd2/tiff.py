@@ -25,6 +25,7 @@ except ImportError:
     def _progress(
         iterator: Iterable, *, total: int | None = None, **kwargs: Any
     ) -> Any:
+        """Simple progress output if tqdm is unavailable."""
         print(kwargs.get("desc", ""))
         for i in iterator:
             print(f"  Writing frame {i + 1} of {total or '?'}", end="\r")
@@ -34,6 +35,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     import numpy as np
+    import ome_types
 
     from .nd2file import ND2File
 
@@ -43,27 +45,35 @@ def nd2_to_tiff(
     dest: str | PathLike,
     progress: bool = True,
     on_frame: Callable[[int, int], None] | None = None,
+    modify_ome: Callable[[ome_types.OME], None] | None = None,
 ) -> None:
-    """Export an ND2 file to an OME TIFF file.
+    """Export an ND2 file to an (OME)-TIFF file.
 
-    To include OME-XML metadata, please use the extension `.ome.tif` or
-    `.ome.tiff`.
+    To include OME-XML metadata, use extension `.ome.tif` or `.ome.tiff`.
 
     Parameters
     ----------
     source : str | PathLike | ND2File
-        The source ND2 file.
+        The ND2 file path or an open ND2File object.
     dest : str  | PathLike
         The destination TIFF file.
     progress : bool
-        Whether to display a progress bar.
+        Whether to display progress bar.  If `True` and `tqdm` is installed, it will
+        be used. Otherwise, a simple text counter will be printed to the console.
     on_frame : Callable[[int, int], None]
         A function to call after each frame is written. The function should accept
         two arguments: the current frame number, and the total number of frames.
+        (Useful for integrating custom progress bars or logging.)
+    modify_ome : Callable[[ome_types.OME], None]
+        A function to modify the OME metadata before writing it to the file.
+        Accepts an `ome_types.OME` object and should modify it in place.
+        (reminder: OME-XML is only written if the file extension is `.ome.tif` or
+        `.ome.tiff`)
     """
     dest_path = Path(dest).expanduser().resolve()
     use_ome = dest_path.name.lower().endswith((".ome.tif", ".ome.tiff"))
 
+    # normalize source to an open ND2File, and remember if we opened it
     close_when_done = False
     if isinstance(source, (str, PathLike)):
         from .nd2file import ND2File
@@ -72,6 +82,8 @@ def nd2_to_tiff(
         close_when_done = True
     else:
         nd2f = source
+        if close_when_done := nd2f.closed:
+            nd2f.open()
 
     try:
         # get shape and axes
@@ -107,6 +119,8 @@ def nd2_to_tiff(
                 )
             else:
                 ome = nd2_ome_metadata(nd2f, tiff_file_name=dest_path.name)
+                if modify_ome:
+                    modify_ome(ome)
                 # note, Christoph suggests encode("ascii")... but that changes µm to m
                 # that could be addressed in ome_types, by serializing to um?
                 ome_xml = ome.to_xml().encode("utf-8")

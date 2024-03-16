@@ -1226,8 +1226,15 @@ class ND2File:
                 if round(plane.position_x, 4) == x and round(plane.position_y, 4) == y:
                     pl_list.append(plane)
 
+            # update pixels channels samples_per_pixel
+            update_channels = {"samples_per_pixel": 1}
+            channels = []
+            for ch in image.pixels.channels:
+                channels.append(ch.model_copy(update=update_channels))
+
             # copy pixels and update
             update_pixels = {
+                "channels": channels,
                 "planes": pl_list,
                 "type": dask_ary.dtype.name,
                 "tiff_data_blocks": [TiffData(plane_count=len(pl_list))],

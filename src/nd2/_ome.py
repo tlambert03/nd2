@@ -1,21 +1,19 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
+
+import ome_types.model as m
+from ome_types.model import Channel_AcquisitionMode as AcquisitionMode
+from ome_types.model import Channel_ContrastMethod as ContrastMethod
+from ome_types.model import Channel_IlluminationType as IlluminationType
+from ome_types.model import Pixels_DimensionOrder as DimensionOrder
+from ome_types.model import UnitsLength, UnitsTime
 
 from nd2 import __version__
 
 from ._util import AXIS
-
-try:
-    import ome_types.model as m
-except ImportError:
-    raise ImportError("ome-types is required to read OME metadata") from None
-
-import ome_types.model.channel as channel
-from ome_types.model.channel import AcquisitionMode, ContrastMethod, IlluminationType
-from ome_types.model.pixels import DimensionOrder
-from ome_types.model.simple_types import UnitsLength, UnitsTime
 
 if TYPE_CHECKING:
     from nd2 import ND2File
@@ -25,9 +23,10 @@ if TYPE_CHECKING:
     from .structures import ModalityFlags
 
 
-def nd2_ome_metadata(f: ND2File) -> m.OME:
+def nd2_ome_metadata(f: ND2File, exhaustive: bool = True) -> m.OME:
     if f.is_legacy:
         raise NotImplementedError("OME metadata is not available for legacy files")
+
     rdr = cast("ModernReader", f._rdr)
     meta = f.metadata
 
@@ -132,14 +131,36 @@ def nd2_ome_metadata(f: ND2File) -> m.OME:
             )
         )
 
+    annotations = m.StructuredAnnotations()
+    if exhaustive:
+        big_dump = m.MapAnnotation(
+            description="ND2 unstructured metadata, encoded as a JSON string. "
+            "Each key in this MapAnnotation is the name of a metadata chunk found in "
+            "the ND2 file, and the value is the JSON-encoded data for that chunk.",
+            namespace="https://github.com/tlambert03/nd2",
+            value={
+                k: json.dumps(v, default=_default_encoder)
+                for k, v in rdr.unstructured_metadata().items()
+            },
+        )
+        annotations.map_annotations.append(big_dump)
+
     return m.OME(
         images=[image],
         creator=f"nd2 v{__version__}",
         instruments=[instrument],
+        structured_annotations=annotations,
     )
 
 
-def ome_contrast_method(flags: list[ModalityFlags]) -> channel.ContrastMethod | None:
+def _default_encoder(obj: Any) -> Any:
+    if isinstance(obj, bytearray):
+        return obj.decode("utf-8")
+    breakpoint()
+    return str(obj)
+
+
+def ome_contrast_method(flags: list[ModalityFlags]) -> ContrastMethod | None:
     """Return the ome_types ContrastMethod for this channel, if known."""
     # TODO: this is not exhaustive, and we need to check if a given
     # channel has flags for multiple contrast methods
@@ -154,7 +175,7 @@ def ome_contrast_method(flags: list[ModalityFlags]) -> channel.ContrastMethod | 
     return None
 
 
-def ome_acquisition_mode(flags: list[ModalityFlags]) -> channel.AcquisitionMode | None:
+def ome_acquisition_mode(flags: list[ModalityFlags]) -> AcquisitionMode | None:
     """Return the ome_types AcquisitionMode for this channel, if known."""
     # TODO: this is not exhaustive, and we need to check if a given
     # channel has flags for multiple contrast methods
@@ -179,9 +200,7 @@ def ome_acquisition_mode(flags: list[ModalityFlags]) -> channel.AcquisitionMode 
     return None
 
 
-def ome_illumination_type(
-    flags: list[ModalityFlags],
-) -> channel.IlluminationType | None:
+def ome_illumination_type(flags: list[ModalityFlags]) -> IlluminationType | None:
     """Return the ome_types IlluminationType for this channel, if known."""
     if "fluorescence" in flags:
         return IlluminationType.EPIFLUORESCENCE

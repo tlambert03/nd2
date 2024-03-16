@@ -21,7 +21,12 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dynamic = ["version"]
-dependencies = ["resource-backed-dask-array", "typing-extensions", "numpy"]
+dependencies = [
+    "resource-backed-dask-array",
+    "typing-extensions",
+    "numpy",
+    "ome-types >=0.5.1",
+]
 
 [project.optional-dependencies]
 legacy = ["imagecodecs"]
@@ -32,7 +37,6 @@ test = [
     "lxml; python_version >= '3.9'",
     "numpy >=1.26; python_version >= '3.12'",
     "numpy; python_version < '3.12'",
-    "ome-types",
     "psutil",
     "pytest-codspeed",
     "pytest-cov",

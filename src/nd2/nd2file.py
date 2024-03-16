@@ -827,6 +827,12 @@ class ND2File:
         """Array protocol."""
         return self.asarray()
 
+    def to_tiff(self, dest: str | Path, flush_every: int = 10) -> None:
+        """Export an ND2 file to a TIFF file."""
+        from .tiff import nd2_to_tiff
+
+        return nd2_to_tiff(self, dest, flush_every=flush_every)
+
     def to_dask(self, wrapper: bool = True, copy: bool = True) -> dask.array.core.Array:
         """Create dask array (delayed reader) representing image.
 

@@ -36,7 +36,7 @@ from ._util import AXIS, is_legacy, is_supported_file
 from .nd2file import ND2File, imread
 
 
-def __getattr__(name: str) -> Any:  # pragma: no cover
+def __getattr__(name: str) -> Any:
     if name == "nd2_to_tiff":
         from .tiff import nd2_to_tiff
 

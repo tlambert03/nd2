@@ -3,11 +3,15 @@ from __future__ import annotations
 import threading
 import warnings
 from itertools import product
+from pathlib import Path
 from typing import TYPE_CHECKING, cast, overload
 
 import numpy as np
+import tifffile
+from ome_types.model import Image, Plane, TiffData
 
 from nd2 import _util
+from nd2.structures import XYPosLoop
 
 from ._util import AXIS, is_supported_file
 from .readers.protocol import ND2Reader
@@ -19,13 +23,14 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from pathlib import Path
     from typing import Any, Literal, Sequence, Sized, SupportsInt
 
     import dask.array
     import dask.array.core
     import xarray as xr
     from ome_types import OME
+
+    from nd2.structures import Position
 
     from ._binary import BinaryLayers
     from ._util import (
@@ -1148,6 +1153,96 @@ class ND2File:
         from ._ome import nd2_ome_metadata
 
         return nd2_ome_metadata(self)
+
+    def to_ome_tif(self, filepath: Path | str) -> None:
+        """Write the file to an OME-TIFF file.
+
+        Parameters
+        ----------
+        filepath : Path | str
+            The file to write. The `.ome.tif` suffix will be added if not present.
+        """
+        if not str(filepath).endswith(".ome.tif"):
+            filepath = Path(filepath).with_suffix(".ome.tif")
+
+        ome = self.ome_metadata()
+
+        # to be fixed? I added this here because of the RGB files
+        for sz in self.sizes:
+            if sz not in ["X", "Y", "Z", "C", "P", "T"]:
+                raise ValueError(
+                    f"Cannot write OME-TIFF with size {sz!r}. "
+                    "Only 'X', 'Y', 'Z', 'C', 'P', and 'T' are currently supported."
+                )
+
+        num_p = self.sizes.get("P", 1)
+
+        ome = self._reorganize_metadata(ome, filepath.name)
+
+        with tifffile.TiffWriter(filepath, bigtiff=True) as tif:
+            for p in range(num_p):
+                # maybe find a better way. If 'T' in sizes, the 'P' index is the
+                # second index, else it's the first
+                data = (
+                    self.to_dask() if num_p == 1
+                    else self.to_dask()[:, p] if self.sizes.get("T")
+                    else self.to_dask()[p]
+                )
+
+                tif.write(
+                    data,
+                    description=ome.to_xml().encode("utf-8"),
+                    metadata=None,
+                    photometric="minisblack",  # necessary or deprecation error
+                )
+
+    def _reorganize_metadata(self, ome: OME, filename: str) -> OME:
+        """Update the image metadata for each position in the OME object."""
+        filename = filename.replace(".ome.tif", "")
+
+        dask_ary = self.to_dask()
+
+        image = ome.images[0]
+
+        # get the position loop
+        positions: list[Position] = []
+        for exp in self.experiment:
+            if isinstance(exp, XYPosLoop):
+                positions = exp.parameters.points
+                break
+
+        # we use this to rearrange the planes perr Image
+        new_ome_images: list[Image] = []
+
+        for index, pos in enumerate(positions):
+
+            # this is one way to group the planes by x, y position. Probably not the
+            # best way to do it. Find a better way
+            x, y = round(pos.stagePositionUm.x, 4), round(pos.stagePositionUm.y, 4)
+            planes = image.pixels.planes
+            pl_list: list[Plane] = []
+            # append the planes that have the same x, y position
+            for plane in planes:
+                if round(plane.position_x, 4) == x and round(plane.position_y, 4) == y:
+                    pl_list.append(plane)
+
+            # copy pixels and update
+            update_pixels = {
+                "planes": pl_list,
+                "type": dask_ary.dtype.name,
+                "tiff_data_blocks": [TiffData(plane_count=len(pl_list))],
+            }
+            pixels = image.pixels.model_copy(update=update_pixels)
+
+            # copy image and update
+            name = f"{filename} (series {index+1})" if len(positions) > 1 else filename
+            update_image = {
+                "name": name,
+                "pixels": pixels,
+            }
+            new_ome_images.append(image.model_copy(update=update_image))
+
+        return ome.model_copy(update={"images": new_ome_images})
 
 
 @overload

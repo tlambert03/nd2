@@ -156,7 +156,6 @@ def nd2_ome_metadata(f: ND2File, exhaustive: bool = True) -> m.OME:
 def _default_encoder(obj: Any) -> Any:
     if isinstance(obj, bytearray):
         return obj.decode("utf-8")
-    breakpoint()
     return str(obj)
 
 

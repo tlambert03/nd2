@@ -72,7 +72,7 @@ def test_metadata_extraction(new_nd2: Path) -> None:
         for i in range(nd._rdr._seq_count()):
             assert isinstance(nd.frame_metadata(i), structures.FrameMetadata)
         assert isinstance(nd.experiment, list)
-        assert isinstance(nd.loop_indices, list)
+        assert isinstance(nd.loop_indices, tuple)
         assert all(isinstance(x, dict) for x in nd.loop_indices)
         assert isinstance(nd.text_info, dict)
         assert isinstance(nd.sizes, MappingProxyType)

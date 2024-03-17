@@ -1067,19 +1067,19 @@ class ND2File:
         return frame.transpose((2, 0, 1, 3)).squeeze()
 
     @cached_property
-    def loop_indices(self) -> list[dict[str, int]]:
-        """Return a list of dicts of loop indices for each frame.
+    def loop_indices(self) -> tuple[dict[str, int], ...]:
+        """Return a tuple of dicts of loop indices for each frame.
 
         Examples
         --------
         >>> with nd2.ND2File("path/to/file.nd2") as f:
         ...     f.loop_indices
-        [
+        (
             {'Z': 0, 'T': 0, 'C': 0},
             {'Z': 0, 'T': 0, 'C': 1},
             {'Z': 0, 'T': 0, 'C': 2},
             ...
-        ]
+        )
         """
         return _util.loop_indices(self.experiment)
 

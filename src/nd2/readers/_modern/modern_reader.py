@@ -79,7 +79,7 @@ class ModernReader(ND2Reader):
         self._raw_text_info: RawTextInfoDict | None = None
         self._raw_image_metadata: RawMetaDict | None = None
 
-        self._loop_indices: list[dict[str, int]] | None = None
+        self._loop_indices: tuple[dict[str, int], ...] | None = None
 
     @property
     def chunkmap(self) -> ChunkMap:
@@ -222,19 +222,19 @@ class ModernReader(ND2Reader):
                 self._experiment = load_experiment(self._raw_experiment)
         return self._experiment
 
-    def loop_indices(self) -> list[dict[str, int]]:
-        """Return a list of dicts of loop indices for each frame.
+    def loop_indices(self) -> tuple[dict[str, int], ...]:
+        """Return a tuple of dicts of loop indices for each frame.
 
         Examples
         --------
         >>> with nd2.ND2File("path/to/file.nd2") as f:
         ...     f.loop_indices()
-        [
+        (
             {'Z': 0, 'T': 0, 'C': 0},
             {'Z': 0, 'T': 0, 'C': 1},
             {'Z': 0, 'T': 0, 'C': 2},
             ...
-        ]
+        )
         """
         if self._loop_indices is None:
             self._loop_indices = _util.loop_indices(self.experiment())

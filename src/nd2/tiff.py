@@ -41,6 +41,8 @@ except ImportError:
             self.n += n
             end = "\n" if self.n == self.total else "\r"
             print(f"  Writing frame {self.n} of {self.total}: {self.desc}", end=end)
+            if self.n == self.total:
+                print("  Done!")
 
         def close(self) -> None: ...
 
@@ -62,6 +64,8 @@ def nd2_to_tiff(
     """Export an ND2 file to an (OME)-TIFF file.
 
     To include OME-XML metadata, use extension `.ome.tif` or `.ome.tiff`.
+
+    https://docs.openmicroscopy.org/ome-model/6.3.1/ome-tiff/specification.html
 
     Parameters
     ----------

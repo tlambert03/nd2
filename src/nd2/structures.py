@@ -271,9 +271,18 @@ class Channel:
 class ChannelMeta:
     name: str
     index: int
-    colorRGB: int  # probably 0xBBGGRR
+    colorRGB: int  # probably 0xAABBGGRR
     emissionLambdaNm: float | None = None
     excitationLambdaNm: float | None = None
+
+    def rgba_tuple(self) -> tuple[int, int, int, int]:
+        """Return the color as a tuple of (R, G, B, A)."""
+        return (
+            self.colorRGB & 255,
+            (self.colorRGB >> 8) & 255,
+            (self.colorRGB >> 16) & 255,
+            (self.colorRGB >> 24) & 255,
+        )
 
 
 @dataclass

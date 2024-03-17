@@ -23,6 +23,10 @@ if TYPE_CHECKING:
     from .readers import ModernReader
     from .structures import ModalityFlags
 
+# TODO: add support for splitting positions into separate files, and pyramids
+# https://docs.openmicroscopy.org/ome-model/6.3.1/ome-tiff/specification.html#embedded-ome-xml-metadata
+# https://docs.openmicroscopy.org/ome-model/6.3.1/ome-tiff/specification.html#supported-resolutions
+
 
 def nd2_ome_metadata(
     f: ND2File, include_unstructured: bool = True, tiff_file_name: str | None = None
@@ -52,13 +56,24 @@ def nd2_ome_metadata(
     rdr = cast("ModernReader", f._rdr)
     meta = f.metadata
 
+    instrument = m.Instrument(
+        id="Instrument:0",
+        detectors=ome_detectors(rdr._cached_raw_metadata()),
+        # TODO:
+        # dichroics: List[Dichroic]
+        # filter_sets: List[FilterSet]
+        # filters: List[Filter]
+        # light_source_group: List[LightSourceGroupType]
+        # microscope: Optional[Microscope]
+    )
+
     ch0 = next(iter(meta.channels or ()), None)
     channels = [
         m.Channel(
             id=f"Channel:{c_idx}",
             name=ch.channel.name,
             acquisition_mode=ome_acquisition_mode(ch.microscope.modalityFlags),
-            color=ch.channel.colorRGB,
+            color=ch.channel.rgba_tuple(),
             contrast_method=ome_contrast_method(ch.microscope.modalityFlags),
             pinhole_size=ch.microscope.pinholeDiameterUm,
             pinhole_size_unit=UnitsLength.MICROMETER,  # default is "um"
@@ -67,7 +82,7 @@ def nd2_ome_metadata(
             excitation_wavelength=ch.channel.excitationLambdaNm,
             excitation_wavelength_unit=UnitsLength.NANOMETER,  # default is "nm"
             illumination_type=ome_illumination_type(ch.microscope.modalityFlags),
-            samples_per_pixel=1,  # Todo
+            samples_per_pixel=1,
             # detector_settings=...,
             # filter_set_ref=...,
             # fluor=...,
@@ -80,10 +95,11 @@ def nd2_ome_metadata(
 
     images = []
     acquisition_date = rdr._acquisition_date()
-    id_ = f"urn:uuid:{uuid.uuid4()}"
+    uuid_ = f"urn:uuid:{uuid.uuid4()}"
     sizes = dict(f.sizes)
     n_positions = sizes.pop(AXIS.POSITION, 1)
     loop_indices = rdr.loop_indices()
+    voxel_size = f.voxel_size()
 
     _dims, shape = zip(*sizes.items())
     dims = "".join(reversed(_dims)).upper()
@@ -93,12 +109,13 @@ def nd2_ome_metadata(
     for p in range(n_positions):
         planes: list[m.Plane] = []
         tiff_blocks: list[m.TiffData] = []
-        n = 0
+        ifd = 0
         for s_idx, loop_idx in enumerate(loop_indices):
             if loop_idx.get(AXIS.POSITION, 0) != p:
                 continue
             f_meta = rdr.frame_metadata(s_idx)
             for c_idx, fm_ch in enumerate(f_meta.channels):
+                # TODO: i think RGB might actually need to be 3 planes with 1 spp
                 z_idx = loop_idx.get(AXIS.Z, 0)
                 t_idx = loop_idx.get(AXIS.TIME, 0)
                 planes.append(
@@ -121,21 +138,23 @@ def nd2_ome_metadata(
                 if tiff_file_name is not None:
                     tiff_blocks.append(
                         m.TiffData(
-                            uuid=m.TiffData.UUID(value=id_, file_name=tiff_file_name),
-                            ifd=n,
+                            uuid=m.TiffData.UUID(value=uuid_, file_name=tiff_file_name),
+                            ifd=ifd,
                             first_c=c_idx,
                             first_t=t_idx,
                             first_z=z_idx,
                             plane_count=1,
                         )
                     )
-                n += 1
+                ifd += 1
 
+        md_only = None if tiff_blocks else m.MetadataOnly()
         pixels = m.Pixels(
             id=f"Pixels:{p}",
             channels=channels,
             planes=planes,
             tiff_data_blocks=tiff_blocks,
+            metadata_only=md_only,
             dimension_order=dim_order,
             type=str(f.dtype),
             significant_bits=f.attributes.bitsPerComponentSignificant,
@@ -144,17 +163,19 @@ def nd2_ome_metadata(
             size_z=f.sizes.get(AXIS.Z, 1),
             size_c=f.sizes.get(AXIS.CHANNEL, 1),
             size_t=f.sizes.get(AXIS.TIME, 1),
-            physical_size_x=f.voxel_size().x,
-            physical_size_y=f.voxel_size().y,
-            physical_size_z=f.voxel_size().z,
-            physical_size_x_unit=UnitsLength.MICROMETER,  # default is um
-            physical_size_y_unit=UnitsLength.MICROMETER,  # default is um
-            physical_size_z_unit=UnitsLength.MICROMETER,  # default is um
-            metadata_only=True,
+            physical_size_x=voxel_size.x,
+            physical_size_y=voxel_size.y,
+            physical_size_x_unit=UnitsLength.MICROMETER,
+            physical_size_y_unit=UnitsLength.MICROMETER,
         )
+        if AXIS.Z in sizes:
+            pixels.physical_size_z = voxel_size.z
+            pixels.physical_size_z_unit = UnitsLength.MICROMETER
 
         images.append(
             m.Image(
+                instrument_ref=m.InstrumentRef(id=instrument.id),
+                # objective_settings=...
                 id=f"Image:{p}",
                 name=Path(f.path).stem + (f" (Series {p})" if n_positions > 1 else ""),
                 pixels=pixels,
@@ -162,16 +183,6 @@ def nd2_ome_metadata(
             )
         )
 
-    instrument = m.Instrument(
-        id="Instrument:0",
-        detectors=ome_detectors(rdr._cached_raw_metadata()),
-        # TODO:
-        # dichroics: List[Dichroic]
-        # filter_sets: List[FilterSet]
-        # filters: List[Filter]
-        # light_source_group: List[LightSourceGroupType]
-        # microscope: Optional[Microscope]
-    )
     if ch0 is not None:
         scope = ch0.microscope
         instrument.objectives.append(
@@ -179,6 +190,7 @@ def nd2_ome_metadata(
                 id="Objective:0",
                 nominal_magnification=scope.objectiveMagnification,
                 lens_na=scope.objectiveNumericalAperture,
+                # model=... # something like "Plan Fluor 10x Ph1 DLL"
                 # immersion=scope.ome_objective_immersion(),
             )
         )

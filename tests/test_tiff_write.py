@@ -1,12 +1,11 @@
-from operator import is_
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
 import nd2
-from nd2._util import AXIS
 import ome_types
 import pytest
+from nd2._util import AXIS
 
 if TYPE_CHECKING:
     import tifffile as tf
@@ -15,7 +14,8 @@ else:
 
 
 @pytest.mark.parametrize("fname", ["out.tif", "out.ome.tif"])
-def test_write_to_tiff(fname: str, small_nd2s: Path, tmp_path: Path) -> None:
+def test_write_to_tiff(fname: str, new_nd2: Path, tmp_path: Path) -> None:
+    nd2f = new_nd2
     dest = tmp_path / fname
     on_frame = Mock()
 
@@ -24,21 +24,19 @@ def test_write_to_tiff(fname: str, small_nd2s: Path, tmp_path: Path) -> None:
 
     # semi-randomly choose whether to use the ND2File or the nd2_to_tiff function
     # and whether to test progress or OME-XML modification
-    event_path = len(small_nd2s.stem) % 2 == 0
+    event_path = len(nd2f.stem) % 2 == 0
     if event_path:
         expected_creator = "ME"
-        with nd2.ND2File(small_nd2s) as f:
+        with nd2.ND2File(nd2f) as f:
             f.write_tiff(dest, progress=True, modify_ome=_mod_ome, on_frame=on_frame)
     else:
         expected_creator = f"nd2 v{nd2.__version__}"
-        nd2.nd2_to_tiff(
-            small_nd2s, dest, progress=False, modify_ome=None, on_frame=on_frame
-        )
+        nd2.nd2_to_tiff(nd2f, dest, progress=False, modify_ome=None, on_frame=on_frame)
 
     on_frame.assert_called()
     assert [type(x) for x in on_frame.call_args.args] == [int, int, dict]
 
-    with nd2.ND2File(small_nd2s) as f, tf.TiffFile(dest) as tif:
+    with nd2.ND2File(nd2f) as f, tf.TiffFile(dest) as tif:
         sizes = dict(f.sizes)
         assert len(tif.series) == sizes.pop(AXIS.POSITION, 1)
         expected_shape = tuple(x for k, x in sizes.items())

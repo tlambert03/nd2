@@ -3,7 +3,8 @@ from __future__ import annotations
 import threading
 import warnings
 from itertools import product
-from typing import TYPE_CHECKING, Callable, cast, overload
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Callable, Mapping, cast, overload
 
 import numpy as np
 
@@ -696,7 +697,7 @@ class ND2File:
         return [(i, x.type, x.count) for i, x in enumerate(self.experiment)]
 
     @cached_property
-    def sizes(self) -> dict[str, int]:
+    def sizes(self) -> Mapping[str, int]:
         """Names and sizes for each axis.
 
         This is an ordered dict, with the same order
@@ -723,7 +724,7 @@ class ND2File:
         else:
             # if not exactly 3 channels, throw them all into monochrome channels
             dims[AXIS.CHANNEL] = attrs.componentCount
-        return {k: v for k, v in dims.items() if v != 1}
+        return MappingProxyType({k: v for k, v in dims.items() if v != 1})
 
     @property
     def is_rgb(self) -> bool:
@@ -835,7 +836,7 @@ class ND2File:
         dest: str | PathLike,
         *,
         progress: bool = False,
-        on_frame: Callable[[int, int], None] | None = None,
+        on_frame: Callable[[int, int, dict[str, int]], None] | None | None = None,
         modify_ome: Callable[[ome_types.OME], None] | None = None,
     ) -> None:
         """Export to an (OME)-TIFF file.
@@ -850,9 +851,10 @@ class ND2File:
             Whether to display progress bar.  If `True` and `tqdm` is installed, it will
             be used. Otherwise, a simple text counter will be printed to the console.
             By default `False`.
-        on_frame : Callable[[int, int], None]
+        on_frame : Callable[[int, int, dict[str, int]], None] | None
             A function to call after each frame is written. The function should accept
-            two arguments: the current frame number, and the total number of frames.
+            three arguments: the current frame number, the total number of frames, and
+            a dictionary of the current frame's indices (e.g. `{"T": 0, "Z": 1}`)
             (Useful for integrating custom progress bars or logging.)
         modify_ome : Callable[[ome_types.OME], None]
             A function to modify the OME metadata before writing it to the file.

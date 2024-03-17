@@ -78,77 +78,89 @@ def nd2_ome_metadata(
         for c_idx, ch in enumerate(meta.channels or ())
     ]
 
-    planes: list[m.Plane] = []
-    tiff_blocks: list[m.TiffData] = []
-    n = 0
+    images = []
+    acquisition_date = rdr._acquisition_date()
     id_ = f"urn:uuid:{uuid.uuid4()}"
-    for s_idx, loop_idx in zip(range(rdr._seq_count()), rdr.loop_indices()):
-        fm = rdr.frame_metadata(s_idx)
-        for c_idx, fm_ch in enumerate(fm.channels):
-            z_idx = loop_idx.get(AXIS.Z, 0)
-            t_idx = loop_idx.get(AXIS.TIME, 0)
-            planes.append(
-                m.Plane(
-                    the_z=z_idx,
-                    the_t=t_idx,
-                    the_c=c_idx,
-                    # exposure_time=...,
-                    # exposure_time_unit=...,
-                    delta_t=round(fm_ch.time.relativeTimeMs, 6),
-                    delta_t_unit=UnitsTime.MILLISECOND,  # default is "s"
-                    position_x=round(fm_ch.position.stagePositionUm.x, 6),
-                    position_y=round(fm_ch.position.stagePositionUm.y, 6),
-                    position_z=round(fm_ch.position.stagePositionUm.z, 6),
-                    position_x_unit=UnitsLength.MICROMETER,
-                    position_y_unit=UnitsLength.MICROMETER,
-                    position_z_unit=UnitsLength.MICROMETER,
-                )
-            )
-            if tiff_file_name is not None:
-                tiff_blocks.append(
-                    m.TiffData(
-                        uuid=m.TiffData.UUID(value=id_, file_name=tiff_file_name),
-                        ifd=n,
-                        first_c=c_idx,
-                        first_t=t_idx,
-                        first_z=z_idx,
-                        plane_count=1,
-                    )
-                )
-            n += 1
+    sizes = dict(f.sizes)
+    n_positions = sizes.pop(AXIS.POSITION, 1)
+    loop_indices = rdr.loop_indices()
 
-    dims = "".join(reversed(list(f.sizes)))
+    _dims, shape = zip(*sizes.items())
+    dims = "".join(reversed(_dims)).upper()
     dim_order = next(
         (x for x in DimensionOrder if x.value.startswith(dims)), DimensionOrder.XYCZT
     )
-    pixels = m.Pixels(
-        id="Pixels:0",
-        channels=channels,
-        planes=planes,
-        tiff_data_blocks=tiff_blocks,
-        dimension_order=dim_order,
-        type=str(f.dtype),
-        significant_bits=f.attributes.bitsPerComponentSignificant,
-        size_x=f.sizes.get(AXIS.X, 1),
-        size_y=f.sizes.get(AXIS.Y, 1),
-        size_z=f.sizes.get(AXIS.Z, 1),
-        size_c=f.sizes.get(AXIS.CHANNEL, 1),
-        size_t=f.sizes.get(AXIS.TIME, 1),
-        physical_size_x=f.voxel_size().x,
-        physical_size_y=f.voxel_size().y,
-        physical_size_z=f.voxel_size().z,
-        physical_size_x_unit=UnitsLength.MICROMETER,  # default is um
-        physical_size_y_unit=UnitsLength.MICROMETER,  # default is um
-        physical_size_z_unit=UnitsLength.MICROMETER,  # default is um
-        metadata_only=True,
-    )
+    for p in range(n_positions):
+        planes: list[m.Plane] = []
+        tiff_blocks: list[m.TiffData] = []
+        n = 0
+        for s_idx, loop_idx in enumerate(loop_indices):
+            if loop_idx.get(AXIS.POSITION, 0) != p:
+                continue
+            f_meta = rdr.frame_metadata(s_idx)
+            for c_idx, fm_ch in enumerate(f_meta.channels):
+                z_idx = loop_idx.get(AXIS.Z, 0)
+                t_idx = loop_idx.get(AXIS.TIME, 0)
+                planes.append(
+                    m.Plane(
+                        the_z=z_idx,
+                        the_t=t_idx,
+                        the_c=c_idx,
+                        # exposure_time=...,
+                        # exposure_time_unit=...,
+                        delta_t=round(fm_ch.time.relativeTimeMs, 6),
+                        delta_t_unit=UnitsTime.MILLISECOND,  # default is "s"
+                        position_x=round(fm_ch.position.stagePositionUm.x, 6),
+                        position_y=round(fm_ch.position.stagePositionUm.y, 6),
+                        position_z=round(fm_ch.position.stagePositionUm.z, 6),
+                        position_x_unit=UnitsLength.MICROMETER,
+                        position_y_unit=UnitsLength.MICROMETER,
+                        position_z_unit=UnitsLength.MICROMETER,
+                    )
+                )
+                if tiff_file_name is not None:
+                    tiff_blocks.append(
+                        m.TiffData(
+                            uuid=m.TiffData.UUID(value=id_, file_name=tiff_file_name),
+                            ifd=n,
+                            first_c=c_idx,
+                            first_t=t_idx,
+                            first_z=z_idx,
+                            plane_count=1,
+                        )
+                    )
+                n += 1
 
-    image = m.Image(
-        id="Image:0",
-        name=Path(f.path).stem,
-        pixels=pixels,
-        acquisition_date=rdr._acquisition_date(),
-    )
+        pixels = m.Pixels(
+            id=f"Pixels:{p}",
+            channels=channels,
+            planes=planes,
+            tiff_data_blocks=tiff_blocks,
+            dimension_order=dim_order,
+            type=str(f.dtype),
+            significant_bits=f.attributes.bitsPerComponentSignificant,
+            size_x=f.sizes.get(AXIS.X, 1),
+            size_y=f.sizes.get(AXIS.Y, 1),
+            size_z=f.sizes.get(AXIS.Z, 1),
+            size_c=f.sizes.get(AXIS.CHANNEL, 1),
+            size_t=f.sizes.get(AXIS.TIME, 1),
+            physical_size_x=f.voxel_size().x,
+            physical_size_y=f.voxel_size().y,
+            physical_size_z=f.voxel_size().z,
+            physical_size_x_unit=UnitsLength.MICROMETER,  # default is um
+            physical_size_y_unit=UnitsLength.MICROMETER,  # default is um
+            physical_size_z_unit=UnitsLength.MICROMETER,  # default is um
+            metadata_only=True,
+        )
+
+        images.append(
+            m.Image(
+                id=f"Image:{p}",
+                name=Path(f.path).stem + (f" (Series {p})" if n_positions > 1 else ""),
+                pixels=pixels,
+                acquisition_date=acquisition_date,
+            )
+        )
 
     instrument = m.Instrument(
         id="Instrument:0",
@@ -186,7 +198,7 @@ def nd2_ome_metadata(
         annotations.map_annotations.append(big_dump)
 
     return m.OME(
-        images=[image],
+        images=images,
         creator=f"nd2 v{__version__}",
         instruments=[instrument],
         structured_annotations=annotations,

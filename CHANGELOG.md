@@ -1,5 +1,20 @@
 # Changelog
 
+## [v0.10.0](https://github.com/tlambert03/nd2/tree/v0.10.0) (2024-03-17)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.9.0...v0.10.0)
+
+**Implemented enhancements:**
+
+- feat: better color object [\#218](https://github.com/tlambert03/nd2/pull/218) ([tlambert03](https://github.com/tlambert03))
+- feat: add to\_ome\_tif method [\#217](https://github.com/tlambert03/nd2/pull/217) ([fdrgsp](https://github.com/fdrgsp))
+- feat: add `write_tiff` export to OME-TIFF, include full metadata as StructuredAnnotation [\#216](https://github.com/tlambert03/nd2/pull/216) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- ci\(dependabot\): bump softprops/action-gh-release from 1 to 2 [\#214](https://github.com/tlambert03/nd2/pull/214) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore: use ruff format, add typos [\#213](https://github.com/tlambert03/nd2/pull/213) ([tlambert03](https://github.com/tlambert03))
+
 ## [v0.9.0](https://github.com/tlambert03/nd2/tree/v0.9.0) (2024-02-22)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.8.1...v0.9.0)

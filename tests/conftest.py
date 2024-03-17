@@ -25,7 +25,7 @@ def single_nd2():
     return SINGLE
 
 
-@pytest.fixture(params=ALL[:30] + [DATA / "jonas_control002.nd2"], ids=lambda x: x.name)
+@pytest.fixture(params=ALL[:40] + [DATA / "jonas_control002.nd2"], ids=lambda x: x.name)
 def small_nd2s(request) -> Path:
     return request.param
 

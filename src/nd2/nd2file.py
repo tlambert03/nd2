@@ -205,6 +205,7 @@ class ND2File:
         state = self.__dict__.copy()
         del state["_rdr"]
         del state["_lock"]
+        state.pop("sizes", None)  # cannot pickle MappingProxyType, we can make it again
         state["_closed"] = self.closed
         return state
 
@@ -835,6 +836,7 @@ class ND2File:
         self,
         dest: str | PathLike,
         *,
+        include_unstructured_metadata: bool = True,
         progress: bool = False,
         on_frame: Callable[[int, int, dict[str, int]], None] | None | None = None,
         modify_ome: Callable[[ome_types.OME], None] | None = None,
@@ -847,6 +849,11 @@ class ND2File:
         ----------
         dest : str  | PathLike
             The destination TIFF file.
+        include_unstructured_metadata :  bool
+            Whether to include unstructured metadata in the OME-XML.
+            This includes all of the metadata that we can find in the ND2 file in the
+            StructuredAnnotations section of the OME-XML (as mapping of
+            metadata chunk name to JSON-encoded string). By default `True`.
         progress : bool
             Whether to display progress bar.  If `True` and `tqdm` is installed, it will
             be used. Otherwise, a simple text counter will be printed to the console.
@@ -865,7 +872,12 @@ class ND2File:
         from .tiff import nd2_to_tiff
 
         return nd2_to_tiff(
-            self, dest, progress=progress, on_frame=on_frame, modify_ome=modify_ome
+            self,
+            dest,
+            include_unstructured_metadata=include_unstructured_metadata,
+            progress=progress,
+            on_frame=on_frame,
+            modify_ome=modify_ome,
         )
 
     def to_dask(self, wrapper: bool = True, copy: bool = True) -> dask.array.core.Array:

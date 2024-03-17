@@ -26,13 +26,14 @@ try:
 
 except ImportError:
 
-    class _pbar:
+    class _pbar:  # type: ignore
         def __init__(
             self, *_: Any, desc: str = "", total: int | None = None, **__: Any
         ) -> None:
             self.desc = desc
             self.total = total or "?"
             self.n = 0
+            print("hint: `pip install tqdm` for a better progress bar. ")
 
         def set_description(self, desc: str) -> None:
             self.desc = desc
@@ -57,6 +58,8 @@ if TYPE_CHECKING:
 def nd2_to_tiff(
     source: str | PathLike | ND2File,
     dest: str | PathLike,
+    *,
+    include_unstructured_metadata: bool = True,
     progress: bool = False,
     on_frame: Callable[[int, int, dict[str, int]], None] | None = None,
     modify_ome: Callable[[ome_types.OME], None] | None = None,
@@ -73,6 +76,11 @@ def nd2_to_tiff(
         The ND2 file path or an open ND2File object.
     dest : str  | PathLike
         The destination TIFF file.
+    include_unstructured_metadata :  bool
+        Whether to include unstructured metadata in the OME-XML. This includes all of
+        the metadata that we can find in the ND2 file in the StructuredAnnotations
+        section of the OME-XML (as mapping of metadata chunk name to JSON-encoded
+        string). By default `True`.
     progress : bool
         Whether to display progress bar.  If `True` and `tqdm` is installed, it will
         be used. Otherwise, a simple text counter will be printed to the console.
@@ -89,7 +97,7 @@ def nd2_to_tiff(
         `.ome.tiff`)
     """
     dest_path = Path(dest).expanduser().resolve()
-    output_ome = dest_path.name.lower().endswith((".ome.tif", ".ome.tiff"))
+    output_ome = ".ome." in dest_path.name
 
     # normalize source to an open ND2File, and remember if we opened it
     close_when_done = False
@@ -127,11 +135,15 @@ def nd2_to_tiff(
                 )
             else:
                 # get the OME metadata object from the ND2File
-                ome = nd2_ome_metadata(nd2f, tiff_file_name=dest_path.name)
+                ome = nd2_ome_metadata(
+                    nd2f,
+                    include_unstructured=include_unstructured_metadata,
+                    tiff_file_name=dest_path.name,
+                )
                 if modify_ome:
                     # allow user to modify the OME metadata if they want
                     modify_ome(ome)
-                ome_xml = ome.to_xml().encode("utf-8")
+                ome_xml = ome.to_xml(exclude_unset=True).encode("utf-8")
 
         # total number of frames we will write
         tot = nd2f._frame_count
@@ -164,6 +176,7 @@ def nd2_to_tiff(
         tf_ome = False if ome_xml else None
         # Write the tiff file
         pixelsize = nd2f.voxel_size().x
+        photometric = tf.PHOTOMETRIC.RGB if nd2f.is_rgb else tf.PHOTOMETRIC.MINISBLACK
         with tf.TiffWriter(dest_path, bigtiff=True, ome=tf_ome) as tif:
             for p in range(n_positions):
                 tif.write(
@@ -172,7 +185,7 @@ def nd2_to_tiff(
                     dtype=nd2f.dtype,
                     resolution=(1 / pixelsize, 1 / pixelsize),
                     resolutionunit=tf.TIFF.RESUNIT.MICROMETER,
-                    photometric=tf.TIFF.PHOTOMETRIC.MINISBLACK,
+                    photometric=photometric,
                     metadata=metadata,
                     description=ome_xml,
                 )

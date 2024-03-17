@@ -14,19 +14,19 @@ else:
 
 
 @pytest.mark.parametrize("fname", ["out.tif", "out.ome.tif"])
-def test_write_to_tiff(fname: str, new_nd2: Path, tmp_path: Path) -> None:
-    nd2f = new_nd2
+def test_write_to_tiff(fname: str, small_nd2s: Path, tmp_path: Path) -> None:
+    nd2f = small_nd2s
     dest = tmp_path / fname
     on_frame = Mock()
+    ME = "ME"
 
     def _mod_ome(ome: ome_types.OME) -> None:
-        ome.creator = "ME"
+        ome.creator = ME
 
     # semi-randomly choose whether to use the ND2File or the nd2_to_tiff function
     # and whether to test progress or OME-XML modification
-    event_path = len(nd2f.stem) % 2 == 0
-    if event_path:
-        expected_creator = "ME"
+    if len(nd2f.stem) % 2 == 0:
+        expected_creator = ME
         with nd2.ND2File(nd2f) as f:
             f.write_tiff(dest, progress=True, modify_ome=_mod_ome, on_frame=on_frame)
     else:

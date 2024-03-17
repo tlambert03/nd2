@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 def nd2_ome_metadata(
-    f: ND2File, include_unstructured: bool = True, tiff_file_name: str | None = None
+    f: ND2File, *, include_unstructured: bool = True, tiff_file_name: str | None = None
 ) -> m.OME:
     """Generate an [`ome_types.OME`][] object for an ND2 file.
 
@@ -55,6 +55,21 @@ def nd2_ome_metadata(
 
     rdr = cast("ModernReader", f._rdr)
     meta = f.metadata
+    images = []
+    acquisition_date = rdr._acquisition_date()
+    uuid_ = f"urn:uuid:{uuid.uuid4()}"
+    sizes = dict(f.sizes)
+    n_positions = sizes.pop(AXIS.POSITION, 1)
+    loop_indices = rdr.loop_indices()
+    voxel_size = f.voxel_size()
+    _dims, shape = zip(*sizes.items())
+    dims = "".join(reversed(_dims)).upper()
+    dim_order = next(
+        (x for x in DimensionOrder if x.value.startswith(dims)), DimensionOrder.XYCZT
+    )
+
+    # if sizes.get(AXIS.CHANNEL, 1) > 1 and sizes.get(AXIS.RGB, 1) > 1:
+    #     warn("multi-channel RGB images are not well supported in nd2 OME metadata.")
 
     instrument = m.Instrument(
         id="Instrument:0",
@@ -68,21 +83,17 @@ def nd2_ome_metadata(
     )
 
     ch0 = next(iter(meta.channels or ()), None)
-    channels = [
-        m.Channel(
+    channels = []
+    for c_idx, ch in enumerate(meta.channels or ()):
+        channel = m.Channel(
             id=f"Channel:{c_idx}",
             name=ch.channel.name,
             acquisition_mode=ome_acquisition_mode(ch.microscope.modalityFlags),
-            color=ch.channel.rgba_tuple(),
             contrast_method=ome_contrast_method(ch.microscope.modalityFlags),
             pinhole_size=ch.microscope.pinholeDiameterUm,
             pinhole_size_unit=UnitsLength.MICROMETER,  # default is "um"
-            emission_wavelength=ch.channel.emissionLambdaNm,
-            emission_wavelength_unit=UnitsLength.NANOMETER,  # default is "nm"
-            excitation_wavelength=ch.channel.excitationLambdaNm,
-            excitation_wavelength_unit=UnitsLength.NANOMETER,  # default is "nm"
             illumination_type=ome_illumination_type(ch.microscope.modalityFlags),
-            samples_per_pixel=1,
+            samples_per_pixel=sizes.get(AXIS.RGB, 1),
             # detector_settings=...,
             # filter_set_ref=...,
             # fluor=...,
@@ -90,22 +101,16 @@ def nd2_ome_metadata(
             # light_source_settings=...,
             # nd_filter=...,
         )
-        for c_idx, ch in enumerate(meta.channels or ())
-    ]
+        if not f.is_rgb:
+            # if you include any of this for RGB images, the Bioformats OMETiffReader
+            # will show all three RGB channels with the same color
+            channel.color = m.Color(ch.channel.rgba_tuple())
+            channel.emission_wavelength = ch.channel.emissionLambdaNm
+            channel.emission_wavelength_unit = UnitsLength.NANOMETER
+            channel.excitation_wavelength = ch.channel.excitationLambdaNm
+            channel.excitation_wavelength_unit = UnitsLength.NANOMETER
+        channels.append(channel)
 
-    images = []
-    acquisition_date = rdr._acquisition_date()
-    uuid_ = f"urn:uuid:{uuid.uuid4()}"
-    sizes = dict(f.sizes)
-    n_positions = sizes.pop(AXIS.POSITION, 1)
-    loop_indices = rdr.loop_indices()
-    voxel_size = f.voxel_size()
-
-    _dims, shape = zip(*sizes.items())
-    dims = "".join(reversed(_dims)).upper()
-    dim_order = next(
-        (x for x in DimensionOrder if x.value.startswith(dims)), DimensionOrder.XYCZT
-    )
     for p in range(n_positions):
         planes: list[m.Plane] = []
         tiff_blocks: list[m.TiffData] = []
@@ -195,9 +200,10 @@ def nd2_ome_metadata(
             )
         )
 
-    annotations = m.StructuredAnnotations()
+    ome = m.OME(images=images, creator=f"nd2 v{__version__}", instruments=[instrument])
+
     if include_unstructured:
-        big_dump = m.MapAnnotation(
+        all_meta = m.MapAnnotation(
             description="ND2 unstructured metadata, encoded as a JSON string. "
             "Each key in this MapAnnotation is the name of a metadata chunk found in "
             "the ND2 file, and the value is the JSON-encoded data for that chunk.",
@@ -207,14 +213,9 @@ def nd2_ome_metadata(
                 for k, v in rdr.unstructured_metadata().items()
             },
         )
-        annotations.map_annotations.append(big_dump)
+        ome.structured_annotations = m.StructuredAnnotations(map_annotations=[all_meta])
 
-    return m.OME(
-        images=images,
-        creator=f"nd2 v{__version__}",
-        instruments=[instrument],
-        structured_annotations=annotations,
-    )
+    return ome
 
 
 def _default_encoder(obj: Any) -> Any:

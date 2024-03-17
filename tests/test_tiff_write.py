@@ -1,12 +1,11 @@
-from operator import is_
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
 import nd2
-from nd2._util import AXIS
 import ome_types
 import pytest
+from nd2._util import AXIS
 
 if TYPE_CHECKING:
     import tifffile as tf

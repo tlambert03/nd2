@@ -442,7 +442,7 @@ class ND2File:
                         channel=ChannelMeta(
                             name="Widefield Green",
                             index=0,
-                            colorRGB=65371,
+                            color=Color(r=91, g=255, b=0, a=1.0),
                             emissionLambdaNm=535.0,
                             excitationLambdaNm=None,
                         ),
@@ -483,7 +483,7 @@ class ND2File:
                         channel=ChannelMeta(
                             name="Widefield Red",
                             index=1,
-                            colorRGB=22015,
+                            color=Color(r=255, g=85, b=0, a=1.0),
                             emissionLambdaNm=620.0,
                             excitationLambdaNm=None,
                         ),
@@ -549,7 +549,7 @@ class ND2File:
                         channel=ChannelMeta(
                             name="Widefield Green",
                             index=0,
-                            colorRGB=65371,
+                            color=Color(r=91, g=255, b=0, a=1.0),
                             emissionLambdaNm=535.0,
                             excitationLambdaNm=None,
                         ),
@@ -601,7 +601,7 @@ class ND2File:
                         channel=ChannelMeta(
                             name="Widefield Red",
                             index=1,
-                            colorRGB=22015,
+                            color=Color(r=255, g=85, b=0, a=1.0),
                             emissionLambdaNm=620.0,
                             excitationLambdaNm=None,
                         ),

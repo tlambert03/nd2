@@ -10,6 +10,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 import nd2
+from nd2 import structures
 from nd2._parse._chunk_decode import iter_chunks
 
 
@@ -34,6 +35,10 @@ def get_nd2_stats(path: Path) -> "tuple[str, dict]":
     with nd2.ND2File(path) as nd:
         meta = nd.metadata if isinstance(nd.metadata, dict) else asdict(nd.metadata)
         for channel in meta.get("channels", []):
+            # we changed colorRGB to color inb v0.10.0
+            if color := channel["channel"].pop("color", None):
+                if isinstance(color, structures.Color):
+                    channel["channel"]["colorRGB"] = color.as_abgr_u4()
             # Remove custom loops if null... they're super rare, and
             # readlimfile.json doesn't include them
             if channel.get("loops") and not channel["loops"].get("CustomLoop"):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import builtins
+import warnings
 from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import TYPE_CHECKING, Literal, NamedTuple, TypedDict, Union
@@ -267,22 +268,56 @@ class Channel:
             self.loops = LoopIndices(**self.loops)
 
 
+class Color(NamedTuple):
+    r: int
+    g: int
+    b: int
+    a: float = 1.0
+
+    def as_hex(self) -> str:  # pragma: no cover
+        """Return color as a hex string."""
+        return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
+
+    @classmethod
+    def from_abgr_u4(cls, val: int) -> Color:
+        """Create a color from an unsigned 4-byte (32-bit) integer in ABGR format."""
+        return cls(
+            r=val & 255,
+            g=val >> 8 & 255,
+            b=val >> 16 & 255,
+            # it's not clear if the alpha channel is used in NIS Elements
+            # so we default to 1.0 if it comes in as 0
+            a=((val >> 24 & 255) / 255) or 1.0,
+        )
+
+    def as_abgr_u4(self) -> int:
+        """Return color as an unsigned 4-byte (32-bit) integer in ABGR format.
+
+        This is the native format of NIS Elements.
+        """
+        # for the sake of round-tripping, we'll assume that 1.0 alpha is 0
+        alpha = 0 if self.a == 1.0 else int(self.a * 255)
+        return (alpha << 24) + (self.b << 16) + (self.g << 8) + self.r
+
+
 @dataclass
 class ChannelMeta:
     name: str
     index: int
-    colorRGB: int  # probably 0xAABBGGRR
+    color: Color
     emissionLambdaNm: float | None = None
     excitationLambdaNm: float | None = None
 
-    def rgba_tuple(self) -> tuple[int, int, int, int]:
-        """Return the color as a tuple of (R, G, B, A)."""
-        return (
-            self.colorRGB & 255,
-            (self.colorRGB >> 8) & 255,
-            (self.colorRGB >> 16) & 255,
-            (self.colorRGB >> 24) & 255,
+    @property
+    def colorRGBA(self) -> int:
+        """Return color as unsigned 4-byte (32-bit) integer in ABGR format."""
+        warnings.warn(
+            "`.colorRGBA` is deprecated, use `.color..as_abgr_u4()` instead "
+            "if you want the color in the original 32-bit ABGR format.",
+            DeprecationWarning,
+            stacklevel=2,
         )
+        return self.color.as_abgr_u4()
 
 
 @dataclass

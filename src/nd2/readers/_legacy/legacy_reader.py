@@ -527,7 +527,7 @@ def _load_metadata(
         channel_meta = strct.ChannelMeta(
             name=plane["OpticalConfigName"],
             index=int(idx),
-            colorRGB=plane["Color"],
+            color=strct.Color.from_abgr_u4(plane["Color"]),
             emissionLambdaNm=None,
             excitationLambdaNm=None,
         )

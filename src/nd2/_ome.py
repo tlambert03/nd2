@@ -104,7 +104,7 @@ def nd2_ome_metadata(
         if not f.is_rgb:
             # if you include any of this for RGB images, the Bioformats OMETiffReader
             # will show all three RGB channels with the same color
-            channel.color = m.Color(ch.channel.rgba_tuple())
+            channel.color = m.Color(ch.channel.color)
             channel.emission_wavelength = ch.channel.emissionLambdaNm
             channel.emission_wavelength_unit = UnitsLength.NANOMETER
             channel.excitation_wavelength = ch.channel.excitationLambdaNm

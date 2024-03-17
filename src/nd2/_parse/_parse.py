@@ -568,7 +568,7 @@ def load_metadata(raw_meta: RawMetaDict, global_meta: GlobalMetadata) -> strct.M
         channel_meta = strct.ChannelMeta(
             index=k,
             name=plane.get("sDescription", ""),
-            colorRGB=plane.get("uiColor", 0),
+            color=strct.Color.from_abgr_u4(plane.get("uiColor", 0)),
             emissionLambdaNm=em or None,
             excitationLambdaNm=ex or None,
         )

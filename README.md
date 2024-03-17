@@ -172,7 +172,13 @@ Metadata(
     contents=Contents(channelCount=2, frameCount=60),
     channels=[
         Channel(
-            channel=ChannelMeta(name='Widefield Green', index=0, colorRGB=65371, emissionLambdaNm=535.0, excitationLambdaNm=None),
+            channel=ChannelMeta(
+                name='Widefield Green',
+                index=0,
+                color=Color(r=91, g=255, b=0, a=1.0),
+                emissionLambdaNm=535.0,
+                excitationLambdaNm=None
+            ),
             loops=LoopIndices(NETimeLoop=None, TimeLoop=0, XYPosLoop=1, ZStackLoop=2),
             microscope=Microscope(
                 objectiveMagnification=10.0,
@@ -204,7 +210,13 @@ Metadata(
             )
         ),
         Channel(
-            channel=ChannelMeta(name='Widefield Red', index=1, colorRGB=22015, emissionLambdaNm=620.0, excitationLambdaNm=None),
+            channel=ChannelMeta(
+                name='Widefield Red',
+                index=1,
+                color=Color(r=255, g=85, b=0, a=1.0),
+                emissionLambdaNm=620.0,
+                excitationLambdaNm=None
+            ),
             loops=LoopIndices(NETimeLoop=None, TimeLoop=0, XYPosLoop=1, ZStackLoop=2),
             microscope=Microscope(
                 objectiveMagnification=10.0,

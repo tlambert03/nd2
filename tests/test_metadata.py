@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Literal
 
 import dask.array as da
@@ -74,7 +75,7 @@ def test_metadata_extraction(new_nd2: Path) -> None:
         assert isinstance(nd.loop_indices, list)
         assert all(isinstance(x, dict) for x in nd.loop_indices)
         assert isinstance(nd.text_info, dict)
-        assert isinstance(nd.sizes, dict)
+        assert isinstance(nd.sizes, MappingProxyType)
         assert isinstance(nd.custom_data, dict)
         assert isinstance(nd.shape, tuple)
         assert isinstance(nd.size, int)

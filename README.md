@@ -18,8 +18,8 @@ This reader provides a pure python implementation of the Nikon ND2 SDK.
 > **Note:** This library is not affiliated with Nikon in any way, but we are
 > grateful for assistance from the SDK developers at Laboratory Imaging.
 
-Features good metadata retrieval, and direct `to_dask` and `to_xarray` options
-for lazy and/or annotated arrays.
+Features good metadata retrieval, direct `to_dask` and `to_xarray` options
+for lazy and/or annotated arrays, and output to OME-TIFF.
 
 This library is tested against many nd2 files with the goal of maximizing
 compatibility and data extraction. (If you find an nd2 file that fails in some
@@ -100,6 +100,9 @@ f.asarray()         # in-memory np.ndarray - or use np.asarray(f)
 f.to_dask()         # delayed dask.array.Array
 f.to_xarray()       # in-memory xarray.DataArray, with labeled axes/coords
 f.to_xarray(delayed=True)   # delayed xarray.DataArray
+
+# OME-TIFF OUTPUT (new in v0.10.0)
+f.write_tiff('output.ome.tif')  # write to ome-tiff file
 
                     # see below for examples of these structures
 # METADATA          # returns instance of ...

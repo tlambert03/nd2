@@ -3,15 +3,12 @@ from __future__ import annotations
 import threading
 import warnings
 from itertools import product
-from pathlib import Path
-from typing import TYPE_CHECKING, cast, overload
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Callable, Mapping, cast, overload
 
 import numpy as np
-import tifffile
-from ome_types.model import Image, Plane, TiffData
 
 from nd2 import _util
-from nd2.structures import XYPosLoop
 
 from ._util import AXIS, is_supported_file
 from .readers.protocol import ND2Reader
@@ -23,14 +20,15 @@ except ImportError:
 
 
 if TYPE_CHECKING:
+    from os import PathLike
+    from pathlib import Path
     from typing import Any, Literal, Sequence, Sized, SupportsInt
 
     import dask.array
     import dask.array.core
+    import ome_types
     import xarray as xr
     from ome_types import OME
-
-    from nd2.structures import Position
 
     from ._binary import BinaryLayers
     from ._util import (
@@ -47,6 +45,7 @@ if TYPE_CHECKING:
         FrameMetadata,
         Metadata,
         TextInfo,
+        XYPosLoop,
     )
 
 __all__ = ["ND2File", "imread"]
@@ -206,6 +205,7 @@ class ND2File:
         state = self.__dict__.copy()
         del state["_rdr"]
         del state["_lock"]
+        state.pop("sizes", None)  # cannot pickle MappingProxyType, we can make it again
         state["_closed"] = self.closed
         return state
 
@@ -698,7 +698,7 @@ class ND2File:
         return [(i, x.type, x.count) for i, x in enumerate(self.experiment)]
 
     @cached_property
-    def sizes(self) -> dict[str, int]:
+    def sizes(self) -> Mapping[str, int]:
         """Names and sizes for each axis.
 
         This is an ordered dict, with the same order
@@ -725,7 +725,7 @@ class ND2File:
         else:
             # if not exactly 3 channels, throw them all into monochrome channels
             dims[AXIS.CHANNEL] = attrs.componentCount
-        return {k: v for k, v in dims.items() if v != 1}
+        return MappingProxyType({k: v for k, v in dims.items() if v != 1})
 
     @property
     def is_rgb(self) -> bool:
@@ -756,12 +756,13 @@ class ND2File:
         return np.dtype(f"{d}{attrs.bitsPerComponentInMemory // 8}")
 
     def voxel_size(self, channel: int = 0) -> _util.VoxelSize:
-        """XYZ voxel size.
+        """XYZ voxel size in microns.
 
         Parameters
         ----------
         channel : int
-            Channel for which to retrieve voxel info, by default 0
+            Channel for which to retrieve voxel info, by default 0.
+            (Not yet implemented.)
 
         Returns
         -------
@@ -830,6 +831,54 @@ class ND2File:
     def __array__(self) -> np.ndarray:
         """Array protocol."""
         return self.asarray()
+
+    def write_tiff(
+        self,
+        dest: str | PathLike,
+        *,
+        include_unstructured_metadata: bool = True,
+        progress: bool = False,
+        on_frame: Callable[[int, int, dict[str, int]], None] | None | None = None,
+        modify_ome: Callable[[ome_types.OME], None] | None = None,
+    ) -> None:
+        """Export to an (OME)-TIFF file.
+
+        To include OME-XML metadata, use extension `.ome.tif` or `.ome.tiff`.
+
+        Parameters
+        ----------
+        dest : str  | PathLike
+            The destination TIFF file.
+        include_unstructured_metadata :  bool
+            Whether to include unstructured metadata in the OME-XML.
+            This includes all of the metadata that we can find in the ND2 file in the
+            StructuredAnnotations section of the OME-XML (as mapping of
+            metadata chunk name to JSON-encoded string). By default `True`.
+        progress : bool
+            Whether to display progress bar.  If `True` and `tqdm` is installed, it will
+            be used. Otherwise, a simple text counter will be printed to the console.
+            By default `False`.
+        on_frame : Callable[[int, int, dict[str, int]], None] | None
+            A function to call after each frame is written. The function should accept
+            three arguments: the current frame number, the total number of frames, and
+            a dictionary of the current frame's indices (e.g. `{"T": 0, "Z": 1}`)
+            (Useful for integrating custom progress bars or logging.)
+        modify_ome : Callable[[ome_types.OME], None]
+            A function to modify the OME metadata before writing it to the file.
+            Accepts an `ome_types.OME` object and should modify it in place.
+            (reminder: OME-XML is only written if the file extension is `.ome.tif` or
+            `.ome.tiff`)
+        """
+        from .tiff import nd2_to_tiff
+
+        return nd2_to_tiff(
+            self,
+            dest,
+            include_unstructured_metadata=include_unstructured_metadata,
+            progress=progress,
+            on_frame=on_frame,
+            modify_ome=modify_ome,
+        )
 
     def to_dask(self, wrapper: bool = True, copy: bool = True) -> dask.array.core.Array:
         """Create dask array (delayed reader) representing image.
@@ -1000,6 +1049,8 @@ class ND2File:
 
     @property
     def _frame_count(self) -> int:
+        if hasattr(self._rdr, "_seq_count"):
+            return cast(int, self._rdr._seq_count())
         return int(np.prod(self._coord_shape))
 
     def _get_frame(self, index: SupportsInt) -> np.ndarray:  # pragma: no cover
@@ -1147,109 +1198,45 @@ class ND2File:
         """
         return self._rdr.binary_data()
 
-    def ome_metadata(self) -> OME:
-        """Return OME metadata for the file."""
-        from ._ome import nd2_ome_metadata
+    def ome_metadata(
+        self, *, include_unstructured: bool = True, tiff_file_name: str | None = None
+    ) -> OME:
+        """Return `ome_types.OME` metadata object for this file.
 
-        return nd2_ome_metadata(self)
-
-    def to_ome_tif(self, filepath: Path | str) -> None:
-        """Write the file to an OME-TIFF file.
+        See the [`ome_types.OME`][] documentation for details on this object.
 
         Parameters
         ----------
-        filepath : Path | str
-            The file to write. The `.ome.tif` suffix will be added if not present.
+        include_unstructured : bool
+            Whether to include all available metadata in the OME file. If `True`,
+            (the default), the `unstructured_metadata` method is used to fetch
+            all retrievable metadata, and the output is added to
+            OME.structured_annotations, where each key is the chunk key, and the
+            value is a JSON-serialized dict of the metadata. If `False`, only metadata
+            which can be directly added to the OME data model are included.
+        tiff_file_name : str | None
+            If provided, [`ome_types.model.TiffData`][] block entries are added for
+            each [`ome_types.model.Plane`][] in the OME object, with the
+            `TiffData.uuid.file_name` set to this value. (Useful for exporting to
+            tiff.)
+
+        Examples
+        --------
+        ```python
+        import nd2
+
+        with nd2.ND2File("path/to/file.nd2") as f:
+            ome = f.ome_metadata()
+            xml = ome.to_xml()
+        ```
         """
-        if not str(filepath).endswith(".ome.tif"):
-            filepath = Path(filepath).with_suffix(".ome.tif")
+        from ._ome import nd2_ome_metadata
 
-        ome = self.ome_metadata()
-
-        # to be fixed? I added this here because of the RGB files
-        for sz in self.sizes:
-            if sz not in ["X", "Y", "Z", "C", "P", "T"]:
-                raise ValueError(
-                    f"Cannot write OME-TIFF with size {sz!r}. "
-                    "Only 'X', 'Y', 'Z', 'C', 'P', and 'T' are currently supported."
-                )
-
-        num_p = self.sizes.get("P", 1)
-
-        ome = self._reorganize_metadata(ome, filepath.name)
-
-        with tifffile.TiffWriter(filepath, bigtiff=True) as tif:
-            for p in range(num_p):
-                # maybe find a better way. If 'T' in sizes, the 'P' index is the
-                # second index, else it's the first
-                data = (
-                    self.to_dask()
-                    if num_p == 1
-                    else self.to_dask()[:, p]
-                    if self.sizes.get("T")
-                    else self.to_dask()[p]
-                )
-
-                tif.write(
-                    data,
-                    description=ome.to_xml().encode("utf-8"),
-                    metadata=None,
-                    photometric="minisblack",  # necessary or deprecation error
-                )
-
-    def _reorganize_metadata(self, ome: OME, filename: str) -> OME:
-        """Update the image metadata for each position in the OME object."""
-        filename = filename.replace(".ome.tif", "")
-
-        dask_ary = self.to_dask()
-
-        image = ome.images[0]
-
-        # get the position loop
-        positions: list[Position] = []
-        for exp in self.experiment:
-            if isinstance(exp, XYPosLoop):
-                positions = exp.parameters.points
-                break
-
-        # we use this to rearrange the planes perr Image
-        new_ome_images: list[Image] = []
-
-        for index, pos in enumerate(positions):
-            # this is one way to group the planes by x, y position. Probably not the
-            # best way to do it. Find a better way
-            x, y = round(pos.stagePositionUm.x, 4), round(pos.stagePositionUm.y, 4)
-            planes = image.pixels.planes
-            pl_list: list[Plane] = []
-            # append the planes that have the same x, y position
-            for plane in planes:
-                if round(plane.position_x, 4) == x and round(plane.position_y, 4) == y:
-                    pl_list.append(plane)
-
-            # update pixels channels samples_per_pixel
-            update_channels = {"samples_per_pixel": 1}
-            channels = []
-            for ch in image.pixels.channels:
-                channels.append(ch.model_copy(update=update_channels))
-
-            # copy pixels and update
-            update_pixels = {
-                "channels": channels,
-                "planes": pl_list,
-                "type": dask_ary.dtype.name,
-                "tiff_data_blocks": [TiffData(plane_count=len(pl_list))],
-            }
-            pixels = image.pixels.model_copy(update=update_pixels)
-
-            # copy image and update
-            name = f"{filename} (series {index+1})" if len(positions) > 1 else filename
-            update_image = {
-                "name": name,
-                "pixels": pixels,
-            }
-            new_ome_images.append(image.model_copy(update=update_image))
-
-        return ome.model_copy(update={"images": new_ome_images})
+        return nd2_ome_metadata(
+            self,
+            include_unstructured=include_unstructured,
+            tiff_file_name=tiff_file_name,
+        )
 
 
 @overload

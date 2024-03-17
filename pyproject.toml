@@ -21,38 +21,38 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dynamic = ["version"]
-dependencies = ["resource-backed-dask-array", "typing-extensions", "numpy"]
+dependencies = [
+    "numpy",
+    "ome-types >=0.5.1",
+    "resource-backed-dask-array",
+    "typing-extensions",
+]
 
 [project.optional-dependencies]
 legacy = ["imagecodecs"]
+tiff = ["tifffile"]
 test = [
-    "aicsimageio; python_version < '3.12'",
+    "nd2[legacy]",
+    "nd2[tiff]",
+    "aicsimageio",
     "dask[array]",
-    "imagecodecs",
     "lxml; python_version >= '3.9'",
-    "numpy >=1.26; python_version >= '3.12'",
-    "numpy; python_version < '3.12'",
-    "ome-types",
+    "numpy",
     "psutil",
     "pytest-codspeed",
     "pytest-cov",
     "pytest-pretty",
     "pytest>=6.0",
-    "xarray; python_version < '3.12'",
+    "tifffile",
+    "xarray",
 ]
 dev = [
-    "aicsimageio",
-    "dask[array]",
-    "imagecodecs",
+    "nd2[test]",
     "ipython",
     "mypy",
     "pre-commit",
-    "psutil",
-    "pytest-cov",
-    "pytest",
     "rich",
     "ruff",
-    "xarray",
     "types-lxml",
 ]
 docs = ["mkdocs", "mkdocs-material", "mkdocstrings-python"]

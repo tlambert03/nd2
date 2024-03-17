@@ -131,8 +131,34 @@ ROIs, if present, can be accessed at [`ND2File.rois`][nd2.ND2File.rois].
 If you're still looking for something that you don't see in the above
 properties and methods, try looking through:
 
-- [ND2File.custom_data][nd2.ND2File.custom_data]
-- [ND2File.unstructured_metadata()][nd2.ND2File.unstructured_metadata]
+- [`ND2File.custom_data`][nd2.ND2File.custom_data]
+- [`ND2File.unstructured_metadata()`][nd2.ND2File.unstructured_metadata]
 
 These methods parse and return more of the metadata found in the file,
 but no attempt is made to extract it into a more useful form.
+
+## Export nd2 to OME-TIFF
+
+To convert an nd2 file to an OME-TIFF file, use [`nd2.ND2File.write_tiff`][] or
+the convenience function `nd2.nd2_to_tiff`:
+
+```python
+import nd2
+
+
+nd2.nd2_to_tiff('some_file.nd2', 'new_file.ome.tiff', progress=True)
+
+# or with an ND2File object
+
+with nd2.ND2File('some_file.nd2') as myfile:
+    myfile.write_tiff('my_file.ome.tiff', progress=True)
+```
+
+Note that if you simply want the OME metadata, you can use the
+[`ome_metadata()`][nd2.ND2File.ome_metadata] method to retrieve an instance of
+[`ome_types.OME`][]:
+
+```python
+with nd2.ND2File('some_file.nd2') as myfile:
+    ome_metadata = myfile.ome_metadata()
+```

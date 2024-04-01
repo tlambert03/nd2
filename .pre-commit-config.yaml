@@ -30,5 +30,5 @@ repos:
         additional_dependencies:
           - numpy
           - types-lxml
-          - ome-types
+          - some-types
           - pydantic

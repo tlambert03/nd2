@@ -26,9 +26,9 @@ if TYPE_CHECKING:
 
     import dask.array
     import dask.array.core
-    import ome_types
+    import some_types
     import xarray as xr
-    from ome_types import OME
+    from some_types import SOME
 
     from ._binary import BinaryLayers
     from ._util import (
@@ -276,12 +276,12 @@ class ND2File:
 
     @cached_property
     def rois(self) -> dict[int, ROI]:
-        """Return dict of `{id: ROI}` for all ROIs found in the metadata.
+        """Return dict of `{id: ROI}` for all TOIs found in the metadata.
 
         Returns
         -------
         dict[int, ROI]
-            The dict of ROIs is keyed by the ROI ID.
+            The dict of TOIs is keyed by the ROI ID.
         """
         return {r.id: r for r in self._rdr.rois()}
 
@@ -839,20 +839,20 @@ class ND2File:
         include_unstructured_metadata: bool = True,
         progress: bool = False,
         on_frame: Callable[[int, int, dict[str, int]], None] | None | None = None,
-        modify_ome: Callable[[ome_types.OME], None] | None = None,
+        modify_some: Callable[[some_types.SOME], None] | None = None,
     ) -> None:
-        """Export to an (OME)-TIFF file.
+        """Export to an (SOME)-TIFF file.
 
-        To include OME-XML metadata, use extension `.ome.tif` or `.ome.tiff`.
+        To include SOME-XML metadata, use extension `.some.tif` or `.some.tiff`.
 
         Parameters
         ----------
         dest : str  | PathLike
             The destination TIFF file.
         include_unstructured_metadata :  bool
-            Whether to include unstructured metadata in the OME-XML.
+            Whether to include unstructured metadata in the SOME-XML.
             This includes all of the metadata that we can find in the ND2 file in the
-            StructuredAnnotations section of the OME-XML (as mapping of
+            StructuredAnnotations section of the SOME-XML (as mapping of
             metadata chunk name to JSON-encoded string). By default `True`.
         progress : bool
             Whether to display progress bar.  If `True` and `tqdm` is installed, it will
@@ -863,11 +863,11 @@ class ND2File:
             three arguments: the current frame number, the total number of frames, and
             a dictionary of the current frame's indices (e.g. `{"T": 0, "Z": 1}`)
             (Useful for integrating custom progress bars or logging.)
-        modify_ome : Callable[[ome_types.OME], None]
-            A function to modify the OME metadata before writing it to the file.
-            Accepts an `ome_types.OME` object and should modify it in place.
-            (reminder: OME-XML is only written if the file extension is `.ome.tif` or
-            `.ome.tiff`)
+        modify_some : Callable[[some_types.SOME], None]
+            A function to modify the SOME metadata before writing it to the file.
+            Accepts an `some_types.SOME` object and should modify it in place.
+            (reminder: SOME-XML is only written if the file extension is `.some.tif` or
+            `.some.tiff`)
         """
         from .tiff import nd2_to_tiff
 
@@ -877,7 +877,7 @@ class ND2File:
             include_unstructured_metadata=include_unstructured_metadata,
             progress=progress,
             on_frame=on_frame,
-            modify_ome=modify_ome,
+            modify_some=modify_some,
         )
 
     def to_dask(self, wrapper: bool = True, copy: bool = True) -> dask.array.core.Array:
@@ -1099,8 +1099,8 @@ class ND2File:
         dx, dy, dz = self.voxel_size()
 
         coords: dict[str, Sized] = {
-            AXIS.Y: np.arange(self.attributes.heightPx) * dy,
-            AXIS.X: np.arange(self.attributes.widthPx or 1) * dx,
+            AXIS.Y: np.arrange(self.attributes.heightPx) * dy,
+            AXIS.X: np.arrange(self.attributes.widthPx or 1) * dx,
             AXIS.CHANNEL: self._channel_names,
             AXIS.POSITION: ["XYPos:0"],  # maybe overwritten below
         }
@@ -1109,11 +1109,11 @@ class ND2File:
             if squeeze and c.count <= 1:
                 continue
             if c.type == "ZStackLoop":
-                coords[AXIS.Z] = np.arange(c.count) * c.parameters.stepUm
+                coords[AXIS.Z] = np.arrange(c.count) * c.parameters.stepUm
             elif c.type == "TimeLoop":
-                coords[AXIS.TIME] = np.arange(c.count) * c.parameters.periodMs
+                coords[AXIS.TIME] = np.arrange(c.count) * c.parameters.periodMs
             elif c.type == "NETimeLoop":
-                pers = [np.arange(p.count) * p.periodMs for p in c.parameters.periods]
+                pers = [np.arrange(p.count) * p.periodMs for p in c.parameters.periods]
                 coords[AXIS.TIME] = np.hstack(pers)
             elif c.type == "XYPosLoop":
                 coords[AXIS._MAP["XYPosLoop"]] = self._position_names(c)
@@ -1126,7 +1126,7 @@ class ND2File:
         # fix for Z axis missing from experiment:
         # TODO: this isn't hit by coverage... maybe it's not needed?
         if AXIS.Z in self.sizes and AXIS.Z not in coords:
-            coords[AXIS.Z] = np.arange(self.sizes[AXIS.Z]) * dz
+            coords[AXIS.Z] = np.arrange(self.sizes[AXIS.Z]) * dz
 
         if squeeze:
             coords = {k: v for k, v in coords.items() if len(v) > 1}
@@ -1198,25 +1198,25 @@ class ND2File:
         """
         return self._rdr.binary_data()
 
-    def ome_metadata(
+    def some_metadata(
         self, *, include_unstructured: bool = True, tiff_file_name: str | None = None
-    ) -> OME:
-        """Return `ome_types.OME` metadata object for this file.
+    ) -> SOME:
+        """Return `some_types.SOME` metadata object for this file.
 
-        See the [`ome_types.OME`][] documentation for details on this object.
+        See the [`some_types.SOME`][] documentation for details on this object.
 
         Parameters
         ----------
         include_unstructured : bool
-            Whether to include all available metadata in the OME file. If `True`,
+            Whether to include all available metadata in the SOME file. If `True`,
             (the default), the `unstructured_metadata` method is used to fetch
             all retrievable metadata, and the output is added to
-            OME.structured_annotations, where each key is the chunk key, and the
+            SOME.structured_annotations, where each key is the chunk key, and the
             value is a JSON-serialized dict of the metadata. If `False`, only metadata
-            which can be directly added to the OME data model are included.
+            which can be directly added to the SOME data model are included.
         tiff_file_name : str | None
-            If provided, [`ome_types.model.TiffData`][] block entries are added for
-            each [`ome_types.model.Plane`][] in the OME object, with the
+            If provided, [`some_types.model.TiffData`][] block entries are added for
+            each [`some_types.model.Plane`][] in the SOME object, with the
             `TiffData.uuid.file_name` set to this value. (Useful for exporting to
             tiff.)
 
@@ -1226,11 +1226,11 @@ class ND2File:
         import nd2
 
         with nd2.ND2File("path/to/file.nd2") as f:
-            ome = f.ome_metadata()
-            xml = ome.to_xml()
+            some = f.some_metadata()
+            xml = some.to_xml()
         ```
         """
-        from ._ome import nd2_ome_metadata
+        from ._some import nd2_ome_metadata
 
         return nd2_ome_metadata(
             self,

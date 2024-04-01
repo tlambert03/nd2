@@ -19,7 +19,7 @@ This reader provides a pure python implementation of the Nikon ND2 SDK.
 > grateful for assistance from the SDK developers at Laboratory Imaging.
 
 Features good metadata retrieval, direct `to_dask` and `to_xarray` options
-for lazy and/or annotated arrays, and output to OME-TIFF.
+for lazy and/or annotated arrays, and output to SOME-TIFF.
 
 This library is tested against many nd2 files with the goal of maximizing
 compatibility and data extraction. (If you find an nd2 file that fails in some
@@ -101,8 +101,8 @@ f.to_dask()         # delayed dask.array.Array
 f.to_xarray()       # in-memory xarray.DataArray, with labeled axes/coords
 f.to_xarray(delayed=True)   # delayed xarray.DataArray
 
-# OME-TIFF OUTPUT (new in v0.10.0)
-f.write_tiff('output.ome.tif')  # write to ome-tiff file
+# SOME-TIFF OUTPUT (new in v0.10.0)
+f.write_tiff('output.some.tif')  # write to some-tiff file
 
                     # see below for examples of these structures
 # METADATA          # returns instance of ...
@@ -119,8 +119,8 @@ f.events()          # returns tabular "Recorded Data" view from in NIS Elements/
                     # with info for each frame in the experiment.
                     # output is passabled to pandas.DataFrame
 
-f.ome_metadata()    # returns metadata as an ome_types.OME object
-                    # (requires ome-types package)
+f.some_metadata()    # returns metadata as an some_types.SOME object
+                    # (requires some-types package)
 
 # allll the metadata we can find...
 # no attempt made to standardize or parse it
@@ -294,7 +294,7 @@ Metadata(
 
 <summary><code>rois</code></summary>
 
-ROIs found in the metadata are available at `ND2File.rois`, which is a
+TOIs found in the metadata are available at `ND2File.rois`, which is a
 `dict` of `nd2.structures.ROI` objects, keyed by the ROI ID:
 
 ```python
@@ -320,7 +320,7 @@ ROIs found in the metadata are available at `ND2File.rois`, which is a
             gradientStimulationLo=0.0,
             gradientStimulationHi=0.0
         ),
-        guid='{87190352-9B32-46E4-8297-C46621C1E1EF}',
+        guide='{87190352-9B32-46E4-8297-C46621C1E1EF}',
         animParams=[
             AnimParam(
                 timeMs=0.0,
@@ -537,23 +537,23 @@ Out[1]:
 
 <details>
 
-<summary><code>ome_metadata()</code></summary>
+<summary><code>some_metadata()</code></summary>
 
-See the [ome-types documentation](https://ome-types.readthedocs.io/) for details on
-the `OME` type returned by this method.
+See the [some-types documentation](https://ome-types.readthedocs.io/) for details on
+the `SOME` type returned by this method.
 
 ```python
-In [1]: ome = nd2file.ome_metadata()
+In [1]: some = nd2file.some_metadata()
 
-In [2]: print(ome)
-OME(
+In [2]: print(some)
+SOME(
     instruments=[<1 Instrument>],
     images=[<1 Image>],
     creator='nd2 v0.7.1'
 )
 
-In [3]: print(ome.to_xml())
-<OME xmlns="http://www.openmicroscopy.org/Schemas/OME/2016-06"
+In [3]: print(some.to_xml())
+<SOME xmlns="http://www.openmicroscopy.org/Schemas/OME/2016-06"
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd"
      Creator="nd2 v0.7.1.dev2+g4ea166e.d20230709">

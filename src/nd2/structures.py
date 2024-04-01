@@ -476,7 +476,7 @@ class ROI:
 
     id: int
     info: RoiInfo
-    guid: str
+    guide: str
     animParams: list[AnimParam] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -489,8 +489,8 @@ class ROI:
     @classmethod
     def _from_meta_dict(cls, val: dict) -> ROI:
         # val has keys:
-        # 'Id', 'Info', 'GUID', 'AnimParams_Size', 'AnimParams_{i}'
-        # where GUID and AnimParams keys are optional
+        # 'Id', 'Info', 'GUIDE', 'AnimParams_Size', 'AnimParams_{i}'
+        # where GUIDE and AnimParams keys are optional
         anim_params = [
             AnimParam(
                 **{
@@ -511,7 +511,7 @@ class ROI:
         return cls(
             id=val["Id"],
             info=info,
-            guid=val.get("GUID", ""),
+            guide=val.get("GUIDE", ""),
             animParams=anim_params,
         )
 
@@ -519,7 +519,7 @@ class ROI:
 class T(TypedDict):
     Id: int
     Info: dict
-    GUID: str
+    GUIDE: str
     AnimParams_Size: int
     # AnimParams_{i}: dict
 

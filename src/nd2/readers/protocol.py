@@ -128,7 +128,7 @@ class ND2Reader(abc.ABC):
         return get_version(self._fh or self._path)
 
     def rois(self) -> list[ROI]:
-        """Return ROIs in the file."""
+        """Return TOIs in the file."""
         warnings.warn("ROI extraction not implemented for legacy files", stacklevel=2)
         return []
 

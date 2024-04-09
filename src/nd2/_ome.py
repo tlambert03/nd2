@@ -176,7 +176,10 @@ def nd2_ome_metadata(
         if AXIS.Z in sizes:
             pixels.physical_size_z = voxel_size.z
             pixels.physical_size_z_unit = UnitsLength.MICROMETER
-
+        try:
+            datetime.fromisoformat(acquisition_date)
+        except ValueError:
+            acquisition_date = datetime.strptime(acquisition_date, "%Y/%m/%d  %H:%M:%S").isoformat()
         images.append(
             m.Image(
                 instrument_ref=m.InstrumentRef(id=instrument.id),

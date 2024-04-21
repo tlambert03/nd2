@@ -119,12 +119,12 @@ Other attributes of note include:
 | `myfile.voxel_size()` | `VoxelSize(x=0.65, y=0.65, z=1.0)`    |
 | `myfile.is_rgb`    | `False` (whether the file is rgb)        |
 
-### Binary masks and TOIs
+### Binary masks and ROIs
 
 Binary masks, if present, can be accessed at
 [`ND2File.binary_data`][nd2.ND2File.binary_data].
 
-TOIs, if present, can be accessed at [`ND2File.rois`][nd2.ND2File.rois].
+ROIs, if present, can be accessed at [`ND2File.rois`][nd2.ND2File.rois].
 
 ### There's more in there!
 
@@ -137,28 +137,28 @@ properties and methods, try looking through:
 These methods parse and return more of the metadata found in the file,
 but no attempt is made to extract it into a more useful form.
 
-## Export nd2 to SOME-TIFF
+## Export nd2 to OME-TIFF
 
-To convert an nd2 file to an SOME-TIFF file, use [`nd2.ND2File.write_tiff`][] or
+To convert an nd2 file to an OME-TIFF file, use [`nd2.ND2File.write_tiff`][] or
 the convenience function `nd2.nd2_to_tiff`:
 
 ```python
 import nd2
 
 
-nd2.nd2_to_tiff('some_file.nd2', 'new_file.some.tiff', progress=True)
+nd2.nd2_to_tiff('some_file.nd2', 'new_file.ome.tiff', progress=True)
 
 # or with an ND2File object
 
 with nd2.ND2File('some_file.nd2') as myfile:
-    myfile.write_tiff('my_file.some.tiff', progress=True)
+    myfile.write_tiff('my_file.ome.tiff', progress=True)
 ```
 
-Note that if you simply want the SOME metadata, you can use the
-[`some_metadata()`][nd2.ND2File.some_metadata] method to retrieve an instance of
-[`some_types.SOME`][]:
+Note that if you simply want the OME metadata, you can use the
+[`ome_metadata()`][nd2.ND2File.ome_metadata] method to retrieve an instance of
+[`ome_types.OME`][]:
 
 ```python
 with nd2.ND2File('some_file.nd2') as myfile:
-    some_metadata = myfile.some_metadata()
+    ome_metadata = myfile.ome_metadata()
 ```

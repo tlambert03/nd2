@@ -107,7 +107,7 @@ def _parse_z_stack_loop(item: ZStackLoopPars) -> strct.ZStackLoop:
         homeIndex=_calc_zstack_home_index(inv, count, type_, home, low, hi, step),
         stepUm=step,
         bottomToTop=bool(type_ < 4),
-        deviceName=item.get("wasZDevice"),
+        deviceName=item.get("wsZDevice"),
     )
     return strct.ZStackLoop(count=count, nestingLevel=0, parameters=params)
 
@@ -516,7 +516,7 @@ def load_global_metadata(
         "loops": loops,
         "microscope": {
             "objectiveMagnification": mag if mag > 0 else None,
-            "objectiveName": raw_meta.get("wasObjectiveName") or None,
+            "objectiveName": raw_meta.get("wsObjectiveName") or None,
             "objectiveNumericalAperture": na if na > 0 else None,
             "projectiveMagnification": projectiveMagnification,
             "zoomMagnification": zoom if zoom > 0 else None,

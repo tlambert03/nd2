@@ -8,7 +8,7 @@
 
 - feat: better color object [\#218](https://github.com/tlambert03/nd2/pull/218) ([tlambert03](https://github.com/tlambert03))
 - feat: add to\_ome\_tif method [\#217](https://github.com/tlambert03/nd2/pull/217) ([fdrgsp](https://github.com/fdrgsp))
-- feat: add `write_tiff` export to SOME-TIFF, include full metadata as StructuredAnnotation [\#216](https://github.com/tlambert03/nd2/pull/216) ([tlambert03](https://github.com/tlambert03))
+- feat: add `write_tiff` export to OME-TIFF, include full metadata as StructuredAnnotation [\#216](https://github.com/tlambert03/nd2/pull/216) ([tlambert03](https://github.com/tlambert03))
 
 **Merged pull requests:**
 
@@ -123,7 +123,7 @@
 
 **Implemented enhancements:**
 
-- feat: add some\_metadata output to some-types [\#153](https://github.com/tlambert03/nd2/pull/153) ([tlambert03](https://github.com/tlambert03))
+- feat: add ome\_metadata output to ome-types [\#153](https://github.com/tlambert03/nd2/pull/153) ([tlambert03](https://github.com/tlambert03))
 - feat: add row filtering to nd2.index, as well as binary/roi data [\#151](https://github.com/tlambert03/nd2/pull/151) ([tlambert03](https://github.com/tlambert03))
 
 **Fixed bugs:**

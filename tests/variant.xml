@@ -2,8 +2,8 @@
 <variant version="1.0">
     <no_name runtype="RLxExperiment">
         <eType runtype="lx_uint32" value="1"/>
-        <wasApplicationDesc runtype="CLxStringW" value=""/>
-        <wasUserDesc runtype="CLxStringW" value=""/>
+        <wsApplicationDesc runtype="CLxStringW" value=""/>
+        <wsUserDesc runtype="CLxStringW" value=""/>
         <aMeasProbesBase64 runtype="CLxByteArray" value="AAA="/>
         <uLoopPars runtype="CLxListVariant">
             <no_name runtype="RLxExperiment.RLxExpTimeLoop">
@@ -62,8 +62,8 @@
         <ppNextLevelEx runtype="CLxListVariant">
             <no_name runtype="RLxExperiment">
                 <eType runtype="lx_uint32" value="6"/>
-                <wasApplicationDesc runtype="CLxStringW" value=""/>
-                <wasUserDesc runtype="CLxStringW" value=""/>
+                <wsApplicationDesc runtype="CLxStringW" value=""/>
+                <wsUserDesc runtype="CLxStringW" value=""/>
                 <aMeasProbesBase64 runtype="CLxByteArray" value="AAA="/>
                 <uLoopPars runtype="CLxListVariant">
                     <no_name runtype="RLxExperiment.RLxExpSpectLoop">
@@ -378,8 +378,8 @@
                 <ppNextLevelEx runtype="CLxListVariant">
                     <no_name runtype="RLxExperiment">
                         <eType runtype="lx_uint32" value="4"/>
-                        <wasApplicationDesc runtype="CLxStringW" value=""/>
-                        <wasUserDesc runtype="CLxStringW" value=""/>
+                        <wsApplicationDesc runtype="CLxStringW" value=""/>
+                        <wsUserDesc runtype="CLxStringW" value=""/>
                         <aMeasProbesBase64 runtype="CLxByteArray" value="AAA="/>
                         <uLoopPars runtype="CLxListVariant">
                             <no_name runtype="RLxExperiment.RLxExpZStackLoop">
@@ -427,8 +427,8 @@ NI673x Z Drive"/>
                     </no_name>
                     <no_name runtype="RLxExperiment">
                         <eType runtype="lx_uint32" value="4"/>
-                        <wasApplicationDesc runtype="CLxStringW" value=""/>
-                        <wasUserDesc runtype="CLxStringW" value=""/>
+                        <wsApplicationDesc runtype="CLxStringW" value=""/>
+                        <wsUserDesc runtype="CLxStringW" value=""/>
                         <aMeasProbesBase64 runtype="CLxByteArray" value="AAA="/>
                         <uLoopPars runtype="CLxListVariant">
                             <no_name runtype="RLxExperiment.RLxExpZStackLoop">

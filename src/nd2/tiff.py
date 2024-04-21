@@ -8,7 +8,7 @@ from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterator
 
-from nd2._some import nd2_ome_metadata
+from nd2._ome import nd2_ome_metadata
 from nd2._util import AXIS
 from nd2.nd2file import ND2File
 
@@ -50,7 +50,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     import numpy as np
-    import some_types
+    import ome_types
 
     from .nd2file import ND2File
 
@@ -62,11 +62,11 @@ def nd2_to_tiff(
     include_unstructured_metadata: bool = True,
     progress: bool = False,
     on_frame: Callable[[int, int, dict[str, int]], None] | None = None,
-    modify_some: Callable[[some_types.SOME], None] | None = None,
+    modify_ome: Callable[[ome_types.OME], None] | None = None,
 ) -> None:
-    """Export an ND2 file to an (SOME)-TIFF file.
+    """Export an ND2 file to an (OME)-TIFF file.
 
-    To include SOME-XML metadata, use extension `.some.tif` or `.some.tiff`.
+    To include OME-XML metadata, use extension `.ome.tif` or `.ome.tiff`.
 
     https://docs.openmicroscopy.org/ome-model/6.3.1/ome-tiff/specification.html
 
@@ -77,9 +77,9 @@ def nd2_to_tiff(
     dest : str  | PathLike
         The destination TIFF file.
     include_unstructured_metadata :  bool
-        Whether to include unstructured metadata in the SOME-XML. This includes all of
+        Whether to include unstructured metadata in the OME-XML. This includes all of
         the metadata that we can find in the ND2 file in the StructuredAnnotations
-        section of the SOME-XML (as mapping of metadata chunk name to JSON-encoded
+        section of the OME-XML (as mapping of metadata chunk name to JSON-encoded
         string). By default `True`.
     progress : bool
         Whether to display progress bar.  If `True` and `tqdm` is installed, it will
@@ -90,14 +90,14 @@ def nd2_to_tiff(
         three arguments: the current frame number, the total number of frames, and
         a dictionary of the current frame's indices (e.g. `{"T": 0, "Z": 1}`)
         (Useful for integrating custom progress bars or logging.)
-    modify_some : Callable[[some_types.SOME], None]
-        A function to modify the SOME metadata before writing it to the file.
-        Accepts an `some_types.SOME` object and should modify it in place.
-        (reminder: SOME-XML is only written if the file extension is `.some.tif` or
-        `.some.tiff`)
+    modify_ome : Callable[[ome_types.OME], None]
+        A function to modify the OME metadata before writing it to the file.
+        Accepts an `ome_types.OME` object and should modify it in place.
+        (reminder: OME-XML is only written if the file extension is `.ome.tif` or
+        `.ome.tiff`)
     """
     dest_path = Path(dest).expanduser().resolve()
-    output_some = ".some." in dest_path.name
+    output_ome = ".ome." in dest_path.name
 
     # normalize source to an open ND2File, and remember if we opened it
     close_when_done = False
@@ -116,34 +116,34 @@ def nd2_to_tiff(
         sizes = dict(nd2f.sizes)
 
         # pop the number of positions from the sizes.
-        # The SOME data model does best with 5D data, so we'll write multi-5D series
+        # The OME data model does best with 5D data, so we'll write multi-5D series
         n_positions = sizes.pop(AXIS.POSITION, 1)
 
         # join axis names as a string, and get shape of the data without positions
         axes, shape = zip(*sizes.items())
-        # U (Unknown) -> Q : other (SOME)
+        # U (Unknown) -> Q : other (OME)
         metadata = {"axes": "".join(axes).upper().replace(AXIS.UNKNOWN, "Q")}
 
-        # Create SOME-XML
-        some_xml: bytes | None = None
-        if output_some:
+        # Create OME-XML
+        ome_xml: bytes | None = None
+        if output_ome:
             if nd2f.is_legacy:
                 warnings.warn(
-                    "Cannot write SOME metadata for legacy nd2 files."
+                    "Cannot write OME metadata for legacy nd2 files."
                     "Please use a different file extension to avoid confusion",
                     stacklevel=2,
                 )
             else:
-                # get the SOME metadata object from the ND2File
-                some = nd2_ome_metadata(
+                # get the OME metadata object from the ND2File
+                ome = nd2_ome_metadata(
                     nd2f,
                     include_unstructured=include_unstructured_metadata,
                     tiff_file_name=dest_path.name,
                 )
-                if modify_some:
-                    # allow user to modify the SOME metadata if they want
-                    modify_some(some)
-                some_xml = some.to_xml(exclude_unset=True).encode("utf-8")
+                if modify_ome:
+                    # allow user to modify the OME metadata if they want
+                    modify_ome(ome)
+                ome_xml = ome.to_xml(exclude_unset=True).encode("utf-8")
 
         # total number of frames we will write
         tot = nd2f._frame_count
@@ -172,12 +172,12 @@ def nd2_to_tiff(
                     pbar.set_description(repr(f_index))
                     pbar.update()
 
-        # if we have some_xml, we tell tifffile not to worry about it (some=False)
-        tf_some = False if some_xml else None
+        # if we have ome_xml, we tell tifffile not to worry about it (ome=False)
+        tf_ome = False if ome_xml else None
         # Write the tiff file
         pixelsize = nd2f.voxel_size().x
         photometric = tf.PHOTOMETRIC.RGB if nd2f.is_rgb else tf.PHOTOMETRIC.MINISBLACK
-        with tf.TiffWriter(dest_path, bigtiff=True, some=tf_some) as tif:
+        with tf.TiffWriter(dest_path, bigtiff=True, ome=tf_ome) as tif:
             for p in range(n_positions):
                 tif.write(
                     iter(position_iter(p)),
@@ -187,7 +187,7 @@ def nd2_to_tiff(
                     resolutionunit=tf.TIFF.RESUNIT.MICROMETER,
                     photometric=photometric,
                     metadata=metadata,
-                    description=some_xml,
+                    description=ome_xml,
                 )
 
         if pbar is not None:

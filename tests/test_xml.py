@@ -10,8 +10,8 @@ def test_parse_xml() -> None:
     result = cast(dict, json_from_clx_variant(XML))
     assert list(result) == [
         "eType",
-        "wasApplicationDesc",
-        "wasUserDesc",
+        "wsApplicationDesc",
+        "wsUserDesc",
         "aMeasProbesBase64",
         "uLoopPars",
         "pItemValid",

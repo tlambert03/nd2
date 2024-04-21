@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import re
+from contextlib import suppress
 from datetime import datetime, timezone
 from itertools import product
 from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
@@ -81,7 +82,10 @@ def is_new_format(path: str) -> bool:
 
 def jdn_to_datetime(jdn: float, tz: timezone = timezone.utc) -> datetime:
     # astimezone() without arguments will use the system's local timezone
-    return datetime.fromtimestamp((jdn - 2440587.5) * 86400.0, tz).astimezone()
+    dt = datetime.fromtimestamp((jdn - 2440587.5) * 86400.0, tz)
+    with suppress(ValueError, OSError):
+        return dt.astimezone()
+    return dt
 
 
 # these are used has headers in the events() table

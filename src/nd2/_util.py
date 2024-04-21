@@ -80,7 +80,7 @@ def is_new_format(path: str) -> bool:
 
 
 def jdn_to_datetime(jdn: float, tz: timezone = timezone.utc) -> datetime:
-    return datetime.fromtimestamp((jdn - 2440587.5) * 86400.0, tz)
+    return datetime.fromtimestamp((jdn - 2440587.5) * 86400.0, tz).astimezone()
 
 
 def rgb_int_to_tuple(rgb: int) -> tuple[int, int, int]:

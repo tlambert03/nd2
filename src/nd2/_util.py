@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import math
+import os
 import re
 from contextlib import suppress
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from itertools import product
 from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
 
@@ -82,7 +83,12 @@ def is_new_format(path: str) -> bool:
 
 def jdn_to_datetime(jdn: float, tz: timezone = timezone.utc) -> datetime:
     # astimezone() without arguments will use the system's local timezone
-    dt = datetime.fromtimestamp((jdn - 2440587.5) * 86400.0, tz)
+    t = (jdn - 2440587.5) * 86400.0
+    if os.name == "nt" and t < 0:
+        # Windows does not always support negative timestamps
+        dt = datetime.fromtimestamp(0, tz) + timedelta(seconds=t)
+    else:
+        dt = datetime.fromtimestamp(t, tz)
     with suppress(ValueError, OSError):
         return dt.astimezone()
     return dt

@@ -80,6 +80,7 @@ def is_new_format(path: str) -> bool:
 
 
 def jdn_to_datetime(jdn: float, tz: timezone = timezone.utc) -> datetime:
+    # astimezone() without arguments will use the system's local timezone
     return datetime.fromtimestamp((jdn - 2440587.5) * 86400.0, tz).astimezone()
 
 

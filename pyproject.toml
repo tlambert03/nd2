@@ -168,7 +168,7 @@ ignore = [
 ]
 
 [tool.typos.default]
-extend-ignore-identifiers-re = ["nd2?.*", "ND2?.*"]
+extend-ignore-identifiers-re = ["(?i)nd2?.*", "(?i)ome"]
 
 [tool.typos.files]
 extend-exclude = ["*.json", "**/_sdk_types.py"]

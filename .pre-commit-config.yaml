@@ -13,6 +13,7 @@ repos:
     rev: v1.20.9
     hooks:
       - id: typos
+        args: [--force-exclude]  # omit --write-changes
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.4.1

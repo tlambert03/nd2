@@ -84,10 +84,6 @@ def jdn_to_datetime(jdn: float, tz: timezone = timezone.utc) -> datetime:
     return datetime.fromtimestamp((jdn - 2440587.5) * 86400.0, tz).astimezone()
 
 
-def rgb_int_to_tuple(rgb: int) -> tuple[int, int, int]:
-    return ((rgb & 255), (rgb >> 8 & 255), (rgb >> 16 & 255))
-
-
 # these are used has headers in the events() table
 TIME_KEY = "Time [s]"
 Z_SERIES_KEY = "Z-Series"
@@ -132,15 +128,6 @@ TIME_FMT_STRINGS = [
     "%d-%b-%y %I:%M:%S %p",
     "%d/%m/%Y %I:%M:%S %p",
 ]
-
-
-def parse_time(time_str: str) -> datetime:
-    for fmt_str in TIME_FMT_STRINGS:
-        try:
-            return datetime.strptime(time_str, fmt_str)
-        except ValueError:
-            continue
-    raise ValueError(f"Could not parse {time_str}")  # pragma: no cover
 
 
 def convert_records_to_dict_of_lists(

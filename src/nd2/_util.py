@@ -80,16 +80,15 @@ def is_new_format(path: str) -> bool:
     with open(path, "rb") as fh:
         return fh.read(4) == NEW_HEADER_MAGIC
 
+JDN_UNIX_EPOCH = 2440587.5
+SECONDS_PER_DAY = 86400
 
 def jdn_to_datetime(jdn: float, tz: timezone = timezone.utc) -> datetime:
-    # astimezone() without arguments will use the system's local timezone
-    t = (jdn - 2440587.5) * 86400.0
-    if os.name == "nt" and t < 0:
-        # Windows does not always support negative timestamps
-        dt = datetime.fromtimestamp(0, tz) + timedelta(seconds=t)
-    else:
-        dt = datetime.fromtimestamp(t, tz)
+    seconds_since_epoch = (jdn - JDN_UNIX_EPOCH) * SECONDS_PER_DAY
+    # very negative values can cause OverflowError on Windows, and are meaningless
+    dt = datetime.fromtimestamp(max(seconds_since_epoch, 0), tz)
     with suppress(ValueError, OSError):
+        # astimezone() without arguments will use the system's local timezone
         return dt.astimezone()
     return dt
 

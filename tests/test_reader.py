@@ -62,6 +62,9 @@ def test_full_read(new_nd2):
         np.testing.assert_allclose(delayed_xarray, nd.asarray())
 
 
+@pytest.mark.skipif(
+    np.__version__[0] >= "2", reason="imagecodecs not working for numpy>=2"
+)
 def test_dask_legacy(old_nd2):
     pytest.importorskip("imagecodecs")
     with ND2File(old_nd2) as nd:

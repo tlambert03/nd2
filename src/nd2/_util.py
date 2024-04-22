@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import math
-import os
 import re
 from contextlib import suppress
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from itertools import product
 from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
 
@@ -80,8 +79,10 @@ def is_new_format(path: str) -> bool:
     with open(path, "rb") as fh:
         return fh.read(4) == NEW_HEADER_MAGIC
 
+
 JDN_UNIX_EPOCH = 2440587.5
 SECONDS_PER_DAY = 86400
+
 
 def jdn_to_datetime(jdn: float, tz: timezone = timezone.utc) -> datetime:
     seconds_since_epoch = (jdn - JDN_UNIX_EPOCH) * SECONDS_PER_DAY

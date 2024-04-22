@@ -7,9 +7,21 @@ from argparse import RawTextHelpFormatter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Sequence, TypedDict, cast, no_type_check
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    Iterator,
+    Sequence,
+    TypedDict,
+    cast,
+    no_type_check,
+)
 
 import nd2
+
+if TYPE_CHECKING:
+    from nd2.readers._modern.modern_reader import ModernReader
 
 try:
     import rich
@@ -47,18 +59,21 @@ def index_file(path: Path) -> Record:
     with nd2.ND2File(path) as nd:
         if nd.is_legacy:
             software: dict = {}
-            acquired: str | None = ""
+            acquired: datetime | None = None
             binary = False
         else:
-            software = nd._rdr._app_info()  # type: ignore
-            acquired = nd._rdr._acquisition_date()  # type: ignore
+            rdr = cast("ModernReader", nd._rdr)
+            software = rdr._app_info()
+            acquired = rdr._acquisition_datetime()
             binary = nd.binary_data is not None
 
         stat = path.stat()
         exp = [(x.type, x.count) for x in nd.experiment]
         axes, shape = zip(*nd.sizes.items())
         if isinstance(acquired, datetime):
-            acquired = acquired.strftime(TIME_FORMAT)
+            acq_str = acquired.strftime(TIME_FORMAT)
+        else:
+            acq_str = ""
 
         return Record(
             {
@@ -66,7 +81,7 @@ def index_file(path: Path) -> Record:
                 "name": path.name,
                 "version": ".".join(map(str, nd.version)),
                 "kb": round(stat.st_size / 1000, 2),
-                "acquired": acquired or "",
+                "acquired": acq_str,
                 "experiment": ";".join([f"{t}:{c}" for t, c in exp]),
                 "dtype": str(nd.dtype),
                 "shape": list(shape),

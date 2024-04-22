@@ -56,7 +56,7 @@ def nd2_ome_metadata(
     rdr = cast("ModernReader", f._rdr)
     meta = f.metadata
     images = []
-    acquisition_date = rdr._acquisition_date()
+    acquisition_date = rdr._acquisition_datetime()
     uuid_ = f"urn:uuid:{uuid.uuid4()}"
     sizes = dict(f.sizes)
     n_positions = sizes.pop(AXIS.POSITION, 1)

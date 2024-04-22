@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import re
+from contextlib import suppress
 from datetime import datetime, timezone
 from itertools import product
 from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
@@ -79,12 +80,18 @@ def is_new_format(path: str) -> bool:
         return fh.read(4) == NEW_HEADER_MAGIC
 
 
+JDN_UNIX_EPOCH = 2440587.5
+SECONDS_PER_DAY = 86400
+
+
 def jdn_to_datetime(jdn: float, tz: timezone = timezone.utc) -> datetime:
-    return datetime.fromtimestamp((jdn - 2440587.5) * 86400.0, tz)
-
-
-def rgb_int_to_tuple(rgb: int) -> tuple[int, int, int]:
-    return ((rgb & 255), (rgb >> 8 & 255), (rgb >> 16 & 255))
+    seconds_since_epoch = (jdn - JDN_UNIX_EPOCH) * SECONDS_PER_DAY
+    # very negative values can cause OverflowError on Windows, and are meaningless
+    dt = datetime.fromtimestamp(max(seconds_since_epoch, 0), tz)
+    with suppress(ValueError, OSError):
+        # astimezone() without arguments will use the system's local timezone
+        return dt.astimezone()
+    return dt
 
 
 # these are used has headers in the events() table
@@ -131,15 +138,6 @@ TIME_FMT_STRINGS = [
     "%d-%b-%y %I:%M:%S %p",
     "%d/%m/%Y %I:%M:%S %p",
 ]
-
-
-def parse_time(time_str: str) -> datetime:
-    for fmt_str in TIME_FMT_STRINGS:
-        try:
-            return datetime.strptime(time_str, fmt_str)
-        except ValueError:
-            continue
-    raise ValueError(f"Could not parse {time_str}")  # pragma: no cover
 
 
 def convert_records_to_dict_of_lists(

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import warnings
 import zlib
+from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence, cast
 
 import numpy as np
@@ -528,23 +529,13 @@ class ModernReader(ND2Reader):
         k = b"CustomDataVar|AppInfo_V1_0!"
         return self._decode_chunk(k) if k in self.chunkmap else {}
 
-    def _acquisition_date(self) -> datetime.datetime | str | None:
-        """Try to extract acquisition date.
-
-        A best effort is made to extract a datetime object from the date string,
-        but if that fails, the raw string is returned.  Use isinstance() to
-        be safe.
-        """
-        date = self.text_info().get("date")
-        if date:
-            try:
-                return _util.parse_time(date)
-            except ValueError:
-                return date
-
+    def _acquisition_datetime(self) -> datetime.datetime | None:
+        """Try to extract acquisition date."""
         time = self._cached_global_metadata().get("time", {})
-        jdn = time.get("absoluteJulianDayNumber")
-        return _util.jdn_to_datetime(jdn) if jdn else None
+        if jdn := time.get("absoluteJulianDayNumber"):
+            with suppress(ValueError):
+                return _util.jdn_to_datetime(jdn)
+        return None
 
     def binary_data(self) -> BinaryLayers | None:
         from nd2._binary import BinaryLayer, BinaryLayers, decode_binary_mask

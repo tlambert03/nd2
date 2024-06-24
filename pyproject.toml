@@ -29,11 +29,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-legacy = [
-    "imagecodecs==2023.3.16; platform_system == 'Darwin' and python_version < '3.9'",
-    "numpy<2; platform_system == 'Darwin' and python_version < '3.9'",
-    "imagecodecs"
-]
+legacy = ["imagecodecs"]
 tiff = ["tifffile"]
 test = [
     "nd2[legacy]",

@@ -22,7 +22,7 @@ except ImportError as e:
 
 
 try:
-    from tqdm import tqdm as _pbar
+    from tqdm.auto import tqdm as _pbar
 
 except ImportError:
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import threading
 import warnings
 from itertools import product
@@ -189,11 +190,19 @@ class ND2File:
         """Delete file handle on garbage collection."""
         # if it came in as an open file handle, it's ok to remain open after deletion
         if not getattr(self, "closed", True) and not self._rdr._was_open:
-            warnings.warn(
-                "ND2File file not closed before garbage collection. "
-                "Please use `with ND2File(...):` context or call `.close()`.",
-                stacklevel=2,
-            )
+            # this stack inspection is a hack to avoid an unnecessary warning/closure.
+            # when using the to_dask() method, calling dask map_blocks will greedily
+            # pickle/unpickle the object.
+            # that will trigger a call to __getstate__ which calls del state["_rdr"]
+            # which results in a call to __del__.  We avoid that by checking this
+            # special case here... I'm not sure it's the correct approach, but it works.
+            stack = inspect.stack()
+            if len(stack) < 2 or stack[1].function != "_normalize_pickle":
+                warnings.warn(
+                    "ND2File file not closed before garbage collection. "
+                    "Please use `with ND2File(...):` context or call `.close()`.",
+                    stacklevel=2,
+                )
             self._rdr.close()
 
     def __exit__(self, *_: Any) -> None:
@@ -215,7 +224,6 @@ class ND2File:
         self.__dict__ = d
         self._lock = threading.RLock()
         self._rdr = ND2Reader.create(self._path, self._error_radius)
-
         if _was_closed:
             self._rdr.close()
 

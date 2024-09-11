@@ -35,7 +35,7 @@ jobs:
           - platform: "ubuntu-latest"
             python-version: "3.8"
           - platform: "ubuntu-latest"
-            python-version: "3.8"
+            python-version: "3.13"
           - platform: "macos-13"
             python-version: "3.8"
 

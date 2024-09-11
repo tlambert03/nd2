@@ -37,7 +37,7 @@ test = [
     "nd2[tiff]",
     "aicsimageio",
     "dask[array]",
-    "lxml; python_version >= '3.9' and python_version < '3.13'",
+    "lxml; python_version >= '3.9' and python_version <= '3.12'",
     "numpy",
     "psutil",
     "pytest-codspeed",

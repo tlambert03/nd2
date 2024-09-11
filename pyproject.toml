@@ -33,10 +33,10 @@ dependencies = [
 legacy = ["imagecodecs"]
 tiff = ["tifffile"]
 test = [
-    "nd2[legacy]",
     "nd2[tiff]",
-    "aicsimageio",
+    "aicsimageio; python_version <= '3.12'",
     "dask[array]",
+    "imagecodecs; python_version <= '3.12'",
     "lxml; python_version >= '3.9' and python_version <= '3.12'",
     "numpy",
     "psutil",

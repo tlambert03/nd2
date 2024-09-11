@@ -19,6 +19,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dynamic = ["version"]
 dependencies = [
@@ -32,11 +33,11 @@ dependencies = [
 legacy = ["imagecodecs"]
 tiff = ["tifffile"]
 test = [
-    "nd2[legacy]",
     "nd2[tiff]",
-    "aicsimageio",
+    "aicsimageio; python_version <= '3.12'",
     "dask[array]",
-    "lxml; python_version >= '3.9'",
+    "imagecodecs; python_version <= '3.12'",
+    "lxml; python_version >= '3.9' and python_version <= '3.12'",
     "numpy",
     "psutil",
     "pytest-codspeed",

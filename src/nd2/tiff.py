@@ -184,7 +184,7 @@ def nd2_to_tiff(
                     shape=shape,
                     dtype=nd2f.dtype,
                     resolution=(1 / pixelsize, 1 / pixelsize),
-                    resolutionunit=tf.TIFF.RESUNIT.MICROMETER,
+                    resolutionunit=tf.RESUNIT.MICROMETER,
                     photometric=photometric,
                     metadata=metadata,
                     description=ome_xml,

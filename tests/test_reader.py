@@ -86,13 +86,13 @@ def test_dask_chunking(single_nd2, passing_frame_chunks):
     ids=lambda x: str(x),
 )
 def failing_frame_chunks(request):
-    return request.params
+    return request.param
 
 
 def test_value_error_dask_chunking(single_nd2, failing_frame_chunks):
     with ND2File(single_nd2) as nd:
         with pytest.raises(ValueError):
-            nd.to_dask(frame_chunks=passing_frame_chunks)
+            nd.to_dask(frame_chunks=failing_frame_chunks)
 
 
 def test_full_read(new_nd2):

@@ -888,7 +888,12 @@ class ND2File:
             modify_ome=modify_ome,
         )
 
-    def to_dask(self, wrapper: bool = True, copy: bool = True) -> dask.array.core.Array:
+    def to_dask(
+        self,
+        wrapper: bool = True,
+        copy: bool = True,
+        frame_chunks: int | tuple | None = None,
+    ) -> dask.array.core.Array:
         """Create dask array (delayed reader) representing image.
 
         This generally works well, but it remains to be seen whether performance
@@ -913,6 +918,11 @@ class ND2File:
             If `True` (the default), the dask chunk-reading function will return
             an array copy. This can avoid segfaults in certain cases, though it
             may also add overhead.
+        frame_chunks : tuple | int | None
+            If `None` (the default), the file will not be chunked on the frame level.
+            Otherwise expects the dask compatible chunks to chunk the frames along
+            channel, y, and x axis. If a tuple, must have same length as
+            `self._frame_shape`.
 
         Returns
         -------
@@ -922,7 +932,46 @@ class ND2File:
         from dask.array.core import map_blocks
 
         chunks = [(1,) * x for x in self._coord_shape]
-        chunks += [(x,) for x in self._frame_shape]
+        if frame_chunks is None:
+            chunks += [(x,) for x in self._frame_shape]
+        elif isinstance(frame_chunks, int):
+            for frame_len in self._frame_shape:
+                div = frame_len // frame_chunks
+                if div == 0:
+                    chunks.append((frame_len,))
+                else:
+                    _chunks = (frame_chunks,) * div
+                    if frame_len % frame_chunks != 0:
+                        _chunks += (frame_len - div * frame_chunks,)
+                    chunks.append(_chunks)
+        elif len(frame_chunks) != len(self._frame_shape):
+            raise ValueError(
+                f"frame_chunks must be of length {len(self._frame_shape)}."
+            )
+        elif isinstance(frame_chunks[0], int):
+            if not all(isinstance(frame_chunk, int) for frame_chunk in frame_chunks):
+                raise ValueError(
+                    "frame_chunks must be a tuple of ints or tuple of tuple of ints."
+                )
+            for frame_len, frame_chunk in zip(self._frame_shape, frame_chunks):
+                div = frame_len // frame_chunk
+                if div == 0:
+                    chunks.append((frame_len,))
+                else:
+                    _chunks = (frame_chunk,) * div
+                    if frame_len % frame_chunk != 0:
+                        _chunks += (frame_len - div * frame_chunk,)
+                    chunks.append(_chunks)
+        else:
+            if not all(
+                sum(frame_chunk) == frame_len
+                for frame_chunk, frame_len in zip(frame_chunks, self._frame_shape)
+            ):
+                raise ValueError(
+                    "Sum of frame_chunks does not align with frame shape of file."
+                )
+            chunks.extend(frame_chunks)
+
         dask_arr = map_blocks(
             self._dask_block,
             copy=copy,
@@ -944,8 +993,8 @@ class ND2File:
             return self._NO_IDX
         return np.ravel_multi_index(coords, self._coord_shape)  # type: ignore
 
-    def _dask_block(self, copy: bool, block_id: tuple[int]) -> np.ndarray:
-        if isinstance(block_id, np.ndarray):
+    def _dask_block(self, copy: bool, block_info: dict) -> np.ndarray:
+        if isinstance(block_info, np.ndarray):
             return None
         with self._lock:
             was_closed = self.closed
@@ -953,6 +1002,7 @@ class ND2File:
                 self.open()
             try:
                 ncoords = len(self._coord_shape)
+                block_id = block_info[None]["chunk-location"]
                 idx = self._seq_index_from_coords(block_id[:ncoords])
 
                 if idx == self._NO_IDX:
@@ -962,6 +1012,11 @@ class ND2File:
                         )
                     idx = 0
                 data = self.read_frame(int(idx))  # type: ignore
+                slices = tuple(
+                    slice(al[0], al[1])
+                    for al in block_info[None]["array-location"][ncoords:]
+                )
+                data = data[slices]
                 data = data.copy() if copy else data
                 return data[(np.newaxis,) * ncoords]
             finally:
@@ -1207,7 +1262,10 @@ class ND2File:
         return self._rdr.binary_data()
 
     def ome_metadata(
-        self, *, include_unstructured: bool = True, tiff_file_name: str | None = None
+        self,
+        *,
+        include_unstructured: bool = True,
+        tiff_file_name: str | None = None,
     ) -> OME:
         """Return `ome_types.OME` metadata object for this file.
 

@@ -52,47 +52,42 @@ def test_dask_closed(single_nd2):
     assert isinstance(dsk.compute(), np.ndarray)
 
 
-@pytest.fixture(
-    params=[
-        (None, ((2,), (32,), (32,))),
-        (2, ((2,), (2,) * 16, (2,) * 16)),
-        (3, ((2,), (3,) * 10 + (2,), (3,) * 10 + (2,))),
-        ((3, 17, 33), ((2,), (17, 15), (32,))),
-        ((2, 16, 16), ((2,), (16, 16), (16, 16))),
-        (((1, 1), (8, 8, 8, 8), (16, 16)), ((1, 1), (8, 8, 8, 8), (16, 16))),
-        (((2,), (20, 12), (32,)), ((2,), (20, 12), (32,))),
-    ],
-    ids=lambda x: str(x),
-)
-def passing_frame_chunks(request):
-    return request.param
+PASSING_FRAME_CHUNKS = [
+    (None, ((2,), (32,), (32,))),
+    (2, ((2,), (2,) * 16, (2,) * 16)),
+    (3, ((2,), (3,) * 10 + (2,), (3,) * 10 + (2,))),
+    ((3, 17, 33), ((2,), (17, 15), (32,))),
+    ((2, 16, 16), ((2,), (16, 16), (16, 16))),
+    (
+        ((1, 1), (8, 8, 8, 8), (16, 16)),
+        ((1, 1), (8, 8, 8, 8), (16, 16)),
+    ),
+    (((2,), (20, 12), (32,)), ((2,), (20, 12), (32,))),
+]
 
 
-def test_dask_chunking(single_nd2, passing_frame_chunks):
+@pytest.mark.parametrize("frame_chunks, expected_chunks", PASSING_FRAME_CHUNKS)
+def test_dask_chunking(single_nd2, frame_chunks, expected_chunks):
     with ND2File(single_nd2) as nd:
-        dsk = nd.to_dask(frame_chunks=passing_frame_chunks[0])
+        dsk = nd.to_dask(frame_chunks=frame_chunks)
         assert len(dsk.chunks) == 4
-        assert dsk.chunks[1:] == passing_frame_chunks[1]
+        assert dsk.chunks[1:] == expected_chunks
         unchunked = nd.to_dask()
     assert (dsk.compute() == unchunked.compute()).all()
 
 
-@pytest.fixture(
-    params=[
-        (2, 3),
-        (2, (16, 16), (16, 16)),
-        ((1, 1, 1), (16, 16), (32,)),
-    ],
-    ids=lambda x: str(x),
-)
-def failing_frame_chunks(request):
-    return request.param
+FAILING_FRAME_CHUNKS = [
+    (2, 3),
+    (2, (16, 16), (16, 16)),
+    ((1, 1, 1), (16, 16), (32,)),
+]
 
 
-def test_value_error_dask_chunking(single_nd2, failing_frame_chunks):
+@pytest.mark.parametrize("frame_chunks", FAILING_FRAME_CHUNKS)
+def test_value_error_dask_chunking(single_nd2, frame_chunks):
     with ND2File(single_nd2) as nd:
         with pytest.raises(ValueError):
-            nd.to_dask(frame_chunks=failing_frame_chunks)
+            nd.to_dask(frame_chunks=frame_chunks)
 
 
 def test_full_read(new_nd2):

@@ -63,10 +63,8 @@ def _assert_lim_close_enough(a: Any, lim_data: Any, key=()):
             # lim may set {} or [] to None
             return
         # FIXME: bytearrays
-        if (
-            isinstance(lim_data, str)
-            and isinstance(a, list)
-            or isinstance(a, bytearray)
+        if (isinstance(lim_data, str) and isinstance(a, list)) or isinstance(
+            a, bytearray
         ):
             return
         if key and key[-1] == "bUseZ":

@@ -126,9 +126,9 @@ def _calc_zstack_home_index(
     home_range_i = abs(high_um - home_um)
 
     if type_ in {2, 3}:
-        hrange = inverted and home_range_i or home_range_f
+        hrange = (inverted and home_range_i) or home_range_f
     elif type_ in {6, 7}:
-        hrange = inverted and home_range_f or home_range_i
+        hrange = (inverted and home_range_f) or home_range_i
     else:
         return (count - 1) // 2
 

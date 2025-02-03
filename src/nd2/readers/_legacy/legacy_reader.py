@@ -208,7 +208,7 @@ class LegacyReader(ND2Reader):
             count = self.ddim.get("S") or params["Count"]
             points = []
             for i in range(count):
-                idx = f"{poscount-i-1:05}"
+                idx = f"{poscount - i - 1:05}"
                 points.append(
                     strct.Position(
                         pfsOffset=params["PFSOffset"][idx],

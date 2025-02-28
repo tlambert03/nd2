@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     # uses optional tifffile dependency
-    from .tiff import nd2_to_tiff  # noqa: TC004
+    from .tiff import nd2_to_tiff
 
 try:
     __version__ = version(__name__)

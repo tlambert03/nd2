@@ -130,7 +130,7 @@ def _node_name_value(
         value = dict(node.attrib) if include_attrs else {}
         for i, child in enumerate(node):
             cname, cval = _node_name_value(
-                child,  # type: ignore
+                child,
                 strip_prefix,
                 include_attrs,
             )

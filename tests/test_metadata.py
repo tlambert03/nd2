@@ -27,7 +27,7 @@ DATA = Path(__file__).parent / "data"
 EXPECTED = {k: v for k, v in EXPECTED.items() if not _util.is_legacy(DATA / k)}
 
 
-@pytest.mark.parametrize("path", EXPECTED, ids=lambda x: f'{x}_{EXPECTED[x]["ver"]}')
+@pytest.mark.parametrize("path", EXPECTED, ids=lambda x: f"{x}_{EXPECTED[x]['ver']}")
 def test_metadata_integrity(path: str) -> None:
     """Test that the current API matches the expected output for sample data."""
     name, stats = get_nd2_stats(DATA / path)

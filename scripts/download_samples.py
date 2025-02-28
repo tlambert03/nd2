@@ -28,7 +28,7 @@ def main() -> None:
             dl += len(data)
             f.write(data)
             done = int(50 * dl / total_length)
-            sys.stdout.write(f'\r[{"=" * done}{" " * (50 - done)}]')
+            sys.stdout.write(f"\r[{'=' * done}{' ' * (50 - done)}]")
             sys.stdout.flush()
     with ZipFile(f) as zf:
         zf.extractall(str(TEST_DATA))

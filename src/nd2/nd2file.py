@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import math
 import threading
 import warnings
 from itertools import product
@@ -749,7 +750,8 @@ class ND2File:
     @property
     def size(self) -> int:
         """Total number of voxels in the volume (the product of the shape)."""
-        return int(np.prod(self.shape))
+        # don't use np.prod... due to potential overflow
+        return int(math.prod(self.shape))
 
     @property
     def nbytes(self) -> int:

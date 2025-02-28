@@ -1,5 +1,37 @@
 # Changelog
 
+## [v0.10.2](https://github.com/tlambert03/nd2/tree/v0.10.2) (2025-02-28)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.10.1...v0.10.2)
+
+**Fixed bugs:**
+
+- fix: fix size overflow [\#248](https://github.com/tlambert03/nd2/pull/248) ([tlambert03](https://github.com/tlambert03))
+- fix: fix for dask 2024.8 [\#240](https://github.com/tlambert03/nd2/pull/240) ([tlambert03](https://github.com/tlambert03))
+- fix: tqdm -\> tqdm.auto, for notebook users [\#233](https://github.com/tlambert03/nd2/pull/233) ([georgeoshardo](https://github.com/georgeoshardo))
+
+**Tests & CI:**
+
+- test: drop aicsimageio test [\#227](https://github.com/tlambert03/nd2/pull/227) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- ci\(dependabot\): bump codecov/codecov-action from 4 to 5 [\#245](https://github.com/tlambert03/nd2/pull/245) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(pre-commit.ci\): autoupdate [\#243](https://github.com/tlambert03/nd2/pull/243) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- ci\(pre-commit.ci\): autoupdate [\#236](https://github.com/tlambert03/nd2/pull/236) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- ci\(dependabot\): bump CodSpeedHQ/action from 2 to 3 [\#235](https://github.com/tlambert03/nd2/pull/235) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(pre-commit.ci\): autoupdate [\#234](https://github.com/tlambert03/nd2/pull/234) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- ci\(pre-commit.ci\): autoupdate [\#229](https://github.com/tlambert03/nd2/pull/229) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+
+## [v0.10.1](https://github.com/tlambert03/nd2/tree/v0.10.1) (2024-04-22)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.10.0...v0.10.1)
+
+**Merged pull requests:**
+
+- fix: Fix datetime extraction [\#226](https://github.com/tlambert03/nd2/pull/226) ([tlambert03](https://github.com/tlambert03))
+- ci\(pre-commit.ci\): autoupdate [\#220](https://github.com/tlambert03/nd2/pull/220) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+
 ## [v0.10.0](https://github.com/tlambert03/nd2/tree/v0.10.0) (2024-03-17)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.9.0...v0.10.0)

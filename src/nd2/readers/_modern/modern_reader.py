@@ -263,12 +263,13 @@ class ModernReader(ND2Reader):
             try:
                 acq_times = self._load_chunk(b"CustomData|AcqTimesCache!")
                 times = np.frombuffer(acq_times, dtype=np.float64).tolist()
-                self._frame_times = times[: self._seq_count()]  # limit to valid frames
+                # limit to valid frames
+                self._frame_times = times[: self._seq_count()]  # type: ignore
             except Exception as e:
                 warnings.warn(f"Failed to load frame times: {e}", stacklevel=2)
                 self._frame_times = []
 
-        return self._frame_times
+        return cast("list[float]", self._frame_times)
 
     def voxel_size(self) -> tuple[float, float, float]:
         meta = self.metadata()

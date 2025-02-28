@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     # uses optional tifffile dependency
-    from .tiff import nd2_to_tiff  # noqa: TCH004
+    from .tiff import nd2_to_tiff
 
 try:
     __version__ = version(__name__)
@@ -15,15 +15,15 @@ except PackageNotFoundError:  # pragma: no cover
 __author__ = "Talley Lambert"
 __email__ = "talley.lambert@gmail.com"
 __all__ = [
-    "__version__",
     "AXIS",
     "BinaryLayer",
     "BinaryLayers",
+    "ND2File",
+    "__version__",
     "imread",
     "is_legacy",
     "is_supported_file",
     "nd2_to_tiff",
-    "ND2File",
     "rescue_nd2",
     "structures",
 ]

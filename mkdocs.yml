@@ -15,6 +15,8 @@ theme:
   icon:
     logo: material/camera-iris
     repo: fontawesome/brands/github
+    admonition:
+      tip: octicons/sparkles-fill-16
   features:
     - navigation.sections
     - navigation.indexes
@@ -52,7 +54,7 @@ plugins:
       resolve_closest: true
   - api-autonav:
       modules: ['src/nd2']
-      exclude: ['nd2.index', 'nd2.readers']
+      exclude: ['nd2.readers', 'nd2.nd2file']
   - mkdocstrings:
       handlers:
         python:

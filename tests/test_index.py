@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import nd2._index
+import nd2.index
 import pytest
 
 DATA = (Path(__file__).parent / "data").resolve()
@@ -8,19 +8,19 @@ DATA = (Path(__file__).parent / "data").resolve()
 
 @pytest.fixture(scope="module")
 def records():
-    return list(nd2._index._index_files([DATA, DATA / "cluster.nd2"]))
+    return list(nd2.index.index_files([DATA, DATA / "cluster.nd2"]))
 
 
 @pytest.mark.parametrize("fmt", ["csv", "json", "table"])
 def test_format(records, fmt, capsys):
-    filtered = nd2._index._filter_data(records)
+    filtered = nd2.index._filter_data(records)
 
     if fmt == "table":
-        nd2._index._pretty_print_table(filtered, sort_column="name")
+        nd2.index._pretty_print_table(filtered, sort_column="name")
     elif fmt == "csv":
-        nd2._index._print_csv(filtered)
+        nd2.index._print_csv(filtered)
     elif fmt == "json":
-        nd2._index._print_json(filtered)
+        nd2.index._print_json(filtered)
     captured = capsys.readouterr()
     assert captured.out
     assert not captured.err
@@ -39,7 +39,7 @@ def test_format(records, fmt, capsys):
     ],
 )
 def test_filter_data(records, filters: dict) -> None:
-    filtered = nd2._index._filter_data(records, **filters)
+    filtered = nd2.index._filter_data(records, **filters)
     assert isinstance(filtered, list)
     if filters.get("to_include"):
         assert len(filtered[0]) == len(filters["to_include"])
@@ -57,6 +57,6 @@ def test_filter_data(records, filters: dict) -> None:
 
 
 def test_index(capsys):
-    nd2._index.main([str(DATA), "--format", "csv"])
+    nd2.index.main([str(DATA), "--format", "csv"])
     captured = capsys.readouterr()
     assert "path" in captured.out

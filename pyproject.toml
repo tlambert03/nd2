@@ -59,7 +59,7 @@ docs = [
     "mkdocs",
     "mkdocs-material",
     "mkdocstrings-python",
-    "mkdocs-api-autonav>=0.2.0",
+    "mkdocs-api-autonav>=0.2.1",
 ]
 
 [project.urls]

@@ -8,9 +8,9 @@ from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterator
 
+from nd2._nd2file import ND2File
 from nd2._ome import nd2_ome_metadata
 from nd2._util import AXIS
-from nd2._nd2file import ND2File
 
 try:
     import tifffile as tf

@@ -12,8 +12,8 @@ import numpy as np
 
 from nd2 import _util
 
-from ._util import AXIS, is_supported_file
 from ._readers.protocol import ND2Reader
+from ._util import AXIS, is_supported_file
 
 try:
     from functools import cached_property
@@ -113,6 +113,8 @@ class ND2File:
     @cached_property
     def version(self) -> tuple[int, ...]:
         """Return the file format version as a tuple of ints.
+
+        !!! Tip "new in version 0.6.1"
 
         Likely values are:
 
@@ -287,6 +289,8 @@ class ND2File:
     def rois(self) -> dict[int, ROI]:
         """Return dict of `{id: ROI}` for all ROIs found in the metadata.
 
+        !!! Tip "new in version 0.4.6"
+
         Returns
         -------
         dict[int, ROI]
@@ -360,6 +364,8 @@ class ND2File:
     ) -> ListOfDicts | DictOfLists | DictOfDicts:
         """Return tabular data recorded for each frame and/or event of the experiment.
 
+        !!! Tip "new in version 0.6.1"
+
         This method returns tabular data in the format specified by the `orient`
         argument:
             - 'records' : list of dict - `[{column -> value}, ...]` (default)
@@ -405,6 +411,8 @@ class ND2File:
         exclude: set[str] | None = None,
     ) -> dict[str, Any]:
         """Exposes, and attempts to decode, each metadata chunk in the file.
+
+        !!! Tip "new in version 0.4.3"
 
         This is provided as a *experimental* fallback in the event that
         `ND2File.experiment` does not contain all of the information you need. No
@@ -853,6 +861,8 @@ class ND2File:
     ) -> None:
         """Export to an (OME)-TIFF file.
 
+        !!! Tip "new in version 0.10.0"
+
         To include OME-XML metadata, use extension `.ome.tif` or `.ome.tiff`.
 
         Parameters
@@ -1071,7 +1081,10 @@ class ND2File:
         return self.read_frame(index)
 
     def read_frame(self, frame_index: SupportsInt) -> np.ndarray:
-        """Read a single frame from the file, indexed by frame number."""
+        """Read a single frame from the file, indexed by frame number.
+
+        !!! Tip "new in version 0.8.0"
+        """
         frame = self._rdr.read_frame(int(frame_index))
         frame.shape = self._raw_frame_shape
         return frame.transpose((2, 0, 1, 3)).squeeze()
@@ -1079,6 +1092,8 @@ class ND2File:
     @cached_property
     def loop_indices(self) -> tuple[dict[str, int], ...]:
         """Return a tuple of dicts of loop indices for each frame.
+
+        !!! Tip "new in version 0.8.0"
 
         Examples
         --------
@@ -1169,9 +1184,12 @@ class ND2File:
     def binary_data(self) -> BinaryLayers | None:
         """Return binary layers embedded in the file.
 
-        The returned `BinaryLayers` object is an immutable sequence of `BinaryLayer`
-        objects, one for each binary layer in the file (there will usually be a binary
-        layer associated with each channel in the dataset).
+        !!! Tip "new in version 0.5.1"
+
+        The returned [`BinaryLayers`][nd2.BinaryLayers] object is an immutable sequence
+        of [`BinaryLayer`][nd2.BinaryLayer] objects, one for each binary layer in the
+        file (there will usually be a binary layer associated with each channel in the
+        dataset).
 
         Each `BinaryLayer` object in the sequence has a `name` attribute, and a `data`
         attribute which is list of numpy arrays (or `None` if there was no binary mask
@@ -1212,6 +1230,8 @@ class ND2File:
         self, *, include_unstructured: bool = True, tiff_file_name: str | None = None
     ) -> OME:
         """Return `ome_types.OME` metadata object for this file.
+
+        !!! Tip "new in version 0.7.0"
 
         See the [`ome_types.OME`][] documentation for details on this object.
 

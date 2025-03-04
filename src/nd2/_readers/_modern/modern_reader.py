@@ -26,7 +26,7 @@ from nd2._parse._parse import (
     load_metadata,
     load_text_info,
 )
-from nd2.readers.protocol import ND2Reader
+from nd2._readers.protocol import ND2Reader
 from nd2.structures import ROI
 
 if TYPE_CHECKING:

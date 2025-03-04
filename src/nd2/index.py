@@ -1,3 +1,52 @@
+"""Index ND2 files and print the results as a table.
+
+This module is intended to be used as a command-line utility. It will index
+the metadata of all ND2 files found in a folder and print the results as a table, or
+output as CSV or JSON.
+
+## Usage
+
+```sh
+python -m nd2.index [OPTIONS] paths [paths ...]
+```
+
+### Positional Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `paths`  | Path to an ND2 file or directory containing ND2 files. |
+
+### Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--help` | `-h` | Show this help message and exit. |
+| `--recurse` | `-r` | Recursively search directories. |
+| `--glob-pattern GLOB_PATTERN` | `-g` | Glob pattern to search for. |
+| `--sort-by COLUMN_NAME` | `-s` | Column to sort by. If not specified, the order is \
+not guaranteed. To sort in reverse, append a hyphen (`-`). |
+| `--format` `{table,csv,json}` | `-f` | Output format: table, CSV, or JSON. |
+| `--include INCLUDE` | `-i` | Comma-separated columns to include in the output. |
+| `--exclude EXCLUDE` | `-e` | Comma-separated columns to exclude in the output. |
+| `--no-header` | _(none)_ | Don't write the CSV header. |
+| `--filter FILTER` | `-F` | Filter the output using a Python expression (string) that \
+evaluates to `True` or `False`. Evaluated in the context of each row. You can use \
+any column name as a variable.<br>Example: `"acquired > '2020' and kb < 500"`. \
+(Can be used multiple times.) |
+
+
+### Example
+
+```sh
+python -m nd2.index nd2/tests/data
+```
+
+When run on the test data used in testing this nd2 repo, the output looks like this:
+
+![asciicast](/images/index-output.png)
+
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -21,7 +70,7 @@ from typing import (
 import nd2
 
 if TYPE_CHECKING:
-    from nd2.readers._modern.modern_reader import ModernReader
+    from nd2._readers._modern.modern_reader import ModernReader
 
 try:
     import rich
@@ -29,6 +78,9 @@ try:
     print = rich.print  # noqa: A001
 except ImportError:
     rich = None
+
+
+__all__ = ["Record", "index_file", "index_files"]
 
 
 class Record(TypedDict):
@@ -95,6 +147,16 @@ def index_file(path: Path) -> Record:
         )
 
 
+def index_files(
+    paths: Iterable[Path], recurse: bool = False, glob: str = "*.nd2"
+) -> list[Record]:
+    """Return a list of `Record` dicts with the index file data."""
+    with ThreadPoolExecutor() as executor:
+        results = list(executor.map(index_file, _gather_files(paths, recurse, glob)))
+
+    return results
+
+
 def _gather_files(
     paths: Iterable[Path], recurse: bool = False, glob: str = "*.nd2"
 ) -> Iterator[Path]:
@@ -104,15 +166,6 @@ def _gather_files(
             yield from p.rglob(glob) if recurse else p.glob(glob)
         else:
             yield p
-
-
-def _index_files(
-    paths: Iterable[Path], recurse: bool = False, glob: str = "*.nd2"
-) -> list[Record]:
-    with ThreadPoolExecutor() as executor:
-        results = list(executor.map(index_file, _gather_files(paths, recurse, glob)))
-
-    return results
 
 
 def _pretty_print_table(data: list[Record], sort_column: str | None = None) -> None:
@@ -307,7 +360,7 @@ def main(argv: Sequence[str] = ()) -> None:
     """Index ND2 files and print the results as a table."""
     args = _parse_args(argv)
 
-    data = _index_files(paths=args.paths, recurse=args.recurse, glob=args.glob_pattern)
+    data = index_files(paths=args.paths, recurse=args.recurse, glob=args.glob_pattern)
     data = _filter_data(
         data,
         sort_by=args.sort_by,

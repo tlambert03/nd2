@@ -50,7 +50,7 @@ class ND2Reader(abc.ABC):
             `error_radius` is not None, then an area of +/- `error_radius` bytes will be
             searched for the signature.
         """
-        from nd2.readers import LegacyReader, ModernReader
+        from nd2._readers import LegacyReader, ModernReader
 
         if hasattr(path, "read"):
             path = cast(BinaryIO, path)

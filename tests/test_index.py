@@ -8,7 +8,7 @@ DATA = (Path(__file__).parent / "data").resolve()
 
 @pytest.fixture(scope="module")
 def records():
-    return list(nd2.index._index_files([DATA, DATA / "cluster.nd2"]))
+    return list(nd2.index.index_files([DATA, DATA / "cluster.nd2"]))
 
 
 @pytest.mark.parametrize("fmt", ["csv", "json", "table"])

@@ -19,8 +19,8 @@ from ._util import AXIS
 if TYPE_CHECKING:
     from nd2 import ND2File
 
+    from ._readers import ModernReader
     from ._sdk_types import RawMetaDict
-    from .readers import ModernReader
     from .structures import ModalityFlags
 
 # TODO: add support for splitting positions into separate files, and pyramids

@@ -1,4 +1,4 @@
-"""Functions for converting nd2 to tiff files."""
+"""Functions for converting .nd2 to .tiff files."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterator
 
+from nd2._nd2file import ND2File
 from nd2._ome import nd2_ome_metadata
 from nd2._util import AXIS
-from nd2.nd2file import ND2File
 
 try:
     import tifffile as tf
@@ -52,7 +52,7 @@ if TYPE_CHECKING:
     import numpy as np
     import ome_types
 
-    from .nd2file import ND2File
+    from ._nd2file import ND2File
 
 
 def nd2_to_tiff(
@@ -68,7 +68,7 @@ def nd2_to_tiff(
 
     To include OME-XML metadata, use extension `.ome.tif` or `.ome.tiff`.
 
-    https://docs.openmicroscopy.org/ome-model/6.3.1/ome-tiff/specification.html
+    <https://docs.openmicroscopy.org/ome-model/6.3.1/ome-tiff/specification.html>
 
     Parameters
     ----------
@@ -102,7 +102,7 @@ def nd2_to_tiff(
     # normalize source to an open ND2File, and remember if we opened it
     close_when_done = False
     if isinstance(source, (str, PathLike)):
-        from .nd2file import ND2File
+        from ._nd2file import ND2File
 
         nd2f = ND2File(source)
         close_when_done = True

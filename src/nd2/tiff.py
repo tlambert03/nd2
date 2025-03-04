@@ -6,7 +6,7 @@ import warnings
 from collections import defaultdict
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Iterator
+from typing import TYPE_CHECKING, Any, Callable
 
 from nd2._nd2file import ND2File
 from nd2._ome import nd2_ome_metadata
@@ -49,6 +49,8 @@ except ImportError:
 
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     import numpy as np
     import ome_types
 

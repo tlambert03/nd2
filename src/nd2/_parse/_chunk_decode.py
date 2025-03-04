@@ -6,13 +6,15 @@ import mmap
 import struct
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO, ContextManager, cast
+from typing import TYPE_CHECKING, BinaryIO, cast
 
 import numpy as np
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from contextlib import AbstractContextManager
     from os import PathLike
-    from typing import Final, Iterator
+    from typing import Final
 
     from numpy.typing import DTypeLike
 
@@ -85,7 +87,7 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
         If the file is not a valid ND2 file or the header chunk is corrupt.
     """
     if hasattr(fh, "read"):
-        ctx: ContextManager[BinaryIO] = nullcontext(cast("BinaryIO", fh))
+        ctx: AbstractContextManager[BinaryIO] = nullcontext(cast("BinaryIO", fh))
     else:
         ctx = open(fh, "rb")
 

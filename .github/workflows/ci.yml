@@ -31,13 +31,6 @@ jobs:
       matrix:
         platform: [macos-latest, windows-latest, "ubuntu-latest"]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
-        include:
-          - platform: "ubuntu-latest"
-            python-version: "3.8"
-          - platform: "ubuntu-latest"
-            python-version: "3.8"
-          - platform: "macos-13"
-            python-version: "3.8"
 
     steps:
       - uses: actions/checkout@v4

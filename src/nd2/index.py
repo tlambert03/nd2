@@ -59,9 +59,6 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterable,
-    Iterator,
-    Sequence,
     TypedDict,
     cast,
     no_type_check,
@@ -70,6 +67,8 @@ from typing import (
 import nd2
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator, Sequence
+
     from nd2._readers._modern.modern_reader import ModernReader
 
 try:

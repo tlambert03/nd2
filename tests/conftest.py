@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 
 import psutil
 import pytest
@@ -11,8 +10,8 @@ ALL = sorted(
     (x for x in DATA.glob("*.nd2") if not x.name.startswith(".")),
     key=lambda x: x.stat().st_size,
 )[:MAX_FILES]
-NEW: List[Path] = []
-OLD: List[Path] = []
+NEW: list[Path] = []
+OLD: list[Path] = []
 
 for x in ALL:
     NEW.append(x) if is_new_format(str(x)) else OLD.append(x)

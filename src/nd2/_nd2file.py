@@ -6,7 +6,7 @@ import threading
 import warnings
 from itertools import product
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Callable, Mapping, cast, overload
+from typing import TYPE_CHECKING, Callable, cast, overload
 
 import numpy as np
 
@@ -22,9 +22,10 @@ except ImportError:
 
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence, Sized
     from os import PathLike
     from pathlib import Path
-    from typing import Any, Literal, Sequence, Sized, SupportsInt
+    from typing import Any, Literal, SupportsInt
 
     import dask.array
     import dask.array.core

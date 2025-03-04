@@ -12,8 +12,8 @@ import numpy as np
 
 from nd2 import _util
 
-from ._util import AXIS, is_supported_file
 from ._readers.protocol import ND2Reader
+from ._util import AXIS, is_supported_file
 
 try:
     from functools import cached_property

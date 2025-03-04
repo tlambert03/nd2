@@ -10,6 +10,7 @@ def __getattr__(name: str) -> Any:
         "Please import objects from nd2 instead. If the object you were "
         "looking for is not available at the top level, please open an issue.",
         DeprecationWarning,
+        stacklevel=2,
     )
     from . import _readers
 

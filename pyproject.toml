@@ -94,7 +94,7 @@ select = [
     "RUF",    # ruff-specific rules
     "SIM105", # contextlib.suppress
     "TID",    # tidy imports
-    "TCH",    # flake8-type-checking
+    "TC",    # flake8-type-checking
 ]
 ignore = [
     "D401", # First line should be in imperative mood

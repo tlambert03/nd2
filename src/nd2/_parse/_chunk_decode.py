@@ -302,7 +302,7 @@ _default_chunk_start = ND2_CHUNK_MAGIC.to_bytes(4, "little")
 
 
 def rescue_nd2(
-    handle: BinaryIO | str,
+    handle: BinaryIO | str | Path,
     frame_shape: tuple[int, ...] = (),
     dtype: DTypeLike = "uint16",
     max_iters: int | None = None,
@@ -319,8 +319,8 @@ def rescue_nd2(
 
     Parameters
     ----------
-    handle : BinaryIO | str
-        Filepath string, or binary file handle (For example
+    handle : BinaryIO | str | Path
+        Filepath string, `pathlib.Path`, or binary file handle (For example
         `handle = open('some.nd2', 'rb')`)
     frame_shape : Tuple[int, ...], optional
         expected shape of each frame, by default a 1 dimensional array will
@@ -378,7 +378,7 @@ def rescue_nd2(
                 chunk_name = mm[end_hdr:next_bang]
                 if chunk_name.startswith(b"ImageDataSeq|"):
                     if verbose:
-                        print(f"Found image {iters} at offset {offset}")
+                        print(f"Found frame {iters} at offset {offset}")
                     # Now, read the actual data
                     _, shift, length = CHUNK_HEADER.unpack(mm[offset:end_hdr])
                     # convert to numpy array and yield
@@ -405,7 +405,7 @@ def rescue_nd2(
 
 
 @contextmanager
-def ensure_handle(obj: str | BinaryIO) -> Iterator[BinaryIO]:
+def ensure_handle(obj: str | Path | BinaryIO) -> Iterator[BinaryIO]:
     fh = open(obj, "rb") if isinstance(obj, (str, bytes, Path)) else obj
     try:
         yield fh

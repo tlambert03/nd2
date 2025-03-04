@@ -56,7 +56,7 @@ pip install nd2 lxml
 
 ## Usage overview
 
-For complete usage details, see the [API](API/nd2.md)
+For complete usage details, see the [API](/reference).
 
 ### Reading nd2 files into arrays
 

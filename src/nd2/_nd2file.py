@@ -13,7 +13,7 @@ import numpy as np
 from nd2 import _util
 
 from ._util import AXIS, is_supported_file
-from .readers.protocol import ND2Reader
+from ._readers.protocol import ND2Reader
 
 try:
     from functools import cached_property
@@ -879,7 +879,7 @@ class ND2File:
             (reminder: OME-XML is only written if the file extension is `.ome.tif` or
             `.ome.tiff`)
         """
-        from .tiff import nd2_to_tiff
+        from ._tiff import nd2_to_tiff
 
         return nd2_to_tiff(
             self,

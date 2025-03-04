@@ -21,7 +21,7 @@ from typing import (
 import nd2
 
 if TYPE_CHECKING:
-    from nd2.readers._modern.modern_reader import ModernReader
+    from nd2._readers._modern.modern_reader import ModernReader
 
 try:
     import rich

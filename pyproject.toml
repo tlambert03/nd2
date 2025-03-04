@@ -55,7 +55,7 @@ dev = [
     "ruff",
     "types-lxml",
 ]
-docs = ["mkdocs", "mkdocs-material", "mkdocstrings-python"]
+docs = ["mkdocs", "mkdocs-material", "mkdocstrings-python", "mkdocs-api-autonav"]
 
 [project.urls]
 homepage = "https://github.com/tlambert03/nd2"

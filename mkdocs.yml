@@ -47,26 +47,39 @@ markdown_extensions:
 
 plugins:
   - search
+  - autorefs:
+      resolve_closest: true
+  - api-autonav:
+      modules: ['src/nd2']
   - mkdocstrings:
       handlers:
         python:
-          options:
-            show_bases: false
-            show_source: false
-            show_root_toc_entry: false
-            docstring_style: numpy
-            docstring_section_style: list
-            show_signature_annotations: true
-            signature_crossrefs: true
-            filters:
-              - "!^__"
-              - "!^_"
-          import:
+          inventories:
             - https://numpy.org/doc/stable/objects.inv
             - https://docs.python.org/3/objects.inv
             - https://docs.xarray.dev/en/stable/objects.inv
             - https://docs.dask.org/en/stable/objects.inv
             - https://ome-types.readthedocs.io/en/latest/objects.inv
+          options:
+
+            docstring_section_style: list # or "table"
+            docstring_style: "numpy"
+            filters: ["!^_", "!^__"]
+            heading_level: 1
+            merge_init_into_class: true
+            parameter_headings: true
+            separate_signature: true
+            show_root_heading: true
+            show_signature_annotations: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            summary: true
+
+            show_bases: false
+            show_source: false
+            show_root_toc_entry: false
+            signature_crossrefs: true
+
 
 extra_css:
   - styles/extra.css

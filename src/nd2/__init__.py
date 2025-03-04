@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     # uses optional tifffile dependency
-    from .tiff import nd2_to_tiff
+    from ._tiff import nd2_to_tiff
 
 try:
     __version__ = version(__name__)
@@ -31,14 +31,14 @@ __all__ = [
 
 from . import structures
 from ._binary import BinaryLayer, BinaryLayers
+from ._nd2file import ND2File, imread
 from ._parse._chunk_decode import rescue_nd2
 from ._util import AXIS, is_legacy, is_supported_file
-from .nd2file import ND2File, imread
 
 
 def __getattr__(name: str) -> Any:
     if name == "nd2_to_tiff":
-        from .tiff import nd2_to_tiff
+        from ._tiff import nd2_to_tiff
 
         return nd2_to_tiff
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

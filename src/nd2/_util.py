@@ -8,8 +8,9 @@ from itertools import product
 from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
     from os import PathLike
-    from typing import Any, Callable, ClassVar, Final, Mapping, Sequence, Union
+    from typing import Any, Callable, ClassVar, Final, Union
 
     from nd2.structures import ExpLoop
 

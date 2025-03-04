@@ -4,7 +4,7 @@ import os
 import warnings
 import zlib
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
@@ -31,6 +31,7 @@ from nd2.structures import ROI
 
 if TYPE_CHECKING:
     import datetime
+    from collections.abc import Iterable, Mapping, Sequence
     from os import PathLike
     from typing import Literal
 

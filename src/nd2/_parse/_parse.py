@@ -5,7 +5,7 @@ import warnings
 from dataclasses import asdict
 from math import ceil
 from struct import Struct
-from typing import TYPE_CHECKING, Iterable, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
@@ -14,6 +14,8 @@ from nd2 import structures as strct
 from nd2._sdk_types import ELxModalityMask, EventMeaning, StimulationType
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from typing_extensions import TypeGuard
 
     from nd2._sdk_types import (

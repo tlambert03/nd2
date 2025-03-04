@@ -7,8 +7,9 @@ import struct
 import sys
 import warnings
 import zlib
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Iterator, Sequence, cast, overload
+from typing import TYPE_CHECKING, cast, overload
 
 import numpy as np
 

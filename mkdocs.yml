@@ -17,6 +17,7 @@ theme:
     repo: fontawesome/brands/github
   features:
     - navigation.sections
+    - navigation.indexes
   palette:
     # Palette toggle for light mode
     - scheme: default
@@ -51,6 +52,7 @@ plugins:
       resolve_closest: true
   - api-autonav:
       modules: ['src/nd2']
+      exclude: ['nd2.index', 'nd2.readers']
   - mkdocstrings:
       handlers:
         python:
@@ -76,7 +78,7 @@ plugins:
             summary: true
 
             show_bases: false
-            show_source: false
+            show_source: true
             show_root_toc_entry: false
             signature_crossrefs: true
 

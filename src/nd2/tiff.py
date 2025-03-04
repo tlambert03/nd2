@@ -1,4 +1,4 @@
-"""Functions for converting nd2 to tiff files."""
+"""Functions for converting .nd2 to .tiff files."""
 
 from __future__ import annotations
 
@@ -68,7 +68,7 @@ def nd2_to_tiff(
 
     To include OME-XML metadata, use extension `.ome.tif` or `.ome.tiff`.
 
-    https://docs.openmicroscopy.org/ome-model/6.3.1/ome-tiff/specification.html
+    <https://docs.openmicroscopy.org/ome-model/6.3.1/ome-tiff/specification.html>
 
     Parameters
     ----------

@@ -55,7 +55,12 @@ dev = [
     "ruff",
     "types-lxml",
 ]
-docs = ["mkdocs", "mkdocs-material", "mkdocstrings-python", "mkdocs-api-autonav"]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings-python",
+    "mkdocs-api-autonav>=0.2.0",
+]
 
 [project.urls]
 homepage = "https://github.com/tlambert03/nd2"
@@ -94,7 +99,7 @@ select = [
     "RUF",    # ruff-specific rules
     "SIM105", # contextlib.suppress
     "TID",    # tidy imports
-    "TC",    # flake8-type-checking
+    "TC",     # flake8-type-checking
 ]
 ignore = [
     "D401", # First line should be in imperative mood

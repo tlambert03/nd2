@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     # uses optional tifffile dependency
-    from ._tiff import nd2_to_tiff
+    from .tiff import nd2_to_tiff
 
 try:
     __version__ = version(__name__)
@@ -38,7 +38,7 @@ from ._util import AXIS, is_legacy, is_supported_file
 
 def __getattr__(name: str) -> Any:
     if name == "nd2_to_tiff":
-        from ._tiff import nd2_to_tiff
+        from .tiff import nd2_to_tiff
 
         return nd2_to_tiff
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

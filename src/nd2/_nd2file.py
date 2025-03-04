@@ -879,7 +879,7 @@ class ND2File:
             (reminder: OME-XML is only written if the file extension is `.ome.tif` or
             `.ome.tiff`)
         """
-        from ._tiff import nd2_to_tiff
+        from .tiff import nd2_to_tiff
 
         return nd2_to_tiff(
             self,

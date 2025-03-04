@@ -1,3 +1,5 @@
+"""Dataclasses and other structures used for metadata."""
+
 from __future__ import annotations
 
 import builtins
@@ -13,6 +15,8 @@ if TYPE_CHECKING:
 
 
 class TextInfo(TypedDict, total=False):
+    """Structure of `dict` returned by [`ND2File.text_info`][nd2.ND2File.text_info]."""
+
     imageId: str
     type: str
     group: str
@@ -31,6 +35,8 @@ class TextInfo(TypedDict, total=False):
 
 
 class LoopType(IntEnum):
+    """Type of loop in an experiment."""
+
     Unknown = 0
     TimeLoop = 1
     XYPosLoop = 2
@@ -48,6 +54,11 @@ class LoopType(IntEnum):
 
 
 class Attributes(NamedTuple):
+    """Primary attributes of an ND2 file.
+
+    This is the return value of [`ND2File.attributes`][nd2.ND2File.attributes].
+    """
+
     bitsPerComponentInMemory: int
     bitsPerComponentSignificant: int
     componentCount: int
@@ -63,18 +74,13 @@ class Attributes(NamedTuple):
     channelCount: int | None = None
 
 
-class ImageInfo(NamedTuple):
-    width: int
-    height: int
-    components: int
-    bits_per_pixel: int
-
-
 # experiment #################
 
 
 @dataclass
 class _Loop:
+    """Base class for loops in an experiment."""
+
     count: int
     nestingLevel: int
     parameters: LoopParams | None
@@ -89,6 +95,8 @@ class SpectLoop:
 
 @dataclass
 class CustomLoop(_Loop):
+    """Custom loop in an experiment."""
+
     count: int
     nestingLevel: int = 0
     parameters: None = None
@@ -115,6 +123,8 @@ class TimeLoop(_Loop):
 
 @dataclass
 class TimeLoopParams:
+    """Parameters associated with a time loop."""
+
     startMs: float
     periodMs: float
     durationMs: float
@@ -127,6 +137,8 @@ class TimeLoopParams:
 
 @dataclass
 class PeriodDiff:
+    """Time difference between periods in a time loop."""
+
     avg: float = 0
     max: float = 0
     min: float = 0
@@ -149,6 +161,8 @@ class NETimeLoop(_Loop):
 
 @dataclass
 class NETimeLoopParams:
+    """Parameters associated with a time loop in an nD experiment."""
+
     periods: list[Period]
 
     def __post_init__(self) -> None:
@@ -157,6 +171,8 @@ class NETimeLoopParams:
 
 @dataclass
 class Period(TimeLoopParams):
+    """A phase in an nD experiment."""
+
     count: int
 
 
@@ -165,6 +181,8 @@ class Period(TimeLoopParams):
 
 @dataclass
 class XYPosLoop(_Loop):
+    """A loop over XY positions in an experiment."""
+
     parameters: XYPosLoopParams
     type: Literal["XYPosLoop"] = "XYPosLoop"
 
@@ -175,6 +193,8 @@ class XYPosLoop(_Loop):
 
 @dataclass
 class XYPosLoopParams:
+    """Parameters associated with a XY position loop."""
+
     isSettingZ: bool
     points: list[Position]
 
@@ -184,6 +204,8 @@ class XYPosLoopParams:
 
 @dataclass
 class Position:
+    """A position in an XY position loop."""
+
     stagePositionUm: StagePosition
     pfsOffset: float | None = None
     name: str | None = None
@@ -196,6 +218,8 @@ class Position:
 
 
 class StagePosition(NamedTuple):
+    """A position in stage coordinates."""
+
     x: float
     y: float
     z: float
@@ -206,6 +230,8 @@ class StagePosition(NamedTuple):
 
 @dataclass
 class ZStackLoop(_Loop):
+    """A loop over Z positions in an experiment."""
+
     parameters: ZStackLoopParams
     type: Literal["ZStackLoop"] = "ZStackLoop"
 
@@ -216,6 +242,8 @@ class ZStackLoop(_Loop):
 
 @dataclass
 class ZStackLoopParams:
+    """Parameters associated with a Z stack loop."""
+
     homeIndex: int
     stepUm: float
     bottomToTop: bool
@@ -225,13 +253,24 @@ class ZStackLoopParams:
 ###
 
 ExpLoop = Union[TimeLoop, NETimeLoop, XYPosLoop, ZStackLoop, CustomLoop]
+"""Union of loop types in an experiment.
+
+[`ND2File.experiment`][nd2.ND2File.experiment] returns a list of these.
+"""
+
 LoopParams = Union[TimeLoopParams, NETimeLoopParams, XYPosLoopParams, ZStackLoopParams]
+"""Type of parameters associated with a loop in an experiment."""
 
 # metadata #################
 
 
 @dataclass
 class Metadata:
+    """Metadata of an ND2 file.
+
+    This is the return value of [`ND2File.metadata`][nd2.ND2File.metadata].
+    """
+
     contents: Contents | None = None
     channels: list[Channel] | None = None
 
@@ -246,12 +285,16 @@ class Metadata:
 
 @dataclass
 class Contents:
+    """Contents of an ND2 file metadata."""
+
     channelCount: int
     frameCount: int
 
 
 @dataclass
 class Channel:
+    """Structure of a channel in an ND2 file."""
+
     channel: ChannelMeta
     loops: LoopIndices | None
     microscope: Microscope
@@ -269,6 +312,8 @@ class Channel:
 
 
 class Color(NamedTuple):
+    """RGB color with optional alpha channel."""
+
     r: int
     g: int
     b: int
@@ -302,6 +347,8 @@ class Color(NamedTuple):
 
 @dataclass
 class ChannelMeta:
+    """Metadata for a channel in an ND2 file."""
+
     name: str
     index: int
     color: Color
@@ -322,6 +369,8 @@ class ChannelMeta:
 
 @dataclass
 class LoopIndices:
+    """Indices of loops in an channel."""
+
     NETimeLoop: int | None = None
     TimeLoop: int | None = None
     XYPosLoop: int | None = None
@@ -359,10 +408,13 @@ ModalityFlags = Literal[
     "VCS",
     "virtualFilter",
 ]
+"""Flags indicating the modality of a microscope."""
 
 
 @dataclass
 class Microscope:
+    """Microscope metadata."""
+
     objectiveMagnification: float | None = None
     objectiveName: str | None = None
     objectiveNumericalAperture: float | None = None
@@ -375,6 +427,8 @@ class Microscope:
 
 @dataclass
 class Volume:
+    """Volume metadata."""
+
     axesCalibrated: tuple[bool, bool, bool]
     axesCalibration: tuple[float, float, float]
     axesInterpretation: tuple[
@@ -398,12 +452,16 @@ class Volume:
 
 @dataclass
 class TimeStamp:
+    """Absolute and relative timestamp of a frame."""
+
     absoluteJulianDayNumber: float
     relativeTimeMs: float
 
 
 @dataclass
 class FrameChannel(Channel):
+    """Channel metadata for a frame."""
+
     position: Position
     time: TimeStamp
 
@@ -417,6 +475,11 @@ class FrameChannel(Channel):
 
 @dataclass
 class FrameMetadata:
+    """Metadata of a frame in an ND2 file.
+
+    This is the return value of [`ND2File.frame_metadata`][nd2.ND2File.frame_metadata].
+    """
+
     contents: Contents
     channels: list[FrameChannel]
 
@@ -439,23 +502,31 @@ def _lower0(x: str) -> str:
 
 
 class BoxShape(NamedTuple):
+    """Size of a 3D box."""
+
     sizeX: float = 0
     sizeY: float = 0
     sizeZ: float = 0
 
 
 class XYPoint(NamedTuple):
+    """XY coordinate."""
+
     x: float = 0
     y: float = 0
 
 
 class XYZPoint(NamedTuple):
+    """XYZ coordinate."""
+
     x: float = 0
     y: float = 0
     z: float = 0
 
 
 class ExtrudedShape(NamedTuple):
+    """Shape of an extruded object."""
+
     sizeZ: float = 0
     basePoints: list[XYPoint] = field(default_factory=list)
 
@@ -584,6 +655,8 @@ class InterpType(IntEnum):
 
 
 class ScopeType(IntEnum):
+    """Scope of an ROI."""
+
     Any = 0
     Global = 1
     MPoint = 2
@@ -629,6 +702,8 @@ class RoiInfo:
 
 @dataclass
 class ExperimentEvent:
+    """An event in an experiment."""
+
     id: int = 0  #  ID of the event
     # meaning of the time/time2 could be found in the globalmetadata-eTimeSource
     time: float = 0.0  # time in msec, in the same axis as time in image metaformat
@@ -641,6 +716,8 @@ class ExperimentEvent:
 
 @dataclass
 class StimulationEvent:
+    """Stimulation parameters for an experiment event."""
+
     type: StimulationType = StimulationType.NoStimulation
     loop_index: int = 0
     position: int = 0

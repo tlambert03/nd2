@@ -56,7 +56,12 @@ dev = [
     "ruff",
     "types-lxml",
 ]
-docs = ["mkdocs", "mkdocs-material", "mkdocstrings-python"]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings-python",
+    "mkdocs-api-autonav>=0.2.1",
+]
 
 [project.urls]
 homepage = "https://github.com/tlambert03/nd2"
@@ -95,7 +100,7 @@ select = [
     "RUF",    # ruff-specific rules
     "SIM105", # contextlib.suppress
     "TID",    # tidy imports
-    "TCH",    # flake8-type-checking
+    "TC",     # flake8-type-checking
 ]
 ignore = [
     "D401", # First line should be in imperative mood
@@ -169,7 +174,7 @@ ignore = [
 ]
 
 [tool.typos.default]
-extend-ignore-identifiers-re = ["(?i)nd2?.*", "(?i)ome"]
+extend-ignore-identifiers-re = ["(?i)nd2?.*", "(?i)ome", "AIMD"]
 
 [tool.typos.files]
 extend-exclude = ["*.json", "**/_sdk_types.py"]

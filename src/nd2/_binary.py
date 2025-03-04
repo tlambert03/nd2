@@ -118,6 +118,8 @@ class BinaryLayer:
 class BinaryLayers(Sequence[BinaryLayer]):
     """Sequence of Binary Layers found in an ND2 file.
 
+    This is the output type of [`ND2File.binary_data`][nd2.ND2File.binary_data].
+
     This object is a sequence of `BinaryLayer` objects, one for each binary layer in the
     file.  Each layer has a `name` attribute, and a `data` attribute that is list of
     numpy arrays - one for each frame in the experiment - or None if the layer was not

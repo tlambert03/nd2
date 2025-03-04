@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 from nd2 import structures
 from nd2._parse import _parse
-from nd2.readers import ModernReader
+from nd2._readers import ModernReader
 
 
 @lru_cache(maxsize=None)
@@ -63,10 +63,8 @@ def _assert_lim_close_enough(a: Any, lim_data: Any, key=()):
             # lim may set {} or [] to None
             return
         # FIXME: bytearrays
-        if (
-            isinstance(lim_data, str)
-            and isinstance(a, list)
-            or isinstance(a, bytearray)
+        if (isinstance(lim_data, str) and isinstance(a, list)) or isinstance(
+            a, bytearray
         ):
             return
         if key and key[-1] == "bUseZ":

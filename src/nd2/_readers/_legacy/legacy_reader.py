@@ -13,7 +13,7 @@ import numpy as np
 from nd2 import _util
 from nd2 import structures as strct
 from nd2._parse._legacy_xml import parse_xml_block
-from nd2.readers.protocol import ND2Reader
+from nd2._readers.protocol import ND2Reader
 
 try:
     from functools import cached_property
@@ -208,7 +208,7 @@ class LegacyReader(ND2Reader):
             count = self.ddim.get("S") or params["Count"]
             points = []
             for i in range(count):
-                idx = f"{poscount-i-1:05}"
+                idx = f"{poscount - i - 1:05}"
                 points.append(
                     strct.Position(
                         pfsOffset=params["PFSOffset"][idx],

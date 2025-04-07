@@ -681,7 +681,7 @@ class ND2File:
             dict if legacy format, else FrameMetadata
         """
         idx = cast(
-            int,
+            "int",
             (
                 self._seq_index_from_coords(seq_index)
                 if isinstance(seq_index, tuple)
@@ -1070,7 +1070,7 @@ class ND2File:
     @property
     def _frame_count(self) -> int:
         if hasattr(self._rdr, "_seq_count"):
-            return cast(int, self._rdr._seq_count())
+            return cast("int", self._rdr._seq_count())
         return int(np.prod(self._coord_shape))
 
     def _get_frame(self, index: SupportsInt) -> np.ndarray:  # pragma: no cover

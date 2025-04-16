@@ -1,5 +1,5 @@
 import json
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -9,7 +9,7 @@ from nd2._parse import _parse
 from nd2._readers import ModernReader
 
 
-@lru_cache(maxsize=None)
+@cache
 def readlim_output():
     TESTS = Path(__file__).parent
     return json.loads((TESTS / "readlim_output.json").read_text())

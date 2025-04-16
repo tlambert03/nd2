@@ -10,7 +10,9 @@ from typing import TYPE_CHECKING, BinaryIO, cast
 from nd2._parse._chunk_decode import get_version
 
 if TYPE_CHECKING:
-    from typing import Any, ContextManager, Literal, Mapping, Sequence
+    from collections.abc import Mapping, Sequence
+    from contextlib import AbstractContextManager
+    from typing import Any, Literal
 
     import numpy as np
 
@@ -53,12 +55,12 @@ class ND2Reader(abc.ABC):
         from nd2._readers import LegacyReader, ModernReader
 
         if hasattr(path, "read"):
-            path = cast(BinaryIO, path)
+            path = cast("BinaryIO", path)
             if "b" not in path.mode:
                 raise ValueError(
                     "File handles passed to ND2File must be in binary mode"
                 )
-            ctx: ContextManager[BinaryIO] = nullcontext(path)
+            ctx: AbstractContextManager[BinaryIO] = nullcontext(path)
         else:
             path = Path(path).expanduser().resolve()
             ctx = open(path, "rb")

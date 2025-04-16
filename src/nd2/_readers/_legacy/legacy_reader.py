@@ -5,8 +5,9 @@ import re
 import struct
 import threading
 import warnings
+from collections import defaultdict
 from dataclasses import replace
-from typing import TYPE_CHECKING, DefaultDict, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
@@ -21,8 +22,8 @@ except ImportError:
     cached_property = property  # type: ignore
 
 if TYPE_CHECKING:
-    from collections import defaultdict
-    from typing import Any, BinaryIO, Mapping, TypedDict
+    from collections.abc import Mapping
+    from typing import Any, BinaryIO, TypedDict
 
     from nd2._util import FileOrBinaryIO
 
@@ -445,7 +446,7 @@ def legacy_nd2_chunkmap(fh: BinaryIO) -> dict[bytes, list[int]]:
     fh.seek(-map_start, 2)
     n_chunks = int.from_bytes(fh.read(4), "big")
     data = fh.read()
-    d: defaultdict[bytes, list[int]] = DefaultDict(list)
+    d: defaultdict[bytes, list[int]] = defaultdict(list)
     for i in range(n_chunks):
         box_type, lim_type, offset = JP2_MAP_CHUNK.unpack_from(data, i * 16)
         if box_type in {b"jP  ", b"ftyp", b"jp2h"}:

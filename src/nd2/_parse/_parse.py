@@ -5,7 +5,7 @@ import warnings
 from dataclasses import asdict
 from math import ceil
 from struct import Struct
-from typing import TYPE_CHECKING, Iterable, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
@@ -14,6 +14,8 @@ from nd2 import structures as strct
 from nd2._sdk_types import ELxModalityMask, EventMeaning, StimulationType
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from typing_extensions import TypeGuard
 
     from nd2._sdk_types import (
@@ -471,7 +473,7 @@ def load_text_info(raw_txt_info: RawTextInfoDict) -> strct.TextInfo:
         )
         if raw_txt_info.get(lookup)
     }
-    return cast(strct.TextInfo, out)
+    return cast("strct.TextInfo", out)
 
 
 def load_global_metadata(
@@ -606,8 +608,8 @@ def load_metadata(raw_meta: RawMetaDict, global_meta: GlobalMetadata) -> strct.M
                     width, height = volume["voxelCount"][:2]
 
                     if all(volume["axesCalibrated"][:2]):
-                        invX = cast(int, devSettings.get("m_iXOrientation0", 0))
-                        invY = cast(int, devSettings.get("m_iYOrientation0", 0))
+                        invX = cast("int", devSettings.get("m_iXOrientation0", 0))
+                        invY = cast("int", devSettings.get("m_iYOrientation0", 0))
                         _pixel_to_stage = [
                             invX * calX * m11,
                             invX * calY * m12,
@@ -690,7 +692,7 @@ def load_frame_metadata(
 
     if 0 <= z_loop_idx < len(exp_loops):
         # Not sure about this, but it's matching the output of the SDK
-        zparams = cast(strct.ZStackLoop, exp_loops[z_loop_idx])
+        zparams = cast("strct.ZStackLoop", exp_loops[z_loop_idx])
         home = zparams.parameters.homeIndex or 0
         step = zparams.parameters.stepUm or 1
         z -= home * step
@@ -704,5 +706,5 @@ def load_frame_metadata(
         )
         for channel in meta.channels or ()
     ]
-    contents = cast(strct.Contents, meta.contents)
+    contents = cast("strct.Contents", meta.contents)
     return strct.FrameMetadata(contents=contents, channels=frame_channels)

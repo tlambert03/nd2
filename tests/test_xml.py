@@ -7,7 +7,7 @@ XML = (Path(__file__).parent / "variant.xml").read_bytes()
 
 
 def test_parse_xml() -> None:
-    result = cast(dict, json_from_clx_variant(XML))
+    result = cast("dict", json_from_clx_variant(XML))
     assert list(result) == [
         "eType",
         "wsApplicationDesc",

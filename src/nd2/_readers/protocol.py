@@ -53,7 +53,7 @@ class ND2Reader(abc.ABC):
         from nd2._readers import LegacyReader, ModernReader
 
         if hasattr(path, "read"):
-            path = cast(BinaryIO, path)
+            path = cast("BinaryIO", path)
             if "b" not in path.mode:
                 raise ValueError(
                     "File handles passed to ND2File must be in binary mode"

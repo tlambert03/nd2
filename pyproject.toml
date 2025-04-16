@@ -126,7 +126,8 @@ filterwarnings = [
     "ignore:The distutils.sysconfig module is deprecated::",
     "ignore:distutils Version classes are deprecated:",
     "ignore:::xarray",
-    "ignore:Accessing the 'model_fields' attribute::"
+    "ignore:Accessing the 'model_fields' attribute::",
+    "ignore:Failing to pass a value:DeprecationWarning",     # xsdata
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html

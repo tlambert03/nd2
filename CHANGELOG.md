@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.10.3](https://github.com/tlambert03/nd2/tree/v0.10.3) (2025-04-16)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.10.2...v0.10.3)
+
+**Fixed bugs:**
+
+- fix: update cached chunk key structure and add cache invariance test [\#256](https://github.com/tlambert03/nd2/pull/256) ([tlambert03](https://github.com/tlambert03))
+
+**Documentation:**
+
+- docs: update API documentation [\#252](https://github.com/tlambert03/nd2/pull/252) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- ci\(pre-commit.ci\): autoupdate [\#254](https://github.com/tlambert03/nd2/pull/254) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- build: drop python 3.8 [\#253](https://github.com/tlambert03/nd2/pull/253) ([tlambert03](https://github.com/tlambert03))
+- ci\(pre-commit.ci\): autoupdate [\#251](https://github.com/tlambert03/nd2/pull/251) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- build: test py3.13 [\#241](https://github.com/tlambert03/nd2/pull/241) ([tlambert03](https://github.com/tlambert03))
+
 ## [v0.10.2](https://github.com/tlambert03/nd2/tree/v0.10.2) (2025-02-28)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.10.1...v0.10.2)
@@ -323,10 +342,6 @@
 
 - feat: Add native macosx-arm64 \(M1\) support [\#87](https://github.com/tlambert03/nd2/pull/87) ([tlambert03](https://github.com/tlambert03))
 
-**Fixed bugs:**
-
-- fix: Typo in legacy requirements [\#79](https://github.com/tlambert03/nd2/pull/79) ([ghost](https://github.com/ghost))
-
 **Merged pull requests:**
 
 - ci\(dependabot\): bump pypa/cibuildwheel from 2.8.1 to 2.9.0 [\#84](https://github.com/tlambert03/nd2/pull/84) ([dependabot[bot]](https://github.com/apps/dependabot))
@@ -411,7 +426,7 @@
 
 ## [v0.2.0](https://github.com/tlambert03/nd2/tree/v0.2.0) (2022-02-20)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.6...v0.2.0)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5-1...v0.2.0)
 
 **Merged pull requests:**
 
@@ -424,13 +439,13 @@
 - \[pre-commit.ci\] pre-commit autoupdate [\#34](https://github.com/tlambert03/nd2/pull/34) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 - \[pre-commit.ci\] pre-commit autoupdate [\#33](https://github.com/tlambert03/nd2/pull/33) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 
-## [v0.1.6](https://github.com/tlambert03/nd2/tree/v0.1.6) (2021-11-12)
-
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5-1...v0.1.6)
-
 ## [v0.1.5-1](https://github.com/tlambert03/nd2/tree/v0.1.5-1) (2021-11-12)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5...v0.1.5-1)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.6...v0.1.5-1)
+
+## [v0.1.6](https://github.com/tlambert03/nd2/tree/v0.1.6) (2021-11-12)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5...v0.1.6)
 
 ## [v0.1.5](https://github.com/tlambert03/nd2/tree/v0.1.5) (2021-11-12)
 

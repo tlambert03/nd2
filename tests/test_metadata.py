@@ -191,3 +191,14 @@ def test_compressed_metadata() -> None:
         chunk = f._rdr._decode_chunk(b"CustomData|CustomDescriptionV1_0!")
         assert "CLxCustomDescription" in chunk
         assert "Name" in chunk["CLxCustomDescription"]
+
+
+def test_cached_decoded_chunks() -> None:
+    # test fix to https://github.com/tlambert03/nd2/issues/255
+    with ND2File("tests/data/dims_p2z5t3-2c4y32x32.nd2") as f:
+        _meta = f.unstructured_metadata()
+        assert f.sizes
+
+    with ND2File("tests/data/dims_p2z5t3-2c4y32x32.nd2") as f:
+        assert f.sizes
+        _meta = f.unstructured_metadata()

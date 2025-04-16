@@ -61,7 +61,7 @@ class ModernReader(ND2Reader):
     def __init__(self, path: FileOrBinaryIO, error_radius: int | None = None) -> None:
         super().__init__(path, error_radius)
 
-        self._cached_decoded_chunks: dict[bytes, Any] = {}
+        self._cached_decoded_chunks: dict[tuple[bytes, bool], Any] = {}
 
         self._attributes: structures.Attributes | None = None
         self._experiment: list[structures.ExpLoop] | None = None
@@ -149,14 +149,15 @@ class ModernReader(ND2Reader):
             If True, strip the lowercase "type" prefix from the tag names, by default
             False.
         """
-        if name not in self._cached_decoded_chunks:
+        key = (name, strip_prefix)
+        if key not in self._cached_decoded_chunks:
             data = self._load_chunk(name)
             if data.startswith(b"<"):
                 decoded: Any = json_from_clx_variant(data, strip_prefix=strip_prefix)
             else:
                 decoded = json_from_clx_lite_variant(data, strip_prefix=strip_prefix)
-            self._cached_decoded_chunks[name] = decoded
-        return self._cached_decoded_chunks[name]
+            self._cached_decoded_chunks[key] = decoded
+        return self._cached_decoded_chunks[key]
 
     def _cached_raw_metadata(self) -> RawMetaDict:
         if self._raw_image_metadata is None:

@@ -33,7 +33,6 @@ legacy = ["imagecodecs"]
 tiff = ["tifffile"]
 test = [
     "nd2[tiff]",
-    "aicsimageio; python_version <= '3.12'",
     "dask[array]",
     "imagecodecs",
     "lxml; python_version >= '3.9' and python_version <= '3.12'",

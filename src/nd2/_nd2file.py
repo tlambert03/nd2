@@ -6,7 +6,7 @@ import threading
 import warnings
 from itertools import product
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Callable, Mapping, cast, overload
+from typing import TYPE_CHECKING, Callable, cast, overload
 
 import numpy as np
 
@@ -22,9 +22,10 @@ except ImportError:
 
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence, Sized
     from os import PathLike
     from pathlib import Path
-    from typing import Any, Literal, Sequence, Sized, SupportsInt
+    from typing import Any, Literal, SupportsInt
 
     import dask.array
     import dask.array.core
@@ -681,7 +682,7 @@ class ND2File:
             dict if legacy format, else FrameMetadata
         """
         idx = cast(
-            int,
+            "int",
             (
                 self._seq_index_from_coords(seq_index)
                 if isinstance(seq_index, tuple)
@@ -1070,7 +1071,7 @@ class ND2File:
     @property
     def _frame_count(self) -> int:
         if hasattr(self._rdr, "_seq_count"):
-            return cast(int, self._rdr._seq_count())
+            return cast("int", self._rdr._seq_count())
         return int(np.prod(self._coord_shape))
 
     def _get_frame(self, index: SupportsInt) -> np.ndarray:  # pragma: no cover

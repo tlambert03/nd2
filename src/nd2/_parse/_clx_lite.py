@@ -179,7 +179,7 @@ def json_from_clx_lite_variant(
             # nd2 uses empty strings as keys for lists
             if not isinstance(output[name], list):
                 output[name] = [output[name]]
-            cast(list, output[name]).append(value)
+            cast("list", output[name]).append(value)
         else:
             output[name] = value
 

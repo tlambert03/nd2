@@ -18,6 +18,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dynamic = ["version"]
 dependencies = [
@@ -31,11 +32,11 @@ dependencies = [
 legacy = ["imagecodecs"]
 tiff = ["tifffile"]
 test = [
-    "nd2[legacy]",
     "nd2[tiff]",
-    "aicsimageio",
+    "aicsimageio; python_version <= '3.12'",
     "dask[array]",
-    "lxml",
+    "imagecodecs",
+    "lxml; python_version >= '3.9' and python_version <= '3.12'",
     "numpy",
     "psutil",
     "pytest-codspeed",
@@ -125,6 +126,8 @@ filterwarnings = [
     "ignore:The distutils.sysconfig module is deprecated::",
     "ignore:distutils Version classes are deprecated:",
     "ignore:::xarray",
+    "ignore:Accessing the 'model_fields' attribute::",
+    "ignore:Failing to pass a value:DeprecationWarning",     # xsdata
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html

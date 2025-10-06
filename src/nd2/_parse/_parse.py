@@ -497,7 +497,7 @@ def load_global_metadata(
         if loop.type == "ZStackLoop":
             voxel_count[2] = loop.count
             axesCalibration[2] = abs(loop.parameters.stepUm)
-            axesCalibrated = axesCalibrated[:2] + (bool(axesCalibration[2] > 0),)
+            axesCalibrated = (*axesCalibrated[:2], bool(axesCalibration[2] > 0))
 
     dtype = "float" if attrs.bitsPerComponentSignificant == 32 else "unsigned"
     mag = raw_meta.get("dObjectiveMag", 0.0)

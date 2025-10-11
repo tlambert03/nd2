@@ -1137,9 +1137,20 @@ class ND2File:
             if c.type == "ZStackLoop":
                 coords[AXIS.Z] = np.arange(c.count) * c.parameters.stepUm
             elif c.type == "TimeLoop":
-                coords[AXIS.TIME] = np.arange(c.count) * c.parameters.periodMs
+                coords[AXIS.TIME] = np.arange(c.count) * (
+                    c.parameters.periodDiff.avg
+                    if c.parameters.periodDiff.avg is not None
+                    else c.parameters.periodMs
+                )
             elif c.type == "NETimeLoop":
-                pers = [np.arange(p.count) * p.periodMs for p in c.parameters.periods]
+                pers = [
+                    np.arange(p.count) * (
+                        p.periodDiff.avg
+                        if p.periodDiff.avg is not None
+                        else p.periodMs
+                    )
+                    for p in c.parameters.periods
+                ]
                 coords[AXIS.TIME] = np.hstack(pers)
             elif c.type == "XYPosLoop":
                 coords[AXIS._MAP["XYPosLoop"]] = self._position_names(c)

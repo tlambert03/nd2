@@ -62,7 +62,7 @@ def nd2_ome_metadata(
     n_positions = sizes.pop(AXIS.POSITION, 1)
     loop_indices = rdr.loop_indices()
     voxel_size = f.voxel_size()
-    _dims, shape = zip(*sizes.items())
+    _dims, _shape = zip(*sizes.items())
     dims = "".join(reversed(_dims)).upper()
     dim_order = next(
         (x for x in DimensionOrder if x.value.startswith(dims)), DimensionOrder.XYCZT

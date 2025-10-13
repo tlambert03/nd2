@@ -266,7 +266,7 @@ class ModernReader(ND2Reader):
                 acq_times = self._load_chunk(b"CustomData|AcqTimesCache!")
                 times = np.frombuffer(acq_times, dtype=np.float64).tolist()
                 # limit to valid frames
-                self._frame_times = times[: self._seq_count()]  # type: ignore
+                self._frame_times = times[: self._seq_count()]
             except Exception as e:
                 warnings.warn(f"Failed to load frame times: {e}", stacklevel=2)
                 self._frame_times = []

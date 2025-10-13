@@ -29,7 +29,7 @@ def test_rescue(broken_nd2, single_nd2, capsys):
     # may not have that information intact
 
     with open(broken_nd2, "rb") as f2:
-        with pytest.raises(ValueError, match="appears to be corrupt. Expected "):
+        with pytest.raises(ValueError, match=r"appears to be corrupt. Expected "):
             cm2 = get_chunkmap(f2)
 
     with open(broken_nd2, "rb") as f2:

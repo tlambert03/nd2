@@ -111,6 +111,17 @@ def nd2_ome_metadata(
             channel.excitation_wavelength_unit = UnitsLength.NANOMETER
         channels.append(channel)
 
+    xypl: XYPosLoop | None
+    (xypl,) = [loop for loop in f.experiment if loop.type == "XYPosLoop"] or [None]
+    names = [  # use point names if they exist, else fallback
+        xypl.parameters.points[p].name
+        if xypl and xypl.parameters.points[p].name is not None
+        else f"{Path(f.path).stem} Series {p}"
+        if n_positions > 1
+        else Path(f.path).stem
+        for p in range(n_positions)
+    ]
+
     for p in range(n_positions):
         planes: list[m.Plane] = []
         tiff_blocks: list[m.TiffData] = []
@@ -182,7 +193,7 @@ def nd2_ome_metadata(
                 instrument_ref=m.InstrumentRef(id=instrument.id),
                 # objective_settings=...
                 id=f"Image:{p}",
-                name=Path(f.path).stem + (f" (Series {p})" if n_positions > 1 else ""),
+                name=names[p],
                 pixels=pixels,
                 acquisition_date=acquisition_date,
             )

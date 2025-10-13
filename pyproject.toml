@@ -22,42 +22,45 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-    "numpy",
-    "ome-types >=0.5.1",
-    "resource-backed-dask-array",
-    "typing-extensions",
+    "numpy>=1.26.0",
+    "ome-types>=0.5.1",
+    "resource-backed-dask-array>=0.1.0",
+    "typing-extensions>=4.6.0",
 ]
 
 [project.optional-dependencies]
-legacy = ["imagecodecs"]
-tiff = ["tifffile"]
+legacy = ["imagecodecs>=2021.1.11"]
+tiff = ["tifffile>=2021.7.2"]
+
+[dependency-groups]
 test = [
     "nd2[tiff]",
-    "dask[array]",
-    "imagecodecs",
-    "lxml; python_version >= '3.9' and python_version <= '3.12'",
-    "numpy",
-    "psutil",
-    "pytest-codspeed",
-    "pytest-cov",
-    "pytest-pretty",
-    "pytest>=6.0",
-    "tifffile",
-    "xarray",
+    "dask[array]>=2023.5.0",
+    "imagecodecs>=2023.1.23",
+    "lxml>=4.9.2",
+    "psutil>=5.9.8",
+    "pytest-codspeed>=2.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-pretty>=1.0.0",
+    "pytest>=7.0.0",
+    "tifffile>=2023.4.12",
+    "xarray>=2023.1.0",
 ]
 dev = [
-    "nd2[test]",
-    "ipython",
-    "mypy",
-    "pre-commit",
-    "rich",
-    "ruff",
-    "types-lxml",
+    { include-group = "test" },
+    { include-group = "docs" },
+    "ipython>=8.0.0",
+    "mypy>=1.18.2",
+    "pdbpp>=0.11.7; sys_platform != 'win32'",
+    "pre-commit-uv>=4.1.5",
+    "rich>=14.2.0",
+    "ruff>=0.14.0",
+    "types-lxml>=2025.8.25",
 ]
 docs = [
-    "mkdocs",
-    "mkdocs-material",
-    "mkdocstrings-python",
+    "mkdocs>=1.4.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings-python>=1.0.0",
     "mkdocs-api-autonav>=0.2.1",
 ]
 
@@ -66,6 +69,9 @@ homepage = "https://github.com/tlambert03/nd2"
 repository = "https://github.com/tlambert03/nd2"
 changelog = "https://github.com/tlambert03/nd2/blob/main/CHANGELOG.md"
 documentation = "https://tlambert03.github.io/nd2/"
+
+[tool.uv.sources]
+nd2 = { workspace = true }
 
 # https://hatch.pypa.io/latest/config/metadata/
 [tool.hatch.version]
@@ -116,10 +122,10 @@ ignore = [
 [tool.ruff.format]
 docstring-code-format = true
 
-# https://docs.pytest.org/en/6.2.x/customize.html
+# https://docs.pytest.org/
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = '--color=yes --cov-config=pyproject.toml'
+addopts = ["--color=yes", "--cov-config=pyproject.toml"]
 testpaths = ["tests"]
 filterwarnings = [
     "error",

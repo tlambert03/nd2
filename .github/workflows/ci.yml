@@ -97,6 +97,7 @@ jobs:
         uses: CodSpeedHQ/action@v4
         with:
           run: pytest -W ignore --codspeed -v --color=yes
+          mode: instrumentation
 
   deploy:
     needs: test

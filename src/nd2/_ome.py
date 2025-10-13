@@ -13,6 +13,7 @@ from ome_types.model import Pixels_DimensionOrder as DimensionOrder
 from ome_types.model import UnitsLength, UnitsTime
 
 from nd2 import __version__
+from nd2.structures import XYPosLoop
 
 from ._util import AXIS
 
@@ -111,18 +112,26 @@ def nd2_ome_metadata(
             channel.excitation_wavelength_unit = UnitsLength.NANOMETER
         channels.append(channel)
 
-    xypl: XYPosLoop | None
-    (xypl,) = [loop for loop in f.experiment if loop.type == "XYPosLoop"] or [None]
-    names = [  # use point names if they exist, else fallback
-        xypl.parameters.points[p].name
-        if xypl and xypl.parameters.points[p].name is not None
-        else f"{Path(f.path).stem} Series {p}"
-        if n_positions > 1
-        else Path(f.path).stem
-        for p in range(n_positions)
-    ]
+    # Find the list of positions associated with an XYPosLoop, if any
+    points = next(
+        (
+            loop.parameters.points
+            for loop in f.experiment
+            if isinstance(loop, XYPosLoop)
+        ),
+        None,
+    )
 
     for p in range(n_positions):
+        # Use the position name if it exists
+        if points and points[p].name:
+            name = points[p].name
+        # else fallback to the file name + position index (if applicable)
+        else:
+            name = Path(f.path).stem
+            if n_positions > 1:
+                name += f" (Series {p})"
+
         planes: list[m.Plane] = []
         tiff_blocks: list[m.TiffData] = []
         ifd = 0
@@ -193,7 +202,7 @@ def nd2_ome_metadata(
                 instrument_ref=m.InstrumentRef(id=instrument.id),
                 # objective_settings=...
                 id=f"Image:{p}",
-                name=names[p],
+                name=name,
                 pixels=pixels,
                 acquisition_date=acquisition_date,
             )

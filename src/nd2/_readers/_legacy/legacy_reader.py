@@ -355,7 +355,7 @@ class LegacyReader(ND2Reader):
         pos = self.chunkmap[key][index]
         with self.lock:
             self._fh.seek(pos)
-            length, box_type = I4s.unpack(self._fh.read(I4s.size))
+            length, _box_type = I4s.unpack(self._fh.read(I4s.size))
             return self._fh.read(length - I4s.size)
 
     def read_frame(self, index: int) -> np.ndarray:

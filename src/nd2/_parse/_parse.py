@@ -350,7 +350,7 @@ def _read_wavelengths(plane: PlaneDict, compIndex: int) -> tuple[float, float]:
     filters = plane.get("pFilterPath", {}).get("m_pFilter", {})
 
     # FIXME: always taking the first value?
-    filter_: FilterDict = next(iter(filters.values()), {})
+    filter_ = cast("FilterDict", next(iter(filters.values()), {}))
 
     excitation = _get_excitation(probe, filter_, plane, compIndex)
     emission = _get_emission(probe, filter_, plane, compIndex)

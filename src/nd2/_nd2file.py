@@ -1144,11 +1144,8 @@ class ND2File:
                 )
             elif c.type == "NETimeLoop":
                 pers = [
-                    np.arange(p.count) * (
-                        p.periodDiff.avg
-                        if p.periodDiff.avg is not None
-                        else p.periodMs
-                    )
+                    np.arange(p.count)
+                    * (p.periodDiff.avg if p.periodDiff.avg is not None else p.periodMs)
                     for p in c.parameters.periods
                 ]
                 coords[AXIS.TIME] = np.hstack(pers)

@@ -80,6 +80,8 @@ sources = ["src"]
 line-length = 88
 target-version = "py39"
 src = ["src/nd2", "tests"]
+fix = true
+unsafe-fixes = true
 
 [tool.ruff.lint]
 pydocstyle = { convention = "numpy" }

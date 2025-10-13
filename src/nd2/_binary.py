@@ -184,7 +184,7 @@ def decode_binary_mask(data: bytes, dtype: DTypeLike = "uint16") -> np.ndarray:
 
     # still not sure what _q is
     # tot_bytes should be length of the stream remaining after this
-    (v, ncols, nrows, nmasks, tot_bytes, _q, _zero) = _unpack(stream, I7)
+    (v, ncols, nrows, nmasks, _tot_bytes, _q, _zero) = _unpack(stream, I7)
     if v != 3:  # pragma: no cover
         warnings.warn(
             f"Expected first byte to be 3 but got {v}. "
@@ -195,7 +195,9 @@ def decode_binary_mask(data: bytes, dtype: DTypeLike = "uint16") -> np.ndarray:
     output = np.zeros((nrows, ncols), dtype=dtype)
     for _m in range(nmasks):
         # (1,     1,  0, 15, 11,       412,      12, 396, 0)
-        (roi_id, c0, r0, c1, r1, roi_bytes, maskrows, _y, _zero) = _unpack(stream, I9)
+        (roi_id, _c0, _r0, _c1, _r1, _roi_bytes, maskrows, _y, _zero) = _unpack(
+            stream, I9
+        )
         for _r in range(maskrows):
             (row, nruns) = _unpack(stream, I2)
             for _s in range(nruns):

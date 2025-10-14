@@ -23,7 +23,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "numpy>=1.26.4",
-    "ome-types>=0.5.1",
+    "ome-types>=0.6.2",
     "pydantic-core>=2.21.0; python_version>='3.13'",
     "resource-backed-dask-array>=0.1.0",
     "typing-extensions>=4.6.0",

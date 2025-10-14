@@ -1,0 +1,68 @@
+/* Indentation. */
+div.doc-contents:not(.first) {
+  padding-left: 25px;
+  border-left: 0.05rem solid var(--md-typeset-table-color);
+}
+
+.md-typeset .doc-heading code {
+  background-color: transparent;
+  display: inline-block;
+  max-width: 100%;
+  margin-left: 20px;
+  text-indent: -20px;
+}
+
+.md-typeset .doc-heading code span {
+  font-weight: 600;
+  color: rgb(166, 23, 25);
+}
+.md-typeset h3.doc-heading code span {
+  font-size: 0.8rem;
+}
+
+
+div.doc-function h2.doc-heading {
+  line-height: 1;
+  margin-left: 20px;
+  text-indent: -20px;
+  margin-bottom: 30px;
+}
+
+/* Mark external links as such. */
+a.external::after,
+a.autorefs-external::after {
+  /* https://primer.style/octicons/arrow-up-right-24 */
+  mask-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.25 15.5a.75.75 0 00.75-.75v-9a.75.75 0 00-.75-.75h-9a.75.75 0 000 1.5h7.19L6.22 16.72a.75.75 0 101.06 1.06L17.5 7.56v7.19c0 .414.336.75.75.75z"></path></svg>');
+  content: " ";
+
+  display: inline-block;
+  vertical-align: middle;
+  position: relative;
+
+  height: 1em;
+  width: 1em;
+  background-color: var(--md-typeset-a-color);
+}
+
+a.external:hover::after,
+a.autorefs-external:hover::after {
+  background-color: var(--md-accent-fg-color);
+}
+
+article:has(> h1:first-child:nth-child(1)[id="nd2structures"]) .doc-label {
+  display: none;
+}
+
+article:has(> h1:first-child:nth-child(1)[id="nd2structures"]) h3 {
+  line-height: 1;
+  margin-top: 0;
+}
+
+
+.md-typeset__table {
+  min-width: 100%;
+}
+
+.md-typeset table:not([class]) {
+   display: table;
+}

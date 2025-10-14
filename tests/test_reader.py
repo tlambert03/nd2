@@ -85,13 +85,16 @@ def test_full_read_legacy(old_nd2):
         np.testing.assert_allclose(delayed_xarray, nd.asarray())
 
 
-def test_xarray(new_nd2):
+def test_xarray(new_nd2) -> None:
     xr = pytest.importorskip("xarray")
     with ND2File(new_nd2) as nd:
         xarr = nd.to_xarray()
         assert isinstance(xarr, xr.DataArray)
         assert isinstance(xarr.data, da.Array)
         assert isinstance(nd.to_xarray(squeeze=False), xr.DataArray)
+
+        if new_nd2.name == "dims_t3y32x32.nd2":
+            np.testing.assert_allclose(xarr.coords["T"], [0.0, 107.97998, 215.959961])
 
 
 def test_xarray_legacy(old_nd2):

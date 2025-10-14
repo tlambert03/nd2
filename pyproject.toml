@@ -22,14 +22,15 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-    "numpy>=1.26.0",
+    "numpy>=1.26.4",
     "ome-types>=0.5.1",
+    "pydantic-core>=2.21.0; python_version>='3.13'",
     "resource-backed-dask-array>=0.1.0",
     "typing-extensions>=4.6.0",
 ]
 
 [project.optional-dependencies]
-legacy = ["imagecodecs>=2021.1.11"]
+legacy = ["imagecodecs>=2021.1.11", "imagecodecs>=2024.9.22; python_version >= '3.13'"]
 tiff = ["tifffile>=2021.7.2"]
 
 [dependency-groups]
@@ -37,9 +38,9 @@ test = [
     "nd2[tiff]",
     "dask[array]>=2023.5.0",
     "imagecodecs>=2023.1.23",
-    "lxml>=4.9.2",
+    "lxml>=5.2.0",
     "psutil>=5.9.8",
-    "pytest-codspeed>=2.0.0",
+    "pytest-codspeed>=4.1.1",
     "pytest-cov>=4.0.0",
     "pytest-pretty>=1.0.0",
     "pytest>=7.0.0",
@@ -132,6 +133,8 @@ filterwarnings = [
     "ignore:The distutils package is deprecated::",
     "ignore:The distutils.sysconfig module is deprecated::",
     "ignore:distutils Version classes are deprecated:",
+    "ignore:ast.Str is deprecated",
+    "ignore:ast.NameConstant is deprecated",
     "ignore:::xarray",
     "ignore:Accessing the 'model_fields' attribute::",
     "ignore:Failing to pass a value:DeprecationWarning",     # xsdata

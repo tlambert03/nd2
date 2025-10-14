@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.9"
+# dependencies = [
+#     "requests>=2.31",
+# ]
+# ///
+
 import shutil
 import sys
 from io import BytesIO

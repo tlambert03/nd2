@@ -115,3 +115,5 @@ src/nd2/_version.py
 !src/sdk/**/*.so
 !src/sdk/**/lib/
 !src/sdk/**/*.a
+
+uv.lock

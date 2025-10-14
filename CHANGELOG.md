@@ -1,5 +1,25 @@
 # Changelog
 
+## [v0.10.4](https://github.com/tlambert03/nd2/tree/v0.10.4) (2025-10-14)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.10.3...v0.10.4)
+
+**Implemented enhancements:**
+
+- feat: Export XYPosLoop position names in OME metadata. [\#265](https://github.com/tlambert03/nd2/pull/265) ([anntzer](https://github.com/anntzer))
+
+**Fixed bugs:**
+
+- fix: Use periodDiff.avg instead of periodMs for xarray timing metadata. [\#264](https://github.com/tlambert03/nd2/pull/264) ([anntzer](https://github.com/anntzer))
+
+**Merged pull requests:**
+
+- chore: update repo to uv style [\#266](https://github.com/tlambert03/nd2/pull/266) ([tlambert03](https://github.com/tlambert03))
+- ci\(dependabot\): bump CodSpeedHQ/action from 3 to 4 [\#262](https://github.com/tlambert03/nd2/pull/262) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump actions/setup-python from 5 to 6 [\#261](https://github.com/tlambert03/nd2/pull/261) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump actions/checkout from 4 to 5 [\#260](https://github.com/tlambert03/nd2/pull/260) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(pre-commit.ci\): autoupdate [\#257](https://github.com/tlambert03/nd2/pull/257) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+
 ## [v0.10.3](https://github.com/tlambert03/nd2/tree/v0.10.3) (2025-04-16)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.10.2...v0.10.3)

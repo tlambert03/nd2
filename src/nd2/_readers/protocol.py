@@ -62,7 +62,7 @@ class ND2Reader(abc.ABC):
                 )
             ctx: AbstractContextManager[BinaryIO] = nullcontext(path)
         else:
-            path = Path(path).expanduser().resolve()
+            path = Path(path).expanduser().absolute()
             ctx = open(path, "rb")
 
         with ctx as fh:

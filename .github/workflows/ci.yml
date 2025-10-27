@@ -83,7 +83,7 @@ jobs:
           update_existing: true
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: covreport-${{ matrix.platform }}-py${{ matrix.python-version }}-${{ matrix.resolution }}
           path: ./.coverage*

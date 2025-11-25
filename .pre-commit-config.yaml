@@ -10,13 +10,13 @@ repos:
       - id: validate-pyproject
 
   - repo: https://github.com/adhtruong/mirrors-typos
-    rev: v1.38.1
+    rev: v1.39.0
     hooks:
       - id: typos
         args: [--force-exclude]  # omit --write-changes
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.0
+    rev: v0.14.3
     hooks:
       - id: ruff-check
       - id: ruff-format

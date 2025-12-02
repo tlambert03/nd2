@@ -117,3 +117,4 @@ src/nd2/_version.py
 !src/sdk/**/*.a
 
 uv.lock
+output.zarr

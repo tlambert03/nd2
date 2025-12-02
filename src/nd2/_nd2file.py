@@ -912,6 +912,7 @@ class ND2File:
         backend: ZarrBackend = "zarr",
         progress: bool = False,
         position: int | None = None,
+        force_series: bool = False,
     ) -> Path:
         """Export to an OME-Zarr store.
 
@@ -940,6 +941,10 @@ class ND2File:
             If the ND2 file contains multiple positions (XY stage positions),
             export only this position index. If None, exports all positions
             as separate groups within the store.
+        force_series : bool
+            If True, use bioformats2raw layout even for single position files.
+            This creates a store with OME/ directory and series metadata,
+            with the image in a "0/" subdirectory. Default is False.
 
         Returns
         -------
@@ -984,6 +989,7 @@ class ND2File:
             backend=backend,
             progress=progress,
             position=position,
+            force_series=force_series,
         )
 
     def to_dask(self, wrapper: bool = True, copy: bool = True) -> dask.array.core.Array:

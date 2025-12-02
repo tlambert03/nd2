@@ -463,6 +463,7 @@ def nd2_to_ome_zarr(
     backend: ZarrBackend = "zarr",
     progress: bool = False,
     position: int | None = None,
+    force_series: bool = False,
 ) -> Path:
     """Export an ND2 file to OME-Zarr format.
 
@@ -493,6 +494,10 @@ def nd2_to_ome_zarr(
         If the ND2 file contains multiple positions (XY stage positions),
         export only this position index. If None, exports all positions
         as separate groups within the store.
+    force_series : bool
+        If True, use bioformats2raw layout even for single position files.
+        This creates a store with OME/ directory and series metadata,
+        with the image in a "0/" subdirectory. Default is False.
 
     Returns
     -------
@@ -596,7 +601,7 @@ def nd2_to_ome_zarr(
         raise ValueError(f"Unknown backend: {backend}")
 
     # Export each position
-    if len(positions_to_export) == 1:
+    if len(positions_to_export) == 1 and not force_series:
         # Single position (or single position selected from multi-position file)
         # Write directly to dest
         _write_zarr_json(dest_path, metadata)
@@ -709,7 +714,7 @@ def nd2_to_ome_zarr(
             if perm != tuple(range(data.ndim)):
                 data = data.transpose(perm)
 
-            # Write position group metadata (each position is a standalone OME-Zarr Image)
+            # Write position group metadata (each position is an OME-Zarr Image)
             pos_metadata = _create_multiscale_metadata(
                 nd2_file, ["0"], axes_order, name=pos_name
             )

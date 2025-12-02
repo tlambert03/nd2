@@ -136,6 +136,41 @@ def test_to_ome_zarr_single_position(
         yaozarrs.validate_zarr_store(str(dest))
 
 
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_to_ome_zarr_force_series(tmp_path: Path, backend: ZarrBackend) -> None:
+    """Test that force_series creates bioformats2raw layout for single-pos files."""
+    # Use a single-position file
+    data_path = TEST_DATA / "dims_c2y32x32.nd2"
+    dest = tmp_path / "series.zarr"
+
+    with nd2.ND2File(data_path) as f:
+        assert AXIS.POSITION not in f.sizes, "Test requires a single-position file"
+
+        result = f.to_ome_zarr(dest, force_series=True, backend=backend)
+        assert result == dest
+
+        # Should have bioformats2raw.layout in root zarr.json
+        with open(dest / "zarr.json") as fh:
+            root_meta = json.load(fh)
+        assert root_meta["attributes"]["ome"]["bioformats2raw.layout"] == 3
+
+        # OME directory should exist with series metadata and METADATA.ome.xml
+        ome_path = dest / "OME"
+        assert ome_path.exists()
+        assert (ome_path / "METADATA.ome.xml").exists()
+
+        with open(ome_path / "zarr.json") as fh:
+            ome_meta = json.load(fh)
+        assert ome_meta["attributes"]["ome"]["series"] == ["0"]
+
+        # Image should be under 0/ directory
+        pos_path = dest / "0"
+        assert pos_path.exists()
+
+        # Validate position with yaozarrs
+        yaozarrs.validate_zarr_store(str(pos_path))
+
+
 def test_to_ome_zarr_axis_transposition(tmp_path: Path) -> None:
     """Test that axes are properly transposed to OME-NGFF order."""
     zarr = pytest.importorskip("zarr")

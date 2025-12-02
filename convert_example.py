@@ -13,7 +13,7 @@ shutil.rmtree(zarr_path, ignore_errors=True)
 
 with nd2.ND2File(nd2_path) as f:
     start = time.time()
-    result = f.to_ome_zarr(zarr_path, backend="tensorstore")
+    result = f.to_ome_zarr(zarr_path, backend="tensorstore", force_series=True)
     end = time.time()
     print(f"Converted {nd2_path} to {zarr_path} in {end - start:.2f} seconds.")
     print(f"Result: {result}")

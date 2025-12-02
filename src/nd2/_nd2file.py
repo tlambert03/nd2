@@ -33,6 +33,8 @@ if TYPE_CHECKING:
     import xarray as xr
     from ome_types import OME
 
+    from nd2._ome_zarr import ZarrBackend
+
     from ._binary import BinaryLayers
     from ._util import (
         DictOfDicts,
@@ -907,7 +909,7 @@ class ND2File:
         *,
         chunk_shape: tuple[int, ...] | Literal["auto"] | None = "auto",
         shard_shape: tuple[int, ...] | None = None,
-        backend: Literal["zarr", "tensorstore"] = "zarr",
+        backend: ZarrBackend = "zarr",
         progress: bool = False,
         position: int | None = None,
     ) -> Path:

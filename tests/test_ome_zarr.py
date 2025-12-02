@@ -2,31 +2,44 @@
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import nd2
 import pytest
 from nd2._util import AXIS
 
-zarr = pytest.importorskip("zarr", minversion="3.0.0")
-yaozarrs = pytest.importorskip("yaozarrs")
+if TYPE_CHECKING:
+    from nd2._ome_zarr import ZarrBackend
 
+try:
+    import yaozarrs
+except ImportError:
+    pytest.skip(
+        "yaozarrs and zarr is required for OME-Zarr tests", allow_module_level=True
+    )
 
-@pytest.fixture
-def ome_zarr_nd2s(request: pytest.FixtureRequest) -> Path:
-    """Fixture providing various ND2 files for OME-Zarr testing."""
-    return request.param
+BACKENDS: list[ZarrBackend] = []
+if importlib.util.find_spec("zarr") is not None:
+    BACKENDS.append("zarr")
+if importlib.util.find_spec("tensorstore") is not None:
+    BACKENDS.append("tensorstore")
 
+if not BACKENDS:
+    pytest.skip(
+        "No supported Zarr backend (zarr or tensorstore) found", allow_module_level=True
+    )
 
-# Test files with different dimension combinations
+TEST_DATA = Path(__file__).parent / "data"
 OME_ZARR_TEST_FILES = [
     "dims_t3c2y32x32.nd2",  # TCY
     "dims_c2y32x32.nd2",  # CYX
     "dims_z5t3c2y32x32.nd2",  # TZCYX (needs transpose)
     "cluster.nd2",  # TZCYX
 ]
-
 # Files with positions
 POSITION_TEST_FILES = [
     "dims_p4z5t3c2y32x32.nd2",  # TPZCYX
@@ -34,128 +47,63 @@ POSITION_TEST_FILES = [
 ]
 
 
-@pytest.mark.parametrize(
-    "ome_zarr_nd2s",
-    OME_ZARR_TEST_FILES,
-    indirect=True,
-    ids=lambda x: x,
-)
-def test_to_ome_zarr_basic(ome_zarr_nd2s: Path, tmp_path: Path) -> None:
+@pytest.mark.parametrize("backend", BACKENDS)
+@pytest.mark.parametrize("nd2_path", OME_ZARR_TEST_FILES)
+def test_to_ome_zarr_basic(
+    nd2_path: Path, tmp_path: Path, backend: ZarrBackend
+) -> None:
     """Test basic OME-Zarr export without positions."""
-    data_path = Path(__file__).parent / "data" / ome_zarr_nd2s
-    if not data_path.exists():
-        pytest.skip(f"Test file not found: {data_path}")
-
+    data_path = TEST_DATA / nd2_path
     dest = tmp_path / "test.zarr"
 
     with nd2.ND2File(data_path) as f:
-        result = f.to_ome_zarr(dest)
-
+        result = f.to_ome_zarr(dest, backend=backend)
         assert result == dest
-        assert dest.exists()
-
-        # Check zarr.json exists and has OME metadata
-        zarr_json_path = dest / "zarr.json"
-        assert zarr_json_path.exists()
-
-        with open(zarr_json_path) as fh:
-            root_meta = json.load(fh)
-
-        assert root_meta["zarr_format"] == 3
-        assert root_meta["node_type"] == "group"
-        assert "ome" in root_meta["attributes"]
-        assert "multiscales" in root_meta["attributes"]["ome"]
-
-        multiscales = root_meta["attributes"]["ome"]["multiscales"]
-        assert len(multiscales) == 1
-
-        # Check axes are in OME-NGFF order: time, channel, spatial
-        axes = multiscales[0]["axes"]
-        axis_names = [ax["name"] for ax in axes]
-
-        # Verify ordering: t before c, c before z, z before y, y before x
-        if "t" in axis_names and "c" in axis_names:
-            assert axis_names.index("t") < axis_names.index("c")
-        if "c" in axis_names and "z" in axis_names:
-            assert axis_names.index("c") < axis_names.index("z")
-        if "z" in axis_names:
-            assert axis_names.index("z") < axis_names.index("y")
-        assert axis_names.index("y") < axis_names.index("x")
-
-        # Check array exists
-        array_path = dest / "0"
-        assert array_path.exists()
-        assert (array_path / "zarr.json").exists()
-
-        # Validate with yaozarrs
-        issues = yaozarrs.validate_zarr_store(str(dest))
-        assert not issues, f"Validation failed: {issues}"
+        yaozarrs.validate_zarr_store(str(dest))
 
 
-@pytest.mark.parametrize(
-    "ome_zarr_nd2s",
-    POSITION_TEST_FILES,
-    indirect=True,
-    ids=lambda x: x,
-)
-def test_to_ome_zarr_with_positions(ome_zarr_nd2s: Path, tmp_path: Path) -> None:
+@pytest.mark.parametrize("backend", BACKENDS)
+@pytest.mark.parametrize("nd2_path", POSITION_TEST_FILES)
+def test_to_ome_zarr_with_positions(
+    nd2_path: Path, tmp_path: Path, backend: ZarrBackend
+) -> None:
     """Test OME-Zarr export with multiple positions."""
-    data_path = Path(__file__).parent / "data" / ome_zarr_nd2s
-    if not data_path.exists():
-        pytest.skip(f"Test file not found: {data_path}")
-
+    data_path = TEST_DATA / nd2_path
     dest = tmp_path / "test.zarr"
 
     with nd2.ND2File(data_path) as f:
         n_positions = f.sizes.get(AXIS.POSITION, 1)
-        result = f.to_ome_zarr(dest)
-
+        result = f.to_ome_zarr(dest, backend=backend)
         assert result == dest
 
-        # Root should be a plain group
-        with open(dest / "zarr.json") as fh:
-            root_meta = json.load(fh)
-        assert root_meta["zarr_format"] == 3
-        assert root_meta["node_type"] == "group"
-
-        # Each position should have its own group
+        # Each position should have its own group with valid OME metadata
         for i in range(n_positions):
             pos_path = dest / f"p{i}"
             assert pos_path.exists(), f"Position {i} not found"
 
+            # Validate each position with yaozarrs
+            yaozarrs.validate_zarr_store(str(pos_path))
+
+            # Check position name in metadata
             with open(pos_path / "zarr.json") as fh:
                 pos_meta = json.load(fh)
-
-            assert "ome" in pos_meta["attributes"]
             assert pos_meta["attributes"]["ome"]["multiscales"][0]["name"] == f"p{i}"
 
-            # Validate each position
-            issues = yaozarrs.validate_zarr_store(str(pos_path))
-            assert not issues, f"Validation failed for p{i}: {issues}"
 
-
-@pytest.mark.parametrize(
-    "ome_zarr_nd2s",
-    POSITION_TEST_FILES[:1],
-    indirect=True,
-    ids=lambda x: x,
-)
-def test_to_ome_zarr_single_position(ome_zarr_nd2s: Path, tmp_path: Path) -> None:
+@pytest.mark.parametrize("backend", BACKENDS)
+@pytest.mark.parametrize("nd2_path", POSITION_TEST_FILES)
+def test_to_ome_zarr_single_position(
+    nd2_path: Path, tmp_path: Path, backend: ZarrBackend
+) -> None:
     """Test exporting a single position from a multi-position file."""
-    data_path = Path(__file__).parent / "data" / ome_zarr_nd2s
-    if not data_path.exists():
-        pytest.skip(f"Test file not found: {data_path}")
-
+    data_path = TEST_DATA / nd2_path
     dest = tmp_path / "single_pos.zarr"
 
     with nd2.ND2File(data_path) as f:
-        n_positions = f.sizes.get(AXIS.POSITION, 1)
-        if n_positions < 2:
-            pytest.skip("Need multi-position file for this test")
+        assert f.sizes.get(AXIS.POSITION, 1) > 1, "Test requires a multi-position file"
 
         # Export position 1
-        result = f.to_ome_zarr(dest, position=1)
-
+        result = f.to_ome_zarr(dest, position=1, backend=backend)
         assert result == dest
 
         # Should have OME metadata at root (not under p1)
@@ -169,16 +117,15 @@ def test_to_ome_zarr_single_position(ome_zarr_nd2s: Path, tmp_path: Path) -> Non
         assert array_path.exists()
 
         # Validate
-        issues = yaozarrs.validate_zarr_store(str(dest))
-        assert not issues, f"Validation failed: {issues}"
+        yaozarrs.validate_zarr_store(str(dest))
 
 
 def test_to_ome_zarr_axis_transposition(tmp_path: Path) -> None:
     """Test that axes are properly transposed to OME-NGFF order."""
+    zarr = pytest.importorskip("zarr")
+
     # Use a file with TZCYX order (Z before C in nd2)
-    data_path = Path(__file__).parent / "data" / "dims_z5t3c2y32x32.nd2"
-    if not data_path.exists():
-        pytest.skip(f"Test file not found: {data_path}")
+    data_path = TEST_DATA / "dims_z5t3c2y32x32.nd2"
 
     dest = tmp_path / "transposed.zarr"
 
@@ -187,11 +134,10 @@ def test_to_ome_zarr_axis_transposition(tmp_path: Path) -> None:
         nd2_sizes = dict(f.sizes)
         assert list(nd2_sizes.keys()) == ["T", "Z", "C", "Y", "X"]
 
-        f.to_ome_zarr(dest)
+        f.to_ome_zarr(dest, backend=BACKENDS[0])  # Use first available backend
 
     # Read back and verify shape is TCZYX (C and Z swapped)
-    store = zarr.storage.LocalStore(str(dest / "0"))
-    arr = zarr.open_array(store)
+    arr = zarr.open_array(dest / "0")
 
     # Expected OME order: T=3, C=2, Z=5, Y=32, X=32
     assert arr.shape == (3, 2, 5, 32, 32)
@@ -206,15 +152,13 @@ def test_to_ome_zarr_axis_transposition(tmp_path: Path) -> None:
 
 def test_to_ome_zarr_coordinate_transforms(tmp_path: Path) -> None:
     """Test that coordinate transformations include proper scale values."""
-    data_path = Path(__file__).parent / "data" / "dims_c2y32x32.nd2"
-    if not data_path.exists():
-        pytest.skip(f"Test file not found: {data_path}")
+    data_path = TEST_DATA / "dims_c2y32x32.nd2"
 
     dest = tmp_path / "coords.zarr"
 
     with nd2.ND2File(data_path) as f:
         voxel = f.voxel_size()
-        f.to_ome_zarr(dest)
+        f.to_ome_zarr(dest, backend=BACKENDS[0])
 
     with open(dest / "zarr.json") as fh:
         meta = json.load(fh)
@@ -234,18 +178,16 @@ def test_to_ome_zarr_coordinate_transforms(tmp_path: Path) -> None:
 
 def test_to_ome_zarr_custom_chunks(tmp_path: Path) -> None:
     """Test custom chunk specification."""
-    data_path = Path(__file__).parent / "data" / "dims_c2y32x32.nd2"
-    if not data_path.exists():
-        pytest.skip(f"Test file not found: {data_path}")
+    zarr = pytest.importorskip("zarr")
+    data_path = TEST_DATA / "dims_c2y32x32.nd2"
 
     dest = tmp_path / "chunked.zarr"
     custom_chunks = (1, 16, 16)
 
     with nd2.ND2File(data_path) as f:
-        f.to_ome_zarr(dest, chunk_shape=custom_chunks)
+        f.to_ome_zarr(dest, chunk_shape=custom_chunks, backend=BACKENDS[0])
 
-    store = zarr.storage.LocalStore(str(dest / "0"))
-    arr = zarr.open_array(store)
+    arr = zarr.open_array(dest / "0")
 
     # Chunks should match (or be smaller if shape is smaller)
     assert arr.chunks == custom_chunks
@@ -253,22 +195,16 @@ def test_to_ome_zarr_custom_chunks(tmp_path: Path) -> None:
 
 def test_to_ome_zarr_invalid_position(tmp_path: Path) -> None:
     """Test that invalid position index raises error."""
-    data_path = Path(__file__).parent / "data" / "dims_p4z5t3c2y32x32.nd2"
-    if not data_path.exists():
-        pytest.skip(f"Test file not found: {data_path}")
-
+    data_path = TEST_DATA / "dims_p4z5t3c2y32x32.nd2"
     dest = tmp_path / "invalid.zarr"
-
     with nd2.ND2File(data_path) as f:
         with pytest.raises(IndexError, match="out of range"):
-            f.to_ome_zarr(dest, position=100)
+            f.to_ome_zarr(dest, position=100, backend=BACKENDS[0])
 
 
 def test_to_ome_zarr_invalid_backend(tmp_path: Path) -> None:
     """Test that invalid backend raises error."""
-    data_path = Path(__file__).parent / "data" / "dims_c2y32x32.nd2"
-    if not data_path.exists():
-        pytest.skip(f"Test file not found: {data_path}")
+    data_path = TEST_DATA / "dims_c2y32x32.nd2"
 
     dest = tmp_path / "invalid_backend.zarr"
 

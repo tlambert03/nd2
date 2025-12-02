@@ -7,23 +7,23 @@ tensorstore for array writing.
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import json
 from typing import TYPE_CHECKING, Any, Literal
 
 from nd2._util import AXIS
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
     from os import PathLike
     from pathlib import Path
 
-    import numpy as np
+    from typing_extensions import TypeAlias
 
     from nd2 import ND2File
 
-
-# Type alias for backend selection
-Backend = Literal["zarr", "tensorstore"]
+    # Type alias for backend selection
+    ZarrBackend: TypeAlias = Literal["zarr", "tensorstore"]
 
 
 def _get_ome_axes_order(nd2_sizes: dict[str, int]) -> list[str]:
@@ -102,7 +102,7 @@ def _create_yaozarrs_axes(
     """
     from yaozarrs.v05 import ChannelAxis, SpaceAxis, TimeAxis
 
-    voxel = nd2_file.voxel_size()
+    nd2_file.voxel_size()
     axes: list[Any] = []
 
     for ax in axes_order:
@@ -123,9 +123,7 @@ def _create_yaozarrs_axes(
     return axes
 
 
-def _get_scale_values(
-    nd2_file: ND2File, axes_order: list[str]
-) -> list[float]:
+def _get_scale_values(nd2_file: ND2File, axes_order: list[str]) -> list[float]:
     """Get scale values for coordinate transformations.
 
     Parameters
@@ -220,9 +218,7 @@ def _create_multiscale_metadata(
         datasets.append(
             Dataset(
                 path=path,
-                coordinateTransformations=[
-                    ScaleTransformation(scale=current_scale)
-                ],
+                coordinateTransformations=[ScaleTransformation(scale=current_scale)],
             )
         )
 
@@ -233,7 +229,7 @@ def _create_multiscale_metadata(
     )
 
     image = Image(multiscales=[multiscale])
-    return image.model_dump(mode="json", exclude_none=True)
+    return image.model_dump(mode="json", exclude_none=True)  # type: ignore[no-any-return]
 
 
 def _write_zarr_json(path: Path, metadata: dict[str, Any]) -> None:
@@ -281,7 +277,7 @@ def _ensure_chunks(
 
     # Auto-determine chunks targeting ~16-64 MB chunks
     target_bytes = 32 * 1024 * 1024  # 32 MB
-    target_elements = target_bytes // dtype_itemsize
+    target_bytes // dtype_itemsize
 
     # Start with shape, reduce from the end (spatial dims)
     chunks = list(shape)
@@ -445,7 +441,6 @@ def _write_array_tensorstore(
     # Write data
     if is_dask:
         # For dask, we need to compute and write
-        import numpy as np
 
         if progress:
             from dask.diagnostics import ProgressBar
@@ -465,7 +460,7 @@ def nd2_to_ome_zarr(
     *,
     chunk_shape: tuple[int, ...] | Literal["auto"] | None = "auto",
     shard_shape: tuple[int, ...] | None = None,
-    backend: Backend = "zarr",
+    backend: ZarrBackend = "zarr",
     progress: bool = False,
     position: int | None = None,
 ) -> Path:
@@ -584,22 +579,18 @@ def nd2_to_ome_zarr(
 
     # Select backend write function
     if backend == "zarr":
-        try:
-            import zarr
-        except ImportError as e:
+        if not importlib.util.find_spec("zarr"):
             raise ImportError(
                 "zarr-python is required for the 'zarr' backend. "
                 "Install with: pip install zarr>=3"
-            ) from e
+            )
         write_array = _write_array_zarr
     elif backend == "tensorstore":
-        try:
-            import tensorstore
-        except ImportError as e:
+        if not importlib.util.find_spec("tensorstore"):
             raise ImportError(
                 "tensorstore is required for the 'tensorstore' backend. "
                 "Install with: pip install tensorstore"
-            ) from e
+            )
         write_array = _write_array_tensorstore
     else:
         raise ValueError(f"Unknown backend: {backend}")

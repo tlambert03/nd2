@@ -407,14 +407,14 @@ def _write_array_tensorstore(
 def _get_write_func(backend: ZarrBackend) -> WriteArrayFunc:
     """Get the appropriate array write function for the backend."""
     if backend == "zarr":
-        if not importlib.util.find_spec("zarr"):
+        if not importlib.util.find_spec("zarr"):  # pragma: no cover
             raise ImportError(
                 "zarr-python is required for the 'zarr' backend. "
                 "Install with: pip install nd2[ome-zarr]"
             )
         return _write_array_zarr
     if backend == "tensorstore":
-        if not importlib.util.find_spec("tensorstore"):
+        if not importlib.util.find_spec("tensorstore"):  # pragma: no cover
             raise ImportError(
                 "tensorstore is required for the 'tensorstore' backend. "
                 "Install with: pip install nd2[ome-zarr-tensorstore]"

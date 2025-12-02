@@ -39,6 +39,9 @@ OME_ZARR_TEST_FILES = [
     "dims_c2y32x32.nd2",  # CYX
     "dims_z5t3c2y32x32.nd2",  # TZCYX (needs transpose)
     "cluster.nd2",  # TZCYX
+    # NETimeLoop files - for time interval coverage
+    "train_TR67_Inj7_fr50.nd2",  # NETimeLoop with periodDiff.avg
+    "jonas_3.nd2",  # NETimeLoop with periodDiff.avg=0 (uses periodMs)
 ]
 # Files with positions
 POSITION_TEST_FILES = [

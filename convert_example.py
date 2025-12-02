@@ -5,8 +5,9 @@ import time
 
 import nd2
 
-nd2_path = "tests/data/dims_p4z5t3c2y32x32.nd2"
-zarr_path = "output.zarr"
+# nd2_path = "tests/data/dims_p4z5t3c2y32x32.nd2"
+nd2_path = "tests/data/dims_z5t3c2y32x32.nd2"
+zarr_path = "output.ome.zarr"
 
 shutil.rmtree(zarr_path, ignore_errors=True)
 

@@ -644,17 +644,49 @@ def nd2_to_ome_zarr(
             progress=progress,
         )
     else:
-        # Multiple positions - create groups for each
-        # Root is a plain group (no OME metadata pointing to non-existent array)
+        # Multiple positions - use bioformats2raw layout
+        # Structure:
+        #   root.zarr/
+        #   ├── zarr.json          # bioformats2raw.layout metadata
+        #   ├── OME/
+        #   │   ├── zarr.json      # series metadata
+        #   │   └── METADATA.ome.xml
+        #   ├── 0/                 # First position (OME-Zarr Image)
+        #   ├── 1/                 # Second position
+        #   └── ...
+        from yaozarrs.v05 import Bf2Raw, Series
+
+        from nd2._ome import nd2_ome_metadata
+
+        # Write root zarr.json with bioformats2raw.layout
+        bf2raw = Bf2Raw(bioformats2raw_layout=3)
         root_zarr_json = {
             "zarr_format": 3,
             "node_type": "group",
-            "attributes": {},
+            "attributes": {"ome": bf2raw.model_dump(mode="json", exclude_none=True)},
         }
         (dest_path / "zarr.json").write_text(json.dumps(root_zarr_json, indent=2))
 
+        # Create OME directory with series metadata and METADATA.ome.xml
+        ome_path = dest_path / "OME"
+        ome_path.mkdir(parents=True, exist_ok=True)
+
+        # Write OME/zarr.json with series list
+        series_list = [str(i) for i in positions_to_export]
+        series = Series(series=series_list)
+        ome_zarr_json = {
+            "zarr_format": 3,
+            "node_type": "group",
+            "attributes": {"ome": series.model_dump(mode="json", exclude_none=True)},
+        }
+        (ome_path / "zarr.json").write_text(json.dumps(ome_zarr_json, indent=2))
+
+        # Generate and write METADATA.ome.xml
+        ome_metadata = nd2_ome_metadata(nd2_file, include_unstructured=False)
+        (ome_path / "METADATA.ome.xml").write_text(ome_metadata.to_xml())
+
         for pos_idx in positions_to_export:
-            pos_name = f"p{pos_idx}"
+            pos_name = str(pos_idx)
             pos_path = dest_path / pos_name
 
             # Get data for this position
@@ -677,7 +709,7 @@ def nd2_to_ome_zarr(
             if perm != tuple(range(data.ndim)):
                 data = data.transpose(perm)
 
-            # Write position group metadata
+            # Write position group metadata (each position is a standalone OME-Zarr Image)
             pos_metadata = _create_multiscale_metadata(
                 nd2_file, ["0"], axes_order, name=pos_name
             )

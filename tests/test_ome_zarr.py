@@ -67,7 +67,7 @@ def test_to_ome_zarr_basic(
 def test_to_ome_zarr_with_positions(
     nd2_path: Path, tmp_path: Path, backend: ZarrBackend
 ) -> None:
-    """Test OME-Zarr export with multiple positions."""
+    """Test OME-Zarr export with multiple positions using bioformats2raw layout."""
     data_path = TEST_DATA / nd2_path
     dest = tmp_path / "test.zarr"
 
@@ -76,9 +76,25 @@ def test_to_ome_zarr_with_positions(
         result = f.to_ome_zarr(dest, backend=backend)
         assert result == dest
 
+        # Root should have bioformats2raw.layout attribute under ome
+        with open(dest / "zarr.json") as fh:
+            root_meta = json.load(fh)
+        assert root_meta["attributes"]["ome"]["bioformats2raw.layout"] == 3
+
+        # OME directory should exist with series metadata and METADATA.ome.xml
+        ome_path = dest / "OME"
+        assert ome_path.exists()
+        assert (ome_path / "METADATA.ome.xml").exists()
+
+        with open(ome_path / "zarr.json") as fh:
+            ome_meta = json.load(fh)
+        assert ome_meta["attributes"]["ome"]["series"] == [
+            str(i) for i in range(n_positions)
+        ]
+
         # Each position should have its own group with valid OME metadata
         for i in range(n_positions):
-            pos_path = dest / f"p{i}"
+            pos_path = dest / str(i)
             assert pos_path.exists(), f"Position {i} not found"
 
             # Validate each position with yaozarrs
@@ -87,7 +103,7 @@ def test_to_ome_zarr_with_positions(
             # Check position name in metadata
             with open(pos_path / "zarr.json") as fh:
                 pos_meta = json.load(fh)
-            assert pos_meta["attributes"]["ome"]["multiscales"][0]["name"] == f"p{i}"
+            assert pos_meta["attributes"]["ome"]["multiscales"][0]["name"] == str(i)
 
 
 @pytest.mark.parametrize("backend", BACKENDS)

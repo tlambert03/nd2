@@ -39,17 +39,17 @@ legacy = [
 ]
 tiff = ["tifffile>=2021.7.2"]
 ome-zarr = [
-    "yaozarrs>=0.0.1",
-    "zarr>=3.0.0",
+    "yaozarrs>=0.0.1rc2; python_version >= '3.10'",
+    "zarr>=3.1; python_version >= '3.11'",
 ]
 ome-zarr-tensorstore = [
-    "yaozarrs>=0.0.1",
+    "yaozarrs>=0.0.1rc2; python_version >= '3.10'",
     "tensorstore>=0.1.45",
 ]
 
 [dependency-groups]
 test = [
-    "nd2[tiff]",
+    "nd2[tiff,ome-zarr]",
     "dask[array]>=2023.5.0",
     "imagecodecs>=2023.1.23",
     "lxml>=5.2.0",

@@ -505,7 +505,7 @@ def load_global_metadata(
         match = re.search(r"\s?(\d+)?x", text_info["optics"], re.IGNORECASE)
         if match:
             mag = float(match[1])
-    projectiveMagnification = raw_meta.get("dProjectiveMag")
+    projectiveMagnification: float | None = raw_meta.get("dProjectiveMag")
     if projectiveMagnification and projectiveMagnification < 0:
         projectiveMagnification = None
     pinhole = raw_meta.get("dPinholeRadius", 0) * 2

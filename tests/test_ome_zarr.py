@@ -253,6 +253,17 @@ def test_to_ome_zarr_invalid_position(tmp_path: Path) -> None:
             f.to_ome_zarr(dest, position=100, backend=BACKENDS[0])
 
 
+def test_to_ome_zarr_invalid_version(tmp_path: Path) -> None:
+    """Test that invalid version raises error."""
+    data_path = TEST_DATA / "dims_c2y32x32.nd2"
+
+    dest = tmp_path / "invalid_version.zarr"
+
+    with nd2.ND2File(data_path) as f:
+        with pytest.raises(ValueError, match=r"Only version '0\.5' is supported"):
+            f.to_ome_zarr(dest, version="0.4")  # type: ignore[arg-type]
+
+
 def test_to_ome_zarr_invalid_backend(tmp_path: Path) -> None:
     """Test that invalid backend raises error."""
     data_path = TEST_DATA / "dims_c2y32x32.nd2"

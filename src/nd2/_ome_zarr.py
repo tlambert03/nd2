@@ -454,9 +454,9 @@ def _write_array_tensorstore(
         store[:].write(data).result()
 
 
-def nd2_to_ome_zarr(
+def _nd2_to_ome_zarr_v05(
     nd2_file: ND2File,
-    dest: str | PathLike,
+    dest_path: Path,
     *,
     chunk_shape: tuple[int, ...] | Literal["auto"] | None = "auto",
     shard_shape: tuple[int, ...] | None = None,
@@ -465,77 +465,7 @@ def nd2_to_ome_zarr(
     position: int | None = None,
     force_series: bool = False,
 ) -> Path:
-    """Export an ND2 file to OME-Zarr format.
-
-    Creates a Zarr v3 store with OME-NGFF 0.5 compliant metadata.
-    The output uses yaozarrs for metadata generation and can use either
-    zarr-python or tensorstore for array writing.
-
-    Parameters
-    ----------
-    nd2_file : ND2File
-        An open ND2File object to export.
-    dest : str | PathLike
-        Destination path for the Zarr store. Will be created as a directory.
-    chunk_shape : tuple[int, ...] | "auto" | None
-        Shape of chunks for the output array. If "auto" (default), determines
-        optimal chunking based on data size. If None, uses a single chunk.
-    shard_shape : tuple[int, ...] | None
-        Shape of shards for sharded storage. If provided, enables Zarr v3
-        sharding where each shard contains multiple chunks. Useful for
-        cloud storage to reduce number of objects.
-    backend : "zarr" | "tensorstore"
-        Backend library to use for writing arrays.
-        - "zarr": Uses zarr-python (default)
-        - "tensorstore": Uses Google's tensorstore library
-    progress : bool
-        Whether to display a progress bar during writing.
-    position : int | None
-        If the ND2 file contains multiple positions (XY stage positions),
-        export only this position index. If None, exports all positions
-        as separate groups within the store.
-    force_series : bool
-        If True, use bioformats2raw layout even for single position files.
-        This creates a store with OME/ directory and series metadata,
-        with the image in a "0/" subdirectory. Default is False.
-
-    Returns
-    -------
-    Path
-        Path to the created Zarr store.
-
-    Raises
-    ------
-    ImportError
-        If the required backend library is not installed.
-    ValueError
-        If the file contains unsupported data structures.
-
-    Examples
-    --------
-    Basic export:
-
-    >>> import nd2
-    >>> with nd2.ND2File("experiment.nd2") as f:
-    ...     f.to_ome_zarr("experiment.zarr")
-
-    Export with specific chunking and sharding:
-
-    >>> with nd2.ND2File("experiment.nd2") as f:
-    ...     f.to_ome_zarr(
-    ...         "experiment.zarr",
-    ...         chunk_shape=(1, 1, 64, 256, 256),
-    ...         shard_shape=(1, 1, 256, 1024, 1024),
-    ...     )
-
-    Export using tensorstore backend:
-
-    >>> with nd2.ND2File("experiment.nd2") as f:
-    ...     f.to_ome_zarr("experiment.zarr", backend="tensorstore")
-    """
-    from pathlib import Path
-
-    dest_path = Path(dest)
+    """Export an ND2 file to OME-Zarr format using NGFF v0.5 specification."""
     dest_path.mkdir(parents=True, exist_ok=True)
 
     # Determine axes order for OME-Zarr
@@ -741,3 +671,108 @@ def nd2_to_ome_zarr(
             )
 
     return dest_path
+
+
+def nd2_to_ome_zarr(
+    nd2_file: ND2File,
+    dest: str | PathLike,
+    *,
+    chunk_shape: tuple[int, ...] | Literal["auto"] | None = "auto",
+    shard_shape: tuple[int, ...] | None = None,
+    backend: ZarrBackend = "zarr",
+    progress: bool = False,
+    position: int | None = None,
+    force_series: bool = False,
+    version: Literal["0.5"] = "0.5",
+) -> Path:
+    """Export an ND2 file to OME-Zarr format.
+
+    Creates a Zarr v3 store with OME-NGFF compliant metadata.
+    The output uses yaozarrs for metadata generation and can use either
+    zarr-python or tensorstore for array writing.
+
+    Parameters
+    ----------
+    nd2_file : ND2File
+        An open ND2File object to export.
+    dest : str | PathLike
+        Destination path for the Zarr store. Will be created as a directory.
+    chunk_shape : tuple[int, ...] | "auto" | None
+        Shape of chunks for the output array. If "auto" (default), determines
+        optimal chunking based on data size. If None, uses a single chunk.
+    shard_shape : tuple[int, ...] | None
+        Shape of shards for sharded storage. If provided, enables Zarr v3
+        sharding where each shard contains multiple chunks. Useful for
+        cloud storage to reduce number of objects.
+    backend : "zarr" | "tensorstore"
+        Backend library to use for writing arrays.
+        - "zarr": Uses zarr-python (default)
+        - "tensorstore": Uses Google's tensorstore library
+    progress : bool
+        Whether to display a progress bar during writing.
+    position : int | None
+        If the ND2 file contains multiple positions (XY stage positions),
+        export only this position index. If None, exports all positions
+        as separate groups within the store.
+    force_series : bool
+        If True, use bioformats2raw layout even for single position files.
+        This creates a store with OME/ directory and series metadata,
+        with the image in a "0/" subdirectory. Default is False.
+    version : "0.5"
+        OME-NGFF specification version to use. Currently only "0.5" is
+        supported. This parameter is reserved for future use.
+
+    Returns
+    -------
+    Path
+        Path to the created Zarr store.
+
+    Raises
+    ------
+    ImportError
+        If the required backend library is not installed.
+    ValueError
+        If the file contains unsupported data structures or invalid version.
+
+    Examples
+    --------
+    Basic export:
+
+    >>> import nd2
+    >>> with nd2.ND2File("experiment.nd2") as f:
+    ...     f.to_ome_zarr("experiment.zarr")
+
+    Export with specific chunking and sharding:
+
+    >>> with nd2.ND2File("experiment.nd2") as f:
+    ...     f.to_ome_zarr(
+    ...         "experiment.zarr",
+    ...         chunk_shape=(1, 1, 64, 256, 256),
+    ...         shard_shape=(1, 1, 256, 1024, 1024),
+    ...     )
+
+    Export using tensorstore backend:
+
+    >>> with nd2.ND2File("experiment.nd2") as f:
+    ...     f.to_ome_zarr("experiment.zarr", backend="tensorstore")
+    """
+    from pathlib import Path
+
+    if version != "0.5":
+        raise ValueError(
+            f"Only version '0.5' is supported, got '{version}'. "
+            "This parameter is reserved for future use."
+        )
+
+    dest_path = Path(dest)
+
+    return _nd2_to_ome_zarr_v05(
+        nd2_file,
+        dest_path,
+        chunk_shape=chunk_shape,
+        shard_shape=shard_shape,
+        backend=backend,
+        progress=progress,
+        position=position,
+        force_series=force_series,
+    )

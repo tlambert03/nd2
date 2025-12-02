@@ -913,6 +913,7 @@ class ND2File:
         progress: bool = False,
         position: int | None = None,
         force_series: bool = False,
+        version: Literal["0.5"] = "0.5",
     ) -> Path:
         """Export to an OME-Zarr store.
 
@@ -945,6 +946,9 @@ class ND2File:
             If True, use bioformats2raw layout even for single position files.
             This creates a store with OME/ directory and series metadata,
             with the image in a "0/" subdirectory. Default is False.
+        version : "0.5"
+            OME-NGFF specification version to use. Currently only "0.5" is
+            supported. This parameter is reserved for future use.
 
         Returns
         -------
@@ -956,7 +960,7 @@ class ND2File:
         ImportError
             If yaozarrs or the required backend library is not installed.
         ValueError
-            If the file contains unsupported data structures.
+            If the file contains unsupported data structures or invalid version.
 
         Examples
         --------
@@ -990,6 +994,7 @@ class ND2File:
             progress=progress,
             position=position,
             force_series=force_series,
+            version=version,
         )
 
     def to_dask(self, wrapper: bool = True, copy: bool = True) -> dask.array.core.Array:

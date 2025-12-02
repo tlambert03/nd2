@@ -38,6 +38,14 @@ legacy = [
     "imagecodecs>=2024.9.22; python_version >= '3.13'",
 ]
 tiff = ["tifffile>=2021.7.2"]
+ome-zarr = [
+    "yaozarrs>=0.0.1rc2; python_version >= '3.10'",
+    "zarr>=3.1; python_version >= '3.11'",
+]
+ome-zarr-tensorstore = [
+    "yaozarrs>=0.0.1rc2; python_version >= '3.10'",
+    "tensorstore>=0.1.45",
+]
 
 [dependency-groups]
 test = [

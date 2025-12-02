@@ -901,6 +901,89 @@ class ND2File:
             modify_ome=modify_ome,
         )
 
+    def to_ome_zarr(
+        self,
+        dest: str | PathLike,
+        *,
+        chunk_shape: tuple[int, ...] | Literal["auto"] | None = "auto",
+        shard_shape: tuple[int, ...] | None = None,
+        backend: Literal["zarr", "tensorstore"] = "zarr",
+        progress: bool = False,
+        position: int | None = None,
+    ) -> Path:
+        """Export to an OME-Zarr store.
+
+        Creates a Zarr v3 store with OME-NGFF 0.5 compliant metadata.
+        Uses yaozarrs for metadata generation and either zarr-python or
+        tensorstore for array writing.
+
+        Parameters
+        ----------
+        dest : str | PathLike
+            Destination path for the Zarr store. Will be created as a directory.
+        chunk_shape : tuple[int, ...] | "auto" | None
+            Shape of chunks for the output array. If "auto" (default), determines
+            optimal chunking based on data size. If None, uses a single chunk.
+        shard_shape : tuple[int, ...] | None
+            Shape of shards for sharded storage. If provided, enables Zarr v3
+            sharding where each shard contains multiple chunks. Useful for
+            cloud storage to reduce number of objects.
+        backend : "zarr" | "tensorstore"
+            Backend library to use for writing arrays.
+            - "zarr": Uses zarr-python (default)
+            - "tensorstore": Uses Google's tensorstore library
+        progress : bool
+            Whether to display a progress bar during writing.
+        position : int | None
+            If the ND2 file contains multiple positions (XY stage positions),
+            export only this position index. If None, exports all positions
+            as separate groups within the store.
+
+        Returns
+        -------
+        Path
+            Path to the created Zarr store.
+
+        Raises
+        ------
+        ImportError
+            If yaozarrs or the required backend library is not installed.
+        ValueError
+            If the file contains unsupported data structures.
+
+        Examples
+        --------
+        Basic export:
+
+        >>> import nd2
+        >>> with nd2.ND2File("experiment.nd2") as f:
+        ...     f.to_ome_zarr("experiment.zarr")
+
+        Export with specific chunking:
+
+        >>> with nd2.ND2File("experiment.nd2") as f:
+        ...     f.to_ome_zarr(
+        ...         "experiment.zarr",
+        ...         chunk_shape=(1, 1, 64, 256, 256),
+        ...     )
+
+        Export using tensorstore backend:
+
+        >>> with nd2.ND2File("experiment.nd2") as f:
+        ...     f.to_ome_zarr("experiment.zarr", backend="tensorstore")
+        """
+        from ._ome_zarr import nd2_to_ome_zarr
+
+        return nd2_to_ome_zarr(
+            self,
+            dest,
+            chunk_shape=chunk_shape,
+            shard_shape=shard_shape,
+            backend=backend,
+            progress=progress,
+            position=position,
+        )
+
     def to_dask(self, wrapper: bool = True, copy: bool = True) -> dask.array.core.Array:
         """Create dask array (delayed reader) representing image.
 

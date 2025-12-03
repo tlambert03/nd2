@@ -909,7 +909,7 @@ class ND2File:
         *,
         chunk_shape: tuple[int, ...] | Literal["auto"] | None = "auto",
         shard_shape: tuple[int, ...] | None = None,
-        backend: ZarrBackend = "zarr",
+        backend: ZarrBackend = "auto",
         progress: bool = False,
         position: int | None = None,
         force_series: bool = False,
@@ -932,10 +932,12 @@ class ND2File:
             Shape of shards for sharded storage. If provided, enables Zarr v3
             sharding where each shard contains multiple chunks. Useful for
             cloud storage to reduce number of objects.
-        backend : "zarr" | "tensorstore"
+        backend : "zarr" | "tensorstore" | "auto"
             Backend library to use for writing arrays.
-            - "zarr": Uses zarr-python (default)
             - "tensorstore": Uses Google's tensorstore library
+            - "zarr": Uses zarr-python
+            - "auto": Tries to use tensorstore if installed, otherwise falls back
+            to zarr-python. Raises ImportError if neither is available.
         progress : bool
             Whether to display a progress bar during writing.
         position : int | None

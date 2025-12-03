@@ -188,7 +188,7 @@ def test_to_ome_zarr_axis_transposition(tmp_path: Path) -> None:
         nd2_sizes = dict(f.sizes)
         assert list(nd2_sizes.keys()) == ["T", "Z", "C", "Y", "X"]
 
-        f.to_ome_zarr(dest, backend=BACKENDS[0])  # Use first available backend
+        f.to_ome_zarr(dest)
 
     # Read back and verify shape is TCZYX (C and Z swapped)
     arr = zarr.open_array(dest / "0")
@@ -212,7 +212,7 @@ def test_to_ome_zarr_coordinate_transforms(tmp_path: Path) -> None:
 
     with nd2.ND2File(data_path) as f:
         voxel = f.voxel_size()
-        f.to_ome_zarr(dest, backend=BACKENDS[0])
+        f.to_ome_zarr(dest)
 
     with open(dest / "zarr.json") as fh:
         meta = json.load(fh)
@@ -239,7 +239,7 @@ def test_to_ome_zarr_custom_chunks(tmp_path: Path) -> None:
     custom_chunks = (1, 16, 16)
 
     with nd2.ND2File(data_path) as f:
-        f.to_ome_zarr(dest, chunk_shape=custom_chunks, backend=BACKENDS[0])
+        f.to_ome_zarr(dest, chunk_shape=custom_chunks)
 
     arr = zarr.open_array(dest / "0")
 
@@ -253,7 +253,7 @@ def test_to_ome_zarr_invalid_position(tmp_path: Path) -> None:
     dest = tmp_path / "invalid.zarr"
     with nd2.ND2File(data_path) as f:
         with pytest.raises(IndexError, match="out of range"):
-            f.to_ome_zarr(dest, position=100, backend=BACKENDS[0])
+            f.to_ome_zarr(dest, position=100)
 
 
 def test_to_ome_zarr_invalid_version(tmp_path: Path) -> None:

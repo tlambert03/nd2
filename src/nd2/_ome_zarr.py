@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from nd2 import ND2File
 
     # Type alias for backend selection
-    ZarrBackend: TypeAlias = Literal["zarr", "tensorstore"]
+    ZarrBackend: TypeAlias = Literal["zarr", "tensorstore", "auto"]
 
     # Type alias for write function signature
     class WriteArrayFunc(Protocol):
@@ -73,7 +73,7 @@ def nd2_to_ome_zarr(
     *,
     chunk_shape: tuple[int, ...] | Literal["auto"] | None = "auto",
     shard_shape: tuple[int, ...] | None = None,
-    backend: ZarrBackend = "zarr",
+    backend: ZarrBackend = "auto",
     progress: bool = False,
     position: int | None = None,
     force_series: bool = False,
@@ -98,10 +98,12 @@ def nd2_to_ome_zarr(
         Shape of shards for sharded storage. If provided, enables Zarr v3
         sharding where each shard contains multiple chunks. Useful for
         cloud storage to reduce number of objects.
-    backend : "zarr" | "tensorstore"
+    backend : "zarr" | "tensorstore" | "auto"
         Backend library to use for writing arrays.
-        - "zarr": Uses zarr-python (default)
         - "tensorstore": Uses Google's tensorstore library
+        - "zarr": Uses zarr-python
+        - "auto": Tries to use tensorstore if installed, otherwise falls back
+          to zarr-python. Raises ImportError if neither is available.
     progress : bool
         Whether to display a progress bar during writing.
     position : int | None
@@ -161,9 +163,9 @@ def nd2_to_ome_zarr(
     return _nd2_to_ome_zarr_v05(
         nd2_file,
         dest_path,
+        backend=backend,
         chunk_shape=chunk_shape,
         shard_shape=shard_shape,
-        backend=backend,
         progress=progress,
         position=position,
         force_series=force_series,
@@ -477,13 +479,11 @@ def _write_bioformats2raw_layout(
     # Write each position
     for pos_idx in positions_to_export:
         pos_name = str(pos_idx)
-        pos_metadata = _create_image_model(nd2_file, ["0"], axes_order, name=pos_name)
-
         _write_single_multiscales(
             nd2_file=nd2_file,
             dest_path=dest_path / pos_name,
             pos_idx=pos_idx,
-            image_model=pos_metadata,
+            image_model=_create_image_model(nd2_file, ["0"], axes_order, name=pos_name),
             axes_order=axes_order,
             permutation=permutation,
             dim_names=dim_names,
@@ -497,10 +497,10 @@ def _write_bioformats2raw_layout(
 def _nd2_to_ome_zarr_v05(
     nd2_file: ND2File,
     dest_path: Path,
+    backend: ZarrBackend,
     *,
     chunk_shape: tuple[int, ...] | Literal["auto"] | None = "auto",
     shard_shape: tuple[int, ...] | None = None,
-    backend: ZarrBackend = "zarr",
     progress: bool = False,
     position: int | None = None,
     force_series: bool = False,
@@ -702,18 +702,24 @@ def _write_array_tensorstore(
 
 def _get_write_func(backend: ZarrBackend) -> WriteArrayFunc:
     """Get the appropriate array write function for the backend."""
-    if backend == "zarr":
-        if not importlib.util.find_spec("zarr"):  # pragma: no cover
-            raise ImportError(
-                "zarr-python is required for the 'zarr' backend. "
-                "Install with: pip install nd2[ome-zarr]"
-            )
-        return _write_array_zarr
-    if backend == "tensorstore":
-        if not importlib.util.find_spec("tensorstore"):  # pragma: no cover
+    if backend in {"tensorstore", "auto"}:
+        if importlib.util.find_spec("tensorstore"):
+            return _write_array_tensorstore
+        elif backend == "tensorstore":  # pragma: no cover
             raise ImportError(
                 "tensorstore is required for the 'tensorstore' backend. "
                 "Install with: pip install nd2[ome-zarr-tensorstore]"
             )
-        return _write_array_tensorstore
+    if backend in {"zarr", "auto"}:
+        if importlib.util.find_spec("zarr"):  # pragma: no cover
+            return _write_array_zarr
+        raise ImportError(
+            "zarr-python is required for the 'zarr' backend. "
+            "Install with: pip install nd2[ome-zarr]"
+        )
+    if backend == "auto":  # pragma: no cover
+        raise ImportError(
+            "No suitable backend found for OME-Zarr export. "
+            "Please pip install either `nd2[ome-zarr-tensorstore]` or `nd2[ome-zarr]`."
+        )
     raise ValueError(f"Unknown backend: {backend}")

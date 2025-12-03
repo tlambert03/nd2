@@ -276,3 +276,60 @@ def test_to_ome_zarr_invalid_backend(tmp_path: Path) -> None:
     with nd2.ND2File(data_path) as f:
         with pytest.raises(ValueError, match="Unknown backend"):
             f.to_ome_zarr(dest, backend="invalid")  # type: ignore[arg-type]
+
+
+def test_to_ome_zarr_rgb_file(tmp_path: Path) -> None:
+    """Test export of pure RGB file with omero color metadata."""
+    zarr = pytest.importorskip("zarr")
+    data_path = TEST_DATA / "dims_rgb.nd2"
+    dest = tmp_path / "rgb.zarr"
+
+    with nd2.ND2File(data_path) as f:
+        # Verify this is a pure RGB file (S axis, no C axis)
+        assert AXIS.RGB in f.sizes
+        assert AXIS.CHANNEL not in f.sizes
+
+        f.to_ome_zarr(dest)
+
+    # Validate the store
+    yaozarrs.validate_zarr_store(str(dest))
+
+    # Check metadata
+    with open(dest / "zarr.json") as fh:
+        meta = json.load(fh)
+
+    ome = meta["attributes"]["ome"]
+
+    # Check axes - RGB should be mapped to channel axis
+    axes = ome["multiscales"][0]["axes"]
+    axis_names = [ax["name"] for ax in axes]
+    assert "c" in axis_names
+    assert "s" not in axis_names  # S should be converted to C
+
+    # Check omero metadata for RGB rendering
+    assert "omero" in ome
+    assert len(ome["omero"]["channels"]) == 3
+    assert ome["omero"]["channels"][0]["color"] == "FF0000"  # Red
+    assert ome["omero"]["channels"][1]["color"] == "00FF00"  # Green
+    assert ome["omero"]["channels"][2]["color"] == "0000FF"  # Blue
+
+    # Check rdefs for color model
+    assert ome["omero"]["rdefs"] == {"model": "color"}
+
+    # Verify array shape - RGB samples should be the channel dimension
+    arr = zarr.open_array(dest / "0")
+    assert arr.shape[0] == 3  # 3 RGB channels
+
+
+def test_to_ome_zarr_mixed_rgb_channel_error(tmp_path: Path) -> None:
+    """Test that files with both RGB and optical channels raise ValueError."""
+    data_path = TEST_DATA / "dims_rgb_c2x64y64.nd2"
+    dest = tmp_path / "mixed.zarr"
+
+    with nd2.ND2File(data_path) as f:
+        # Verify this file has both C and S axes
+        assert AXIS.RGB in f.sizes
+        assert AXIS.CHANNEL in f.sizes
+
+        with pytest.raises(ValueError, match="both RGB samples and multiple optical"):
+            f.to_ome_zarr(dest)

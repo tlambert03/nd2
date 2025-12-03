@@ -10,6 +10,7 @@ from __future__ import annotations
 import importlib
 import importlib.util
 import json
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -267,6 +268,7 @@ def _create_image_model(
     dataset_paths: list[str],
     axes_order: list[str],
     name: str | None = None,
+    is_rgb: bool = False,
 ) -> v05.Image:
     """Create OME-Zarr multiscale metadata.
 
@@ -280,6 +282,8 @@ def _create_image_model(
         Axes in OME-Zarr order
     name : str, optional
         Name for the multiscale
+    is_rgb : bool
+        Whether this is an RGB image (affects omero metadata)
     """
     axes = _create_yaozarrs_axes(axes_order)
     scale_values = _get_scale_values(nd2_file, axes_order)
@@ -302,12 +306,24 @@ def _create_image_model(
         )
 
     multiscale = v05.Multiscale(
-        name=name or nd2_file._path.stem if hasattr(nd2_file, "_path") else None,
+        name=name if name is not None else getattr(nd2_file, "_path", None),
         axes=axes,
         datasets=datasets,
     )
 
-    return v05.Image(multiscales=[multiscale])
+    # Create omero metadata for RGB images
+    omero = None
+    if is_rgb:
+        omero = v05.Omero(
+            channels=[
+                v05.OmeroChannel(color="FF0000", label="Red", active=True),
+                v05.OmeroChannel(color="00FF00", label="Green", active=True),
+                v05.OmeroChannel(color="0000FF", label="Blue", active=True),
+            ],
+            rdefs=v05.OmeroRenderingDefs(model="color"),
+        )
+
+    return v05.Image(multiscales=[multiscale], omero=omero)
 
 
 def _calculate_chunk_shape(
@@ -383,15 +399,21 @@ def _get_position_data(
     pos_idx: int | None,
     axes_order: list[str],
     permutation: tuple[int, ...],
+    is_rgb: bool = False,
 ) -> Any:
     """Get data for a position, handling axis permutation."""
     original_sizes = dict(nd2_file.sizes)
     has_positions = AXIS.POSITION in original_sizes
 
+    # For RGB files, we treat S as C for axis ordering purposes
+    if is_rgb and AXIS.RGB in original_sizes:
+        rgb_size = original_sizes.pop(AXIS.RGB)
+        original_sizes[AXIS.CHANNEL] = rgb_size
+
     if has_positions and pos_idx is not None:
         data = nd2_file.asarray(position=pos_idx)
-        # Squeeze out position dimension
-        pos_dim_idx = list(original_sizes).index(AXIS.POSITION)
+        # Squeeze out position dimension - use nd2_file.sizes for correct index
+        pos_dim_idx = list(nd2_file.sizes).index(AXIS.POSITION)
         data = np.squeeze(data, axis=pos_dim_idx)
         # Get permutation without position axis
         sizes_no_pos = {k: v for k, v in original_sizes.items() if k != AXIS.POSITION}
@@ -407,10 +429,13 @@ def _get_position_data(
 
 
 def _create_zarr_group(
-    dest_path: Path, ome_model: v05.OMEMetadata, zarr_version: Literal[3] = 3
+    dest_path: Path,
+    ome_model: v05.OMEMetadata,
+    zarr_version: Literal[3] = 3,
 ) -> None:
     dest_path.mkdir(parents=True, exist_ok=True)
     meta_dict = ome_model.model_dump(mode="json", exclude_none=True)
+
     zarr_json = {
         "zarr_format": zarr_version,
         "node_type": "group",
@@ -433,13 +458,14 @@ def _write_single_multiscales(
     shard_shape: tuple[int, ...] | None,
     progress: bool,
     zarr_version: Literal[3] = 3,
+    is_rgb: bool = False,
 ) -> None:
     """Write a single OME-Zarr multiscales image."""
     # create destination group directory
     _create_zarr_group(dest_path, ome_model=image_model, zarr_version=zarr_version)
 
     # write the actual data array at "0"
-    data = _get_position_data(nd2_file, pos_idx, axes_order, permutation)
+    data = _get_position_data(nd2_file, pos_idx, axes_order, permutation, is_rgb=is_rgb)
     chunks = _determine_chunks(data, chunk_shape)
     write_array(
         path=dest_path / "0",
@@ -462,6 +488,7 @@ def _write_bioformats2raw_layout(
     chunk_shape: tuple[int, ...] | Literal["auto"] | None,
     shard_shape: tuple[int, ...] | None,
     progress: bool,
+    is_rgb: bool = False,
 ) -> None:
     """Write OME-Zarr with bioformats2raw layout for multiple positions."""
     # Write root zarr.json with bioformats2raw.layout
@@ -474,8 +501,11 @@ def _write_bioformats2raw_layout(
     _create_zarr_group(ome_path, ome_model=series)
 
     # Generate and write METADATA.ome.xml
-    ome_metadata = nd2_ome_metadata(nd2_file, include_unstructured=False)
-    (ome_path / "METADATA.ome.xml").write_text(ome_metadata.to_xml())
+    try:
+        ome_metadata = nd2_ome_metadata(nd2_file, include_unstructured=False)
+        (ome_path / "METADATA.ome.xml").write_text(ome_metadata.to_xml())
+    except NotImplementedError as e:
+        warnings.warn(f"Could not generate OME-XML metadata: {e}. ", stacklevel=2)
 
     # Write each position
     for pos_idx in positions_to_export:
@@ -484,7 +514,9 @@ def _write_bioformats2raw_layout(
             nd2_file=nd2_file,
             dest_path=dest_path / pos_name,
             pos_idx=pos_idx,
-            image_model=_create_image_model(nd2_file, ["0"], axes_order, name=pos_name),
+            image_model=_create_image_model(
+                nd2_file, ["0"], axes_order, name=pos_name, is_rgb=is_rgb
+            ),
             axes_order=axes_order,
             permutation=permutation,
             dim_names=dim_names,
@@ -492,6 +524,7 @@ def _write_bioformats2raw_layout(
             chunk_shape=chunk_shape,
             shard_shape=shard_shape,
             progress=progress,
+            is_rgb=is_rgb,
         )
 
 
@@ -514,6 +547,23 @@ def _nd2_to_ome_zarr_v05(
     has_positions = AXIS.POSITION in nd2_sizes
     n_positions = nd2_sizes.pop(AXIS.POSITION, 1)
 
+    # Check for unsupported RGB + channel combination
+    has_rgb = AXIS.RGB in nd2_sizes
+    has_channels = AXIS.CHANNEL in nd2_sizes
+    if has_rgb and has_channels:
+        raise ValueError(
+            "OME-NGFF does not support files with both RGB samples and multiple "
+            "optical channels. This ND2 file has both 'C' (channel) and 'S' (RGB) "
+            "dimensions, which cannot be represented in the OME-Zarr format."
+        )
+
+    # For pure RGB files (no C axis), treat RGB samples as the channel axis
+    is_rgb_image = has_rgb and not has_channels
+    if is_rgb_image:
+        # Replace S with C in sizes for axis ordering
+        rgb_size = nd2_sizes.pop(AXIS.RGB)
+        nd2_sizes[AXIS.CHANNEL] = rgb_size
+
     if position is not None:
         if position >= n_positions:
             raise IndexError(
@@ -530,7 +580,9 @@ def _nd2_to_ome_zarr_v05(
 
     if len(positions_to_export) == 1 and not force_series:
         # Single image - write directly to dest
-        metadata = _create_image_model(nd2_file, ["0"], axes_order, name=dest_path.stem)
+        metadata = _create_image_model(
+            nd2_file, ["0"], axes_order, name=dest_path.stem, is_rgb=is_rgb_image
+        )
         pos_idx = positions_to_export[0] if has_positions else None
         _write_single_multiscales(
             nd2_file=nd2_file,
@@ -544,6 +596,7 @@ def _nd2_to_ome_zarr_v05(
             chunk_shape=chunk_shape,
             shard_shape=shard_shape,
             progress=progress,
+            is_rgb=is_rgb_image,
         )
     else:
         # Multiple positions - use bioformats2raw layout
@@ -558,6 +611,7 @@ def _nd2_to_ome_zarr_v05(
             chunk_shape,
             shard_shape,
             progress,
+            is_rgb=is_rgb_image,
         )
 
     return dest_path

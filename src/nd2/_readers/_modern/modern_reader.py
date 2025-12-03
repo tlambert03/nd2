@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
     from nd2._binary import BinaryLayers
+    from nd2._jobs_schema import JobsDict
     from nd2._parse._chunk_decode import ChunkMap
     from nd2._sdk_types import (
         BinaryMetaDict,
@@ -410,7 +411,7 @@ class ModernReader(ND2Reader):
             if k.startswith(b"CustomDataVar|")
         }
 
-    def jobs(self) -> dict[str, Any] | None:
+    def jobs(self) -> JobsDict | None:
         """Return JOBS metadata if the file was acquired using JOBS, else None.
 
         JOBS is a Nikon software feature for automated acquisition workflows.

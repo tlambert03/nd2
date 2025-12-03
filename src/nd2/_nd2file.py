@@ -33,6 +33,8 @@ if TYPE_CHECKING:
     import xarray as xr
     from ome_types import OME
 
+    from nd2._jobs_schema import JobsDict
+
     from ._binary import BinaryLayers
     from ._util import (
         DictOfDicts,
@@ -697,7 +699,7 @@ class ND2File:
         return self._rdr.custom_data()
 
     @cached_property
-    def jobs(self) -> dict[str, Any] | None:
+    def jobs(self) -> JobsDict | None:
         """Return JOBS metadata if the file was acquired using JOBS, else None.
 
         !!! Tip "new in version 0.11.0"

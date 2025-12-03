@@ -188,3 +188,7 @@ class ND2Reader(abc.ABC):
         """Return all data from CustomData chunks in the file."""
         warnings.warn("CustomData is not relevant for legacy files", stacklevel=2)
         return {}
+
+    def jobs(self) -> dict | None:
+        """Return JOBS metadata if the file was acquired using JOBS, else None."""
+        return None

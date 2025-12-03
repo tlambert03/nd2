@@ -697,6 +697,38 @@ class ND2File:
         return self._rdr.custom_data()
 
     @cached_property
+    def jobs(self) -> dict[str, Any] | None:
+        """Return JOBS metadata if the file was acquired using JOBS, else None.
+
+        !!! Tip "new in version 0.11.0"
+
+        JOBS is a Nikon software feature for automated acquisition workflows.
+        Files acquired with JOBS contain metadata about the job definition,
+        including task definitions and wellplate configurations.
+
+        Returns
+        -------
+        dict | None
+            A dictionary with JOBS metadata, or None if the file was not
+            acquired using JOBS. The dictionary contains:
+
+            - `"JobRunGUID"`: str - Unique identifier for the job run
+            - `"ProgramDesc"`: dict - Job description including JobDefType
+            - `"Job"`: dict | None - Full job definition (None if encrypted)
+            - `"ProtectedJob"`: dict | None - Encryption info (if encrypted)
+
+        Examples
+        --------
+        >>> with nd2.ND2File("path/to/jobs_file.nd2") as f:
+        ...     jobs = f.jobs
+        ...     if jobs:
+        ...         print(jobs["JobRunGUID"])
+        ...         if jobs["Job"]:
+        ...             print(list(jobs["Job"]["Tasks"].keys()))
+        """
+        return self._rdr.jobs()
+
+    @cached_property
     def ndim(self) -> int:
         """Number of dimensions (i.e. `len(`[`self.shape`][nd2.ND2File.shape]`)`)."""
         return len(self.shape)

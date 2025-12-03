@@ -60,6 +60,7 @@ dev = [
     "mypy>=1.18.2",
     "pdbpp>=0.11.7; sys_platform != 'win32'",
     "pre-commit-uv>=4.1.5",
+    "pytest-xdist>=3.8.0",
     "rich>=14.2.0",
     "ruff>=0.14.0",
     "types-lxml>=2025.8.25",

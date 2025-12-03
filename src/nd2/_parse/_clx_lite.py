@@ -74,10 +74,6 @@ def _unpack_string(data: io.BytesIO) -> str:
         return value.decode("utf8")
 
 
-def _unpack_bytearray(data: io.BytesIO) -> list:
-    return [i[0] for i in strctB.iter_unpack(data.read(_unpack_uint64(data)))]
-
-
 class ELxLiteVariantType:
     UNKNOWN: Final = 0
     BOOL: Final = 1
@@ -103,8 +99,67 @@ _PARSERS: dict[int, Callable[[io.BytesIO], Any]] = {
     ELxLiteVariantType.DOUBLE: _unpack_double,  # 6
     ELxLiteVariantType.VOIDPOINTER: _unpack_void_pointer,  # 7
     ELxLiteVariantType.STRING: _unpack_string,  # 8
-    ELxLiteVariantType.BYTEARRAY: _unpack_bytearray,  # 9
+    # BYTEARRAY (9) is handled specially in json_from_clx_lite_variant
+    # to allow recursive decoding of nested CLX Lite data
 }
+
+DTYPE_SIZES = {
+    ELxLiteVariantType.BOOL: 1,
+    ELxLiteVariantType.INT32: 4,
+    ELxLiteVariantType.UINT32: 4,
+    ELxLiteVariantType.INT64: 8,
+    ELxLiteVariantType.UINT64: 8,
+    ELxLiteVariantType.DOUBLE: 8,
+    ELxLiteVariantType.VOIDPOINTER: 8,
+    ELxLiteVariantType.STRING: 2,
+    ELxLiteVariantType.BYTEARRAY: 8,
+    ELxLiteVariantType.DEPRECATED: 0,
+    ELxLiteVariantType.LEVEL: 12,  # item_count (4) + length (8)
+}
+
+
+def _looks_like_clx_lite(data: bytes) -> bool:
+    """Check if data looks like valid CLX Lite encoded data.
+
+    CLX Lite format starts with:
+    - byte 0: data type (1-11 for normal types, 76 for compressed)
+    - byte 1: name length (in UTF-16 chars, so name is name_length * 2 bytes)
+    - bytes 2 to 2+name_length*2: UTF-16 encoded name (null-terminated)
+
+    We detect invalid data by checking size requirements and UTF-16 patterns.
+    """
+    if not data or len(data) < 2:
+        return False
+
+    data_type = data[0]
+    name_length = data[1]
+
+    # Valid data types: 1-11 (normal) or 76 (compressed 'L')
+    if data_type == 76:  # COMPRESS
+        return True
+    if not (1 <= data_type <= 11):
+        return False
+
+    # Calculate minimum size based on type
+    # header (2) + name (name_length * 2) + value data
+    name_bytes = name_length * 2
+    header_and_name = 2 + name_bytes
+
+    # Each type has minimum value size requirements
+    value_size = DTYPE_SIZES.get(data_type, 0)
+    min_size = header_and_name + value_size
+    if len(data) < min_size:
+        return False
+
+    # For non-empty names, verify UTF-16 structure: names should end with null char
+    # UTF-16 null terminator is \x00\x00, and it's included in name_length
+    if name_length > 0:
+        name_end = 2 + name_bytes
+        # Last 2 bytes of name should be null terminator
+        if data[name_end - 2 : name_end] != b"\x00\x00":
+            return False
+
+    return True
 
 
 def _chunk_name_and_dtype(
@@ -169,6 +224,19 @@ def json_from_clx_lite_variant(
                 value = {f"i{n:010}": x for n, x in enumerate(value)}
             else:
                 value = val
+
+        elif data_type == ELxLiteVariantType.BYTEARRAY:
+            # Read size, then check if it looks like nested CLX Lite data
+            size = _unpack_uint64(stream)
+            raw_bytes = stream.read(size)
+            if _looks_like_clx_lite(raw_bytes):
+                try:
+                    decoded = json_from_clx_lite_variant(raw_bytes, strip_prefix)
+                    value = decoded if decoded else list(raw_bytes)
+                except Exception:
+                    value = list(raw_bytes)
+            else:
+                value = list(raw_bytes)
 
         elif data_type in _PARSERS:
             value = _PARSERS[data_type](stream)

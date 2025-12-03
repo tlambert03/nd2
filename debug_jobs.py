@@ -1,9 +1,9 @@
 """Debug script to explore JOBS nested byte arrays and find decoding issues."""
 
-import nd2
-from nd2._parse._clx_lite import json_from_clx_lite_variant
-from nd2._parse._chunk_decode import get_chunkmap, read_nd2_chunk
 from pathlib import Path
+
+from nd2._parse._chunk_decode import get_chunkmap, read_nd2_chunk
+from nd2._parse._clx_lite import json_from_clx_lite_variant
 from rich import print
 
 
@@ -36,16 +36,21 @@ def decode_recursive_with_tracking(obj, path: str = "", failures: list | None = 
                 # Recursively decode the result
                 return decode_recursive_with_tracking(decoded, path, failures)
             elif not success:
-                failures.append({
-                    "path": path,
-                    "length": len(obj),
-                    "error": error,
-                    "first_bytes": data_bytes[:30],
-                })
+                failures.append(
+                    {
+                        "path": path,
+                        "length": len(obj),
+                        "error": error,
+                        "first_bytes": data_bytes[:30],
+                    }
+                )
             # Return original if decode failed or empty
             return obj
         else:
-            return [decode_recursive_with_tracking(x, f"{path}[{i}]", failures) for i, x in enumerate(obj)]
+            return [
+                decode_recursive_with_tracking(x, f"{path}[{i}]", failures)
+                for i, x in enumerate(obj)
+            ]
     return obj
 
 
@@ -54,7 +59,7 @@ def analyze_file(fpath: Path) -> list[dict]:
     failures = []
 
     try:
-        with open(fpath, 'rb') as fh:
+        with open(fpath, "rb") as fh:
             chunkmap = get_chunkmap(fh)
 
             def_key = b"CustomData|JobDefinitionV1_0!"
@@ -100,15 +105,17 @@ def main():
     failure_paths = {}
     for fname, failures in all_failures.items():
         for f in failures:
-            path = f['path']
+            path = f["path"]
             if path not in failure_paths:
                 failure_paths[path] = []
-            failure_paths[path].append({
-                "file": fname,
-                "length": f.get('length'),
-                "error": f.get('error'),
-                "first_bytes": f.get('first_bytes'),
-            })
+            failure_paths[path].append(
+                {
+                    "file": fname,
+                    "length": f.get("length"),
+                    "error": f.get("error"),
+                    "first_bytes": f.get("first_bytes"),
+                }
+            )
 
     print("[bold]Failures grouped by path:[/bold]\n")
     for path, occurrences in sorted(failure_paths.items()):
@@ -116,7 +123,7 @@ def main():
         for occ in occurrences[:3]:  # Show first 3
             print(f"  File: {occ['file']}")
             print(f"  Length: {occ['length']} bytes")
-            if occ['first_bytes']:
+            if occ["first_bytes"]:
                 print(f"  First bytes: {occ['first_bytes'][:20].hex()}")
         if len(occurrences) > 3:
             print(f"  ... and {len(occurrences) - 3} more")

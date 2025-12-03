@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from os import PathLike
 
     from typing_extensions import Protocol, TypeAlias
+    from yaozarrs import v05
 
     from nd2 import ND2File
 
@@ -254,12 +255,12 @@ def _get_scale_values(nd2_file: ND2File, axes_order: list[str]) -> list[float]:
     return [scale_map[ax] for ax in axes_order if ax in scale_map]
 
 
-def _create_multiscale_metadata(
+def _create_image_model(
     nd2_file: ND2File,
     dataset_paths: list[str],
     axes_order: list[str],
     name: str | None = None,
-) -> dict[str, Any]:
+) -> v05.Image:
     """Create OME-Zarr multiscale metadata.
 
     Parameters
@@ -272,11 +273,6 @@ def _create_multiscale_metadata(
         Axes in OME-Zarr order
     name : str, optional
         Name for the multiscale
-
-    Returns
-    -------
-    dict[str, Any]
-        Multiscale metadata dict
     """
     from yaozarrs import v05
 
@@ -289,13 +285,13 @@ def _create_multiscale_metadata(
         # For multiple resolution levels, scale would be multiplied
         # For now we only have one level
         downscale_factor = 2**i if i > 0 else 1
-        current_scale = [s * downscale_factor for s in scale_values]
-
         datasets.append(
             v05.Dataset(
                 path=path,
                 coordinateTransformations=[
-                    v05.ScaleTransformation(scale=current_scale)
+                    v05.ScaleTransformation(
+                        scale=[s * downscale_factor for s in scale_values]
+                    )
                 ],
             )
         )
@@ -306,24 +302,7 @@ def _create_multiscale_metadata(
         datasets=datasets,
     )
 
-    image = v05.Image(multiscales=[multiscale])
-    return image.model_dump(mode="json", exclude_none=True)  # type: ignore[no-any-return]
-
-
-def _write_zarr_json(
-    path: Path, ome_metadata: dict[str, Any], version: Literal[3] = 3
-) -> None:
-    """Write zarr.json file with OME metadata.
-
-    Parameters
-    ----------
-    path : Path
-        Path to the zarr directory
-    ome_metadata : dict[str, Any]
-        OME metadata from yaozarrs
-    version : Literal[3]
-        Zarr format version (currently only 3 supported)
-    """
+    return v05.Image(multiscales=[multiscale])
 
 
 def _calculate_chunk_shape(
@@ -423,13 +402,14 @@ def _get_position_data(
 
 
 def _create_zarr_group(
-    dest_path: Path, ome_metadata: dict[str, Any], zarr_version: Literal[3] = 3
+    dest_path: Path, ome_model: v05.OMEMetadata, zarr_version: Literal[3] = 3
 ) -> None:
     dest_path.mkdir(parents=True, exist_ok=True)
+    meta_dict = ome_model.model_dump(mode="json", exclude_none=True)
     zarr_json = {
         "zarr_format": zarr_version,
         "node_type": "group",
-        "attributes": {"ome": ome_metadata},
+        "attributes": {"ome": meta_dict},
     }
     (dest_path / "zarr.json").write_text(json.dumps(zarr_json, indent=2))
 
@@ -439,7 +419,7 @@ def _write_single_multiscales(
     nd2_file: ND2File,
     dest_path: Path,
     pos_idx: int | None,
-    ome_metadata: dict[str, Any],
+    image_model: v05.Image,
     axes_order: list[str],
     permutation: tuple[int, ...],
     dim_names: list[str],
@@ -451,11 +431,7 @@ def _write_single_multiscales(
 ) -> None:
     """Write a single OME-Zarr multiscales image."""
     # create destination group directory
-    if "multiscales" not in ome_metadata:
-        raise ValueError(
-            "ome_metadata for `_write_single_image` must contain 'multiscales' key."
-        )
-    _create_zarr_group(dest_path, ome_metadata, zarr_version)
+    _create_zarr_group(dest_path, ome_model=image_model, zarr_version=zarr_version)
 
     # write the actual data array at "0"
     data = _get_position_data(nd2_file, pos_idx, axes_order, permutation)
@@ -485,30 +461,14 @@ def _write_bioformats2raw_layout(
     """Write OME-Zarr with bioformats2raw layout for multiple positions."""
     from yaozarrs import v05
 
-    dest_path.mkdir(parents=True, exist_ok=True)
-
     # Write root zarr.json with bioformats2raw.layout
     bf2raw = v05.Bf2Raw(bioformats2raw_layout=3)  # pyright: ignore
-    root_zarr_json = {
-        "zarr_format": 3,
-        "node_type": "group",
-        "attributes": {"ome": bf2raw.model_dump(mode="json", exclude_none=True)},
-    }
-    (dest_path / "zarr.json").write_text(json.dumps(root_zarr_json, indent=2))
-
-    # Create OME directory with series metadata and METADATA.ome.xml
-    ome_path = dest_path / "OME"
-    ome_path.mkdir(parents=True, exist_ok=True)
+    _create_zarr_group(dest_path, ome_model=bf2raw)
 
     # Write OME/zarr.json with series list
-    series_list = [str(i) for i in positions_to_export]
-    series = v05.Series(series=series_list)
-    ome_zarr_json = {
-        "zarr_format": 3,
-        "node_type": "group",
-        "attributes": {"ome": series.model_dump(mode="json", exclude_none=True)},
-    }
-    (ome_path / "zarr.json").write_text(json.dumps(ome_zarr_json, indent=2))
+    ome_path = dest_path / "OME"
+    series = v05.Series(series=[str(i) for i in positions_to_export])
+    _create_zarr_group(ome_path, ome_model=series)
 
     # Generate and write METADATA.ome.xml
     ome_metadata = nd2_ome_metadata(nd2_file, include_unstructured=False)
@@ -517,17 +477,13 @@ def _write_bioformats2raw_layout(
     # Write each position
     for pos_idx in positions_to_export:
         pos_name = str(pos_idx)
-        pos_path = dest_path / pos_name
-
-        pos_metadata = _create_multiscale_metadata(
-            nd2_file, ["0"], axes_order, name=pos_name
-        )
+        pos_metadata = _create_image_model(nd2_file, ["0"], axes_order, name=pos_name)
 
         _write_single_multiscales(
             nd2_file=nd2_file,
-            dest_path=pos_path,
+            dest_path=dest_path / pos_name,
             pos_idx=pos_idx,
-            ome_metadata=pos_metadata,
+            image_model=pos_metadata,
             axes_order=axes_order,
             permutation=permutation,
             dim_names=dim_names,
@@ -573,15 +529,13 @@ def _nd2_to_ome_zarr_v05(
 
     if len(positions_to_export) == 1 and not force_series:
         # Single image - write directly to dest
-        metadata = _create_multiscale_metadata(
-            nd2_file, ["0"], axes_order, name=dest_path.stem
-        )
+        metadata = _create_image_model(nd2_file, ["0"], axes_order, name=dest_path.stem)
         pos_idx = positions_to_export[0] if has_positions else None
         _write_single_multiscales(
             nd2_file=nd2_file,
             dest_path=dest_path,
             pos_idx=pos_idx,
-            ome_metadata=metadata,
+            image_model=metadata,
             axes_order=axes_order,
             permutation=permutation,
             dim_names=dim_names,
@@ -668,9 +622,15 @@ def _write_array_tensorstore(
     shard_shape: tuple[int, ...] | None = None,
     dimension_names: list[str] | None = None,
     progress: bool = False,
+    zarr_format: Literal[3] = 3,
 ) -> None:
     """Write array using tensorstore backend."""
     import tensorstore as ts
+
+    if zarr_format == 3:
+        zarr_driver = "zarr3"
+    else:
+        raise ValueError(f"Unsupported zarr_format: {zarr_format}")
 
     # Determine if data is dask
     is_dask = hasattr(data, "compute")
@@ -716,7 +676,7 @@ def _write_array_tensorstore(
         ]
 
     spec: dict[str, Any] = {
-        "driver": "zarr3",
+        "driver": zarr_driver,
         "kvstore": {"driver": "file", "path": str(path)},
         "metadata": metadata,
         "create": True,

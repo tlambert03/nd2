@@ -11,7 +11,7 @@ import importlib
 import importlib.util
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
@@ -21,7 +21,7 @@ from nd2._util import AXIS
 if TYPE_CHECKING:
     from os import PathLike
 
-    from typing_extensions import TypeAlias
+    from typing_extensions import Protocol, TypeAlias
 
     from nd2 import ND2File
 
@@ -29,10 +29,149 @@ if TYPE_CHECKING:
     ZarrBackend: TypeAlias = Literal["zarr", "tensorstore"]
 
     # Type alias for write function signature
-    WriteArrayFunc = Callable[
-        [Path, Any, tuple[int, ...], tuple[int, ...] | None, list[str] | None, bool],
-        None,
-    ]
+    class WriteArrayFunc(Protocol):
+        def __call__(
+            self,
+            path: Path,
+            data: Any,
+            chunks: tuple[int, ...],
+            shard_shape: tuple[int, ...] | None = None,
+            dimension_names: list[str] | None = None,
+            progress: bool = False,
+            zarr_format: Literal[3] = 3,
+        ) -> None:
+            """Write array using any backend.
+
+            Parameters
+            ----------
+            path : Path
+                Path to write array
+            data : array-like
+                Data to write (numpy or dask array)
+            chunks : tuple[int, ...]
+                Chunk shape
+            shard_shape : tuple[int, ...] | None
+                Shard shape for sharded storage, or None for regular chunks
+            dimension_names : list[str] | None
+                Names for each dimension
+            progress : bool
+                Whether to show progress
+            zarr_format : Literal[3]
+                Zarr format version to use. Currently only 3 is supported.
+            """
+            ...
+
+##################################################################################
+# Main export function
+##################################################################################
+
+
+def nd2_to_ome_zarr(
+    nd2_file: ND2File,
+    dest: str | PathLike,
+    *,
+    chunk_shape: tuple[int, ...] | Literal["auto"] | None = "auto",
+    shard_shape: tuple[int, ...] | None = None,
+    backend: ZarrBackend = "zarr",
+    progress: bool = False,
+    position: int | None = None,
+    force_series: bool = False,
+    version: Literal["0.5"] = "0.5",
+) -> Path:
+    """Export an ND2 file to OME-Zarr format.
+
+    Creates a Zarr v3 store with OME-NGFF compliant metadata.
+    The output uses yaozarrs for metadata generation and can use either
+    zarr-python or tensorstore for array writing.
+
+    Parameters
+    ----------
+    nd2_file : ND2File
+        An open ND2File object to export.
+    dest : str | PathLike
+        Destination path for the Zarr store. Will be created as a directory.
+    chunk_shape : tuple[int, ...] | "auto" | None
+        Shape of chunks for the output array. If "auto" (default), determines
+        optimal chunking based on data size. If None, uses a single chunk.
+    shard_shape : tuple[int, ...] | None
+        Shape of shards for sharded storage. If provided, enables Zarr v3
+        sharding where each shard contains multiple chunks. Useful for
+        cloud storage to reduce number of objects.
+    backend : "zarr" | "tensorstore"
+        Backend library to use for writing arrays.
+        - "zarr": Uses zarr-python (default)
+        - "tensorstore": Uses Google's tensorstore library
+    progress : bool
+        Whether to display a progress bar during writing.
+    position : int | None
+        If the ND2 file contains multiple positions (XY stage positions),
+        export only this position index. If None, exports all positions
+        as separate groups within the store.
+    force_series : bool
+        If True, use bioformats2raw layout even for single position files.
+        This creates a store with OME/ directory and series metadata,
+        with the image in a "0/" subdirectory. Default is False.
+    version : "0.5"
+        OME-NGFF specification version to use. Currently only "0.5" is
+        supported. This parameter is reserved for future use.
+
+    Returns
+    -------
+    Path
+        Path to the created Zarr store.
+
+    Raises
+    ------
+    ImportError
+        If the required backend library is not installed.
+    ValueError
+        If the file contains unsupported data structures or invalid version.
+
+    Examples
+    --------
+    Basic export:
+
+    >>> import nd2
+    >>> with nd2.ND2File("experiment.nd2") as f:
+    ...     f.to_ome_zarr("experiment.zarr")
+
+    Export with specific chunking and sharding:
+
+    >>> with nd2.ND2File("experiment.nd2") as f:
+    ...     f.to_ome_zarr(
+    ...         "experiment.zarr",
+    ...         chunk_shape=(1, 1, 64, 256, 256),
+    ...         shard_shape=(1, 1, 256, 1024, 1024),
+    ...     )
+
+    Export using tensorstore backend:
+
+    >>> with nd2.ND2File("experiment.nd2") as f:
+    ...     f.to_ome_zarr("experiment.zarr", backend="tensorstore")
+    """
+    if version != "0.5":
+        raise ValueError(
+            f"Only version '0.5' is supported, got '{version}'. "
+            "This parameter is reserved for future use."
+        )
+
+    dest_path = Path(dest)
+
+    return _nd2_to_ome_zarr_v05(
+        nd2_file,
+        dest_path,
+        chunk_shape=chunk_shape,
+        shard_shape=shard_shape,
+        backend=backend,
+        progress=progress,
+        position=position,
+        force_series=force_series,
+    )
+
+
+##################################################################################
+# Supporting functions
+##################################################################################
 
 _OME_AXIS_ORDER = {
     AXIS.TIME: 0,
@@ -185,20 +324,15 @@ def _write_zarr_json(
     version : Literal[3]
         Zarr format version (currently only 3 supported)
     """
-    zarr_json = {
-        "zarr_format": version,
-        "node_type": "group",
-        "attributes": {"ome": ome_metadata},
-    }
-    (path / "zarr.json").write_text(json.dumps(zarr_json, indent=2))
 
 
-def _ensure_chunks(
+def _calculate_chunk_shape(
     shape: tuple[int, ...],
     chunk_shape: tuple[int, ...] | None,
     dtype_itemsize: int,
+    target_chunk_size_mb: int = 4,
 ) -> tuple[int, ...]:
-    """Determine chunk shape for array.
+    """Calculate chunk shape for array.
 
     Parameters
     ----------
@@ -208,6 +342,8 @@ def _ensure_chunks(
         User-specified chunk shape, or None for auto
     dtype_itemsize : int
         Size of dtype in bytes
+    target_chunk_size_mb : int
+        Target chunk size in megabytes (default 4MB)
 
     Returns
     -------
@@ -219,12 +355,11 @@ def _ensure_chunks(
         return tuple(min(c, s) for c, s in zip(chunk_shape, shape))
 
     # Target ~4MB chunks (>1MB minimum recommended by zarr docs for Blosc)
-    target_elements = (4 * 1024 * 1024) // dtype_itemsize
+    target_elements = (target_chunk_size_mb * 1024 * 1024) // dtype_itemsize
 
     chunks = list(shape)
     ndim = len(chunks)
 
-    # For microscopy data (OME-Zarr order: TCZYX):
     # Set non-spatial dims (T, C) to 1 for efficient single-plane access
     n_spatial = min(3, ndim)  # At most Z, Y, X
     for i in range(ndim - n_spatial):
@@ -246,6 +381,236 @@ def _ensure_chunks(
     return tuple(chunks)
 
 
+def _determine_chunks(
+    data: np.ndarray,
+    chunk_shape: tuple[int, ...] | Literal["auto"] | None,
+) -> tuple[int, ...]:
+    """Determine chunk shape based on user input."""
+    if chunk_shape == "auto":
+        return _calculate_chunk_shape(data.shape, None, data.dtype.itemsize)
+    elif chunk_shape is None:
+        return data.shape
+    else:
+        return _calculate_chunk_shape(data.shape, chunk_shape, data.dtype.itemsize)
+
+
+def _get_position_data(
+    nd2_file: ND2File,
+    pos_idx: int | None,
+    axes_order: list[str],
+    permutation: tuple[int, ...],
+) -> Any:
+    """Get data for a position, handling axis permutation."""
+    original_sizes = dict(nd2_file.sizes)
+    has_positions = AXIS.POSITION in original_sizes
+
+    if has_positions and pos_idx is not None:
+        data = nd2_file.asarray(position=pos_idx)
+        # Squeeze out position dimension
+        pos_dim_idx = list(original_sizes).index(AXIS.POSITION)
+        data = np.squeeze(data, axis=pos_dim_idx)
+        # Get permutation without position axis
+        sizes_no_pos = {k: v for k, v in original_sizes.items() if k != AXIS.POSITION}
+        perm = _get_axis_permutation(sizes_no_pos, axes_order)
+    else:
+        data = nd2_file.to_dask()
+        perm = permutation
+
+    if perm != tuple(range(data.ndim)):
+        data = data.transpose(perm)
+
+    return data
+
+
+def _create_zarr_group(
+    dest_path: Path, ome_metadata: dict[str, Any], zarr_version: Literal[3] = 3
+) -> None:
+    dest_path.mkdir(parents=True, exist_ok=True)
+    zarr_json = {
+        "zarr_format": zarr_version,
+        "node_type": "group",
+        "attributes": {"ome": ome_metadata},
+    }
+    (dest_path / "zarr.json").write_text(json.dumps(zarr_json, indent=2))
+
+
+def _write_single_multiscales(
+    *,
+    nd2_file: ND2File,
+    dest_path: Path,
+    pos_idx: int | None,
+    ome_metadata: dict[str, Any],
+    axes_order: list[str],
+    permutation: tuple[int, ...],
+    dim_names: list[str],
+    write_array: WriteArrayFunc,
+    chunk_shape: tuple[int, ...] | Literal["auto"] | None,
+    shard_shape: tuple[int, ...] | None,
+    progress: bool,
+    zarr_version: Literal[3] = 3,
+) -> None:
+    """Write a single OME-Zarr multiscales image."""
+    # create destination group directory
+    if "multiscales" not in ome_metadata:
+        raise ValueError(
+            "ome_metadata for `_write_single_image` must contain 'multiscales' key."
+        )
+    _create_zarr_group(dest_path, ome_metadata, zarr_version)
+
+    # write the actual data array at "0"
+    data = _get_position_data(nd2_file, pos_idx, axes_order, permutation)
+    chunks = _determine_chunks(data, chunk_shape)
+    write_array(
+        path=dest_path / "0",
+        data=data,
+        chunks=chunks,
+        shard_shape=shard_shape,
+        dimension_names=dim_names,
+        progress=progress,
+    )
+
+
+def _write_bioformats2raw_layout(
+    nd2_file: ND2File,
+    dest_path: Path,
+    positions_to_export: list[int],
+    axes_order: list[str],
+    permutation: tuple[int, ...],
+    dim_names: list[str],
+    write_array: WriteArrayFunc,
+    chunk_shape: tuple[int, ...] | Literal["auto"] | None,
+    shard_shape: tuple[int, ...] | None,
+    progress: bool,
+) -> None:
+    """Write OME-Zarr with bioformats2raw layout for multiple positions."""
+    from yaozarrs import v05
+
+    dest_path.mkdir(parents=True, exist_ok=True)
+
+    # Write root zarr.json with bioformats2raw.layout
+    bf2raw = v05.Bf2Raw(bioformats2raw_layout=3)  # pyright: ignore
+    root_zarr_json = {
+        "zarr_format": 3,
+        "node_type": "group",
+        "attributes": {"ome": bf2raw.model_dump(mode="json", exclude_none=True)},
+    }
+    (dest_path / "zarr.json").write_text(json.dumps(root_zarr_json, indent=2))
+
+    # Create OME directory with series metadata and METADATA.ome.xml
+    ome_path = dest_path / "OME"
+    ome_path.mkdir(parents=True, exist_ok=True)
+
+    # Write OME/zarr.json with series list
+    series_list = [str(i) for i in positions_to_export]
+    series = v05.Series(series=series_list)
+    ome_zarr_json = {
+        "zarr_format": 3,
+        "node_type": "group",
+        "attributes": {"ome": series.model_dump(mode="json", exclude_none=True)},
+    }
+    (ome_path / "zarr.json").write_text(json.dumps(ome_zarr_json, indent=2))
+
+    # Generate and write METADATA.ome.xml
+    ome_metadata = nd2_ome_metadata(nd2_file, include_unstructured=False)
+    (ome_path / "METADATA.ome.xml").write_text(ome_metadata.to_xml())
+
+    # Write each position
+    for pos_idx in positions_to_export:
+        pos_name = str(pos_idx)
+        pos_path = dest_path / pos_name
+
+        pos_metadata = _create_multiscale_metadata(
+            nd2_file, ["0"], axes_order, name=pos_name
+        )
+
+        _write_single_multiscales(
+            nd2_file=nd2_file,
+            dest_path=pos_path,
+            pos_idx=pos_idx,
+            ome_metadata=pos_metadata,
+            axes_order=axes_order,
+            permutation=permutation,
+            dim_names=dim_names,
+            write_array=write_array,
+            chunk_shape=chunk_shape,
+            shard_shape=shard_shape,
+            progress=progress,
+        )
+
+
+def _nd2_to_ome_zarr_v05(
+    nd2_file: ND2File,
+    dest_path: Path,
+    *,
+    chunk_shape: tuple[int, ...] | Literal["auto"] | None = "auto",
+    shard_shape: tuple[int, ...] | None = None,
+    backend: ZarrBackend = "zarr",
+    progress: bool = False,
+    position: int | None = None,
+    force_series: bool = False,
+) -> Path:
+    """Export an ND2 file to OME-Zarr format using NGFF v0.5 specification."""
+    write_array = _get_write_func(backend)  # may raise
+
+    # Handle position axis specially
+    nd2_sizes = dict(nd2_file.sizes)
+    has_positions = AXIS.POSITION in nd2_sizes
+    n_positions = nd2_sizes.pop(AXIS.POSITION, 1)
+
+    if position is not None:
+        if position >= n_positions:
+            raise IndexError(
+                f"Position {position} out of range. File has {n_positions} positions."
+            )
+        positions_to_export = [position]
+    else:
+        positions_to_export = list(range(n_positions))
+
+    # Get OME-Zarr axis order (excluding position)
+    axes_order = sorted(nd2_sizes, key=lambda ax: _OME_AXIS_ORDER.get(ax, 99))
+    permutation = _get_axis_permutation(nd2_sizes, axes_order)
+    dim_names = [ax.lower() for ax in axes_order]
+
+    if len(positions_to_export) == 1 and not force_series:
+        # Single image - write directly to dest
+        metadata = _create_multiscale_metadata(
+            nd2_file, ["0"], axes_order, name=dest_path.stem
+        )
+        pos_idx = positions_to_export[0] if has_positions else None
+        _write_single_multiscales(
+            nd2_file=nd2_file,
+            dest_path=dest_path,
+            pos_idx=pos_idx,
+            ome_metadata=metadata,
+            axes_order=axes_order,
+            permutation=permutation,
+            dim_names=dim_names,
+            write_array=write_array,
+            chunk_shape=chunk_shape,
+            shard_shape=shard_shape,
+            progress=progress,
+        )
+    else:
+        # Multiple positions - use bioformats2raw layout
+        _write_bioformats2raw_layout(
+            nd2_file,
+            dest_path,
+            positions_to_export,
+            axes_order,
+            permutation,
+            dim_names,
+            write_array,
+            chunk_shape,
+            shard_shape,
+            progress,
+        )
+
+    return dest_path
+
+
+# ######################## Array Writing Functions ################################
+
+
 def _write_array_zarr(
     path: Path,
     data: Any,
@@ -253,24 +618,9 @@ def _write_array_zarr(
     shard_shape: tuple[int, ...] | None = None,
     dimension_names: list[str] | None = None,
     progress: bool = False,
+    zarr_format: Literal[3] = 3,
 ) -> None:
-    """Write array using zarr-python backend.
-
-    Parameters
-    ----------
-    path : Path
-        Path to write array
-    data : array-like
-        Data to write (numpy or dask array)
-    chunks : tuple[int, ...]
-        Chunk shape
-    shard_shape : tuple[int, ...] | None
-        Shard shape for sharded storage, or None for regular chunks
-    dimension_names : list[str] | None
-        Names for each dimension
-    progress : bool
-        Whether to show progress
-    """
+    """Write array using zarr-python backend."""
     import zarr
     import zarr.storage
     from zarr.codecs import BloscCodec
@@ -293,6 +643,7 @@ def _write_array_zarr(
         dtype=data.dtype,
         compressors=compressor,
         dimension_names=dimension_names,
+        zarr_format=zarr_format,
     )
 
     # Write data
@@ -300,7 +651,7 @@ def _write_array_zarr(
         import dask.array as da
 
         if progress:
-            from dask.diagnostics import ProgressBar
+            from dask.diagnostics.progress import ProgressBar
 
             with ProgressBar():
                 da.store(data, arr, lock=False)
@@ -318,59 +669,29 @@ def _write_array_tensorstore(
     dimension_names: list[str] | None = None,
     progress: bool = False,
 ) -> None:
-    """Write array using tensorstore backend.
-
-    Parameters
-    ----------
-    path : Path
-        Path to write array
-    data : array-like
-        Data to write (numpy or dask array)
-    chunks : tuple[int, ...]
-        Chunk shape
-    shard_shape : tuple[int, ...] | None
-        Shard shape for sharded storage
-    dimension_names : list[str] | None
-        Names for each dimension
-    progress : bool
-        Whether to show progress
-    """
+    """Write array using tensorstore backend."""
     import tensorstore as ts
 
     # Determine if data is dask
     is_dask = hasattr(data, "compute")
 
     # Build spec
-    spec: dict[str, Any] = {
-        "driver": "zarr3",
-        "kvstore": {"driver": "file", "path": str(path)},
-        "metadata": {
-            "shape": list(data.shape),
-            "data_type": str(data.dtype),
-            "chunk_grid": {
-                "name": "regular",
-                "configuration": {"chunk_shape": list(chunks)},
+    metadata = {
+        "shape": list(data.shape),
+        "data_type": str(data.dtype),
+        "chunk_grid": {
+            "name": "regular",
+            "configuration": {
+                "chunk_shape": list(shard_shape) if shard_shape else list(chunks)
             },
-            "codecs": [
-                {"name": "bytes", "configuration": {"endian": "little"}},
-                {
-                    "name": "blosc",
-                    "configuration": {"cname": "zstd", "clevel": 3},
-                },
-            ],
         },
-        "create": True,
-        "delete_existing": True,
     }
 
     if dimension_names:
-        spec["metadata"]["dimension_names"] = dimension_names
+        metadata["dimension_names"] = dimension_names
 
     if shard_shape is not None:
-        spec["metadata"]["chunk_grid"]["configuration"]["chunk_shape"] = list(
-            shard_shape
-        )
-        spec["metadata"]["codecs"] = [
+        metadata["codecs"] = [
             {
                 "name": "sharding_indexed",
                 "configuration": {
@@ -385,7 +706,22 @@ def _write_array_tensorstore(
                 },
             }
         ]
+    else:
+        metadata["codecs"] = [
+            {"name": "bytes", "configuration": {"endian": "little"}},
+            {
+                "name": "blosc",
+                "configuration": {"cname": "zstd", "clevel": 3},
+            },
+        ]
 
+    spec: dict[str, Any] = {
+        "driver": "zarr3",
+        "kvstore": {"driver": "file", "path": str(path)},
+        "metadata": metadata,
+        "create": True,
+        "delete_existing": True,
+    }
     store = ts.open(spec).result()
 
     # Write data
@@ -421,316 +757,3 @@ def _get_write_func(backend: ZarrBackend) -> WriteArrayFunc:
             )
         return _write_array_tensorstore
     raise ValueError(f"Unknown backend: {backend}")
-
-
-def _determine_chunks(
-    data: np.ndarray,
-    chunk_shape: tuple[int, ...] | Literal["auto"] | None,
-) -> tuple[int, ...]:
-    """Determine chunk shape based on user input."""
-    if chunk_shape == "auto":
-        return _ensure_chunks(data.shape, None, data.dtype.itemsize)
-    elif chunk_shape is None:
-        return data.shape
-    else:
-        return _ensure_chunks(data.shape, chunk_shape, data.dtype.itemsize)
-
-
-def _get_position_data(
-    nd2_file: ND2File,
-    pos_idx: int | None,
-    axes_order: list[str],
-    permutation: tuple[int, ...],
-) -> Any:
-    """Get data for a position, handling axis permutation."""
-    original_sizes = dict(nd2_file.sizes)
-    has_positions = AXIS.POSITION in original_sizes
-
-    if has_positions and pos_idx is not None:
-        data = nd2_file.asarray(position=pos_idx)
-        # Squeeze out position dimension
-        pos_dim_idx = list(original_sizes.keys()).index(AXIS.POSITION)
-        data = np.squeeze(data, axis=pos_dim_idx)
-        # Get permutation without position axis
-        sizes_no_pos = {k: v for k, v in original_sizes.items() if k != AXIS.POSITION}
-        perm = _get_axis_permutation(sizes_no_pos, axes_order)
-    else:
-        data = nd2_file.to_dask()
-        perm = permutation
-
-    if perm != tuple(range(data.ndim)):
-        data = data.transpose(perm)
-
-    return data
-
-
-def _write_single_image(
-    nd2_file: ND2File,
-    dest_path: Path,
-    pos_idx: int | None,
-    metadata: dict[str, Any],
-    axes_order: list[str],
-    permutation: tuple[int, ...],
-    dim_names: list[str],
-    write_array: WriteArrayFunc,
-    chunk_shape: tuple[int, ...] | Literal["auto"] | None,
-    shard_shape: tuple[int, ...] | None,
-    progress: bool,
-) -> None:
-    """Write a single OME-Zarr image (no bioformats2raw layout)."""
-    _write_zarr_json(dest_path, metadata)
-
-    data = _get_position_data(nd2_file, pos_idx, axes_order, permutation)
-    chunks = _determine_chunks(data, chunk_shape)
-
-    write_array(
-        dest_path / "0",
-        data,
-        chunks,
-        shard_shape,
-        dim_names,
-        progress,
-    )
-
-
-def _write_bioformats2raw_layout(
-    nd2_file: ND2File,
-    dest_path: Path,
-    positions_to_export: list[int],
-    axes_order: list[str],
-    permutation: tuple[int, ...],
-    dim_names: list[str],
-    write_array: WriteArrayFunc,
-    chunk_shape: tuple[int, ...] | Literal["auto"] | None,
-    shard_shape: tuple[int, ...] | None,
-    progress: bool,
-) -> None:
-    """Write OME-Zarr with bioformats2raw layout for multiple positions."""
-    from yaozarrs import v05
-
-    # Write root zarr.json with bioformats2raw.layout
-    bf2raw = v05.Bf2Raw(bioformats2raw_layout=3)
-    root_zarr_json = {
-        "zarr_format": 3,
-        "node_type": "group",
-        "attributes": {"ome": bf2raw.model_dump(mode="json", exclude_none=True)},
-    }
-    (dest_path / "zarr.json").write_text(json.dumps(root_zarr_json, indent=2))
-
-    # Create OME directory with series metadata and METADATA.ome.xml
-    ome_path = dest_path / "OME"
-    ome_path.mkdir(parents=True, exist_ok=True)
-
-    # Write OME/zarr.json with series list
-    series_list = [str(i) for i in positions_to_export]
-    series = v05.Series(series=series_list)
-    ome_zarr_json = {
-        "zarr_format": 3,
-        "node_type": "group",
-        "attributes": {"ome": series.model_dump(mode="json", exclude_none=True)},
-    }
-    (ome_path / "zarr.json").write_text(json.dumps(ome_zarr_json, indent=2))
-
-    # Generate and write METADATA.ome.xml
-    ome_metadata = nd2_ome_metadata(nd2_file, include_unstructured=False)
-    (ome_path / "METADATA.ome.xml").write_text(ome_metadata.to_xml())
-
-    # Write each position
-    for pos_idx in positions_to_export:
-        pos_name = str(pos_idx)
-        pos_path = dest_path / pos_name
-
-        data = _get_position_data(nd2_file, pos_idx, axes_order, permutation)
-
-        # Write position group metadata
-        pos_metadata = _create_multiscale_metadata(
-            nd2_file, ["0"], axes_order, name=pos_name
-        )
-        pos_path.mkdir(parents=True, exist_ok=True)
-        _write_zarr_json(pos_path, pos_metadata)
-
-        chunks = _determine_chunks(data, chunk_shape)
-
-        write_array(
-            pos_path / "0",
-            data,
-            chunks,
-            shard_shape,
-            dim_names,
-            progress,
-        )
-
-
-def _nd2_to_ome_zarr_v05(
-    nd2_file: ND2File,
-    dest_path: Path,
-    *,
-    chunk_shape: tuple[int, ...] | Literal["auto"] | None = "auto",
-    shard_shape: tuple[int, ...] | None = None,
-    backend: ZarrBackend = "zarr",
-    progress: bool = False,
-    position: int | None = None,
-    force_series: bool = False,
-) -> Path:
-    """Export an ND2 file to OME-Zarr format using NGFF v0.5 specification."""
-    write_array = _get_write_func(backend)  # may raise
-
-    dest_path.mkdir(parents=True, exist_ok=True)
-
-    # Handle position axis specially
-    nd2_sizes = dict(nd2_file.sizes)
-    has_positions = AXIS.POSITION in nd2_sizes
-    n_positions = nd2_sizes.pop(AXIS.POSITION, 1)
-
-    if position is not None:
-        if position >= n_positions:
-            raise IndexError(
-                f"Position {position} out of range. File has {n_positions} positions."
-            )
-        positions_to_export = [position]
-    else:
-        positions_to_export = list(range(n_positions))
-
-    # Get OME-Zarr axis order (excluding position)
-    axes_order = sorted(nd2_sizes, key=lambda ax: _OME_AXIS_ORDER.get(ax, 99))
-    permutation = _get_axis_permutation(nd2_sizes, axes_order)
-    dim_names = [ax.lower() for ax in axes_order]
-
-    if len(positions_to_export) == 1 and not force_series:
-        # Single image - write directly to dest
-        metadata = _create_multiscale_metadata(
-            nd2_file, ["0"], axes_order, name=dest_path.stem
-        )
-        pos_idx = positions_to_export[0] if has_positions else None
-        _write_single_image(
-            nd2_file,
-            dest_path,
-            pos_idx,
-            metadata,
-            axes_order,
-            permutation,
-            dim_names,
-            write_array,
-            chunk_shape,
-            shard_shape,
-            progress,
-        )
-    else:
-        # Multiple positions - use bioformats2raw layout
-        _write_bioformats2raw_layout(
-            nd2_file,
-            dest_path,
-            positions_to_export,
-            axes_order,
-            permutation,
-            dim_names,
-            write_array,
-            chunk_shape,
-            shard_shape,
-            progress,
-        )
-
-    return dest_path
-
-
-def nd2_to_ome_zarr(
-    nd2_file: ND2File,
-    dest: str | PathLike,
-    *,
-    chunk_shape: tuple[int, ...] | Literal["auto"] | None = "auto",
-    shard_shape: tuple[int, ...] | None = None,
-    backend: ZarrBackend = "zarr",
-    progress: bool = False,
-    position: int | None = None,
-    force_series: bool = False,
-    version: Literal["0.5"] = "0.5",
-) -> Path:
-    """Export an ND2 file to OME-Zarr format.
-
-    Creates a Zarr v3 store with OME-NGFF compliant metadata.
-    The output uses yaozarrs for metadata generation and can use either
-    zarr-python or tensorstore for array writing.
-
-    Parameters
-    ----------
-    nd2_file : ND2File
-        An open ND2File object to export.
-    dest : str | PathLike
-        Destination path for the Zarr store. Will be created as a directory.
-    chunk_shape : tuple[int, ...] | "auto" | None
-        Shape of chunks for the output array. If "auto" (default), determines
-        optimal chunking based on data size. If None, uses a single chunk.
-    shard_shape : tuple[int, ...] | None
-        Shape of shards for sharded storage. If provided, enables Zarr v3
-        sharding where each shard contains multiple chunks. Useful for
-        cloud storage to reduce number of objects.
-    backend : "zarr" | "tensorstore"
-        Backend library to use for writing arrays.
-        - "zarr": Uses zarr-python (default)
-        - "tensorstore": Uses Google's tensorstore library
-    progress : bool
-        Whether to display a progress bar during writing.
-    position : int | None
-        If the ND2 file contains multiple positions (XY stage positions),
-        export only this position index. If None, exports all positions
-        as separate groups within the store.
-    force_series : bool
-        If True, use bioformats2raw layout even for single position files.
-        This creates a store with OME/ directory and series metadata,
-        with the image in a "0/" subdirectory. Default is False.
-    version : "0.5"
-        OME-NGFF specification version to use. Currently only "0.5" is
-        supported. This parameter is reserved for future use.
-
-    Returns
-    -------
-    Path
-        Path to the created Zarr store.
-
-    Raises
-    ------
-    ImportError
-        If the required backend library is not installed.
-    ValueError
-        If the file contains unsupported data structures or invalid version.
-
-    Examples
-    --------
-    Basic export:
-
-    >>> import nd2
-    >>> with nd2.ND2File("experiment.nd2") as f:
-    ...     f.to_ome_zarr("experiment.zarr")
-
-    Export with specific chunking and sharding:
-
-    >>> with nd2.ND2File("experiment.nd2") as f:
-    ...     f.to_ome_zarr(
-    ...         "experiment.zarr",
-    ...         chunk_shape=(1, 1, 64, 256, 256),
-    ...         shard_shape=(1, 1, 256, 1024, 1024),
-    ...     )
-
-    Export using tensorstore backend:
-
-    >>> with nd2.ND2File("experiment.nd2") as f:
-    ...     f.to_ome_zarr("experiment.zarr", backend="tensorstore")
-    """
-    if version != "0.5":
-        raise ValueError(
-            f"Only version '0.5' is supported, got '{version}'. "
-            "This parameter is reserved for future use."
-        )
-
-    dest_path = Path(dest)
-
-    return _nd2_to_ome_zarr_v05(
-        nd2_file,
-        dest_path,
-        chunk_shape=chunk_shape,
-        shard_shape=shard_shape,
-        backend=backend,
-        progress=progress,
-        position=position,
-        force_series=force_series,
-    )

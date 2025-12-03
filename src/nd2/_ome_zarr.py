@@ -18,11 +18,18 @@ import numpy as np
 from nd2._ome import nd2_ome_metadata
 from nd2._util import AXIS
 
+try:
+    from yaozarrs import v05
+except ImportError:
+    raise ImportError(
+        "yaozarrs is required for OME-Zarr export. "
+        "Please pip install with either `nd2[ome-zarr]` or `nd2[ome-zarr-tensorstore]`"
+    ) from None
+
 if TYPE_CHECKING:
     from os import PathLike
 
     from typing_extensions import Protocol, TypeAlias
-    from yaozarrs import v05
 
     from nd2 import ND2File
 
@@ -196,8 +203,6 @@ def _get_axis_permutation(
 
 def _create_yaozarrs_axes(axes_order: list[str]) -> list[Any]:
     """Create yaozarrs axis definitions for the given axes order."""
-    from yaozarrs import v05
-
     axis_map = {
         AXIS.TIME: v05.TimeAxis(name="t", unit="millisecond"),
         AXIS.CHANNEL: v05.ChannelAxis(name="c"),
@@ -276,8 +281,6 @@ def _create_image_model(
     name : str, optional
         Name for the multiscale
     """
-    from yaozarrs import v05
-
     axes = _create_yaozarrs_axes(axes_order)
     scale_values = _get_scale_values(nd2_file, axes_order)
 
@@ -461,8 +464,6 @@ def _write_bioformats2raw_layout(
     progress: bool,
 ) -> None:
     """Write OME-Zarr with bioformats2raw layout for multiple positions."""
-    from yaozarrs import v05
-
     # Write root zarr.json with bioformats2raw.layout
     bf2raw = v05.Bf2Raw(bioformats2raw_layout=3)  # pyright: ignore
     _create_zarr_group(dest_path, ome_model=bf2raw)

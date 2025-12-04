@@ -38,7 +38,6 @@ if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
     from nd2._binary import BinaryLayers
-    from nd2._jobs_schema import JobsDict
     from nd2._parse._chunk_decode import ChunkMap
     from nd2._sdk_types import (
         BinaryMetaDict,
@@ -51,6 +50,7 @@ if TYPE_CHECKING:
         RawTextInfoDict,
     )
     from nd2._util import FileOrBinaryIO
+    from nd2.jobs._schema import JobsDict
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]
@@ -464,7 +464,7 @@ class ModernReader(ND2Reader):
                 result["Job"] = job_def["Job"]
                 result["ProtectedJob"] = None
 
-        return result
+        return cast("JobsDict", result)
 
     def _acquisition_data(self) -> dict[str, Sequence[Any]]:
         """Return a dict of acquisition times and z-series indices for each image.

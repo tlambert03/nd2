@@ -17,8 +17,8 @@ if TYPE_CHECKING:
     import numpy as np
 
     from nd2._binary import BinaryLayers
-    from nd2._jobs_schema import JobsDict
     from nd2._util import FileOrBinaryIO
+    from nd2.jobs._schema import JobsDict
     from nd2.structures import (
         ROI,
         Attributes,

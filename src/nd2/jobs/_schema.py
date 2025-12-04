@@ -9,9 +9,12 @@ job metadata embedded in ND2 files.
 
 from __future__ import annotations
 
-from typing import Any, Union
+from typing import TYPE_CHECKING, Any
 
 from typing_extensions import Required, TypedDict
+
+if TYPE_CHECKING:
+    from ._tasks import Task
 
 # ============================================================
 # Top-level structures
@@ -33,6 +36,8 @@ class JobsDict(TypedDict, total=False):
     """The actual job definition."""
     ProtectedJob: ProtectedJob | None
     """Encryption info if job is protected, None otherwise."""
+    Custom_wellplate: Custom_wellplate
+    """Custom wellplate definition at top level (for standalone .bin files)."""
 
 
 class ProgramDesc(TypedDict, total=False):
@@ -115,8 +120,18 @@ class CustomDefinitions(TypedDict, total=False):
     CustomWellplate: CustomWellplate
 
 
+class Custom_wellplate(TypedDict):
+    """Top-level custom wellplate definition wrapper.
+
+    This appears at the top level in standalone .bin files,
+    separate from the Job structure.
+    """
+
+    CLxWellplate: CLxWellplate
+
+
 class CustomWellplate(TypedDict):
-    """Custom wellplate definition wrapper."""
+    """Custom wellplate definition wrapper (inside CustomDefinitions)."""
 
     CLxWellplate: CLxWellplate
 
@@ -227,6 +242,10 @@ class PropertyDefinitionItem(TypedDict, total=False):
     """Description for value 1 (e.g., 'Yes')."""
     Value2Desc: str
     """Description for value 2 (e.g., 'No')."""
+    Value3Desc: str
+    """Description for value 3."""
+    Value4Desc: str
+    """Description for value 4."""
     Flags: int
     """Additional flags."""
     DependencyExpression: dict[str, Any]
@@ -236,163 +255,21 @@ class PropertyDefinitionItem(TypedDict, total=False):
 # ============================================================
 # Tasks
 # ============================================================
+# Task type definition has been moved to nd2.jobs._tasks module.
+# Import Task from there if needed.
+#
+# Example usage:
+#   from nd2.jobs._tasks import Task
+#
+#   tasks: dict[str, Task] = job["Tasks"]
+#   for task_id, task in tasks.items():
+#       print(f"Task {task_id}: {task['Name']}")
+#       # task_id is user-provided identifier
+#       # task['Name'] is user-provided label
 
-TasksDict = dict[str, "BaseTask"]
-"""Dictionary mapping task names to task definitions.
+TasksDict = dict[str, "Task"]
+"""Dictionary mapping user-provided task identifiers to task definitions.
 
-Task names include: WellplateDefinition, WellplateSelection, LoopWells,
-CaptureLambdaDefinition, LoopPoint, LoopTime, AutoFocus, etc.
+The keys are arbitrary user-provided identifiers (like variable names in a workflow).
+The values are Task objects with a common structure defined in nd2.jobs._tasks.
 """
-
-TaskData = Union[dict[str, Any], list[Any], list[int]]
-"""Task-specific data. Structure varies by task type."""
-
-
-class BaseTask(TypedDict):
-    """Base task structure common to all task types.
-
-    All 89+ task types share these common fields. The `Data` and
-    `Parameters` fields contain task-specific information.
-    """
-
-    Key: int
-    """Unique key identifying this task within the job."""
-    JobtaskKeyRef: int
-    """Reference to parent task key (0 if none)."""
-    BlockNumber: int
-    """Block number for task grouping."""
-    Order: int
-    """Execution order within the block."""
-    Version: int
-    """Task version number."""
-    Name: str
-    """Display name for the task."""
-    Data: TaskData
-    """Task-specific data (varies by task type)."""
-    Parameters: dict[str, Any]
-    """Task-specific parameters."""
-    SlotConnections: SlotConnectionsWrapper | list[Any]
-    """Connections to other tasks' outputs."""
-    Notes: str
-    """User notes for this task."""
-    NotesDetailed: str
-    """Detailed description of what this task does."""
-    StateFlags: int
-    """State flags for the task."""
-    LockableParams: LockableParamsWrapper
-    """Parameters that can be locked/unlocked."""
-
-
-class SlotConnectionsWrapper(TypedDict):
-    """Wrapper for slot connections."""
-
-    SlotConnections: dict[str, SlotConnection]
-    """Dictionary mapping slot names (Slot0, Slot1, etc.) to connections."""
-
-
-class SlotConnection(TypedDict):
-    """Connection from one task's output to another's input."""
-
-    SlotType: int
-    """Type identifier for the slot."""
-    ParameterName: str
-    """Name of the parameter being connected (e.g., 'Plate.Wellplate')."""
-    ParameterType: int
-    """Type of the parameter."""
-
-
-class LockableParamsWrapper(TypedDict):
-    """Wrapper for lockable parameters."""
-
-    LockableParams: dict[str, bool]
-    """Dictionary mapping parameter names to locked state."""
-
-
-# ============================================================
-# Well Selection (specific task data)
-# ============================================================
-
-
-class WellSelectionData(TypedDict):
-    """Data for WellplateSelection task."""
-
-    WellSelectionSettings: WellSelectionSettings
-
-
-class WellSelectionSettings(TypedDict):
-    """Settings for well selection."""
-
-    Color: int
-    """Color code for selection display."""
-    OrderingType: int
-    """Ordering type for well iteration."""
-    SelectionMask: SelectionMask
-    """Bitmask defining selected wells."""
-
-
-class SelectionMask(TypedDict):
-    """Bitmask for well selection.
-
-    The `Ma` field is a byte array where each bit represents a well.
-    Wells are numbered row-by-row: well 0 = A1, well 1 = A2, etc.
-    """
-
-    Si: int
-    """Total number of wells (e.g., 96 for 96-well plate)."""
-    St: int
-    """Start index."""
-    Co: int
-    """Column count."""
-    Sp: int
-    """Spacing."""
-    Ma: list[int]
-    """Bitmask as byte array. Each bit indicates if well is selected."""
-
-
-# ============================================================
-# Wellplate Definition (specific task data)
-# ============================================================
-
-
-class WellplateDefinitionData(TypedDict):
-    """Data for WellplateDefinition task."""
-
-    WellplateUUID: WellplateUUID
-
-
-class WellplateUUID(TypedDict):
-    """UUID reference to a wellplate definition."""
-
-    UUID: str
-    """UUID of the wellplate definition."""
-
-
-# ============================================================
-# Capture Definition (specific task data)
-# ============================================================
-
-
-class CaptureLambdaData(TypedDict, total=False):
-    """Data for CaptureLambdaDefinition task."""
-
-    CaptureLambda: CaptureLambda
-
-
-class CaptureLambda(TypedDict, total=False):
-    """Capture/acquisition settings."""
-
-    UUID: str
-    """Unique identifier."""
-    Channels: dict[str, ChannelConfig]
-    """Channel configurations."""
-
-
-class ChannelConfig(TypedDict, total=False):
-    """Configuration for a single channel."""
-
-    Name: str
-    """Channel name."""
-    ExposureMs: float
-    """Exposure time in milliseconds."""
-    OpticalConfigName: str
-    """Name of the optical configuration."""

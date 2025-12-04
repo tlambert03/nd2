@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     import xarray as xr
     from ome_types import OME
 
-    from nd2._jobs_schema import JobsDict
+    from nd2.jobs._schema import JobsDict
 
     from ._binary import BinaryLayers
     from ._util import (

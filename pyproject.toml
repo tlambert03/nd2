@@ -123,6 +123,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "src/nd2/structures.py" = ["D101", "D105"] # Fix someday
+"src/nd2/jobs/types.py" = ["D101"]
 "tests/*.py" = ["D", "S"]
 "scripts/*.py" = ["D", "S"]
 
@@ -195,4 +196,4 @@ ignore = [
 extend-ignore-identifiers-re = ["(?i)nd2?.*", "(?i)ome", "AIMD"]
 
 [tool.typos.files]
-extend-exclude = ["*.json", "**/_sdk_types.py", "src/nd2/jobs/tasks.pyi"]
+extend-exclude = ["*.json", "**/_sdk_types.py", "src/nd2/jobs/types.py"]

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal
 
-from typing_extensions import NotRequired, Required, TypedDict
+from typing_extensions import NotRequired, Required, TypeAlias, TypedDict
 
 if TYPE_CHECKING:
 
@@ -220,7 +220,8 @@ if TYPE_CHECKING:
         DependencyExpression: dict[str, Any]
         """Expression for conditional visibility."""
 
-    # all the TaskNames we have observed in the wild... but not necessarily all that exist.
+    # all the TaskNames we have observed in the wild...
+    # but not necessarily all that exist.
     TaskName = Literal[
         "CaptureLambdaDefinition",
         "CaptureLambdaAssayLI",
@@ -313,23 +314,21 @@ if TYPE_CHECKING:
     TasksDict = dict[TaskName | str, "Task"]
     """Dictionary mapping user-provided task identifiers to task definitions.
 
-    The keys are arbitrary user-provided identifiers (like variable names in a workflow).
-    The values are Task objects with a common structure defined in nd2.jobs._tasks.
+    The keys are arbitrary user-provided identifiers (like variable names in a
+    workflow). The values are Task objects with a common structure defined in
+    nd2.jobs._tasks.
     """
 
-    """Task type definitions for JOBS workflow tasks.
-
-    The JOBS task structure is generic - tasks share a common structure with
-    Data/Parameters fields containing nested dictionaries whose structure varies
-    based on the specific task configuration. The Name field is a user-provided
-    label, not a structural type indicator.
-    """
-
-    from __future__ import annotations
-
-    from typing import Literal
-
-    from typing_extensions import TypeAlias, TypedDict
+    # #########################################################################
+    #
+    # Task type definitions for JOBS workflow tasks.
+    #
+    # The JOBS task structure is generic - tasks share a common structure with
+    # Data/Parameters fields containing nested dictionaries whose structure varies
+    # based on the specific task configuration. The Name field is a user-provided
+    # label, not a structural type indicator.
+    #
+    # #########################################################################
 
     class SlotConnection(TypedDict, total=False):
         """Connection from one task's output to another's input."""
@@ -477,10 +476,10 @@ if TYPE_CHECKING:
     # Task.Data
     # ##########################################################
 
-    # These dicts are provided just as a convenient list of observed task data structures.
-    # They are not exhaustive or definitive; many variations likely exist.
-    # But as you parse a Task.Data field, you may find that your payload matches one
-    # of these structures, and you can cast(...) if desired.
+    # These dicts are provided just as a convenient list of observed task data
+    # structures. They are not exhaustive or definitive; many variations likely exist.
+    # But as you parse a Task.Data field, you may find that your payload matches one of
+    # these structures, and you can cast(...) if desired.
 
     class AssignExposure(TypedDict, total=False):
         Exposure: float

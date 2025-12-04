@@ -186,7 +186,7 @@ def _chunk_name_and_dtype(
     return (name, data_type)
 
 
-UnparseableBytesRepr = Literal["base64", "list"]
+UnparsableBytesRepr = Literal["base64", "list"]
 
 # Default threshold for base64 encoding. Byte arrays smaller than this are kept as
 # list[int] even in base64 mode, preserving small binary data (like matrices, flags)
@@ -194,10 +194,10 @@ UnparseableBytesRepr = Literal["base64", "list"]
 DEFAULT_BASE64_THRESHOLD = 256
 
 
-def _format_unparseable_bytes(
-    raw: bytes, fmt: UnparseableBytesRepr, threshold: int
+def _format_unparsable_bytes(
+    raw: bytes, fmt: UnparsableBytesRepr, threshold: int
 ) -> str | list[int]:
-    """Format unparseable bytes according to the specified representation."""
+    """Format unparsable bytes according to the specified representation."""
     if fmt == "base64" and len(raw) >= threshold:
         b64 = base64.b64encode(raw).decode("ascii")
         return f"data:application/octet-stream;base64,{b64}"
@@ -210,7 +210,7 @@ def json_from_clx_lite_variant(
     strip_prefix: bool = True,
     _count: int = 1,
     *,
-    unparseable_bytes: UnparseableBytesRepr = "base64",
+    unparsable_bytes: UnparsableBytesRepr = "base64",
     base64_threshold: int = DEFAULT_BASE64_THRESHOLD,
     lists_to_indexed_dicts: bool = True,
 ) -> dict[str, JsonValueType]:
@@ -231,7 +231,7 @@ def json_from_clx_lite_variant(
             return json_from_clx_lite_variant(
                 deflated,
                 strip_prefix,
-                unparseable_bytes=unparseable_bytes,
+                unparsable_bytes=unparsable_bytes,
                 base64_threshold=base64_threshold,
                 lists_to_indexed_dicts=lists_to_indexed_dicts,
             )
@@ -248,7 +248,7 @@ def json_from_clx_lite_variant(
                 next_data_length,
                 strip_prefix,
                 item_count,
-                unparseable_bytes=unparseable_bytes,
+                unparsable_bytes=unparsable_bytes,
                 base64_threshold=base64_threshold,
                 lists_to_indexed_dicts=lists_to_indexed_dicts,
             )
@@ -274,13 +274,13 @@ def json_from_clx_lite_variant(
                     value = json_from_clx_lite_variant(
                         raw_bytes,
                         strip_prefix,
-                        unparseable_bytes=unparseable_bytes,
+                        unparsable_bytes=unparsable_bytes,
                         base64_threshold=base64_threshold,
                         lists_to_indexed_dicts=lists_to_indexed_dicts,
                     )
             if not value:
-                value = _format_unparseable_bytes(
-                    raw_bytes, unparseable_bytes, base64_threshold
+                value = _format_unparsable_bytes(
+                    raw_bytes, unparsable_bytes, base64_threshold
                 )
 
         elif data_type in _PARSERS:

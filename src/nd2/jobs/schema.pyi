@@ -9,17 +9,12 @@ job metadata embedded in ND2 files.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from typing_extensions import Required, TypedDict
 
 if TYPE_CHECKING:
     from ._tasks import Task
-
-# ============================================================
-# Top-level structures
-# ============================================================
-
 
 class JobsDict(TypedDict, total=False):
     """Top-level JOBS metadata from ND2 files.
@@ -39,12 +34,10 @@ class JobsDict(TypedDict, total=False):
     Custom_wellplate: Custom_wellplate
     """Custom wellplate definition at top level (for standalone .bin files)."""
 
-
 class ProgramDesc(TypedDict, total=False):
     """Program description metadata."""
 
     JobDefType: int
-
 
 class ProtectedJob(TypedDict):
     """Encryption information for protected jobs."""
@@ -53,12 +46,6 @@ class ProtectedJob(TypedDict):
     """Encrypted job data as byte array."""
     HashCheck: list[int]
     """Hash for verification."""
-
-
-# ============================================================
-# Job structure
-# ============================================================
-
 
 class Job(TypedDict):
     """Main job definition structure.
@@ -79,7 +66,6 @@ class Job(TypedDict):
     ProgramParameters: ProgramParameters
     """Program-level parameters."""
 
-
 class JobProperty(TypedDict, total=False):
     """Job metadata properties."""
 
@@ -96,7 +82,6 @@ class JobProperty(TypedDict, total=False):
     ProgressProperties_v2: int
     """Progress properties version 2."""
 
-
 class ProgramParameters(TypedDict):
     """Program-level parameters."""
 
@@ -105,12 +90,6 @@ class ProgramParameters(TypedDict):
     Properties: dict[str, Any] | list[Any]
     """Additional properties."""
 
-
-# ============================================================
-# Custom Definitions
-# ============================================================
-
-
 class CustomDefinitions(TypedDict, total=False):
     """Custom definitions container.
 
@@ -118,7 +97,6 @@ class CustomDefinitions(TypedDict, total=False):
     """
 
     CustomWellplate: CustomWellplate
-
 
 class Custom_wellplate(TypedDict):
     """Top-level custom wellplate definition wrapper.
@@ -129,12 +107,10 @@ class Custom_wellplate(TypedDict):
 
     CLxWellplate: CLxWellplate
 
-
 class CustomWellplate(TypedDict):
     """Custom wellplate definition wrapper (inside CustomDefinitions)."""
 
     CLxWellplate: CLxWellplate
-
 
 class CLxWellplate(TypedDict, total=False):
     """Wellplate configuration.
@@ -177,18 +153,15 @@ class CLxWellplate(TypedDict, total=False):
     YDistance: Required[float]
     """Distance between well centers in Y (micrometers)."""
 
-
 class CLxLayoutElement(TypedDict):
     """Layout element for well configuration."""
 
     ActiveArea: ActiveArea
 
-
 class ActiveArea(TypedDict):
     """Active area within a well."""
 
     SLxShape: SLxShape
-
 
 class SLxShape(TypedDict, total=False):
     """Shape definition.
@@ -215,14 +188,8 @@ class SLxShape(TypedDict, total=False):
     RectB: float
     """Bottom edge in micrometers (for rectangular shapes)."""
 
-
-# ============================================================
-# Property Definitions
-# ============================================================
-
 PropertyDefinitions = dict[str, "PropertyDefinitionItem"]
 """Dictionary of property definitions, keyed by index (i0000000000, etc.)."""
-
 
 class PropertyDefinitionItem(TypedDict, total=False):
     """A single property definition.
@@ -251,23 +218,97 @@ class PropertyDefinitionItem(TypedDict, total=False):
     DependencyExpression: dict[str, Any]
     """Expression for conditional visibility."""
 
+# all the TaskNames we have observed in the wild... but not necessarily all that exist.
+TaskName = Literal[
+    "CaptureLambdaDefinition",
+    "CaptureLambdaAssayLI",
+    "LoopPoint",
+    "PointSet",
+    "WellplateSelection",
+    "WellplateDefinition",
+    "LoopWells",
+    "Condition",
+    "ZStackDefinition",
+    "LoopZStack",
+    "LoopRegions",
+    "Question",
+    "OCSelect",
+    "LoopTime",
+    "LargeImageScan",
+    "Comment",
+    "AutoFocus",
+    "MoveToWellCenter",
+    "LargeImageScanRegion",
+    "LargeImageScanHolder",
+    "Expression",
+    "EmptyPointSet",
+    "DrawRegions",
+    "AutoFocusPerform",
+    "Variables",
+    "EveryNth",
+    "AssayWrapperLimCellCountVer1",
+    "AddPoint",
+    "ManualPointSet",
+    "Live",
+    "AlignWellplate",
+    "Regions",
+    "RedefineZ",
+    "PFSON",
+    "MoveToRegionCenter",
+    "BypassDatabase",
+    "AssayWrapperLimCellCountVer2",
+    "StageArea",
+    "SlideDefinitionNew",
+    "Repeating",
+    "Macro",
+    "WellplateLabeling",
+    "Wait",
+    "STORAGE",
+    "StageAreaNew",
+    "SetClass",
+    "RegisterRegion",
+    "PFSOFF",
+    "LoopSlides",
+    "KeepObjectInview",
+    "Ga3",
+    "FocusSurface",
+    "DefineFocusSurface",
+    "ConditionIfElse",
+    "Break",
+    "AssignExposure",
+    "AlignSlide",
+    "WellplateListManual",
+    "UsePFSSurface",
+    "TTLOut",
+    "STORMAcqClass",
+    "StimROIFromAnalysis",
+    "SmsNotification",
+    "SlideLoaderNew",
+    "SlideLoader",
+    "SetLabel",
+    "Replenish Water",
+    "RedefinePfs",
+    "OffsetFocusSurface",
+    "NdStimulationSim",
+    "MoveToZ",
+    "MoveToPoint",
+    "LoopWellplates",
+    "LoopTimeSequence",
+    "LoadCaptureDefinition",
+    "LabelDefinition",
+    "IlluminationSequence",
+    "FastTimelapse",
+    "DishDefinition",
+    "DefinePFSSurface",
+    "CaptureNSim",
+    "BypassDatabaseEx",
+    "AssignZStack",
+    "AssignCaptureDefinition",
+    "AssayWrapperLimOutProcVer1",
+    "AppendRegions",
+]
 
-# ============================================================
-# Tasks
-# ============================================================
-# Task type definition has been moved to nd2.jobs._tasks module.
-# Import Task from there if needed.
-#
-# Example usage:
-#   from nd2.jobs._tasks import Task
-#
-#   tasks: dict[str, Task] = job["Tasks"]
-#   for task_id, task in tasks.items():
-#       print(f"Task {task_id}: {task['Name']}")
-#       # task_id is user-provided identifier
-#       # task['Name'] is user-provided label
-
-TasksDict = dict[str, "Task"]
+TasksDict = dict[TaskName | str, "Task"]
 """Dictionary mapping user-provided task identifiers to task definitions.
 
 The keys are arbitrary user-provided identifiers (like variable names in a workflow).

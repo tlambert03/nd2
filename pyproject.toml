@@ -195,4 +195,4 @@ ignore = [
 extend-ignore-identifiers-re = ["(?i)nd2?.*", "(?i)ome", "AIMD"]
 
 [tool.typos.files]
-extend-exclude = ["*.json", "**/_sdk_types.py"]
+extend-exclude = ["*.json", "**/_sdk_types.py", "src/nd2/jobs/tasks.pyi"]

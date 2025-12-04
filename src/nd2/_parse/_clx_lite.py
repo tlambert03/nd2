@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import base64
-from contextlib import suppress
 import io
 import re
 import struct
 import zlib
+from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Callable, Literal, Union, cast
 
 if TYPE_CHECKING:
@@ -212,6 +212,7 @@ def json_from_clx_lite_variant(
     *,
     unparseable_bytes: UnparseableBytesRepr = "base64",
     base64_threshold: int = DEFAULT_BASE64_THRESHOLD,
+    lists_to_indexed_dicts: bool = True,
 ) -> dict[str, JsonValueType]:
     output: dict[str, JsonValueType] = {}
     if not data:
@@ -232,6 +233,7 @@ def json_from_clx_lite_variant(
                 strip_prefix,
                 unparseable_bytes=unparseable_bytes,
                 base64_threshold=base64_threshold,
+                lists_to_indexed_dicts=lists_to_indexed_dicts,
             )
 
         if data_type == -1:
@@ -248,14 +250,17 @@ def json_from_clx_lite_variant(
                 item_count,
                 unparseable_bytes=unparseable_bytes,
                 base64_threshold=base64_threshold,
+                lists_to_indexed_dicts=lists_to_indexed_dicts,
             )
             stream.seek(item_count * 8, 1)
-            # levels with a single "" key are actually lists
+            # In the binary format, list items have empty ("") names.
+            # LIM's JSON export converts these to indexed keys: i0000000000, etc.
             if len(val) == 1 and "" in val:
                 value = val[""]
                 if not isinstance(value, list):
                     value = [value]
-                value = {f"i{n:010}": x for n, x in enumerate(value)}
+                if lists_to_indexed_dicts:
+                    value = {f"i{n:010}": x for n, x in enumerate(value)}
             else:
                 value = val
 
@@ -271,6 +276,7 @@ def json_from_clx_lite_variant(
                         strip_prefix,
                         unparseable_bytes=unparseable_bytes,
                         base64_threshold=base64_threshold,
+                        lists_to_indexed_dicts=lists_to_indexed_dicts,
                     )
             if not value:
                 value = _format_unparseable_bytes(

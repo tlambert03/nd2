@@ -50,7 +50,7 @@ if TYPE_CHECKING:
         RawTextInfoDict,
     )
     from nd2._util import FileOrBinaryIO
-    from nd2.jobs._schema import JobsDict
+    from nd2.jobs.types import JobsDict
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]
@@ -435,36 +435,36 @@ class ModernReader(ND2Reader):
         desc_key = b"CustomData|JobDefinitionDescV1_0!"
         def_key = b"CustomData|JobDefinitionV1_0!"
 
-        if guid_key not in self.chunkmap:
+        if def_key not in self.chunkmap:
             return None
 
-        result: dict[str, Any] = {}
-
         # JobRunGUID is a UTF-16-LE encoded string
-        guid_data = self._load_chunk(guid_key)
-        result["JobRunGUID"] = guid_data.decode("utf-16-le").rstrip("\x00")
+        guid = ""
+        if guid_key in self.chunkmap:
+            guid_data = self._load_chunk(guid_key)
+            guid = guid_data.decode("utf-16-le").rstrip("\x00")
+
+        # JobDefinition contains the full job definition (may be encrypted)
+        job = protected_job = None
+        job_def = self._decode_chunk(def_key, strip_prefix=True)
+        if "ProtectedJob" in job_def:
+            # Job is encrypted - include full ProtectedJob with encrypted data
+            protected_job = job_def["ProtectedJob"]
+        elif "Job" in job_def:
+            job = job_def["Job"]
+
+        result: JobsDict = {
+            "Job": job,
+            "ProtectedJob": protected_job,
+            "JobRunGUID": guid,
+        }
 
         # JobDefinitionDesc contains the job type description
         if desc_key in self.chunkmap:
             desc = self._decode_chunk(desc_key, strip_prefix=True)
             result["ProgramDesc"] = desc.get("ProgramDesc", desc)
 
-        # JobDefinition contains the full job definition (may be encrypted)
-        if def_key in self.chunkmap:
-            job_def = self._decode_chunk(def_key, strip_prefix=True)
-            if "ProtectedJob" in job_def:
-                # Job is encrypted - include ProtectedJob info but not the data
-                protected = job_def["ProtectedJob"]
-                result["ProtectedJob"] = {
-                    "EncryptionType": protected.get("EncryptionType"),
-                    "DataSize": protected.get("DataSize"),
-                }
-                result["Job"] = None
-            elif "Job" in job_def:
-                result["Job"] = job_def["Job"]
-                result["ProtectedJob"] = None
-
-        return cast("JobsDict", result)
+        return result
 
     def _acquisition_data(self) -> dict[str, Sequence[Any]]:
         """Return a dict of acquisition times and z-series indices for each image.

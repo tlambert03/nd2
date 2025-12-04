@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     import xarray as xr
     from ome_types import OME
 
-    from nd2.jobs._schema import JobsDict
+    from nd2.jobs.types import JobsDict
 
     from ._binary import BinaryLayers
     from ._util import (
@@ -698,15 +698,20 @@ class ND2File:
         """Dict of various unstructured custom metadata."""
         return self._rdr.custom_data()
 
-    @cached_property
     def jobs(self) -> JobsDict | None:
         """Return JOBS metadata if the file was acquired using JOBS, else None.
 
         !!! Tip "new in version 0.11.0"
 
-        JOBS is a Nikon software feature for automated acquisition workflows.
+        JOBS is a software feature in NIS Elements for automated acquisition workflows.
         Files acquired with JOBS contain metadata about the job definition,
         including task definitions and wellplate configurations.
+
+        The metadata is returned as a dictionary, and there are a *lot* of possible
+        types of JOBS definitions. You refer to `nd2.jobs.types` to see the typical
+        structure of these dictionaries (inferred from real-world jobs files).
+        But `nd2.jobs.types` should only ever be used for type hinting, and not imported
+        at runtime.
 
         Returns
         -------
@@ -722,8 +727,7 @@ class ND2File:
         Examples
         --------
         >>> with nd2.ND2File("path/to/jobs_file.nd2") as f:
-        ...     jobs = f.jobs
-        ...     if jobs:
+        ...     if jobs := f.jobs():
         ...         print(jobs["JobRunGUID"])
         ...         if jobs["Job"]:
         ...             print(list(jobs["Job"]["Tasks"].keys()))

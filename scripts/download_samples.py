@@ -14,11 +14,11 @@ from zipfile import ZipFile
 import requests
 
 TEST_DATA = Path(__file__).parent.parent / "tests" / "data"
-URL = "https://www.dropbox.com/sh/pg9my6hnjj918x8/AACiKLlcDsljRgjJOec-9PQwa?dl=1"
+URL = "https://www.dropbox.com/scl/fi/behxmt6ps2s5lp3k5qpjp/nd2_test_data.zip?rlkey=u8ra0s99xxuyan73669jwoq7f&dl=1"
 
 # this is just here to invalidate the github actions cache
 # change it when a new file is added to the test data in the dropbox folder
-__HASH__ = "a1b2c3d4-e5f6-g7h8-i9j0-j1l2m3n4o5p6"
+__HASH__ = "a1b2c3d4-e5f6-g7h8-i9j0-j1l2m3n4o5p7"
 
 
 def main() -> None:

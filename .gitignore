@@ -119,3 +119,5 @@ src/nd2/_version.py
 uv.lock
 output.ome.zarr/
 zarr_output/
+_nd2sdk/
+pyJOBS

@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
     from nd2._binary import BinaryLayers
     from nd2._util import FileOrBinaryIO
+    from nd2.jobs.types import JobsDict
     from nd2.structures import (
         ROI,
         Attributes,
@@ -188,3 +189,7 @@ class ND2Reader(abc.ABC):
         """Return all data from CustomData chunks in the file."""
         warnings.warn("CustomData is not relevant for legacy files", stacklevel=2)
         return {}
+
+    def jobs(self) -> JobsDict | None:
+        """Return JOBS metadata if the file was acquired using JOBS, else None."""
+        return None

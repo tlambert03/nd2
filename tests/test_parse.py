@@ -62,10 +62,9 @@ def _assert_lim_close_enough(a: Any, lim_data: Any, key=()):
         if lim_data is None and not bool(a):
             # lim may set {} or [] to None
             return
-        # FIXME: bytearrays
-        if (isinstance(lim_data, str) and isinstance(a, list)) or isinstance(
-            a, bytearray
-        ):
+        # FIXME: bytearrays - LIM returns base64 strings for byte arrays,
+        # but we decode nested CLX Lite data as dicts/lists
+        if isinstance(lim_data, str) and isinstance(a, (list, dict, bytearray)):
             return
         if key and key[-1] == "bUseZ":
             # bUseZ has a bug where Truthy values are set to 116 rather than 1

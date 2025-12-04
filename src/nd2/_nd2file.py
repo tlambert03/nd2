@@ -33,6 +33,8 @@ if TYPE_CHECKING:
     import xarray as xr
     from ome_types import OME
 
+    from nd2.jobs.types import JobsDict
+
     from ._binary import BinaryLayers
     from ._util import (
         DictOfDicts,
@@ -695,6 +697,42 @@ class ND2File:
     def custom_data(self) -> dict[str, Any]:
         """Dict of various unstructured custom metadata."""
         return self._rdr.custom_data()
+
+    def jobs(self) -> JobsDict | None:
+        """Return JOBS metadata if the file was acquired using JOBS, else None.
+
+        !!! Tip "new in version 0.11.0"
+
+        JOBS is a software feature in NIS Elements for automated acquisition workflows.
+        Files acquired with JOBS contain metadata about the job definition,
+        including task definitions and wellplate configurations.
+
+        The metadata is returned as a dictionary, and there are a *lot* of possible
+        types of JOBS definitions. You refer to `nd2.jobs.types` to see the typical
+        structure of these dictionaries (inferred from real-world jobs files).
+        But `nd2.jobs.types` should only ever be used for type hinting, and not imported
+        at runtime.
+
+        Returns
+        -------
+        dict | None
+            A dictionary with JOBS metadata, or None if the file was not
+            acquired using JOBS. The dictionary contains:
+
+            - `"JobRunGUID"`: str - Unique identifier for the job run
+            - `"ProgramDesc"`: dict - Job description including JobDefType
+            - `"Job"`: dict | None - Full job definition (None if encrypted)
+            - `"ProtectedJob"`: dict | None - Encryption info (if encrypted)
+
+        Examples
+        --------
+        >>> with nd2.ND2File("path/to/jobs_file.nd2") as f:
+        ...     if jobs := f.jobs():
+        ...         print(jobs["JobRunGUID"])
+        ...         if jobs["Job"]:
+        ...             print(list(jobs["Job"]["Tasks"].keys()))
+        """
+        return self._rdr.jobs()
 
     @cached_property
     def ndim(self) -> int:

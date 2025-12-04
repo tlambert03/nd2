@@ -60,6 +60,7 @@ dev = [
     "mypy>=1.18.2",
     "pdbpp>=0.11.7; sys_platform != 'win32'",
     "pre-commit-uv>=4.1.5",
+    "pytest-xdist>=3.8.0",
     "rich>=14.2.0",
     "ruff>=0.14.0",
     "types-lxml>=2025.8.25",
@@ -122,6 +123,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "src/nd2/structures.py" = ["D101", "D105"] # Fix someday
+"src/nd2/jobs/types.py" = ["D101"]
 "tests/*.py" = ["D", "S"]
 "scripts/*.py" = ["D", "S"]
 
@@ -194,4 +196,4 @@ ignore = [
 extend-ignore-identifiers-re = ["(?i)nd2?.*", "(?i)ome", "AIMD"]
 
 [tool.typos.files]
-extend-exclude = ["*.json", "**/_sdk_types.py"]
+extend-exclude = ["*.json", "**/_sdk_types.py", "src/nd2/jobs/types.py"]

@@ -50,6 +50,7 @@ if TYPE_CHECKING:
         RawTextInfoDict,
     )
     from nd2._util import FileOrBinaryIO
+    from nd2.jobs.types import JobsDict
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
     StartFileChunk: TypeAlias = tuple[int, int, int, bytes, bytes]
@@ -409,6 +410,61 @@ class ModernReader(ND2Reader):
             for k in self.chunkmap
             if k.startswith(b"CustomDataVar|")
         }
+
+    def jobs(self) -> JobsDict | None:
+        """Return JOBS metadata if the file was acquired using JOBS, else None.
+
+        JOBS is a Nikon software feature for automated acquisition workflows.
+        Files acquired with JOBS contain three related chunks:
+        - JobDefinitionDescV1_0: Description/type of the job
+        - JobDefinitionV1_0: Full job definition (may be encrypted)
+        - JobRunGUIDV1_0: Unique identifier for the job run
+
+        Returns
+        -------
+        dict | None
+            A dictionary with JOBS metadata, or None if the file was not
+            acquired using JOBS. The dictionary contains:
+            - "JobRunGUID": str - Unique identifier for the job run
+            - "ProgramDesc": dict - Job description including JobDefType
+            - "Job": dict | None - Full job definition (None if encrypted)
+            - "ProtectedJob": dict | None - Encrypted job info (if encrypted)
+        """
+        # Check if the file has JOBS chunks
+        guid_key = b"CustomData|JobRunGUIDV1_0!"
+        desc_key = b"CustomData|JobDefinitionDescV1_0!"
+        def_key = b"CustomData|JobDefinitionV1_0!"
+
+        if def_key not in self.chunkmap:
+            return None
+
+        # JobRunGUID is a UTF-16-LE encoded string
+        guid = ""
+        if guid_key in self.chunkmap:
+            guid_data = self._load_chunk(guid_key)
+            guid = guid_data.decode("utf-16-le").rstrip("\x00")
+
+        # JobDefinition contains the full job definition (may be encrypted)
+        job = protected_job = None
+        job_def = self._decode_chunk(def_key, strip_prefix=True)
+        if "ProtectedJob" in job_def:
+            # Job is encrypted - include full ProtectedJob with encrypted data
+            protected_job = job_def["ProtectedJob"]
+        elif "Job" in job_def:
+            job = job_def["Job"]
+
+        result: JobsDict = {
+            "Job": job,
+            "ProtectedJob": protected_job,
+            "JobRunGUID": guid,
+        }
+
+        # JobDefinitionDesc contains the job type description
+        if desc_key in self.chunkmap:
+            desc = self._decode_chunk(desc_key, strip_prefix=True)
+            result["ProgramDesc"] = desc.get("ProgramDesc", desc)
+
+        return result
 
     def _acquisition_data(self) -> dict[str, Sequence[Any]]:
         """Return a dict of acquisition times and z-series indices for each image.

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import base64
+from contextlib import suppress
 import io
 import re
 import struct
 import zlib
-from typing import TYPE_CHECKING, Any, Callable, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, Literal, Union, cast
 
 if TYPE_CHECKING:
     from typing import Final
@@ -184,9 +186,32 @@ def _chunk_name_and_dtype(
     return (name, data_type)
 
 
+UnparseableBytesRepr = Literal["base64", "list"]
+
+# Default threshold for base64 encoding. Byte arrays smaller than this are kept as
+# list[int] even in base64 mode, preserving small binary data (like matrices, flags)
+# that downstream code may need to reinterpret.
+DEFAULT_BASE64_THRESHOLD = 256
+
+
+def _format_unparseable_bytes(
+    raw: bytes, fmt: UnparseableBytesRepr, threshold: int
+) -> str | list[int]:
+    """Format unparseable bytes according to the specified representation."""
+    if fmt == "base64" and len(raw) >= threshold:
+        b64 = base64.b64encode(raw).decode("ascii")
+        return f"data:application/octet-stream;base64,{b64}"
+    return list(raw)
+
+
 # lite variant
 def json_from_clx_lite_variant(
-    data: bytes | io.BytesIO, strip_prefix: bool = True, _count: int = 1
+    data: bytes | io.BytesIO,
+    strip_prefix: bool = True,
+    _count: int = 1,
+    *,
+    unparseable_bytes: UnparseableBytesRepr = "base64",
+    base64_threshold: int = DEFAULT_BASE64_THRESHOLD,
 ) -> dict[str, JsonValueType]:
     output: dict[str, JsonValueType] = {}
     if not data:
@@ -202,7 +227,12 @@ def json_from_clx_lite_variant(
         if data_type == ELxLiteVariantType.COMPRESS:
             stream.seek(10, 1)
             deflated = zlib.decompress(stream.read())
-            return json_from_clx_lite_variant(deflated, strip_prefix)
+            return json_from_clx_lite_variant(
+                deflated,
+                strip_prefix,
+                unparseable_bytes=unparseable_bytes,
+                base64_threshold=base64_threshold,
+            )
 
         if data_type == -1:
             # never seen this, but it's in the sdk
@@ -213,7 +243,11 @@ def json_from_clx_lite_variant(
             item_count, length = strctIQ.unpack(stream.read(strctIQ.size))
             next_data_length = stream.read(length - (stream.tell() - curs))
             val: dict = json_from_clx_lite_variant(
-                next_data_length, strip_prefix, item_count
+                next_data_length,
+                strip_prefix,
+                item_count,
+                unparseable_bytes=unparseable_bytes,
+                base64_threshold=base64_threshold,
             )
             stream.seek(item_count * 8, 1)
             # levels with a single "" key are actually lists
@@ -229,14 +263,19 @@ def json_from_clx_lite_variant(
             # Read size, then check if it looks like nested CLX Lite data
             size = _unpack_uint64(stream)
             raw_bytes = stream.read(size)
+            value = None
             if _looks_like_clx_lite(raw_bytes):
-                try:
-                    decoded = json_from_clx_lite_variant(raw_bytes, strip_prefix)
-                    value = decoded if decoded else list(raw_bytes)
-                except Exception:
-                    value = list(raw_bytes)
-            else:
-                value = list(raw_bytes)
+                with suppress(Exception):
+                    value = json_from_clx_lite_variant(
+                        raw_bytes,
+                        strip_prefix,
+                        unparseable_bytes=unparseable_bytes,
+                        base64_threshold=base64_threshold,
+                    )
+            if not value:
+                value = _format_unparseable_bytes(
+                    raw_bytes, unparseable_bytes, base64_threshold
+                )
 
         elif data_type in _PARSERS:
             value = _PARSERS[data_type](stream)

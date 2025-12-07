@@ -274,7 +274,7 @@ def test_to_ome_zarr_invalid_backend(tmp_path: Path) -> None:
     dest = tmp_path / "invalid_backend.zarr"
 
     with nd2.ND2File(data_path) as f:
-        with pytest.raises(ValueError, match="Unknown backend"):
+        with pytest.raises(ValueError, match="Unknown writer option"):
             f.to_ome_zarr(dest, backend="invalid")  # type: ignore[arg-type]
 
 

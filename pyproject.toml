@@ -88,6 +88,7 @@ documentation = "https://tlambert03.github.io/nd2/"
 
 [tool.uv.sources]
 nd2 = { workspace = true }
+yaozarrs = { path = "../yaozarrs", editable = true }
 
 # https://hatch.pypa.io/latest/config/metadata/
 [tool.hatch.version]

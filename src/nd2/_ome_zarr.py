@@ -17,7 +17,7 @@ from nd2._util import AXIS
 
 try:
     from yaozarrs import v05
-    from yaozarrs.v05 import write_bioformats2raw, write_image
+    from yaozarrs.write.v05 import write_bioformats2raw, write_image
 except ImportError:
     raise ImportError(
         "yaozarrs is required for OME-Zarr export. "
@@ -182,18 +182,18 @@ def nd2_to_ome_zarr(
         image_model = _build_image_model(
             nd2_file, axes_order, name=dest_path.stem, is_rgb=is_rgb_image
         )
-        return write_image(
+        return write_image(  # type: ignore[no-any-return]
             dest_path,
-            [data],
             image_model,
+            [data],
             chunks=chunk_shape,
             shards=shard_shape,
-            backend=backend,
+            writer=backend,
             progress=progress,
         )
     else:
         # Multiple positions - use bioformats2raw layout
-        images: dict[str, tuple[list[Any], v05.Image]] = {}
+        images: dict[str, tuple[v05.Image, list[Any]]] = {}
         for pos_idx in positions_to_export:
             data = _get_position_data(
                 nd2_file, pos_idx, axes_order, nd2_sizes, is_rgb_image
@@ -201,7 +201,7 @@ def nd2_to_ome_zarr(
             image_model = _build_image_model(
                 nd2_file, axes_order, name=str(pos_idx), is_rgb=is_rgb_image
             )
-            images[str(pos_idx)] = ([data], image_model)
+            images[str(pos_idx)] = (image_model, [data])
 
         # Generate OME-XML if possible
         ome_xml: str | None = None
@@ -211,13 +211,13 @@ def nd2_to_ome_zarr(
         except NotImplementedError as e:
             warnings.warn(f"Could not generate OME-XML metadata: {e}. ", stacklevel=2)
 
-        return write_bioformats2raw(
+        return write_bioformats2raw(  # type: ignore[no-any-return]
             dest_path,
             images,
             ome_xml=ome_xml,
             chunks=chunk_shape,
             shards=shard_shape,
-            backend=backend,
+            writer=backend,
             progress=progress,
         )
 

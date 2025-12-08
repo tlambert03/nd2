@@ -6,6 +6,7 @@ using yaozarrs for metadata generation and writing.
 
 from __future__ import annotations
 
+import re
 import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
@@ -17,7 +18,7 @@ from nd2._util import AXIS
 
 try:
     from yaozarrs import v05
-    from yaozarrs.write.v05 import Bf2RawBuilder, write_image
+    from yaozarrs.write.v05 import Bf2RawBuilder, PlateBuilder, write_image
 except ImportError:
     raise ImportError(
         "yaozarrs is required for OME-Zarr export. "
@@ -43,6 +44,66 @@ _OME_AXIS_ORDER = {
     AXIS.X: 4,
     AXIS.RGB: 5,
 }
+
+
+WELL_PATTERN = re.compile(r"^([A-Z]+)(\d+)$")
+
+
+def _detect_wellplate(
+    nd2_file: ND2File,
+) -> dict[tuple[str, str, str], int] | None:
+    """Detect if file is from a multi-well plate and map (row, col, fov) to position.
+
+    Returns
+    -------
+    dict[tuple[str, str, str], int] | None
+        Mapping of (row, col, fov) tuples to position indices if this is a wellplate,
+        None otherwise. Example: {("A", "1", "0"): 0, ("A", "4", "0"): 1, ...}
+
+    Raises
+    ------
+    NotImplementedError
+        If multiple fields of view per well are detected. Please open an issue
+        at https://github.com/tlambert03/nd2/issues with the file.
+    """
+    if AXIS.POSITION not in nd2_file.sizes:
+        return None
+
+    well_positions: dict[tuple[str, str, str], int] = {}
+    seen_wells: set[tuple[str, str]] = set()
+
+    for pos_idx in range(nd2_file.sizes[AXIS.POSITION]):
+        try:
+            meta = nd2_file.frame_metadata(pos_idx)
+            # Type guard: ensure we have FrameMetadata, not dict
+            if isinstance(meta, dict) or not meta.channels:
+                return None
+
+            position = meta.channels[0].position
+            if not position or not position.name:
+                return None
+
+            if not (match := WELL_PATTERN.match(position.name)):
+                return None
+
+            row, col = match.groups()
+
+            # Check for multiple fields of view per well
+            if (row, col) in seen_wells:
+                raise NotImplementedError(
+                    f"Multiple fields of view per well detected (well {row}{col}). "
+                    "This feature is not yet implemented. Please open an issue at "
+                    "https://github.com/tlambert03/nd2/issues with your file."
+                )
+
+            seen_wells.add((row, col))
+            fov = "0"
+            well_positions[(row, col, fov)] = pos_idx
+
+        except (AttributeError, IndexError, KeyError):
+            return None
+
+    return well_positions if well_positions else None
 
 
 def nd2_to_ome_zarr(
@@ -166,19 +227,51 @@ def nd2_to_ome_zarr(
         )
 
     if position is not None:
-        positions_to_export = [position]
+        positions_to_export: list[int] = [position]
     else:
         positions_to_export = list(range(n_positions))
 
     # Get OME-Zarr axis order (excluding position)
     axes_order = sorted(nd2_sizes, key=lambda ax: _OME_AXIS_ORDER.get(ax, 99))
 
-    if len(positions_to_export) == 1 and not force_series:
-        # Single image - write directly to dest
-        pos_idx = positions_to_export[0] if has_positions else None
-        data = _get_position_data(
-            nd2_file, pos_idx, axes_order, nd2_sizes, is_rgb_image
+    # Detect if this is a multi-well plate
+    well_positions = _detect_wellplate(nd2_file) if position is None else None
+
+    if well_positions is not None:
+        # Multi-well plate - use Plate layout
+        plate_builder = PlateBuilder(
+            dest_path,
+            writer=backend,
+            chunks=chunk_shape,
+            shards=shard_shape,
         )
+
+        # Group positions by (row, col) -> {fov: pos_idx}
+        wells: dict[tuple[str, str], dict[str, int]] = {}
+        for (row, col, fov), pos_idx in well_positions.items():
+            wells.setdefault((row, col), {})[fov] = pos_idx
+
+        # Write each well with its fields
+        for (row, col), fields in wells.items():
+            fields_data: dict[str, tuple[v05.Image, Any]] = {}
+            for fov, pos_idx in fields.items():
+                data = _get_position_data(
+                    nd2_file, pos_idx, axes_order, nd2_sizes, is_rgb_image
+                )
+                image_model = _build_image_model(
+                    nd2_file, axes_order, name=f"{row}{col}", is_rgb=is_rgb_image
+                )
+                fields_data[fov] = (image_model, data)
+
+            plate_builder.write_well(
+                row=row, col=col, fields=fields_data, progress=progress
+            )
+
+        return Path(plate_builder.root_path)
+    elif len(positions_to_export) == 1 and not force_series:
+        # Single image - write directly to dest
+        p_idx = positions_to_export[0] if has_positions else None
+        data = _get_position_data(nd2_file, p_idx, axes_order, nd2_sizes, is_rgb_image)
         image_model = _build_image_model(
             nd2_file, axes_order, name=dest_path.stem, is_rgb=is_rgb_image
         )

@@ -80,8 +80,7 @@ def test_to_ome_zarr_with_positions(
         assert result == dest
 
         # Root should have bioformats2raw.layout attribute under ome
-        with open(dest / "zarr.json") as fh:
-            root_meta = json.load(fh)
+        root_meta = json.loads((dest / "zarr.json").read_text())
         assert root_meta["attributes"]["ome"]["bioformats2raw.layout"] == 3
 
         # OME directory should exist with series metadata and METADATA.ome.xml
@@ -89,8 +88,7 @@ def test_to_ome_zarr_with_positions(
         assert ome_path.exists()
         assert (ome_path / "METADATA.ome.xml").exists()
 
-        with open(ome_path / "zarr.json") as fh:
-            ome_meta = json.load(fh)
+        ome_meta = json.loads((ome_path / "zarr.json").read_text())
         assert ome_meta["attributes"]["ome"]["series"] == [
             str(i) for i in range(n_positions)
         ]
@@ -104,8 +102,7 @@ def test_to_ome_zarr_with_positions(
             yaozarrs.validate_zarr_store(str(pos_path))
 
             # Check position name in metadata
-            with open(pos_path / "zarr.json") as fh:
-                pos_meta = json.load(fh)
+            pos_meta = json.loads((pos_path / "zarr.json").read_text())
             assert pos_meta["attributes"]["ome"]["multiscales"][0]["name"] == str(i)
 
 
@@ -126,8 +123,7 @@ def test_to_ome_zarr_single_position(
         assert result == dest
 
         # Should have OME metadata at root (not under p1)
-        with open(dest / "zarr.json") as fh:
-            root_meta = json.load(fh)
+        root_meta = json.loads((dest / "zarr.json").read_text())
 
         assert "ome" in root_meta["attributes"]
 
@@ -153,8 +149,7 @@ def test_to_ome_zarr_force_series(tmp_path: Path, backend: ZarrBackend) -> None:
         assert result == dest
 
         # Should have bioformats2raw.layout in root zarr.json
-        with open(dest / "zarr.json") as fh:
-            root_meta = json.load(fh)
+        root_meta = json.loads((dest / "zarr.json").read_text())
         assert root_meta["attributes"]["ome"]["bioformats2raw.layout"] == 3
 
         # OME directory should exist with series metadata and METADATA.ome.xml
@@ -162,8 +157,7 @@ def test_to_ome_zarr_force_series(tmp_path: Path, backend: ZarrBackend) -> None:
         assert ome_path.exists()
         assert (ome_path / "METADATA.ome.xml").exists()
 
-        with open(ome_path / "zarr.json") as fh:
-            ome_meta = json.load(fh)
+        ome_meta = json.loads((ome_path / "zarr.json").read_text())
         assert ome_meta["attributes"]["ome"]["series"] == ["0"]
 
         # Image should be under 0/ directory
@@ -197,8 +191,7 @@ def test_to_ome_zarr_axis_transposition(tmp_path: Path) -> None:
     assert arr.shape == (3, 2, 5, 32, 32)
 
     # Verify axes metadata is correct
-    with open(dest / "zarr.json") as fh:
-        meta = json.load(fh)
+    meta = json.loads((dest / "zarr.json").read_text())
     axes = meta["attributes"]["ome"]["multiscales"][0]["axes"]
     axis_names = [ax["name"] for ax in axes]
     assert axis_names == ["t", "c", "z", "y", "x"]
@@ -214,8 +207,7 @@ def test_to_ome_zarr_coordinate_transforms(tmp_path: Path) -> None:
         voxel = f.voxel_size()
         f.to_ome_zarr(dest)
 
-    with open(dest / "zarr.json") as fh:
-        meta = json.load(fh)
+    meta = json.loads((dest / "zarr.json").read_text())
 
     transforms = meta["attributes"]["ome"]["multiscales"][0]["datasets"][0][
         "coordinateTransformations"
@@ -295,8 +287,7 @@ def test_to_ome_zarr_rgb_file(tmp_path: Path) -> None:
     yaozarrs.validate_zarr_store(str(dest))
 
     # Check metadata
-    with open(dest / "zarr.json") as fh:
-        meta = json.load(fh)
+    meta = json.loads((dest / "zarr.json").read_text())
 
     ome = meta["attributes"]["ome"]
 
@@ -333,3 +324,56 @@ def test_to_ome_zarr_mixed_rgb_channel_error(tmp_path: Path) -> None:
 
         with pytest.raises(ValueError, match="both RGB samples and multiple optical"):
             f.to_ome_zarr(dest)
+
+
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_to_ome_zarr_wellplate(tmp_path: Path, backend: ZarrBackend) -> None:
+    """Test that wellplate files are exported as OME-Zarr Plate."""
+    data_path = TEST_DATA / "wellplate96_4_wells_with_jobs.nd2"
+    dest = tmp_path / "wellplate.zarr"
+
+    with nd2.ND2File(data_path) as f:
+        # Verify this file has positions with well names
+        assert AXIS.POSITION in f.sizes
+        assert f.sizes[AXIS.POSITION] == 4
+
+        result = f.to_ome_zarr(dest, backend=backend)
+        assert result == dest
+
+    # Validate the store
+    yaozarrs.validate_zarr_store(str(dest))
+
+    # Check plate metadata
+    plate_meta = json.loads((dest / "zarr.json").read_text())
+
+    ome = plate_meta["attributes"]["ome"]
+    assert "plate" in ome
+
+    plate = ome["plate"]
+    # Should auto-generate rows A, B, C and columns 1, 2, 3, 4
+    assert len(plate["rows"]) == 3
+    assert [r["name"] for r in plate["rows"]] == ["A", "B", "C"]
+    assert len(plate["columns"]) == 4
+    assert [c["name"] for c in plate["columns"]] == ["1", "2", "3", "4"]
+
+    # Check wells (A1, A4, B4, C2)
+    assert {w["path"] for w in plate["wells"]} == {"A/1", "A/4", "B/4", "C/2"}
+
+    # Check well structure (e.g., A/1)
+    well_a1_path = dest / "A" / "1"
+    assert well_a1_path.exists()
+
+    well_meta = json.loads((well_a1_path / "zarr.json").read_text())
+
+    assert "well" in well_meta["attributes"]["ome"]
+    well = well_meta["attributes"]["ome"]["well"]
+    assert len(well["images"]) == 1  # One field of view
+    assert well["images"][0]["path"] == "0"
+
+    # Check field/image structure
+    field_path = well_a1_path / "0"
+    assert field_path.exists()
+
+    image_meta = json.loads((field_path / "zarr.json").read_text())
+
+    assert "multiscales" in image_meta["attributes"]["ome"]

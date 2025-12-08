@@ -950,6 +950,7 @@ class ND2File:
         progress: bool = False,
         position: int | None = None,
         force_series: bool = False,
+        include_labels: bool = True,
         version: Literal["0.5"] = "0.5",
     ) -> Path:
         """Export to an OME-Zarr store.
@@ -985,6 +986,12 @@ class ND2File:
             If True, use bioformats2raw layout even for single position files.
             This creates a store with OME/ directory and series metadata,
             with the image in a "0/" subdirectory. Default is False.
+        include_labels : bool
+            If True (default), export binary masks as OME-Zarr labels.
+            Binary masks from the ND2 file will be written to a "labels"
+            subdirectory within the image group. Each binary layer becomes
+            a separate label with its own name. Has no effect if the file
+            contains no binary data.
         version : "0.5"
             OME-NGFF specification version to use. Currently only "0.5" is
             supported. This parameter is reserved for future use.
@@ -1033,6 +1040,7 @@ class ND2File:
             progress=progress,
             position=position,
             force_series=force_series,
+            include_labels=include_labels,
             version=version,
         )
 

@@ -18,7 +18,12 @@ from nd2._util import AXIS
 
 try:
     from yaozarrs import v05
-    from yaozarrs.write.v05 import Bf2RawBuilder, PlateBuilder, write_image
+    from yaozarrs.write.v05 import (
+        Bf2RawBuilder,
+        LabelsBuilder,
+        PlateBuilder,
+        write_image,
+    )
 except ImportError:
     raise ImportError(
         "yaozarrs is required for OME-Zarr export. "
@@ -116,6 +121,7 @@ def nd2_to_ome_zarr(
     progress: bool = False,
     position: int | None = None,
     force_series: bool = False,
+    include_labels: bool = True,
     version: Literal["0.5"] = "0.5",
 ) -> Path:
     """Export an ND2 file to OME-Zarr format.
@@ -153,6 +159,12 @@ def nd2_to_ome_zarr(
         If True, use bioformats2raw layout even for single position files.
         This creates a store with OME/ directory and series metadata,
         with the image in a "0/" subdirectory. Default is False.
+    include_labels : bool
+        If True (default), export binary masks as OME-Zarr labels.
+        Binary masks from the ND2 file will be written to a "labels"
+        subdirectory within the image group. Each binary layer becomes
+        a separate label with its own name. Has no effect if the file
+        contains no binary data.
     version : "0.5"
         OME-NGFF specification version to use. Currently only "0.5" is
         supported. This parameter is reserved for future use.
@@ -267,6 +279,23 @@ def nd2_to_ome_zarr(
                 row=row, col=col, fields=fields_data, progress=progress
             )
 
+            # Write labels for each field in this well
+            if include_labels and nd2_file.binary_data:
+                well_path = dest_path / row / col
+                for fov, pos_idx in fields.items():
+                    field_path = well_path / fov
+                    _write_labels(
+                        field_path / "labels",
+                        nd2_file.binary_data,
+                        pos_idx,
+                        axes_order,
+                        nd2_file,
+                        backend,
+                        chunk_shape,
+                        shard_shape,
+                        progress,
+                    )
+
         return Path(plate_builder.root_path)
     elif len(positions_to_export) == 1 and not force_series:
         # Single image - write directly to dest
@@ -275,7 +304,7 @@ def nd2_to_ome_zarr(
         image_model = _build_image_model(
             nd2_file, axes_order, name=dest_path.stem, is_rgb=is_rgb_image
         )
-        return write_image(  # type: ignore[no-any-return]
+        root = write_image(
             dest_path,
             image_model,
             data,
@@ -284,6 +313,22 @@ def nd2_to_ome_zarr(
             writer=backend,
             progress=progress,
         )
+
+        # Write binary masks as labels if present
+        if include_labels and nd2_file.binary_data:
+            _write_labels(
+                dest_path / "labels",
+                nd2_file.binary_data,
+                p_idx,
+                axes_order,
+                nd2_file,
+                backend,
+                chunk_shape,
+                shard_shape,
+                progress,
+            )
+
+        return Path(root)
     else:
         # Multiple positions - use bioformats2raw layout
         # Generate OME-XML if possible
@@ -311,6 +356,21 @@ def nd2_to_ome_zarr(
                 nd2_file, pos_idx, axes_order, nd2_sizes, is_rgb_image
             )
             builder.write_image(str(pos_idx), image_model, data, progress=progress)
+
+            # Write labels for this position if present
+            if include_labels and nd2_file.binary_data:
+                position_path = dest_path / str(pos_idx)
+                _write_labels(
+                    position_path / "labels",
+                    nd2_file.binary_data,
+                    pos_idx,
+                    axes_order,
+                    nd2_file,
+                    backend,
+                    chunk_shape,
+                    shard_shape,
+                    progress,
+                )
 
         return Path(builder.root_path)
 
@@ -441,3 +501,171 @@ def _get_position_data(
         data = data.transpose(perm)
 
     return data
+
+
+def _build_label_image(
+    axes_order: list[str],
+    scales: list[float],
+    name: str,
+) -> v05.LabelImage:
+    """Build yaozarrs LabelImage model for a binary layer.
+
+    Parameters
+    ----------
+    axes_order : list[str]
+        Ordered list of axis names (e.g., ['T', 'Z', 'Y', 'X']).
+    scales : list[float]
+        Scale values for each axis.
+    name : str
+        Name of the label.
+
+    Returns
+    -------
+    v05.LabelImage
+        LabelImage model for use with LabelsBuilder.
+    """
+    axes = _create_axes(axes_order)
+
+    multiscale = v05.Multiscale(
+        name=name,
+        axes=axes,
+        datasets=[
+            v05.Dataset(
+                path="0",
+                coordinateTransformations=[v05.ScaleTransformation(scale=scales)],
+            )
+        ],
+    )
+
+    return v05.LabelImage(
+        multiscales=[multiscale],
+        image_label=v05.ImageLabel(),
+    )
+
+
+def _get_label_data(
+    binary_layer: Any,
+    nd2_file: ND2File,
+    pos_idx: int | None,
+    axes_order: list[str],
+) -> np.ndarray:
+    """Get binary layer data with proper axis ordering for OME-Zarr.
+
+    Parameters
+    ----------
+    binary_layer : BinaryLayer
+        Binary layer from nd2 file.
+    nd2_file : ND2File
+        The ND2 file to get axis information from.
+    pos_idx : int | None
+        Position index if exporting a single position, None otherwise.
+    axes_order : list[str]
+        Target axis order (e.g., ['T', 'Z', 'Y', 'X']).
+
+    Returns
+    -------
+    np.ndarray
+        Binary mask data with axes reordered to match OME-Zarr format.
+    """
+    # Get the full array (e.g., (T, P, Z, Y, X))
+    data = binary_layer.asarray()
+    if data is None:
+        # Return empty array if no data
+        return np.array([])
+
+    # Binary layers follow the ND2 coordinate structure but exclude channel
+    # Build list of axes present in binary layer from nd2 file structure
+    nd2_axes = [ax for ax in nd2_file.sizes if ax != AXIS.CHANNEL]
+
+    # If we're exporting a single position, select it from the data
+    if pos_idx is not None and AXIS.POSITION in nd2_axes:
+        p_axis_idx = nd2_axes.index(AXIS.POSITION)
+        data = np.take(data, pos_idx, axis=p_axis_idx)
+        # Remove position from axes list
+        nd2_axes = [ax for ax in nd2_axes if ax != AXIS.POSITION]
+
+    # Now reorder axes to match the target axes_order
+    # Filter to only axes that exist in both lists
+    target_axes = [ax for ax in axes_order if ax in nd2_axes]
+
+    # Get permutation from current order to target order
+    if target_axes and len(target_axes) == data.ndim:
+        perm = tuple(nd2_axes.index(ax) for ax in target_axes)
+        if perm != tuple(range(data.ndim)):
+            data = data.transpose(perm)
+
+    return data  # type: ignore[no-any-return]
+
+
+def _write_labels(
+    labels_path: Path,
+    binary_data: Any,
+    pos_idx: int | None,
+    axes_order: list[str],
+    nd2_file: ND2File,
+    backend: ZarrBackend,
+    chunk_shape: tuple[int, ...] | Literal["auto"] | None,
+    shard_shape: tuple[int, ...] | None,
+    progress: bool,
+) -> None:
+    """Write binary masks as OME-Zarr labels.
+
+    Parameters
+    ----------
+    labels_path : Path
+        Path to the labels directory.
+    binary_data : BinaryLayers
+        Binary layers from nd2 file.
+    pos_idx : int | None
+        Position index if exporting a single position, None otherwise.
+    axes_order : list[str]
+        Target axis order for the labels.
+    nd2_file : ND2File
+        The ND2 file being exported.
+    backend : ZarrBackend
+        Backend to use for writing.
+    chunk_shape : tuple[int, ...] | "auto" | None
+        Chunk shape for the labels.
+    shard_shape : tuple[int, ...] | None
+        Shard shape for the labels.
+    progress : bool
+        Whether to show progress bar.
+    """
+    # Filter axes to exclude channel (labels don't have channel dimension)
+    label_axes_order = [ax for ax in axes_order if ax != AXIS.CHANNEL]
+    scales = _get_scale_values(nd2_file, label_axes_order)
+
+    # Create labels builder
+    labels_builder = LabelsBuilder(
+        labels_path,
+        writer=backend,
+        chunks=chunk_shape,
+        shards=shard_shape,
+    )
+
+    # Write each binary layer as a separate label
+    for i, layer in enumerate(binary_data):
+        # Sanitize layer name for use as path (replace spaces, special chars)
+        safe_name = layer.name.replace(" ", "_").replace("(", "").replace(")", "")
+        safe_name = f"label_{i}_{safe_name}" if safe_name else f"label_{i}"
+
+        # Get the data with proper axis ordering
+        label_data = _get_label_data(layer, nd2_file, pos_idx, label_axes_order)
+
+        if label_data.size == 0:
+            continue
+
+        # Build label metadata
+        label_image = _build_label_image(
+            label_axes_order,
+            scales,
+            layer.name,
+        )
+
+        # Write the label
+        labels_builder.write_label(
+            safe_name,
+            label_image,
+            label_data,
+            progress=progress,
+        )

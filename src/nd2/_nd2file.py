@@ -952,6 +952,7 @@ class ND2File:
         force_series: bool = False,
         include_labels: bool = True,
         version: Literal["0.5"] = "0.5",
+        overwrite: bool = False,
     ) -> Path:
         """Export to an OME-Zarr store.
 
@@ -995,6 +996,8 @@ class ND2File:
         version : "0.5"
             OME-NGFF specification version to use. Currently only "0.5" is
             supported. This parameter is reserved for future use.
+        overwrite : bool
+            If True, overwrite the destination if it already exists.
 
         Returns
         -------
@@ -1042,6 +1045,7 @@ class ND2File:
             force_series=force_series,
             include_labels=include_labels,
             version=version,
+            overwrite=overwrite,
         )
 
     def to_dask(self, wrapper: bool = True, copy: bool = True) -> dask.array.core.Array:

@@ -6,13 +6,16 @@ using yaozarrs for metadata generation and writing.
 
 from __future__ import annotations
 
+import json
 import re
 import warnings
+from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 
+from nd2 import __version__
 from nd2._ome import nd2_ome_metadata
 from nd2._util import AXIS
 
@@ -54,6 +57,43 @@ _OME_AXIS_ORDER = {
 WELL_PATTERN = re.compile(r"^([A-Z]+)(\d+)$")
 
 
+def _json_default(obj: Any) -> Any:
+    """JSON encoder for non-serializable types in nd2 metadata."""
+    if isinstance(obj, bytearray):
+        return obj.decode("utf-8")
+    if isinstance(obj, bytes):
+        return obj.decode("utf-8")
+    return str(obj)
+
+
+def _add_nd2_attributes(zarr_path: Path, nd2_file: ND2File) -> None:
+    """Add nd2 metadata to the root zarr.json attributes.
+
+    Modifies the zarr.json file to include nd2-specific metadata in the
+    attributes object alongside the "ome" key.
+
+    Parameters
+    ----------
+    zarr_path : Path
+        Path to the root zarr directory.
+    nd2_file : ND2File
+        The ND2 file to extract metadata from.
+    """
+    zarr_json_path = zarr_path / "zarr.json"
+    if not zarr_json_path.exists():
+        return
+
+    zarr_json = json.loads(zarr_json_path.read_text())
+    nd2_attrs: dict[str, Any] = {"version": __version__}
+    with suppress(Exception):
+        nd2_attrs["unstructured_metadata"] = nd2_file.unstructured_metadata()
+    with suppress(Exception):
+        nd2_attrs["custom_data"] = nd2_file.custom_data
+    zarr_json.setdefault("attributes", {})["nd2"] = nd2_attrs
+
+    zarr_json_path.write_text(json.dumps(zarr_json, indent=2, default=_json_default))
+
+
 def _detect_wellplate(
     nd2_file: ND2File,
 ) -> dict[tuple[str, str, str], int] | None:
@@ -92,6 +132,8 @@ def _detect_wellplate(
                 return None
 
             row, col = match.groups()
+            # Strip leading zeros from column to match yaozarrs plate column naming
+            col = col.lstrip("0") or "0"
 
             # Check for multiple fields of view per well
             if (row, col) in seen_wells:
@@ -123,6 +165,7 @@ def nd2_to_ome_zarr(
     force_series: bool = False,
     include_labels: bool = True,
     version: Literal["0.5"] = "0.5",
+    overwrite: bool = False,
 ) -> Path:
     """Export an ND2 file to OME-Zarr format.
 
@@ -168,6 +211,8 @@ def nd2_to_ome_zarr(
     version : "0.5"
         OME-NGFF specification version to use. Currently only "0.5" is
         supported. This parameter is reserved for future use.
+    overwrite: bool
+        If True, overwrite the destination directory if it already exists.
 
     Returns
     -------
@@ -256,6 +301,7 @@ def nd2_to_ome_zarr(
             writer=backend,
             chunks=chunk_shape,
             shards=shard_shape,
+            overwrite=overwrite,
         )
 
         # Group positions by (row, col) -> {fov: pos_idx}
@@ -294,9 +340,12 @@ def nd2_to_ome_zarr(
                         chunk_shape,
                         shard_shape,
                         progress,
+                        overwrite,
                     )
 
-        return Path(plate_builder.root_path)
+        result_path = Path(plate_builder.root_path)
+        _add_nd2_attributes(result_path, nd2_file)
+        return result_path
     elif len(positions_to_export) == 1 and not force_series:
         # Single image - write directly to dest
         p_idx = positions_to_export[0] if has_positions else None
@@ -311,6 +360,7 @@ def nd2_to_ome_zarr(
             chunks=chunk_shape,
             shards=shard_shape,
             writer=backend,
+            overwrite=overwrite,
             progress=progress,
         )
 
@@ -326,9 +376,12 @@ def nd2_to_ome_zarr(
                 chunk_shape,
                 shard_shape,
                 progress,
+                overwrite,
             )
 
-        return Path(root)
+        result_path = Path(root)
+        _add_nd2_attributes(result_path, nd2_file)
+        return result_path
     else:
         # Multiple positions - use bioformats2raw layout
         # Generate OME-XML if possible
@@ -346,6 +399,7 @@ def nd2_to_ome_zarr(
             writer=backend,
             chunks=chunk_shape,
             shards=shard_shape,
+            overwrite=overwrite,
         )
 
         for pos_idx in positions_to_export:
@@ -370,9 +424,12 @@ def nd2_to_ome_zarr(
                     chunk_shape,
                     shard_shape,
                     progress,
+                    overwrite,
                 )
 
-        return Path(builder.root_path)
+        result_path = Path(builder.root_path)
+        _add_nd2_attributes(result_path, nd2_file)
+        return result_path
 
 
 # ######################## ND2-Specific Helpers ################################
@@ -614,6 +671,7 @@ def _write_labels(
     chunk_shape: tuple[int, ...] | Literal["auto"] | None,
     shard_shape: tuple[int, ...] | None,
     progress: bool,
+    overwrite: bool,
 ) -> None:
     """Write binary masks as OME-Zarr labels.
 
@@ -637,6 +695,8 @@ def _write_labels(
         Shard shape for the labels.
     progress : bool
         Whether to show progress bar.
+    overwrite : bool
+        Whether to overwrite existing labels.
     """
     # Filter axes to exclude channel (labels don't have channel dimension)
     label_axes_order = [ax for ax in axes_order if ax != AXIS.CHANNEL]
@@ -648,6 +708,7 @@ def _write_labels(
         writer=backend,
         chunks=chunk_shape,
         shards=shard_shape,
+        overwrite=overwrite,
     )
 
     # Write each binary layer as a separate label

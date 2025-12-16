@@ -23,7 +23,7 @@ jobs:
       - run: pipx run check-manifest
 
   test:
-    name: ${{ matrix.platform }} (${{ matrix.python-version }}) [${{ matrix.resolution }}]
+    name: ${{ matrix.platform }} (${{ matrix.python-version }}) [${{ matrix.resolution }}] ${{ matrix.extra && format('with extra {0}', matrix.extra) || '' }}
     runs-on: ${{ matrix.platform }}
     env:
       UV_PRERELEASE: ${{ github.event_name == 'schedule' && 'allow' || 'if-necessary-or-explicit' }}
@@ -45,6 +45,14 @@ jobs:
           - python-version: "3.12"
             resolution: "lowest-direct"
             platform: ubuntu-latest
+          - python-version: "3.13"
+            resolution: "highest"
+            platform: ubuntu-latest
+            extra: ome-zarr
+          - python-version: "3.13"
+            resolution: "highest"
+            platform: ubuntu-latest
+            extra: ome-zarr-tensorstore
 
     steps:
       - uses: actions/checkout@v6
@@ -66,7 +74,7 @@ jobs:
         run: uv run scripts/download_samples.py
 
       - name: 🧪 Run Tests
-        run: uv run --no-dev --group test coverage run -p -m pytest -v
+        run: uv run --no-dev --group test ${{ matrix.extra && format('--extra {0}', matrix.extra) || '' }} coverage run -p -m pytest -v
 
       # If something goes wrong with --pre tests, we can open an issue in the repo
       - name: 📝 Report --pre Failures
@@ -85,7 +93,7 @@ jobs:
       - name: Upload coverage
         uses: actions/upload-artifact@v6
         with:
-          name: covreport-${{ matrix.platform }}-py${{ matrix.python-version }}-${{ matrix.resolution }}
+          name: covreport-${{ matrix.platform }}-py${{ matrix.python-version }}-${{ matrix.resolution }}-${{ matrix.extra || 'noextra' }}
           path: ./.coverage*
           include-hidden-files: true
 

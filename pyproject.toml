@@ -25,6 +25,7 @@ dependencies = [
     "numpy>=1.26.4",
     "ome-types>=0.6.2",
     "pydantic-core>=2.21.0; python_version>='3.13'",
+    "dask[array]>=2024.0.0",
     "resource-backed-dask-array>=0.1.0",
     "typing-extensions>=4.6.0",
 ]
@@ -38,13 +39,21 @@ legacy = [
     "imagecodecs>=2024.9.22; python_version >= '3.13'",
 ]
 tiff = ["tifffile>=2021.7.2"]
+ome-zarr = [
+    "pydantic>=2.11.0",
+    "yaozarrs[write-zarr]>=0.2.0; python_version >= '3.11'",
+]
+ome-zarr-tensorstore = [
+    "pydantic>=2.11.0",
+    "yaozarrs[write-tensorstore]>=0.2.0; python_version >= '3.10'",
+]
 
 [dependency-groups]
 test = [
     "nd2[tiff]",
     "dask[array]>=2023.5.0",
     "imagecodecs>=2023.1.23",
-    "lxml>=5.2.0",
+    "lxml>=5.3.0",
     "psutil>=5.9.8",
     "pytest-codspeed>=4.1.1",
     "pytest-cov>=4.0.0",

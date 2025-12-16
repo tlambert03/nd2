@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from typing_extensions import TypeAlias
 
     from nd2 import ND2File
+    from nd2._binary import BinaryLayer, BinaryLayers
 
     ZarrBackend: TypeAlias = Literal["zarr", "tensorstore", "auto"]
 
@@ -324,13 +325,13 @@ def nd2_to_ome_zarr(
             )
 
             # Write labels for each field in this well
-            if include_labels and nd2_file.binary_data:
+            if include_labels and (binary_data := nd2_file.binary_data):
                 well_path = dest_path / row / col
                 for fov, pos_idx in fields.items():
                     field_path = well_path / fov
                     _write_labels(
                         field_path / "labels",
-                        nd2_file.binary_data,
+                        binary_data,
                         pos_idx,
                         axes_order,
                         nd2_file,
@@ -606,7 +607,7 @@ def _build_label_image(
 
 
 def _get_label_data(
-    binary_layer: Any,
+    binary_layer: BinaryLayer,
     nd2_file: ND2File,
     pos_idx: int | None,
     axes_order: list[str],
@@ -631,7 +632,10 @@ def _get_label_data(
     """
     # Get the full array (e.g., (T, P, Z, Y, X))
     data = binary_layer.asarray()
-    if data is None:
+    if data is None:  # pragma: no cover
+        warnings.warn(
+            f"No data found for binary layer '{binary_layer.name}'.", stacklevel=2
+        )
         # Return empty array if no data
         return np.array([])
 
@@ -656,12 +660,12 @@ def _get_label_data(
         if perm != tuple(range(data.ndim)):
             data = data.transpose(perm)
 
-    return data  # type: ignore[no-any-return]
+    return data
 
 
 def _write_labels(
     labels_path: Path,
-    binary_data: Any,
+    binary_data: BinaryLayers,
     pos_idx: int | None,
     axes_order: list[str],
     nd2_file: ND2File,
@@ -722,11 +726,7 @@ def _write_labels(
             continue
 
         # Build label metadata
-        label_image = _build_label_image(
-            label_axes_order,
-            scales,
-            layer.name,
-        )
+        label_image = _build_label_image(label_axes_order, scales, layer.name)
 
         # Write the label
         labels_builder.write_label(

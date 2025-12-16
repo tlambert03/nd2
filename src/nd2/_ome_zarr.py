@@ -276,7 +276,7 @@ def nd2_to_ome_zarr(
                 fields_data[fov] = (image_model, data)
 
             plate_builder.write_well(
-                row=row, col=col, fields=fields_data, progress=progress
+                row=row, col=col, images=fields_data, progress=progress
             )
 
             # Write labels for each field in this well

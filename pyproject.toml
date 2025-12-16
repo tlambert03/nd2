@@ -39,12 +39,10 @@ legacy = [
 ]
 tiff = ["tifffile>=2021.7.2"]
 ome-zarr = [
-    "yaozarrs>=0.1.1; python_version >= '3.10'",
-    "zarr>=3.1; python_version >= '3.11'",
+    "yaozarrs[write-zarr]>=0.2.0; python_version >= '3.11'",
 ]
 ome-zarr-tensorstore = [
-    "yaozarrs>=0.1.1; python_version >= '3.10'",
-    "tensorstore>=0.1.45",
+    "yaozarrs[write-tensorstore]>=0.2.0; python_version >= '3.10'",
 ]
 
 [dependency-groups]
@@ -88,7 +86,6 @@ documentation = "https://tlambert03.github.io/nd2/"
 
 [tool.uv.sources]
 nd2 = { workspace = true }
-yaozarrs = { path = "../yaozarrs", editable = true }
 
 # https://hatch.pypa.io/latest/config/metadata/
 [tool.hatch.version]

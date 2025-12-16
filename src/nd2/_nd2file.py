@@ -956,9 +956,19 @@ class ND2File:
     ) -> Path:
         """Export to an OME-Zarr store.
 
+        !!! Tip "new in version 0.11.0"
+
+        !!!important "Requires extras"
+            In order to use `to_ome_zarr` you must install `nd2` with an appropriate
+            array-writing backend.  `zarr-python` is the reference implementation,
+            but `tensorstore` is faster.
+
+            - `pip install "nd2[ome-zarr-tensorstore]"` (to use tensorstore backend)
+            - `pip install "nd2[ome-zarr]"` (to use zarr-python backend)
+
         Creates a Zarr v3 store with OME-NGFF 0.5 compliant metadata.
-        Uses yaozarrs for metadata generation and either zarr-python or
-        tensorstore for array writing.
+        Uses yaozarrs for metadata generation and either `zarr-python` or
+        `tensorstore` for array writing.
 
         Parameters
         ----------

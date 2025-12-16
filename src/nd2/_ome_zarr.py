@@ -478,7 +478,10 @@ def _get_position_data(
     nd2_sizes: dict[str, int],
     is_rgb: bool = False,
 ) -> Any:
-    """Get data for a position, handling axis permutation."""
+    """Get data for a position as a lazy dask array, handling axis permutation.
+
+    Always returns a dask array to keep data out of RAM until yaozarrs writes it.
+    """
     original_sizes = dict(nd2_file.sizes)
     has_positions = AXIS.POSITION in original_sizes
 
@@ -487,14 +490,18 @@ def _get_position_data(
         rgb_size = original_sizes.pop(AXIS.RGB)
         original_sizes[AXIS.CHANNEL] = rgb_size
 
+    # Always use dask to keep data lazy until write time
+    data = nd2_file.to_dask()
+
     if has_positions and pos_idx is not None:
-        data = nd2_file.asarray(position=pos_idx)
+        # Slice the dask array to select the position (stays lazy)
         pos_dim_idx = list(nd2_file.sizes).index(AXIS.POSITION)
-        data = np.squeeze(data, axis=pos_dim_idx)
+        slices: list[int | slice] = [slice(None)] * data.ndim
+        slices[pos_dim_idx] = pos_idx
+        data = data[tuple(slices)]
         sizes_no_pos = {k: v for k, v in original_sizes.items() if k != AXIS.POSITION}
         perm = _get_axis_permutation(sizes_no_pos, axes_order)
     else:
-        data = nd2_file.to_dask()
         perm = _get_axis_permutation(nd2_sizes, axes_order)
 
     if perm != tuple(range(data.ndim)):

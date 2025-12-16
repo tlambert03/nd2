@@ -377,3 +377,62 @@ def test_to_ome_zarr_wellplate(tmp_path: Path, backend: ZarrBackend) -> None:
     image_meta = json.loads((field_path / "zarr.json").read_text())
 
     assert "multiscales" in image_meta["attributes"]["ome"]
+
+
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_to_ome_zarr_with_binary_labels(tmp_path: Path, backend: ZarrBackend) -> None:
+    """Test that binary layers are exported as OME-Zarr labels."""
+    zarr = pytest.importorskip("zarr")
+    data_path = TEST_DATA / "with_binary_and_rois.nd2"
+    dest = tmp_path / "binary.zarr"
+
+    with nd2.ND2File(data_path) as f:
+        # Verify this file has binary data
+        assert f.binary_data is not None
+        n_binary_layers = len(f.binary_data)
+        assert n_binary_layers == 4
+
+        # File has T=3, P=4, Z=5, C=2, Y=32, X=32
+        assert f.sizes == {"T": 3, "P": 4, "Z": 5, "C": 2, "Y": 32, "X": 32}
+
+        result = f.to_ome_zarr(dest, include_labels=True, backend=backend)
+        assert result == dest
+
+    # Should have bioformats2raw layout due to positions
+    root_meta = json.loads((dest / "zarr.json").read_text())
+    assert root_meta["attributes"]["ome"]["bioformats2raw.layout"] == 3
+
+    # Check that labels directory exists for each position
+    for pos_idx in range(4):
+        pos_path = dest / str(pos_idx)
+        assert pos_path.exists()
+
+        labels_path = pos_path / "labels"
+        assert labels_path.exists(), f"Labels directory missing for position {pos_idx}"
+
+        # Check labels metadata
+        labels_meta = json.loads((labels_path / "zarr.json").read_text())
+        assert "labels" in labels_meta["attributes"]["ome"]
+        label_names = labels_meta["attributes"]["ome"]["labels"]
+        assert len(label_names) == n_binary_layers
+
+        # Check each label has proper structure
+        for label_name in label_names:
+            label_path = labels_path / label_name
+            assert label_path.exists()
+
+            label_meta = json.loads((label_path / "zarr.json").read_text())
+            ome = label_meta["attributes"]["ome"]
+
+            # Should have multiscales and image-label metadata
+            assert "multiscales" in ome
+            assert "image-label" in ome
+
+            # Check axes - labels don't have channel dimension
+            axes = ome["multiscales"][0]["axes"]
+            axis_names = [ax["name"] for ax in axes]
+            assert axis_names == ["t", "z", "y", "x"]  # TZYX (no C)
+
+            # Check label array shape (T=3, Z=5, Y=32, X=32 per position)
+            arr = zarr.open_array(label_path / "0")
+            assert arr.shape == (3, 5, 32, 32)

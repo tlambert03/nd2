@@ -59,11 +59,9 @@ WELL_PATTERN = re.compile(r"^([A-Z]+)(\d+)$")
 
 def _json_default(obj: Any) -> Any:
     """JSON encoder for non-serializable types in nd2 metadata."""
-    if isinstance(obj, bytearray):
+    if isinstance(obj, (bytes, bytearray)):
         return obj.decode("utf-8")
-    if isinstance(obj, bytes):
-        return obj.decode("utf-8")
-    return str(obj)
+    return str(obj)  # pragma: no cover
 
 
 def _add_nd2_attributes(zarr_path: Path, nd2_file: ND2File) -> None:
@@ -81,7 +79,7 @@ def _add_nd2_attributes(zarr_path: Path, nd2_file: ND2File) -> None:
     """
     zarr_json_path = zarr_path / "zarr.json"
     if not zarr_json_path.exists():
-        return
+        return  # pragma: no cover
 
     zarr_json = json.loads(zarr_json_path.read_text())
     nd2_attrs: dict[str, Any] = {"version": __version__}
@@ -136,7 +134,7 @@ def _detect_wellplate(
             col = col.lstrip("0") or "0"
 
             # Check for multiple fields of view per well
-            if (row, col) in seen_wells:
+            if (row, col) in seen_wells:  # pragma: no cover
                 raise NotImplementedError(
                     f"Multiple fields of view per well detected (well {row}{col}). "
                     "This feature is not yet implemented. Please open an issue at "

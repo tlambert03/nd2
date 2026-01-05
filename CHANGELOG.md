@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.11.1](https://github.com/tlambert03/nd2/tree/v0.11.1) (2026-01-05)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.11.0...v0.11.1)
+
+**Documentation:**
+
+- docs: update docs and rename `to_ome_zarr` to `write_ome_zarr` [\#286](https://github.com/tlambert03/nd2/pull/286) ([tlambert03](https://github.com/tlambert03))
+
 ## [v0.11.0](https://github.com/tlambert03/nd2/tree/v0.11.0) (2026-01-05)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.10.4...v0.11.0)
@@ -7,6 +15,7 @@
 **Implemented enhancements:**
 
 - feat: include all unstructured meta in to\_ome\_zarr [\#285](https://github.com/tlambert03/nd2/pull/285) ([tlambert03](https://github.com/tlambert03))
+- feat: Add export to ome-zarr [\#284](https://github.com/tlambert03/nd2/pull/284) ([tlambert03](https://github.com/tlambert03))
 - feat: parse JOBS information [\#280](https://github.com/tlambert03/nd2/pull/280) ([tlambert03](https://github.com/tlambert03))
 
 **Fixed bugs:**
@@ -15,7 +24,6 @@
 
 **Merged pull requests:**
 
-- feat: Add export to ome-zarr [\#284](https://github.com/tlambert03/nd2/pull/284) ([tlambert03](https://github.com/tlambert03))
 - ci\(dependabot\): bump actions/download-artifact from 6 to 7 [\#283](https://github.com/tlambert03/nd2/pull/283) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ci\(dependabot\): bump actions/upload-artifact from 5 to 6 [\#282](https://github.com/tlambert03/nd2/pull/282) ([dependabot[bot]](https://github.com/apps/dependabot))
 - ci\(dependabot\): bump actions/cache from 4 to 5 [\#281](https://github.com/tlambert03/nd2/pull/281) ([dependabot[bot]](https://github.com/apps/dependabot))

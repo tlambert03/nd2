@@ -940,7 +940,7 @@ class ND2File:
             modify_ome=modify_ome,
         )
 
-    def to_ome_zarr(
+    def write_ome_zarr(
         self,
         dest: str | PathLike,
         *,
@@ -960,7 +960,7 @@ class ND2File:
         !!! Tip "new in version 0.11.0"
 
         !!!important "Requires extras"
-            In order to use `to_ome_zarr` you must install `nd2` with an appropriate
+            In order to use `write_ome_zarr` you must install `nd2` with an appropriate
             array-writing backend.  `zarr-python` is the reference implementation,
             but `tensorstore` is faster.
 
@@ -1034,12 +1034,12 @@ class ND2File:
 
         >>> import nd2
         >>> with nd2.ND2File("experiment.nd2") as f:
-        ...     f.to_ome_zarr("experiment.zarr")
+        ...     f.write_ome_zarr("experiment.zarr")
 
         Export with specific chunking:
 
         >>> with nd2.ND2File("experiment.nd2") as f:
-        ...     f.to_ome_zarr(
+        ...     f.write_ome_zarr(
         ...         "experiment.zarr",
         ...         chunk_shape=(1, 1, 64, 256, 256),
         ...     )
@@ -1047,7 +1047,7 @@ class ND2File:
         Export using tensorstore backend:
 
         >>> with nd2.ND2File("experiment.nd2") as f:
-        ...     f.to_ome_zarr("experiment.zarr", backend="tensorstore")
+        ...     f.write_ome_zarr("experiment.zarr", backend="tensorstore")
         """
         from ._ome_zarr import nd2_to_ome_zarr
 

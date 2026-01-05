@@ -126,7 +126,7 @@ Binary masks, if present, can be accessed at
 
 ROIs, if present, can be accessed at [`ND2File.rois`][nd2.ND2File.rois].
 
-### There's more in there!
+### There's more in there
 
 If you're still looking for something that you don't see in the above
 properties and methods, try looking through:
@@ -138,6 +138,13 @@ These methods parse and return more of the metadata found in the file,
 but no attempt is made to extract it into a more useful form.
 
 ## Export nd2 to OME-TIFF
+
+!!!important "Requires extras"
+    In order to use `write_tiff` you must install `nd2` with the `tiff` extra:
+
+    ```sh
+    pip install "nd2[tiff]"
+    ```
 
 To convert an nd2 file to an OME-TIFF file, use [`nd2.ND2File.write_tiff`][] or
 the convenience function `nd2.nd2_to_tiff`:
@@ -162,3 +169,24 @@ Note that if you simply want the OME metadata, you can use the
 with nd2.ND2File('some_file.nd2') as myfile:
     ome_metadata = myfile.ome_metadata()
 ```
+
+## Export nd2 to OME-Zarr
+
+!!!important "Requires extras"
+    In order to use `write_ome_zarr` you must install `nd2` with an appropriate
+    array-writing backend.  `zarr-python` is the reference implementation,
+    but `tensorstore` is faster.
+
+    - `pip install "nd2[ome-zarr-tensorstore]"` (to use tensorstore backend)
+    - `pip install "nd2[ome-zarr]"` (to use zarr-python backend)
+
+To convert an nd2 file to an OME-Zarr store, use [`nd2.ND2File.write_ome_zarr`][]:
+
+```python
+import nd2
+
+with nd2.ND2File('some_file.nd2') as myfile:
+    myfile.write_ome_zarr('path/to/ome_zarr_store.ome.zarr')
+```
+
+See [API documentation][nd2.ND2File.write_ome_zarr] for complete details on options for chunking, etc.

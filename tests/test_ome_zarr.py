@@ -60,7 +60,7 @@ def test_to_ome_zarr_basic(
     dest = tmp_path / "test.zarr"
 
     with nd2.ND2File(data_path) as f:
-        result = f.to_ome_zarr(dest, backend=backend)
+        result = f.write_ome_zarr(dest, backend=backend)
         assert result == dest
         yaozarrs.validate_zarr_store(str(dest))
 
@@ -76,7 +76,7 @@ def test_to_ome_zarr_with_positions(
 
     with nd2.ND2File(data_path) as f:
         n_positions = f.sizes.get(AXIS.POSITION, 1)
-        result = f.to_ome_zarr(dest, backend=backend)
+        result = f.write_ome_zarr(dest, backend=backend)
         assert result == dest
 
         # Root should have bioformats2raw.layout attribute under ome
@@ -119,7 +119,7 @@ def test_to_ome_zarr_single_position(
         assert f.sizes.get(AXIS.POSITION, 1) > 1, "Test requires a multi-position file"
 
         # Export position 1
-        result = f.to_ome_zarr(dest, position=1, backend=backend)
+        result = f.write_ome_zarr(dest, position=1, backend=backend)
         assert result == dest
 
         # Should have OME metadata at root (not under p1)
@@ -145,7 +145,7 @@ def test_to_ome_zarr_force_series(tmp_path: Path, backend: ZarrBackend) -> None:
     with nd2.ND2File(data_path) as f:
         assert AXIS.POSITION not in f.sizes, "Test requires a single-position file"
 
-        result = f.to_ome_zarr(dest, force_series=True, backend=backend)
+        result = f.write_ome_zarr(dest, force_series=True, backend=backend)
         assert result == dest
 
         # Should have bioformats2raw.layout in root zarr.json
@@ -182,7 +182,7 @@ def test_to_ome_zarr_axis_transposition(tmp_path: Path) -> None:
         nd2_sizes = dict(f.sizes)
         assert list(nd2_sizes.keys()) == ["T", "Z", "C", "Y", "X"]
 
-        f.to_ome_zarr(dest)
+        f.write_ome_zarr(dest)
 
     # Read back and verify shape is TCZYX (C and Z swapped)
     arr = zarr.open_array(dest / "0")
@@ -205,7 +205,7 @@ def test_to_ome_zarr_coordinate_transforms(tmp_path: Path) -> None:
 
     with nd2.ND2File(data_path) as f:
         voxel = f.voxel_size()
-        f.to_ome_zarr(dest)
+        f.write_ome_zarr(dest)
 
     meta = json.loads((dest / "zarr.json").read_text())
 
@@ -231,7 +231,7 @@ def test_to_ome_zarr_custom_chunks(tmp_path: Path) -> None:
     custom_chunks = (1, 16, 16)
 
     with nd2.ND2File(data_path) as f:
-        f.to_ome_zarr(dest, chunk_shape=custom_chunks)
+        f.write_ome_zarr(dest, chunk_shape=custom_chunks)
 
     arr = zarr.open_array(dest / "0")
 
@@ -245,7 +245,7 @@ def test_to_ome_zarr_invalid_position(tmp_path: Path) -> None:
     dest = tmp_path / "invalid.zarr"
     with nd2.ND2File(data_path) as f:
         with pytest.raises(IndexError, match="out of range"):
-            f.to_ome_zarr(dest, position=100)
+            f.write_ome_zarr(dest, position=100)
 
 
 def test_to_ome_zarr_invalid_version(tmp_path: Path) -> None:
@@ -256,7 +256,7 @@ def test_to_ome_zarr_invalid_version(tmp_path: Path) -> None:
 
     with nd2.ND2File(data_path) as f:
         with pytest.raises(ValueError, match=r"Only version '0\.5' is supported"):
-            f.to_ome_zarr(dest, version="0.4")  # type: ignore[arg-type]
+            f.write_ome_zarr(dest, version="0.4")  # type: ignore[arg-type]
 
 
 def test_to_ome_zarr_invalid_backend(tmp_path: Path) -> None:
@@ -267,7 +267,7 @@ def test_to_ome_zarr_invalid_backend(tmp_path: Path) -> None:
 
     with nd2.ND2File(data_path) as f:
         with pytest.raises(ValueError, match="Unknown writer option"):
-            f.to_ome_zarr(dest, backend="invalid")  # type: ignore[arg-type]
+            f.write_ome_zarr(dest, backend="invalid")  # type: ignore[arg-type]
 
 
 def test_to_ome_zarr_rgb_file(tmp_path: Path) -> None:
@@ -281,7 +281,7 @@ def test_to_ome_zarr_rgb_file(tmp_path: Path) -> None:
         assert AXIS.RGB in f.sizes
         assert AXIS.CHANNEL not in f.sizes
 
-        f.to_ome_zarr(dest)
+        f.write_ome_zarr(dest)
 
     # Validate the store
     yaozarrs.validate_zarr_store(str(dest))
@@ -323,7 +323,7 @@ def test_to_ome_zarr_mixed_rgb_channel_error(tmp_path: Path) -> None:
         assert AXIS.CHANNEL in f.sizes
 
         with pytest.raises(ValueError, match="both RGB samples and multiple optical"):
-            f.to_ome_zarr(dest)
+            f.write_ome_zarr(dest)
 
 
 @pytest.mark.parametrize("backend", BACKENDS)
@@ -337,7 +337,7 @@ def test_to_ome_zarr_wellplate(tmp_path: Path, backend: ZarrBackend) -> None:
         assert AXIS.POSITION in f.sizes
         assert f.sizes[AXIS.POSITION] == 4
 
-        result = f.to_ome_zarr(dest, backend=backend)
+        result = f.write_ome_zarr(dest, backend=backend)
         assert result == dest
 
     # Validate the store
@@ -395,7 +395,7 @@ def test_to_ome_zarr_with_binary_labels(tmp_path: Path, backend: ZarrBackend) ->
         # File has T=3, P=4, Z=5, C=2, Y=32, X=32
         assert f.sizes == {"T": 3, "P": 4, "Z": 5, "C": 2, "Y": 32, "X": 32}
 
-        result = f.to_ome_zarr(dest, include_labels=True, backend=backend)
+        result = f.write_ome_zarr(dest, include_labels=True, backend=backend)
         assert result == dest
 
     # Should have bioformats2raw layout due to positions
@@ -445,7 +445,7 @@ def test_to_ome_zarr_include_all_metadata(tmp_path: Path) -> None:
     # Test with include_all_metadata=True (default)
     dest_with = tmp_path / "with_metadata.zarr"
     with nd2.ND2File(data_path) as f:
-        f.to_ome_zarr(dest_with, include_all_metadata=True)
+        f.write_ome_zarr(dest_with, include_all_metadata=True)
 
     meta_with = json.loads((dest_with / "zarr.json").read_text())
     nd2_attrs_with = meta_with["attributes"]["nd2"]
@@ -456,7 +456,7 @@ def test_to_ome_zarr_include_all_metadata(tmp_path: Path) -> None:
     # Test with include_all_metadata=False
     dest_without = tmp_path / "without_metadata.zarr"
     with nd2.ND2File(data_path) as f:
-        f.to_ome_zarr(dest_without, include_all_metadata=False)
+        f.write_ome_zarr(dest_without, include_all_metadata=False)
 
     meta_without = json.loads((dest_without / "zarr.json").read_text())
     nd2_attrs_without = meta_without["attributes"]["nd2"]

@@ -65,7 +65,9 @@ def _json_default(obj: Any) -> Any:
     return str(obj)  # pragma: no cover
 
 
-def _add_nd2_attributes(zarr_path: Path, nd2_file: ND2File) -> None:
+def _add_nd2_attributes(
+    zarr_path: Path, nd2_file: ND2File, include_all_metadata: bool
+) -> None:
     """Add nd2 metadata to the root zarr.json attributes.
 
     Modifies the zarr.json file to include nd2-specific metadata in the
@@ -77,6 +79,8 @@ def _add_nd2_attributes(zarr_path: Path, nd2_file: ND2File) -> None:
         Path to the root zarr directory.
     nd2_file : ND2File
         The ND2 file to extract metadata from.
+    include_all_metadata : bool
+        If True, include unstructured_metadata and custom_data.
     """
     zarr_json_path = zarr_path / "zarr.json"
     if not zarr_json_path.exists():
@@ -84,10 +88,11 @@ def _add_nd2_attributes(zarr_path: Path, nd2_file: ND2File) -> None:
 
     zarr_json = json.loads(zarr_json_path.read_text())
     nd2_attrs: dict[str, Any] = {"version": __version__}
-    with suppress(Exception):
-        nd2_attrs["unstructured_metadata"] = nd2_file.unstructured_metadata()
-    with suppress(Exception):
-        nd2_attrs["custom_data"] = nd2_file.custom_data
+    if include_all_metadata:
+        with suppress(Exception):
+            nd2_attrs["unstructured_metadata"] = nd2_file.unstructured_metadata()
+        with suppress(Exception):
+            nd2_attrs["custom_data"] = nd2_file.custom_data
     zarr_json.setdefault("attributes", {})["nd2"] = nd2_attrs
 
     zarr_json_path.write_text(json.dumps(zarr_json, indent=2, default=_json_default))
@@ -162,6 +167,7 @@ def nd2_to_ome_zarr(
     progress: bool = False,
     position: int | None = None,
     force_series: bool = False,
+    include_all_metadata: bool = True,
     include_labels: bool = True,
     version: Literal["0.5"] = "0.5",
     overwrite: bool = False,
@@ -201,6 +207,11 @@ def nd2_to_ome_zarr(
         If True, use bioformats2raw layout even for single position files.
         This creates a store with OME/ directory and series metadata,
         with the image in a "0/" subdirectory. Default is False.
+    include_all_metadata : bool
+        If True (default), include all ND2 metadata in the zarr attributes.
+        This writes `unstructured_metadata()` and `custom_data` to the
+        `attributes["nd2"]` key in the root zarr.json file. Set to False
+        to only include the nd2 library version in the attributes.
     include_labels : bool
         If True (default), export binary masks as OME-Zarr labels.
         Binary masks from the ND2 file will be written to a "labels"
@@ -343,8 +354,6 @@ def nd2_to_ome_zarr(
                     )
 
         result_path = Path(plate_builder.root_path)
-        _add_nd2_attributes(result_path, nd2_file)
-        return result_path
     elif len(positions_to_export) == 1 and not force_series:
         # Single image - write directly to dest
         p_idx = positions_to_export[0] if has_positions else None
@@ -379,8 +388,6 @@ def nd2_to_ome_zarr(
             )
 
         result_path = Path(root)
-        _add_nd2_attributes(result_path, nd2_file)
-        return result_path
     else:
         # Multiple positions - use bioformats2raw layout
         # Generate OME-XML if possible
@@ -427,8 +434,9 @@ def nd2_to_ome_zarr(
                 )
 
         result_path = Path(builder.root_path)
-        _add_nd2_attributes(result_path, nd2_file)
-        return result_path
+
+    _add_nd2_attributes(result_path, nd2_file, include_all_metadata)
+    return result_path
 
 
 # ######################## ND2-Specific Helpers ################################

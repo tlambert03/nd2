@@ -950,6 +950,7 @@ class ND2File:
         progress: bool = False,
         position: int | None = None,
         force_series: bool = False,
+        include_all_metadata: bool = True,
         include_labels: bool = True,
         version: Literal["0.5"] = "0.5",
         overwrite: bool = False,
@@ -997,6 +998,12 @@ class ND2File:
             If True, use bioformats2raw layout even for single position files.
             This creates a store with OME/ directory and series metadata,
             with the image in a "0/" subdirectory. Default is False.
+        include_all_metadata : bool
+            If True (default), *all* unstructured metadata chunks found in the ND2
+            will be included in the OME-Zarr metadata as JSON-encoded strings.
+            If False, only a minimal set of metadata will be included (those necessary
+            for the OME-NGFF specification, along with the OME-XML metadata if present).
+            Use `True` for maximum metadata retention, or `False` for a smaller store.
         include_labels : bool
             If True (default), export binary masks as OME-Zarr labels.
             Binary masks from the ND2 file will be written to a "labels"
@@ -1053,6 +1060,7 @@ class ND2File:
             progress=progress,
             position=position,
             force_series=force_series,
+            include_all_metadata=include_all_metadata,
             include_labels=include_labels,
             version=version,
             overwrite=overwrite,

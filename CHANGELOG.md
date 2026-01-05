@@ -1,5 +1,32 @@
 # Changelog
 
+## [v0.11.0](https://github.com/tlambert03/nd2/tree/v0.11.0) (2026-01-05)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.10.4...v0.11.0)
+
+**Implemented enhancements:**
+
+- feat: include all unstructured meta in to\_ome\_zarr [\#285](https://github.com/tlambert03/nd2/pull/285) ([tlambert03](https://github.com/tlambert03))
+- feat: parse JOBS information [\#280](https://github.com/tlambert03/nd2/pull/280) ([tlambert03](https://github.com/tlambert03))
+
+**Fixed bugs:**
+
+- fix: use absolute path resolution for file handling in ND2Reader [\#269](https://github.com/tlambert03/nd2/pull/269) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- feat: Add export to ome-zarr [\#284](https://github.com/tlambert03/nd2/pull/284) ([tlambert03](https://github.com/tlambert03))
+- ci\(dependabot\): bump actions/download-artifact from 6 to 7 [\#283](https://github.com/tlambert03/nd2/pull/283) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump actions/upload-artifact from 5 to 6 [\#282](https://github.com/tlambert03/nd2/pull/282) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump actions/cache from 4 to 5 [\#281](https://github.com/tlambert03/nd2/pull/281) ([dependabot[bot]](https://github.com/apps/dependabot))
+- chore: update samples [\#279](https://github.com/tlambert03/nd2/pull/279) ([tlambert03](https://github.com/tlambert03))
+- ci\(pre-commit.ci\): autoupdate [\#277](https://github.com/tlambert03/nd2/pull/277) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- ci\(dependabot\): bump actions/checkout from 5 to 6 [\#276](https://github.com/tlambert03/nd2/pull/276) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(pre-commit.ci\): autoupdate [\#273](https://github.com/tlambert03/nd2/pull/273) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- ci\(dependabot\): bump actions/upload-artifact from 4 to 5 [\#272](https://github.com/tlambert03/nd2/pull/272) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump actions/download-artifact from 5 to 6 [\#271](https://github.com/tlambert03/nd2/pull/271) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ci\(dependabot\): bump astral-sh/setup-uv from 6 to 7 [\#270](https://github.com/tlambert03/nd2/pull/270) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v0.10.4](https://github.com/tlambert03/nd2/tree/v0.10.4) (2025-10-14)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.10.3...v0.10.4)
@@ -235,7 +262,7 @@
 
 **Fixed bugs:**
 
-- fix: Make 'periodDiff' optional in TimeLoopParams construction [\#131](https://github.com/tlambert03/nd2/pull/131) ([SeanLeRoy](https://github.com/SeanLeRoy))
+- fix: Make 'periodDiff' optional in TimeLoopParams construction [\#131](https://github.com/tlambert03/nd2/pull/131) ([SeanDuHare](https://github.com/SeanDuHare))
 
 **Tests & CI:**
 

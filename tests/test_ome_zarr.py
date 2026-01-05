@@ -436,3 +436,30 @@ def test_to_ome_zarr_with_binary_labels(tmp_path: Path, backend: ZarrBackend) ->
             # Check label array shape (T=3, Z=5, Y=32, X=32 per position)
             arr = zarr.open_array(label_path / "0")
             assert arr.shape == (3, 5, 32, 32)
+
+
+def test_to_ome_zarr_include_all_metadata(tmp_path: Path) -> None:
+    """Test that include_all_metadata controls nd2 metadata inclusion."""
+    data_path = TEST_DATA / "dims_c2y32x32.nd2"
+
+    # Test with include_all_metadata=True (default)
+    dest_with = tmp_path / "with_metadata.zarr"
+    with nd2.ND2File(data_path) as f:
+        f.to_ome_zarr(dest_with, include_all_metadata=True)
+
+    meta_with = json.loads((dest_with / "zarr.json").read_text())
+    nd2_attrs_with = meta_with["attributes"]["nd2"]
+    assert "version" in nd2_attrs_with
+    assert "unstructured_metadata" in nd2_attrs_with
+    assert "custom_data" in nd2_attrs_with
+
+    # Test with include_all_metadata=False
+    dest_without = tmp_path / "without_metadata.zarr"
+    with nd2.ND2File(data_path) as f:
+        f.to_ome_zarr(dest_without, include_all_metadata=False)
+
+    meta_without = json.loads((dest_without / "zarr.json").read_text())
+    nd2_attrs_without = meta_without["attributes"]["nd2"]
+    assert "version" in nd2_attrs_without
+    assert "unstructured_metadata" not in nd2_attrs_without
+    assert "custom_data" not in nd2_attrs_without

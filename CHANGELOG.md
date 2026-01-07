@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.11.2](https://github.com/tlambert03/nd2/tree/v0.11.2) (2026-01-07)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.11.1...v0.11.2)
+
+**Fixed bugs:**
+
+- fix: fix regression in experiment loop parsing [\#289](https://github.com/tlambert03/nd2/pull/289) ([tlambert03](https://github.com/tlambert03))
+
 ## [v0.11.1](https://github.com/tlambert03/nd2/tree/v0.11.1) (2026-01-05)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.11.0...v0.11.1)
@@ -481,7 +489,7 @@
 
 ## [v0.2.0](https://github.com/tlambert03/nd2/tree/v0.2.0) (2022-02-20)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5-1...v0.2.0)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.6...v0.2.0)
 
 **Merged pull requests:**
 
@@ -494,13 +502,13 @@
 - \[pre-commit.ci\] pre-commit autoupdate [\#34](https://github.com/tlambert03/nd2/pull/34) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 - \[pre-commit.ci\] pre-commit autoupdate [\#33](https://github.com/tlambert03/nd2/pull/33) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
 
-## [v0.1.5-1](https://github.com/tlambert03/nd2/tree/v0.1.5-1) (2021-11-12)
-
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.6...v0.1.5-1)
-
 ## [v0.1.6](https://github.com/tlambert03/nd2/tree/v0.1.6) (2021-11-12)
 
-[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5...v0.1.6)
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5-1...v0.1.6)
+
+## [v0.1.5-1](https://github.com/tlambert03/nd2/tree/v0.1.5-1) (2021-11-12)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.1.5...v0.1.5-1)
 
 ## [v0.1.5](https://github.com/tlambert03/nd2/tree/v0.1.5) (2021-11-12)
 

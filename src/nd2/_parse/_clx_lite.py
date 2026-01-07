@@ -142,12 +142,16 @@ def _looks_like_clx_lite(data: bytes) -> bool:
     if not (1 <= data_type <= 11):
         return False
 
-    # Require non-empty names for standalone CLX Lite detection.
-    # Empty-name entries are only valid inside a LEVEL container that explicitly
-    # specifies item_count. Without a name, byte arrays like pItemValid=[1,0,0,1,...]
-    # would be incorrectly detected as CLX Lite (byte 0=1 looks like BOOL type,
-    # byte 1=0 looks like empty name).
-    if name_length == 0:
+    # Require names with at least 2 UTF-16 chars for standalone CLX Lite detection.
+    # Empty-name entries (name_length <= 1) are only valid inside a LEVEL container
+    # that explicitly specifies item_count.
+    # - name_length=0: truly empty, no name bytes
+    # - name_length=1: just the null terminator (\x00\x00), effectively empty
+    # Without this check, byte arrays like pItemValid=[1,1,0,0,...] would be
+    # incorrectly detected as CLX Lite (byte 0=1 looks like BOOL type, byte 1=1
+    # looks like name_length=1, bytes 2-3 look like null terminator).
+    # See: https://github.com/tlambert03/nd2/issues/288
+    if name_length <= 1:
         return False
 
     # Calculate minimum size based on type

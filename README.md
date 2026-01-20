@@ -590,6 +590,167 @@ pytest
 
 (and feel free to open an issue if that doesn't work!)
 
+## Fsspec Remote Reader
+
+This fork adds high-performance streaming ND2 file access with support for remote files (HTTP, S3, GCS, Azure) and optimized 3D bounding box crop reading.
+
+### Features
+
+- **Streaming access**: Only downloads frames you request (no full file download)
+- **Parallel I/O**: 2x+ speedup with ThreadPoolExecutor for Z-stack reading
+- **Cloud support**: S3, GCS, Azure, HTTP via fsspec
+- **3D Bounding Box Crop**: Read specific regions without downloading full frames
+- **File List Optimization**: Pre-compute chunk offsets for repeated reads
+- **Full Metadata Extraction**: Voxel sizes, time intervals, scene positions
+
+### Installation
+
+```bash
+pip install nd2 fsspec aiohttp requests
+
+# For S3 support
+pip install s3fs
+
+# For Google Cloud Storage
+pip install gcsfs
+
+# For Azure Blob Storage
+pip install adlfs
+```
+
+### Quick Start
+
+```python
+from nd2 import ND2FsspecReader
+
+# Local file
+with ND2FsspecReader("/path/to/file.nd2") as reader:
+    print(f"Shape: {reader.shape}")  # (T, C, Z, Y, X)
+    print(f"Channels: {reader.channels}")
+    zstack = reader.read_zstack(t=0, c=0, max_workers=8)
+
+# Remote file (HTTP)
+with ND2FsspecReader("https://example.com/data/file.nd2") as reader:
+    zstack = reader.read_zstack(t=0, c=0, max_workers=16)
+
+# S3 file
+with ND2FsspecReader("s3://bucket/path/file.nd2") as reader:
+    zstack = reader.read_zstack(t=0, c=0, max_workers=32)
+```
+
+### Full Metadata Extraction
+
+```python
+with ND2FsspecReader("file.nd2") as reader:
+    # Dimensions
+    print(f"Shape: {reader.shape}")        # (T, C, Z, Y, X)
+    print(f"Sizes: {reader.sizes}")        # {'T': 10, 'C': 2, 'Z': 50, ...}
+
+    # Physical metadata
+    print(f"Voxel sizes (Z,Y,X): {reader.voxel_sizes} µm")  # (0.5, 0.1625, 0.1625)
+    print(f"Time interval: {reader.time_interval} s")       # 60.0
+
+    # Channel information
+    print(f"Channels: {reader.channels}")      # ['DAPI', 'GFP']
+    print(f"Channel map: {reader.channel_map}") # {'DAPI': 0, 'GFP': 1}
+
+    # Scene/position information
+    print(f"Number of scenes: {reader.n_scenes}")
+    print(f"Scene positions: {reader.scene_positions}")
+
+    # Full metadata object
+    metadata = reader.metadata  # ImageMetadata dataclass
+```
+
+### 3D Bounding Box Crop
+
+Read only specific regions without downloading full frames:
+
+```python
+with ND2FsspecReader("file.nd2") as reader:
+    # Define crop region: (z_min, z_max, y_min, y_max, x_min, x_max)
+    crop = (10, 40, 500, 1500, 500, 1500)
+
+    # Read cropped Z-stack
+    cropped = reader.read_zstack(t=0, c=0, crop=crop, max_workers=8)
+    print(f"Cropped shape: {cropped.shape}")  # (30, 1000, 1000)
+```
+
+### File List Optimization
+
+Pre-compute chunk offsets for fast repeated reads of the same region:
+
+```python
+from nd2 import ND2FsspecReader, ND2FileList
+
+# Generate file list
+with ND2FsspecReader("s3://bucket/large_file.nd2") as reader:
+    file_list = reader.generate_file_list(
+        crop=(10, 40, 500, 1500, 500, 1500),
+        t_range=(0, 5),
+        c_range=(0, 2),
+        s_range=(0, 1),
+    )
+    # Save for later use
+    file_list.save("file_list.json")
+    print(f"Output shape: {file_list.output_shape}")
+
+# Later: read using pre-computed offsets
+file_list = ND2FileList.load("file_list.json")
+with ND2FsspecReader(file_list.path) as reader:
+    data = reader.read_from_file_list(file_list, max_workers=16)
+```
+
+### Dask Integration
+
+```python
+with ND2FsspecReader("large_file.nd2") as reader:
+    darr = reader.to_dask()
+    print(f"Dask array: {darr.shape}, chunks={darr.chunks}")
+
+    # Compute only what you need
+    max_proj = darr[0, 0].max(axis=0).compute()
+```
+
+### ND2FsspecReader API
+
+```python
+class ND2FsspecReader:
+    # Properties
+    path: str                              # File path/URL
+    shape: tuple[int, int, int, int, int]  # (T, C, Z, Y, X)
+    sizes: dict[str, int]                  # {'T': ..., 'C': ..., ...}
+    dtype: np.dtype                        # Data type (e.g., uint16)
+    channels: list[str]                    # Channel names
+    channel_map: dict[str, int]            # Channel name -> index
+    voxel_sizes: tuple[float, float, float] | None  # (Z, Y, X) in µm
+    time_interval: float | None            # Time between frames in seconds
+    n_scenes: int                          # Number of scenes/positions
+    scene_positions: list[tuple[float, float]]  # Stage positions
+    metadata: ImageMetadata                # Full metadata object
+    is_remote: bool                        # Whether file is remote
+
+    # Methods
+    def read_frame(t=0, c=0, z=0, s=0) -> np.ndarray
+    def read_zstack(t=0, c=0, s=0, crop=None, max_workers=8) -> np.ndarray
+    def generate_file_list(crop=None, t_range=None, c_range=None, s_range=None) -> ND2FileList
+    def read_from_file_list(file_list, max_workers=8) -> np.ndarray
+    def to_dask(chunks=None) -> dask.array.Array
+    def asarray(max_workers=8) -> np.ndarray
+```
+
+### Benchmark Results
+
+From testing with 35GB ND2 files on a 10 Gbit network:
+
+| Configuration | Throughput | Notes |
+|--------------|------------|-------|
+| nd2.ND2File (local) | 0.5 Gbit/s | Sequential reads |
+| ND2FsspecReader (1 worker) | 0.5 Gbit/s | Same as ND2File |
+| ND2FsspecReader (4 workers) | 1.0 Gbit/s | 2x speedup |
+| ND2FsspecReader (8 workers) | 1.3 Gbit/s | 2.6x speedup |
+| ND2FsspecReader (16 workers, S3) | 2.0 Gbit/s | Cloud optimized |
+
 ## alternatives
 
 Here are some other nd2 readers that I know of, though many

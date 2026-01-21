@@ -1255,6 +1255,54 @@ class ND2File:
         frame.shape = self._raw_frame_shape
         return frame.transpose((2, 0, 1, 3)).squeeze()
 
+    def read_frames(
+        self,
+        indices: Sequence[int] | None = None,
+        max_workers: int | None = None,
+    ) -> np.ndarray:
+        """Read multiple frames with optional parallel I/O.
+
+        For remote files (HTTP, S3, etc.), this uses parallel requests
+        to saturate high-bandwidth connections (e.g., 10Gbit+).
+
+        Parameters
+        ----------
+        indices : Sequence[int], optional
+            Frame indices to read. If None, reads all frames.
+        max_workers : int, optional
+            Number of parallel workers. Default: 4 for local, 64 for remote.
+
+        Returns
+        -------
+        np.ndarray
+            Stacked array of frames with shape matching self.shape
+        """
+        if indices is None:
+            indices = list(range(self._frame_count))
+
+        # Determine optimal worker count
+        if max_workers is None:
+            max_workers = 64 if self.is_remote else 4
+
+        # Use parallel reader if available
+        if hasattr(self._rdr, "read_frames_parallel"):
+            frames = self._rdr.read_frames_parallel(list(indices), max_workers)
+        else:
+            frames = [self._rdr.read_frame(i) for i in indices]
+
+        # Reshape and transpose frames to match expected output
+        reshaped = []
+        for frame in frames:
+            frame.shape = self._raw_frame_shape
+            reshaped.append(frame.transpose((2, 0, 1, 3)).squeeze())
+
+        return np.stack(reshaped)
+
+    @property
+    def is_remote(self) -> bool:
+        """Whether this file is accessed via a remote URL (http, s3, etc.)."""
+        return getattr(self._rdr, "_is_remote", False)
+
     @cached_property
     def loop_indices(self) -> tuple[dict[str, int], ...]:
         """Return a tuple of dicts of loop indices for each frame.

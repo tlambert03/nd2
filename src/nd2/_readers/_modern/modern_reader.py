@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import threading
 import warnings
 import zlib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import suppress
 from typing import TYPE_CHECKING, Any, cast
 
@@ -331,18 +333,23 @@ class ModernReader(ND2Reader):
         if self.attributes().compressionType == "lossless":
             return self._read_compressed_frame(index)
 
-        try:
-            return np.ndarray(
-                shape=self._actual_frame_shape(),
-                dtype=self._dtype(),
-                buffer=self._mmap,
-                offset=offset,
-                strides=self._strides,
-            )
-        except TypeError:
-            # If the chunkmap is wrong, and the mmap isn't long enough
-            # for the requested offset & size, a TypeError is raised.
-            return self._missing_frame(index)
+        # Fast path: mmap for local files
+        if self._mmap is not None:
+            try:
+                return np.ndarray(
+                    shape=self._actual_frame_shape(),
+                    dtype=self._dtype(),
+                    buffer=self._mmap,
+                    offset=offset,
+                    strides=self._strides,
+                )
+            except TypeError:
+                # If the chunkmap is wrong, and the mmap isn't long enough
+                # for the requested offset & size, a TypeError is raised.
+                return self._missing_frame(index)
+
+        # Fallback: seek/read for remote files (no mmap available)
+        return self._read_frame_fallback(index, offset)
 
     def _read_compressed_frame(self, index: int) -> np.ndarray:
         ch = self._load_chunk(f"ImageDataSeq|{index}!".encode())
@@ -356,6 +363,120 @@ class ModernReader(ND2Reader):
     def _missing_frame(self, index: int = 0) -> np.ndarray:
         # TODO: add other modes for filling missing data
         return np.zeros(self._raw_frame_shape(), self._dtype())
+
+    def _read_frame_fallback(self, index: int, offset: int) -> np.ndarray:
+        """Read frame via seek/read for remote files without mmap."""
+        try:
+            if self._fh is None:
+                raise ValueError("File not open")
+            self._fh.seek(offset)
+            attr = self.attributes()
+            # Calculate frame size in bytes
+            frame_bytes = attr.heightPx * (
+                attr.widthBytes
+                or (attr.widthPx or 1)
+                * (attr.bitsPerComponentInMemory // 8)
+                * attr.componentCount
+            )
+            data = self._fh.read(frame_bytes)
+            arr = np.frombuffer(data, dtype=self._dtype())
+            return arr.reshape(self._actual_frame_shape())
+        except Exception:
+            return self._missing_frame(index)
+
+    def _frame_size_bytes(self) -> int:
+        """Calculate frame size in bytes."""
+        attr = self.attributes()
+        return attr.heightPx * (
+            attr.widthBytes
+            or (attr.widthPx or 1)
+            * (attr.bitsPerComponentInMemory // 8)
+            * attr.componentCount
+        )
+
+    def read_frames_parallel(
+        self,
+        indices: list[int],
+        max_workers: int = 64,
+    ) -> list[np.ndarray]:
+        """Read multiple frames in parallel (optimized for remote files).
+
+        For local files with mmap, this offers minimal benefit over sequential reads.
+        For remote files, this can saturate high-bandwidth connections by issuing
+        parallel byte-range HTTP requests.
+
+        Parameters
+        ----------
+        indices : list[int]
+            Frame indices to read
+        max_workers : int
+            Number of parallel workers. Default 64 is good for remote files
+            to saturate 10Gbit+ connections. For local files, 4-8 is sufficient.
+
+        Returns
+        -------
+        list[np.ndarray]
+            List of frame arrays in the same order as indices
+        """
+        if not self._fh:
+            raise ValueError("Attempt to read from closed nd2 file")
+
+        # For local files with mmap, parallel reading has minimal benefit
+        # Sequential is simpler and nearly as fast
+        if self._mmap is not None:
+            return [self.read_frame(i) for i in indices]
+
+        # For remote files: parallel reads via thread pool
+        return self._read_frames_parallel_remote(indices, max_workers)
+
+    def _read_frames_parallel_remote(
+        self,
+        indices: list[int],
+        max_workers: int,
+    ) -> list[np.ndarray]:
+        """Read frames in parallel using concurrent file handles."""
+        from nd2._readers.protocol import _open_file
+
+        # Pre-compute all offsets
+        frame_info: list[tuple[int, int | None]] = []
+        for idx in indices:
+            offset = self._frame_offsets.get(idx, None)
+            frame_info.append((idx, offset))
+
+        frame_bytes = self._frame_size_bytes()
+        dtype = self._dtype()
+        shape = self._actual_frame_shape()
+        path = self._path
+        results: dict[int, np.ndarray] = {}
+
+        # Thread-local file handles for connection reuse
+        thread_local = threading.local()
+
+        def get_file() -> Any:
+            if not hasattr(thread_local, "fh"):
+                thread_local.fh = _open_file(path)
+            return thread_local.fh
+
+        def read_one(info: tuple[int, int | None]) -> tuple[int, np.ndarray]:
+            idx, offset = info
+            if offset is None:
+                return idx, np.zeros(self._raw_frame_shape(), dtype)
+
+            fh = get_file()
+            fh.seek(offset)
+            data = fh.read(frame_bytes)
+            arr = np.frombuffer(data, dtype=dtype).reshape(shape)
+            return idx, arr.copy()  # Copy to release buffer
+
+        # Execute in parallel
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(read_one, info): info[0] for info in frame_info}
+            for future in as_completed(futures):
+                idx, arr = future.result()
+                results[idx] = arr
+
+        # Return in original order
+        return [results[idx] for idx in indices]
 
     def _raw_frame_shape(self) -> tuple[int, ...]:
         if self._raw_frame_shape_ is None:

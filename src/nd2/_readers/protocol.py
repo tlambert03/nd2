@@ -141,19 +141,10 @@ class ND2Reader(abc.ABC):
             self._path: Path | str = Path(getattr(self._fh, "name", ""))
             # Only create mmap for local files with fileno()
             if hasattr(self._fh, "fileno"):
-<<<<<<< HEAD
-                try:
-                    self._mmap = mmap.mmap(
-                        self._fh.fileno(), 0, access=mmap.ACCESS_READ
-                    )
-                except (OSError, ValueError):
-                    pass  # Remote file or unsupported - use read() fallback
-=======
                 with contextlib.suppress(OSError, ValueError):
                     self._mmap = mmap.mmap(
                         self._fh.fileno(), 0, access=mmap.ACCESS_READ
                     )
->>>>>>> aa6b837 (fix: resolve ruff and mypy issues in fsspec integration)
         else:
             self._was_open = False
             self._is_remote = _is_remote_path(path)
@@ -173,19 +164,10 @@ class ND2Reader(abc.ABC):
             self._fh = _open_file(self._path)
             # Only create mmap for local files
             if not self._is_remote and hasattr(self._fh, "fileno"):
-<<<<<<< HEAD
-                try:
-                    self._mmap = mmap.mmap(
-                        self._fh.fileno(), 0, access=mmap.ACCESS_READ
-                    )
-                except (OSError, ValueError):
-                    pass  # Will use read() fallback
-=======
                 with contextlib.suppress(OSError, ValueError):
                     self._mmap = mmap.mmap(
                         self._fh.fileno(), 0, access=mmap.ACCESS_READ
                     )
->>>>>>> aa6b837 (fix: resolve ruff and mypy issues in fsspec integration)
 
     def close(self) -> None:
         """Close the file handle."""

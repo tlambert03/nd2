@@ -1397,7 +1397,9 @@ class ND2File:
         """Return a string representation of the ND2File."""
         try:
             details = " (closed)" if self.closed else f" {self.dtype}: {self.sizes!r}"
-            extra = f": {self._path.name!r}{details}"
+            # Handle both Path objects and remote URL strings
+            name = self._path.name if hasattr(self._path, "name") else self._path
+            extra = f": {name!r}{details}"
         except Exception:
             extra = ""
         return f"<ND2File at {hex(id(self))}{extra}>"

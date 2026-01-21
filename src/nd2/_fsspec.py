@@ -308,6 +308,7 @@ class ND2FsspecReader:
         # Physical metadata
         self._voxel_sizes: tuple[float, float, float] | None = None  # (Z, Y, X) µm
         self._time_interval: float | None = None  # seconds
+        self._z_step_from_loop: float | None = None  # Z step from experiment loop
 
         # Initialize
         self._initialize()
@@ -482,11 +483,14 @@ class ND2FsspecReader:
             f"ND2 version: {self._version}, chunks: {len(self._chunkmap)}"
         )
 
-        # Parse metadata
-        self._parse_metadata()
-        self._parse_experiment_loops()
-        self._parse_voxel_sizes()
-        self._parse_time_interval()
+        # Parse metadata - use ND2File for local files (most reliable)
+        if not self._is_remote:
+            self._parse_metadata_via_nd2file()
+        else:
+            self._parse_metadata()
+            self._parse_experiment_loops()
+            self._parse_voxel_sizes()
+            self._parse_time_interval()
 
         # Determine channel interleaving mode
         self._channels_interleaved = (
@@ -502,6 +506,79 @@ class ND2FsspecReader:
             f"{self._num_scenes}S x {self._num_channels}C x {self._num_z}Z x "
             f"{self._height}Y x {self._width}X, dtype={self._dtype}"
         )
+
+    def _parse_metadata_via_nd2file(self) -> None:
+        """Use ND2File to extract metadata (most reliable for local files)."""
+        from nd2._nd2file import ND2File
+
+        try:
+            with ND2File(self._path) as f:
+                # Get dimensions from sizes dict
+                sizes = f.sizes
+                self._width = sizes.get("X", 0)
+                self._height = sizes.get("Y", 0)
+                self._num_z = sizes.get("Z", 1)
+                self._num_channels = sizes.get("C", 1)
+                self._num_timepoints = sizes.get("T", 1)
+                self._num_scenes = sizes.get("P", 1)  # P = Position/Scene
+
+                # Get dtype and other attributes
+                self._dtype = f.dtype
+                attrs = f.attributes
+                if attrs:
+                    self._bits_per_component = attrs.bitsPerComponentSignificant
+                    self._component_count = attrs.componentCount
+                    self._sequence_count = attrs.sequenceCount
+
+                # Get channel names
+                if f.metadata and f.metadata.channels:
+                    self._channels = [
+                        ch.channel.name if ch.channel else f"Channel {i}"
+                        for i, ch in enumerate(f.metadata.channels)
+                    ]
+                else:
+                    self._channels = [f"Channel {i}" for i in range(self._num_channels)]
+
+                # Get voxel sizes
+                voxel = f.voxel_size()
+                if voxel:
+                    self._voxel_sizes = (voxel.z, voxel.y, voxel.x)
+
+                # Get time interval from experiment loops
+                for loop in f.experiment or []:
+                    if hasattr(loop, "parameters") and hasattr(loop.parameters, "periodMs"):
+                        period_ms = loop.parameters.periodMs
+                        if period_ms and period_ms > 0:
+                            self._time_interval = period_ms / 1000.0  # Convert to seconds
+                            break
+
+                # Get scene positions from experiment loops
+                for loop in f.experiment or []:
+                    if hasattr(loop, "parameters") and hasattr(loop.parameters, "points"):
+                        points = loop.parameters.points
+                        if points:
+                            self._scene_positions = [
+                                (p.stagePositionUm[0], p.stagePositionUm[1])
+                                for p in points
+                                if p.stagePositionUm
+                            ]
+                            break
+
+                logger.debug(
+                    f"Parsed via ND2File: T={self._num_timepoints}, S={self._num_scenes}, "
+                    f"C={self._num_channels}, Z={self._num_z}, "
+                    f"Y={self._height}, X={self._width}"
+                )
+                logger.debug(f"Voxel sizes (ZYX): {self._voxel_sizes} µm")
+                logger.debug(f"Channels: {self._channels}")
+
+        except Exception as e:
+            logger.warning(f"Failed to parse via ND2File, falling back to manual: {e}")
+            # Fall back to manual parsing
+            self._parse_metadata()
+            self._parse_experiment_loops()
+            self._parse_voxel_sizes()
+            self._parse_time_interval()
 
     def _parse_metadata(self) -> None:
         """Extract dimensions and channel info from metadata chunks."""
@@ -582,7 +659,71 @@ class ND2FsspecReader:
                 return json_from_clx_variant(data, strip_prefix=False)
             return json_from_clx_lite_variant(data, strip_prefix=False)
 
-        # Parse ImageMetadataLV! FIRST - this is the authoritative source
+        def parse_loop(exp: dict) -> None:
+            """Recursively parse experiment loop structure."""
+            # eType indicates the loop type: 1=TimeLoop, 2=XYPosLoop, 4=ZStackLoop, 8=NETimeLoop
+            loop_type = exp.get("eType", 0)
+            loop_params = exp.get("uLoopPars", {})
+
+            # Handle case where loop_params has a single i000... key
+            if isinstance(loop_params, dict) and list(loop_params.keys()) == ["i0000000000"]:
+                loop_params = loop_params["i0000000000"]
+
+            count = int(loop_params.get("uiCount", 1)) if isinstance(loop_params, dict) else 1
+            logger.debug(f"DEBUG: Loop eType={loop_type}, count={count}")
+
+            if loop_type == 1:  # TimeLoop
+                self._loop_order.append("T")
+                self._loop_counts["T"] = count
+                self._num_timepoints = count
+                logger.debug(f"DEBUG: Set T={count} (TimeLoop)")
+            elif loop_type == 8:  # NETimeLoop
+                self._loop_order.append("T")
+                self._loop_counts["T"] = count
+                self._num_timepoints = count
+                logger.debug(f"DEBUG: Set T={count} (NETimeLoop)")
+            elif loop_type == 2:  # XYPosLoop
+                # Filter by pItemValid if present (not all positions may be used)
+                valid = exp.get("pItemValid", [])
+                if valid:
+                    if isinstance(valid, dict):
+                        valid = [v for k, v in sorted(valid.items())]
+                    valid_count = sum(1 for v in valid if v)
+                    if valid_count > 0:
+                        count = valid_count
+                        logger.debug(f"DEBUG: XYPosLoop has {len(valid)} positions, {count} valid")
+
+                self._loop_order.append("P")
+                self._loop_counts["P"] = count
+                self._num_scenes = count
+                logger.debug(f"DEBUG: Set S={count} (XYPosLoop)")
+            elif loop_type == 4:  # ZStackLoop
+                self._loop_order.append("Z")
+                self._loop_counts["Z"] = count
+                self._num_z = count
+                logger.debug(f"DEBUG: Set Z={count} (ZStackLoop)")
+
+                # Extract Z step from loop params
+                if isinstance(loop_params, dict):
+                    z_step = float(loop_params.get("dZStep", 0))
+                    if z_step == 0 and count > 1:
+                        z_low = float(loop_params.get("dZLow", 0))
+                        z_high = float(loop_params.get("dZHigh", 0))
+                        if z_high != z_low:
+                            z_step = abs(z_high - z_low) / (count - 1)
+                    if z_step > 0:
+                        self._z_step_from_loop = z_step
+                        logger.debug(f"DEBUG: Z step from loop: {z_step}")
+
+            # Recursively parse nested loops in ppNextLevelEx
+            next_level = exp.get("ppNextLevelEx", {})
+            if isinstance(next_level, dict):
+                for key in sorted(next_level.keys()):
+                    sub_exp = next_level[key]
+                    if isinstance(sub_exp, dict) and "eType" in sub_exp:
+                        parse_loop(sub_exp)
+
+        # Parse ImageMetadataLV! - this is the authoritative source
         if b"ImageMetadataLV!" in self._chunkmap:
             offset, _ = self._chunkmap[b"ImageMetadataLV!"]
             exp_data = read_nd2_chunk(self._file, offset)
@@ -592,29 +733,7 @@ class ND2FsspecReader:
                 exp = raw.get("SLxExperiment", raw)
 
                 if isinstance(exp, dict):
-                    loops = exp.get("uLoopPars", {})
-
-                    if isinstance(loops, dict):
-                        for loop_key in sorted(loops.keys()):
-                            loop = loops[loop_key]
-                            if not isinstance(loop, dict):
-                                continue
-
-                            loop_type = str(loop.get("Type", ""))
-                            count = int(loop.get("uiCount", 1))
-
-                            if "ZStackLoop" in loop_type or "ZSeries" in loop_type:
-                                self._loop_order.append("Z")
-                                self._loop_counts["Z"] = count
-                                self._num_z = count
-                            elif "TimeLoop" in loop_type or "NETimeLoop" in loop_type:
-                                self._loop_order.append("T")
-                                self._loop_counts["T"] = count
-                                self._num_timepoints = count
-                            elif "XYPosLoop" in loop_type:
-                                self._loop_order.append("P")
-                                self._loop_counts["P"] = count
-                                self._num_scenes = count
+                    parse_loop(exp)
             except Exception as e:
                 logger.warning(f"Failed to parse ImageMetadataLV!: {e}")
 
@@ -719,8 +838,10 @@ class ND2FsspecReader:
                 # XY pixel size
                 xy_cal = cal.get("dCalibration", 1.0)
 
-                # Z step from experiment loops
-                z_step = self._parse_z_step()
+                # Use Z step from experiment loop if available, else try _parse_z_step
+                z_step = self._z_step_from_loop
+                if z_step is None:
+                    z_step = self._parse_z_step()
 
                 if xy_cal and xy_cal > 0:
                     self._voxel_sizes = (

@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     # uses optional tifffile dependency
-    from .tiff import nd2_to_tiff
     # uses optional fsspec dependency
     from ._fsspec import ImageMetadata, ND2FileList, ND2FsspecReader, read_fsspec
+    from .tiff import nd2_to_tiff
 
 try:
     __version__ = version(__name__)

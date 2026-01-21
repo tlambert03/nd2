@@ -18,6 +18,7 @@ Key features:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import re
@@ -26,15 +27,16 @@ import threading
 import zlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, BinaryIO, Iterator
+from typing import TYPE_CHECKING, Any, BinaryIO
 
 import numpy as np
 
 if TYPE_CHECKING:
-    import dask.array
-    from numpy.typing import DTypeLike, NDArray
+    from collections.abc import Iterator
 
-__all__ = ["ND2FsspecReader", "ND2FileList", "ImageMetadata", "read_fsspec"]
+    import dask.array
+
+__all__ = ["ImageMetadata", "ND2FileList", "ND2FsspecReader", "read_fsspec"]
 
 
 @dataclass
@@ -76,7 +78,7 @@ class ImageMetadata:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "ImageMetadata":
+    def from_dict(cls, d: dict) -> ImageMetadata:
         """Create from dict (loaded from JSON)."""
         return cls(
             path=d["path"],
@@ -107,7 +109,9 @@ class ND2FileList:
     """
 
     path: str
-    crop: tuple[int, int, int, int, int, int]  # (z_min, z_max, y_min, y_max, x_min, x_max)
+    crop: tuple[
+        int, int, int, int, int, int
+    ]  # (z_min, z_max, y_min, y_max, x_min, x_max)
     t_range: tuple[int, int]  # (start, end)
     c_range: tuple[int, int]  # (start, end)
     s_range: tuple[int, int]  # (start, end)
@@ -131,7 +135,7 @@ class ND2FileList:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "ND2FileList":
+    def from_dict(cls, d: dict) -> ND2FileList:
         """Create from dict (loaded from JSON)."""
         # Convert string keys back to tuples
         offsets = {}
@@ -156,10 +160,11 @@ class ND2FileList:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
-    def load(cls, path: str) -> "ND2FileList":
+    def load(cls, path: str) -> ND2FileList:
         """Load from JSON file."""
         with open(path) as f:
             return cls.from_dict(json.load(f))
+
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +192,7 @@ class _NamedFileWrapper:
     def close(self) -> None:
         self._file.close()
 
-    def __enter__(self) -> "_NamedFileWrapper":
+    def __enter__(self) -> _NamedFileWrapper:
         return self
 
     def __exit__(self, *args: Any) -> None:
@@ -422,7 +427,7 @@ class ND2FsspecReader:
     # Context manager
     # -------------------------------------------------------------------------
 
-    def __enter__(self) -> "ND2FsspecReader":
+    def __enter__(self) -> ND2FsspecReader:
         return self
 
     def __exit__(self, *args: Any) -> None:
@@ -432,10 +437,8 @@ class ND2FsspecReader:
         """Close the file handle and release resources."""
         with self._lock:
             if self._file is not None:
-                try:
+                with contextlib.suppress(Exception):
                     self._file.close()
-                except Exception:
-                    pass
                 self._file = None
             self._closed = True
 
@@ -466,9 +469,7 @@ class ND2FsspecReader:
         # Open file
         if self._is_remote:
             logger.debug(f"Opening remote ND2 via fsspec: {self._path}")
-            f = fsspec.open(
-                self._path, mode="rb", block_size=self._block_size
-            ).open()
+            f = fsspec.open(self._path, mode="rb", block_size=self._block_size).open()
         else:
             logger.debug(f"Opening local ND2: {self._path}")
             f = open(self._path, "rb")
@@ -479,9 +480,7 @@ class ND2FsspecReader:
         self._version = get_version(self._file)
         self._chunkmap = get_chunkmap(self._file)
 
-        logger.debug(
-            f"ND2 version: {self._version}, chunks: {len(self._chunkmap)}"
-        )
+        logger.debug(f"ND2 version: {self._version}, chunks: {len(self._chunkmap)}")
 
         # Parse metadata - use ND2File for local files (most reliable)
         if not self._is_remote:
@@ -494,8 +493,7 @@ class ND2FsspecReader:
 
         # Determine channel interleaving mode
         self._channels_interleaved = (
-            self._component_count > 1
-            and self._component_count == self._num_channels
+            self._component_count > 1 and self._component_count == self._num_channels
         )
 
         if self._validate_frames:
@@ -546,15 +544,21 @@ class ND2FsspecReader:
 
                 # Get time interval from experiment loops
                 for loop in f.experiment or []:
-                    if hasattr(loop, "parameters") and hasattr(loop.parameters, "periodMs"):
+                    if hasattr(loop, "parameters") and hasattr(
+                        loop.parameters, "periodMs"
+                    ):
                         period_ms = loop.parameters.periodMs
                         if period_ms and period_ms > 0:
-                            self._time_interval = period_ms / 1000.0  # Convert to seconds
+                            self._time_interval = (
+                                period_ms / 1000.0
+                            )  # Convert to seconds
                             break
 
                 # Get scene positions from experiment loops
                 for loop in f.experiment or []:
-                    if hasattr(loop, "parameters") and hasattr(loop.parameters, "points"):
+                    if hasattr(loop, "parameters") and hasattr(
+                        loop.parameters, "points"
+                    ):
                         points = loop.parameters.points
                         if points:
                             self._scene_positions = [
@@ -638,9 +642,7 @@ class ND2FsspecReader:
                         # Extract component index from key
                         match = re.search(r"(\d+)$", key)
                         comp_idx = (
-                            int(match.group(1))
-                            if match
-                            else len(self._channels) - 1
+                            int(match.group(1)) if match else len(self._channels) - 1
                         )
                         self._channel_to_component.append(comp_idx)
 
@@ -666,10 +668,16 @@ class ND2FsspecReader:
             loop_params = exp.get("uLoopPars", {})
 
             # Handle case where loop_params has a single i000... key
-            if isinstance(loop_params, dict) and list(loop_params.keys()) == ["i0000000000"]:
+            if isinstance(loop_params, dict) and list(loop_params.keys()) == [
+                "i0000000000"
+            ]:
                 loop_params = loop_params["i0000000000"]
 
-            count = int(loop_params.get("uiCount", 1)) if isinstance(loop_params, dict) else 1
+            count = (
+                int(loop_params.get("uiCount", 1))
+                if isinstance(loop_params, dict)
+                else 1
+            )
             logger.debug(f"DEBUG: Loop eType={loop_type}, count={count}")
 
             if loop_type == 1:  # TimeLoop
@@ -691,7 +699,9 @@ class ND2FsspecReader:
                     valid_count = sum(1 for v in valid if v)
                     if valid_count > 0:
                         count = valid_count
-                        logger.debug(f"DEBUG: XYPosLoop has {len(valid)} positions, {count} valid")
+                        logger.debug(
+                            f"DEBUG: XYPosLoop has {len(valid)} positions, {count} valid"
+                        )
 
                 self._loop_order.append("P")
                 self._loop_counts["P"] = count
@@ -800,9 +810,7 @@ class ND2FsspecReader:
             num_scenes = len(unique_positions)
 
             # Store scene positions
-            self._scene_positions = [
-                (float(x), float(y)) for x, y in unique_positions
-            ]
+            self._scene_positions = [(float(x), float(y)) for x, y in unique_positions]
 
             # Find Z by detecting position transitions
             scene_indices = [unique_positions.index(xy) for xy in xy_rounded]
@@ -1023,7 +1031,7 @@ class ND2FsspecReader:
         # Check compression
         if len(raw_bytes) >= 4:
             # LZ4 frame magic: 0x04 0x22 0x4D 0x18
-            if raw_bytes[:4] == b"\x04\x22\x4D\x18":
+            if raw_bytes[:4] == b"\x04\x22\x4d\x18":
                 try:
                     import lz4.frame
 
@@ -1053,18 +1061,14 @@ class ND2FsspecReader:
         frame = np.frombuffer(raw_bytes[:expected_bytes], dtype=self._dtype)
 
         if self._component_count > 1:
-            return frame.reshape(
-                (self._height, self._width, self._component_count)
-            )
+            return frame.reshape((self._height, self._width, self._component_count))
         return frame.reshape((self._height, self._width))
 
     # -------------------------------------------------------------------------
     # Reading methods
     # -------------------------------------------------------------------------
 
-    def read_frame(
-        self, t: int = 0, c: int = 0, z: int = 0, s: int = 0
-    ) -> np.ndarray:
+    def read_frame(self, t: int = 0, c: int = 0, z: int = 0, s: int = 0) -> np.ndarray:
         """Read a single 2D frame.
 
         Parameters
@@ -1098,8 +1102,7 @@ class ND2FsspecReader:
 
         if chunk_key not in self._chunkmap:
             raise KeyError(
-                f"Frame not found: t={t}, c={c}, z={z}, s={s} "
-                f"(frame_idx={frame_idx})"
+                f"Frame not found: t={t}, c={c}, z={z}, s={s} (frame_idx={frame_idx})"
             )
 
         with self._lock:
@@ -1262,9 +1265,7 @@ class ND2FsspecReader:
 
         # Parallel read
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {
-                executor.submit(read_chunk, ci): ci[0] for ci in chunk_info
-            }
+            futures = {executor.submit(read_chunk, ci): ci[0] for ci in chunk_info}
             for future in as_completed(futures):
                 z_idx, frame = future.result()
                 output[z_idx] = frame
@@ -1370,9 +1371,7 @@ class ND2FsspecReader:
         try:
             # Parallel fetch
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = {
-                    executor.submit(fetch_chunk, ci): ci[0] for ci in chunk_info
-                }
+                futures = {executor.submit(fetch_chunk, ci): ci[0] for ci in chunk_info}
                 for future in as_completed(futures):
                     z_idx, frame = future.result()
                     output[z_idx] = frame
@@ -1397,9 +1396,7 @@ class ND2FsspecReader:
     # Dask integration
     # -------------------------------------------------------------------------
 
-    def to_dask(
-        self, *, chunks: tuple[int, ...] | None = None
-    ) -> "dask.array.Array":
+    def to_dask(self, *, chunks: tuple[int, ...] | None = None) -> dask.array.Array:
         """Create a lazy dask array for the full dataset.
 
         Parameters
@@ -1424,8 +1421,7 @@ class ND2FsspecReader:
             import dask.array as da
         except ImportError:
             raise ImportError(
-                "dask is required for to_dask(). "
-                "Install with: pip install dask"
+                "dask is required for to_dask(). Install with: pip install dask"
             )
 
         if chunks is None:
@@ -1436,11 +1432,9 @@ class ND2FsspecReader:
         def get_chunk(
             block_id: tuple[int, int, int, int, int],
         ) -> np.ndarray:
-            t_idx, c_idx, z_start, y_start, x_start = block_id
+            t_idx, c_idx, _z_start, _y_start, _x_start = block_id
             # Read full Z-stack (we chunk by T and C, not Z/Y/X)
-            return self.read_zstack(t=t_idx, c=c_idx, s=0)[
-                np.newaxis, np.newaxis, ...
-            ]
+            return self.read_zstack(t=t_idx, c=c_idx, s=0)[np.newaxis, np.newaxis, ...]
 
         # Build dask array from delayed reads
         dask_chunks = []
@@ -1595,7 +1589,7 @@ class ND2FsspecReader:
         # Read each Z-stack using the crop
         for t_idx, t in enumerate(range(t_start, t_end)):
             for c_idx, c in enumerate(range(c_start, c_end)):
-                for s_idx, s in enumerate(range(s_start, s_end)):
+                for _s_idx, s in enumerate(range(s_start, s_end)):
                     crop = (z_min, z_max, y_min, y_max, x_min, x_max)
                     zstack = self.read_zstack(
                         t=t, c=c, s=s, crop=crop, max_workers=max_workers
@@ -1626,9 +1620,7 @@ class ND2FsspecReader:
 
         for t in range(self._num_timepoints):
             for c in range(self._num_channels):
-                output[t, c] = self.read_zstack(
-                    t=t, c=c, s=0, max_workers=max_workers
-                )
+                output[t, c] = self.read_zstack(t=t, c=c, s=0, max_workers=max_workers)
 
         return output
 
@@ -1643,7 +1635,7 @@ def read_fsspec(
     *,
     dask: bool = False,
     **kwargs: Any,
-) -> np.ndarray | "dask.array.Array":
+) -> np.ndarray | dask.array.Array:
     """Read an ND2 file via fsspec.
 
     This is a convenience function that opens the file, reads the data,

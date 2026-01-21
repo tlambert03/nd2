@@ -582,14 +582,7 @@ class ND2FsspecReader:
                 return json_from_clx_variant(data, strip_prefix=False)
             return json_from_clx_lite_variant(data, strip_prefix=False)
 
-        # Try position arrays first
-        z_from_pos, scenes_from_pos = self._parse_position_arrays()
-        if z_from_pos:
-            self._num_z = int(z_from_pos)
-        if scenes_from_pos:
-            self._num_scenes = int(scenes_from_pos)
-
-        # Fallback to ImageMetadataLV!
+        # Parse ImageMetadataLV! FIRST - this is the authoritative source
         if b"ImageMetadataLV!" in self._chunkmap:
             offset, _ = self._chunkmap[b"ImageMetadataLV!"]
             exp_data = read_nd2_chunk(self._file, offset)
@@ -613,20 +606,24 @@ class ND2FsspecReader:
                             if "ZStackLoop" in loop_type or "ZSeries" in loop_type:
                                 self._loop_order.append("Z")
                                 self._loop_counts["Z"] = count
-                                if self._num_z == 1:
-                                    self._num_z = count
+                                self._num_z = count
                             elif "TimeLoop" in loop_type or "NETimeLoop" in loop_type:
                                 self._loop_order.append("T")
                                 self._loop_counts["T"] = count
-                                if self._num_timepoints == 1:
-                                    self._num_timepoints = count
+                                self._num_timepoints = count
                             elif "XYPosLoop" in loop_type:
                                 self._loop_order.append("P")
                                 self._loop_counts["P"] = count
-                                if self._num_scenes == 1:
-                                    self._num_scenes = count
+                                self._num_scenes = count
             except Exception as e:
                 logger.warning(f"Failed to parse ImageMetadataLV!: {e}")
+
+        # Fallback to position arrays only if loops didn't provide values
+        z_from_pos, scenes_from_pos = self._parse_position_arrays()
+        if z_from_pos and self._num_z == 1:
+            self._num_z = int(z_from_pos)
+        if scenes_from_pos and self._num_scenes == 1:
+            self._num_scenes = int(scenes_from_pos)
 
         # Infer missing dimensions from sequence count
         if self._sequence_count > 0:
@@ -784,9 +781,18 @@ class ND2FsspecReader:
                         if isinstance(loop, dict):
                             loop_type = str(loop.get("Type", ""))
                             if "ZStackLoop" in loop_type or "ZSeries" in loop_type:
-                                z_step = loop.get("dZStep", 0)
-                                if z_step and float(z_step) > 0:
-                                    return float(z_step)
+                                z_step = float(loop.get("dZStep", 0))
+                                count = int(loop.get("uiCount", 1))
+
+                                # If dZStep is 0, calculate from range
+                                if z_step == 0 and count > 1:
+                                    z_low = float(loop.get("dZLow", 0))
+                                    z_high = float(loop.get("dZHigh", 0))
+                                    if z_high != z_low:
+                                        z_step = abs(z_high - z_low) / (count - 1)
+
+                                if z_step > 0:
+                                    return z_step
         except Exception as e:
             logger.debug(f"Failed to parse Z step: {e}")
 

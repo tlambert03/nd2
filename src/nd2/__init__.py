@@ -5,8 +5,6 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     # uses optional tifffile dependency
-    # uses optional fsspec dependency
-    from ._fsspec import ImageMetadata, ND2FileList, ND2FsspecReader, read_fsspec
     from .tiff import nd2_to_tiff
 
 try:
@@ -20,16 +18,12 @@ __all__ = [
     "AXIS",
     "BinaryLayer",
     "BinaryLayers",
-    "ImageMetadata",
     "ND2File",
-    "ND2FileList",
-    "ND2FsspecReader",
     "__version__",
     "imread",
     "is_legacy",
     "is_supported_file",
     "nd2_to_tiff",
-    "read_fsspec",
     "rescue_nd2",
     "structures",
 ]
@@ -47,8 +41,4 @@ def __getattr__(name: str) -> Any:
         from .tiff import nd2_to_tiff
 
         return nd2_to_tiff
-    if name in ("ND2FsspecReader", "ND2FileList", "ImageMetadata", "read_fsspec"):
-        from . import _fsspec
-
-        return getattr(_fsspec, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

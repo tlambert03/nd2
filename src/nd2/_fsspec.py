@@ -1126,7 +1126,7 @@ class ND2FsspecReader:
         s: int = 0,
         *,
         crop: tuple[int, int, int, int, int, int] | None = None,
-        max_workers: int = 8,
+        max_workers: int = 64,
     ) -> np.ndarray:
         """Read a complete Z-stack with parallel I/O.
 
@@ -1548,7 +1548,7 @@ class ND2FsspecReader:
     def read_from_file_list(
         self,
         file_list: ND2FileList,
-        max_workers: int = 8,
+        max_workers: int = 64,
     ) -> np.ndarray:
         """Read data using pre-computed file list.
 
@@ -1604,7 +1604,7 @@ class ND2FsspecReader:
 
         return output
 
-    def asarray(self, *, max_workers: int = 8) -> np.ndarray:
+    def asarray(self, *, max_workers: int = 64) -> np.ndarray:
         """Load the entire dataset into memory.
 
         Parameters

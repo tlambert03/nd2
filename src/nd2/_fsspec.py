@@ -250,7 +250,15 @@ class ND2FsspecReader:
     """
 
     # Remote URL prefixes
-    _REMOTE_PREFIXES = ("http://", "https://", "s3://", "gs://", "az://", "abfs://")
+    _REMOTE_PREFIXES = (
+        "http://",
+        "https://",
+        "s3://",
+        "gs://",
+        "az://",
+        "abfs://",
+        "smb://",
+    )
 
     def __init__(
         self,

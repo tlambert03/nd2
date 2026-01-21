@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import abc
+import contextlib
 import mmap
 import warnings
 from contextlib import nullcontext
 from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO, cast
+from typing import TYPE_CHECKING, Any, BinaryIO, cast
 
 from nd2._parse._chunk_decode import get_version
 
@@ -42,12 +43,12 @@ _REMOTE_PREFIXES = (
 )
 
 
-def _is_remote_path(path: str | Path) -> bool:
+def _is_remote_path(path: str | Path | Any) -> bool:
     """Check if path is a remote URL requiring fsspec."""
     return isinstance(path, str) and any(path.startswith(p) for p in _REMOTE_PREFIXES)
 
 
-def _open_file(path: str | Path, block_size: int = 8 * 1024 * 1024) -> BinaryIO:
+def _open_file(path: str | Path | Any, block_size: int = 8 * 1024 * 1024) -> BinaryIO:
     """Open file, using fsspec for remote URLs.
 
     Parameters
@@ -140,12 +141,19 @@ class ND2Reader(abc.ABC):
             self._path: Path | str = Path(getattr(self._fh, "name", ""))
             # Only create mmap for local files with fileno()
             if hasattr(self._fh, "fileno"):
+<<<<<<< HEAD
                 try:
                     self._mmap = mmap.mmap(
                         self._fh.fileno(), 0, access=mmap.ACCESS_READ
                     )
                 except (OSError, ValueError):
                     pass  # Remote file or unsupported - use read() fallback
+=======
+                with contextlib.suppress(OSError, ValueError):
+                    self._mmap = mmap.mmap(
+                        self._fh.fileno(), 0, access=mmap.ACCESS_READ
+                    )
+>>>>>>> aa6b837 (fix: resolve ruff and mypy issues in fsspec integration)
         else:
             self._was_open = False
             self._is_remote = _is_remote_path(path)
@@ -165,12 +173,19 @@ class ND2Reader(abc.ABC):
             self._fh = _open_file(self._path)
             # Only create mmap for local files
             if not self._is_remote and hasattr(self._fh, "fileno"):
+<<<<<<< HEAD
                 try:
                     self._mmap = mmap.mmap(
                         self._fh.fileno(), 0, access=mmap.ACCESS_READ
                     )
                 except (OSError, ValueError):
                     pass  # Will use read() fallback
+=======
+                with contextlib.suppress(OSError, ValueError):
+                    self._mmap = mmap.mmap(
+                        self._fh.fileno(), 0, access=mmap.ACCESS_READ
+                    )
+>>>>>>> aa6b837 (fix: resolve ruff and mypy issues in fsspec integration)
 
     def close(self) -> None:
         """Close the file handle."""

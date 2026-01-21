@@ -70,7 +70,9 @@ def _open_file(path: str | Path, block_size: int = 8 * 1024 * 1024) -> BinaryIO:
                 "fsspec is required for remote file access. "
                 "Install with: pip install fsspec aiohttp"
             ) from e
-        return cast(BinaryIO, fsspec.open(str(path), mode="rb", block_size=block_size).open())
+        return cast(
+            "BinaryIO", fsspec.open(str(path), mode="rb", block_size=block_size).open()
+        )
     return open(path, "rb")
 
 
@@ -139,7 +141,9 @@ class ND2Reader(abc.ABC):
             # Only create mmap for local files with fileno()
             if hasattr(self._fh, "fileno"):
                 try:
-                    self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
+                    self._mmap = mmap.mmap(
+                        self._fh.fileno(), 0, access=mmap.ACCESS_READ
+                    )
                 except (OSError, ValueError):
                     pass  # Remote file or unsupported - use read() fallback
         else:
@@ -162,7 +166,9 @@ class ND2Reader(abc.ABC):
             # Only create mmap for local files
             if not self._is_remote and hasattr(self._fh, "fileno"):
                 try:
-                    self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
+                    self._mmap = mmap.mmap(
+                        self._fh.fileno(), 0, access=mmap.ACCESS_READ
+                    )
                 except (OSError, ValueError):
                     pass  # Will use read() fallback
 

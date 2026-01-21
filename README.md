@@ -40,6 +40,12 @@ or from conda:
 conda install -c conda-forge nd2
 ```
 
+> **Note:** Using `pip install nd2` will install the default nd2 reader from PyPI. To install this fork with fsspec/remote reader support:
+>
+> ```sh
+> uv pip install git+https://github.com/derekthirstrup/nd2.git@main
+> ```
+
 ### Legacy nd2 file support
 
 Legacy nd2 (JPEG2000) files are also supported, but require `imagecodecs`. To

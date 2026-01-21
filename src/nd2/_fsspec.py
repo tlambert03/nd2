@@ -27,7 +27,7 @@ import threading
 import zlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, BinaryIO
+from typing import TYPE_CHECKING, Any, BinaryIO, cast
 
 import numpy as np
 
@@ -138,10 +138,11 @@ class ND2FileList:
     def from_dict(cls, d: dict) -> ND2FileList:
         """Create from dict (loaded from JSON)."""
         # Convert string keys back to tuples
-        offsets = {}
+        offsets: dict[tuple[int, int, int, int], int] = {}
         for k, v in d["chunk_offsets"].items():
             # Parse "(0, 0, 10, 0)" -> (0, 0, 10, 0)
-            key_tuple = tuple(int(x.strip()) for x in k.strip("()").split(","))
+            parts = [int(x.strip()) for x in k.strip("()").split(",")]
+            key_tuple = (parts[0], parts[1], parts[2], parts[3])
             offsets[key_tuple] = v
         return cls(
             path=d["path"],
@@ -477,8 +478,9 @@ class ND2FsspecReader:
         self._file = _NamedFileWrapper(f, self._path)
 
         # Get version and chunkmap
-        self._version = get_version(self._file)
-        self._chunkmap = get_chunkmap(self._file)
+        # Cast to BinaryIO since _NamedFileWrapper implements the required protocol
+        self._version = get_version(cast(BinaryIO, self._file))
+        self._chunkmap = get_chunkmap(cast(BinaryIO, self._file))
 
         logger.debug(f"ND2 version: {self._version}, chunks: {len(self._chunkmap)}")
 
@@ -544,10 +546,9 @@ class ND2FsspecReader:
 
                 # Get time interval from experiment loops
                 for loop in f.experiment or []:
-                    if hasattr(loop, "parameters") and hasattr(
-                        loop.parameters, "periodMs"
-                    ):
-                        period_ms = loop.parameters.periodMs
+                    params = getattr(loop, "parameters", None)
+                    if params is not None and hasattr(params, "periodMs"):
+                        period_ms = getattr(params, "periodMs", None)
                         if period_ms and period_ms > 0:
                             self._time_interval = (
                                 period_ms / 1000.0
@@ -556,10 +557,9 @@ class ND2FsspecReader:
 
                 # Get scene positions from experiment loops
                 for loop in f.experiment or []:
-                    if hasattr(loop, "parameters") and hasattr(
-                        loop.parameters, "points"
-                    ):
-                        points = loop.parameters.points
+                    params = getattr(loop, "parameters", None)
+                    if params is not None and hasattr(params, "points"):
+                        points = getattr(params, "points", None)
                         if points:
                             self._scene_positions = [
                                 (p.stagePositionUm[0], p.stagePositionUm[1])
@@ -569,9 +569,9 @@ class ND2FsspecReader:
                             break
 
                 logger.debug(
-                    f"Parsed via ND2File: T={self._num_timepoints}, S={self._num_scenes}, "
-                    f"C={self._num_channels}, Z={self._num_z}, "
-                    f"Y={self._height}, X={self._width}"
+                    f"Parsed via ND2File: T={self._num_timepoints}, "
+                    f"S={self._num_scenes}, C={self._num_channels}, "
+                    f"Z={self._num_z}, Y={self._height}, X={self._width}"
                 )
                 logger.debug(f"Voxel sizes (ZYX): {self._voxel_sizes} µm")
                 logger.debug(f"Channels: {self._channels}")
@@ -590,15 +590,15 @@ class ND2FsspecReader:
         from nd2._parse._clx_lite import json_from_clx_lite_variant
         from nd2._parse._clx_xml import json_from_clx_variant
 
-        def decode_chunk(data: bytes) -> dict:
+        def decode_chunk(data: bytes) -> dict[str, Any]:
             if data.startswith(b"<"):
-                return json_from_clx_variant(data, strip_prefix=False)
-            return json_from_clx_lite_variant(data, strip_prefix=False)
+                return cast(dict[str, Any], json_from_clx_variant(data, strip_prefix=False))
+            return cast(dict[str, Any], json_from_clx_lite_variant(data, strip_prefix=False))
 
         # Parse ImageAttributesLV! for dimensions
         if b"ImageAttributesLV!" in self._chunkmap:
             offset, _ = self._chunkmap[b"ImageAttributesLV!"]
-            attr_data = read_nd2_chunk(self._file, offset)
+            attr_data = read_nd2_chunk(cast(BinaryIO, self._file), offset)
             try:
                 raw = decode_chunk(attr_data)
                 raw = raw.get("SLxImageAttributes", raw)
@@ -622,7 +622,7 @@ class ND2FsspecReader:
         # Parse ImageMetadataSeqLV|0! for channel info
         if b"ImageMetadataSeqLV|0!" in self._chunkmap:
             offset, _ = self._chunkmap[b"ImageMetadataSeqLV|0!"]
-            meta_data = read_nd2_chunk(self._file, offset)
+            meta_data = read_nd2_chunk(cast(BinaryIO, self._file), offset)
             try:
                 raw = decode_chunk(meta_data)
                 raw = raw.get("SLxPictureMetadata", raw)
@@ -656,14 +656,14 @@ class ND2FsspecReader:
         from nd2._parse._clx_lite import json_from_clx_lite_variant
         from nd2._parse._clx_xml import json_from_clx_variant
 
-        def decode_chunk(data: bytes) -> dict:
+        def decode_chunk(data: bytes) -> dict[str, Any]:
             if data.startswith(b"<"):
-                return json_from_clx_variant(data, strip_prefix=False)
-            return json_from_clx_lite_variant(data, strip_prefix=False)
+                return cast(dict[str, Any], json_from_clx_variant(data, strip_prefix=False))
+            return cast(dict[str, Any], json_from_clx_lite_variant(data, strip_prefix=False))
 
         def parse_loop(exp: dict) -> None:
             """Recursively parse experiment loop structure."""
-            # eType indicates the loop type: 1=TimeLoop, 2=XYPosLoop, 4=ZStackLoop, 8=NETimeLoop
+            # eType: 1=TimeLoop, 2=XYPosLoop, 4=ZStackLoop, 8=NETimeLoop
             loop_type = exp.get("eType", 0)
             loop_params = exp.get("uLoopPars", {})
 
@@ -700,7 +700,7 @@ class ND2FsspecReader:
                     if valid_count > 0:
                         count = valid_count
                         logger.debug(
-                            f"DEBUG: XYPosLoop has {len(valid)} positions, {count} valid"
+                            f"DEBUG: XYPosLoop {len(valid)} positions, {count} valid"
                         )
 
                 self._loop_order.append("P")
@@ -736,7 +736,7 @@ class ND2FsspecReader:
         # Parse ImageMetadataLV! - this is the authoritative source
         if b"ImageMetadataLV!" in self._chunkmap:
             offset, _ = self._chunkmap[b"ImageMetadataLV!"]
-            exp_data = read_nd2_chunk(self._file, offset)
+            exp_data = read_nd2_chunk(cast(BinaryIO, self._file), offset)
 
             try:
                 raw = decode_chunk(exp_data)
@@ -783,11 +783,11 @@ class ND2FsspecReader:
 
         try:
             offset, _ = self._chunkmap[x_key]
-            x_data = read_nd2_chunk(self._file, offset)
+            x_data = read_nd2_chunk(cast(BinaryIO, self._file), offset)
             x_arr = np.frombuffer(x_data, dtype=np.float64)
 
             offset, _ = self._chunkmap[y_key]
-            y_data = read_nd2_chunk(self._file, offset)
+            y_data = read_nd2_chunk(cast(BinaryIO, self._file), offset)
             y_arr = np.frombuffer(y_data, dtype=np.float64)
 
             if len(x_arr) == 0:
@@ -829,17 +829,17 @@ class ND2FsspecReader:
         from nd2._parse._clx_lite import json_from_clx_lite_variant
         from nd2._parse._clx_xml import json_from_clx_variant
 
-        def decode_chunk(data: bytes) -> dict:
+        def decode_chunk(data: bytes) -> dict[str, Any]:
             if data.startswith(b"<"):
-                return json_from_clx_variant(data, strip_prefix=False)
-            return json_from_clx_lite_variant(data, strip_prefix=False)
+                return cast(dict[str, Any], json_from_clx_variant(data, strip_prefix=False))
+            return cast(dict[str, Any], json_from_clx_lite_variant(data, strip_prefix=False))
 
         # Try ImageCalibrationLV|0!
         cal_key = b"ImageCalibrationLV|0!"
         if cal_key in self._chunkmap:
             try:
                 offset, _ = self._chunkmap[cal_key]
-                cal_data = read_nd2_chunk(self._file, offset)
+                cal_data = read_nd2_chunk(cast(BinaryIO, self._file), offset)
                 raw = decode_chunk(cal_data)
                 cal = raw.get("SLxCalibration", raw)
 
@@ -866,7 +866,7 @@ class ND2FsspecReader:
         if b"ImageMetadataLV!" in self._chunkmap:
             try:
                 offset, _ = self._chunkmap[b"ImageMetadataLV!"]
-                meta_data = read_nd2_chunk(self._file, offset)
+                meta_data = read_nd2_chunk(cast(BinaryIO, self._file), offset)
                 raw = decode_chunk(meta_data)
 
                 # Look for calibration in various locations
@@ -888,17 +888,17 @@ class ND2FsspecReader:
         from nd2._parse._clx_lite import json_from_clx_lite_variant
         from nd2._parse._clx_xml import json_from_clx_variant
 
-        def decode_chunk(data: bytes) -> dict:
+        def decode_chunk(data: bytes) -> dict[str, Any]:
             if data.startswith(b"<"):
-                return json_from_clx_variant(data, strip_prefix=False)
-            return json_from_clx_lite_variant(data, strip_prefix=False)
+                return cast(dict[str, Any], json_from_clx_variant(data, strip_prefix=False))
+            return cast(dict[str, Any], json_from_clx_lite_variant(data, strip_prefix=False))
 
         if b"ImageMetadataLV!" not in self._chunkmap:
             return None
 
         try:
             offset, _ = self._chunkmap[b"ImageMetadataLV!"]
-            meta_data = read_nd2_chunk(self._file, offset)
+            meta_data = read_nd2_chunk(cast(BinaryIO, self._file), offset)
             raw = decode_chunk(meta_data)
             exp = raw.get("SLxExperiment", raw)
 
@@ -933,17 +933,17 @@ class ND2FsspecReader:
         from nd2._parse._clx_lite import json_from_clx_lite_variant
         from nd2._parse._clx_xml import json_from_clx_variant
 
-        def decode_chunk(data: bytes) -> dict:
+        def decode_chunk(data: bytes) -> dict[str, Any]:
             if data.startswith(b"<"):
-                return json_from_clx_variant(data, strip_prefix=False)
-            return json_from_clx_lite_variant(data, strip_prefix=False)
+                return cast(dict[str, Any], json_from_clx_variant(data, strip_prefix=False))
+            return cast(dict[str, Any], json_from_clx_lite_variant(data, strip_prefix=False))
 
         if b"ImageMetadataLV!" not in self._chunkmap:
             return
 
         try:
             offset, _ = self._chunkmap[b"ImageMetadataLV!"]
-            meta_data = read_nd2_chunk(self._file, offset)
+            meta_data = read_nd2_chunk(cast(BinaryIO, self._file), offset)
             raw = decode_chunk(meta_data)
             exp = raw.get("SLxExperiment", raw)
 
@@ -1036,17 +1036,15 @@ class ND2FsspecReader:
                     import lz4.frame
 
                     raw_bytes = lz4.frame.decompress(raw_bytes)
-                except ImportError:
+                except ImportError as err:
                     raise ImportError(
                         "LZ4 compression detected but lz4 not installed. "
                         "Install with: pip install lz4"
-                    )
+                    ) from err
             # zlib magic: 0x78 (followed by 0x9c, 0x01, 0x5e, or 0xda)
             elif raw_bytes[0] == 0x78:
-                try:
+                with contextlib.suppress(zlib.error):
                     raw_bytes = zlib.decompress(raw_bytes)
-                except zlib.error:
-                    pass  # Not actually zlib compressed
 
         # Calculate expected size
         pixels = self._height * self._width * self._component_count
@@ -1107,7 +1105,7 @@ class ND2FsspecReader:
 
         with self._lock:
             offset, _ = self._chunkmap[chunk_key]
-            raw_bytes = read_nd2_chunk(self._file, offset)
+            raw_bytes = read_nd2_chunk(cast(BinaryIO, self._file), offset)
 
         frame = self._decode_frame(raw_bytes)
 
@@ -1190,6 +1188,10 @@ class ND2FsspecReader:
         thread_local = threading.local()
 
         # Parse crop parameters
+        y_min: int | None
+        y_max: int | None
+        x_min: int | None
+        x_max: int | None
         if crop is not None:
             z_min, z_max, y_min, y_max, x_min, x_max = crop
             z_range = range(z_min, z_max)
@@ -1223,7 +1225,7 @@ class ND2FsspecReader:
         def get_file() -> BinaryIO:
             if not hasattr(thread_local, "file"):
                 thread_local.file = open(self._path, "rb")
-            return thread_local.file
+            return cast(BinaryIO, thread_local.file)
 
         def read_chunk(
             chunk_data: tuple[int, int, int],
@@ -1282,14 +1284,18 @@ class ND2FsspecReader:
     ) -> np.ndarray:
         """Read Z-stack from remote URL with parallel HTTP requests."""
         try:
-            import requests
-        except ImportError:
+            import requests  # type: ignore[import-untyped]
+        except ImportError as err:
             raise ImportError(
                 "requests is required for remote reading. "
                 "Install with: pip install requests"
-            )
+            ) from err
 
         # Parse crop parameters
+        y_min: int | None
+        y_max: int | None
+        x_min: int | None
+        x_max: int | None
         if crop is not None:
             z_min, z_max, y_min, y_max, x_min, x_max = crop
             z_range = range(z_min, z_max)
@@ -1419,10 +1425,10 @@ class ND2FsspecReader:
         """
         try:
             import dask.array as da
-        except ImportError:
+        except ImportError as err:
             raise ImportError(
                 "dask is required for to_dask(). Install with: pip install dask"
-            )
+            ) from err
 
         if chunks is None:
             chunks = (1, 1, self._num_z, self._height, self._width)

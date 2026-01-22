@@ -451,10 +451,15 @@ class ModernReader(ND2Reader):
 
         # Thread-local file handles for connection reuse
         thread_local = threading.local()
+        # Track all opened file handles for cleanup
+        open_handles: list[Any] = []
+        handles_lock = threading.Lock()
 
         def get_file() -> Any:
             if not hasattr(thread_local, "fh"):
                 thread_local.fh = _open_file(path)
+                with handles_lock:
+                    open_handles.append(thread_local.fh)
             return thread_local.fh
 
         def read_one(info: tuple[int, int | None]) -> tuple[int, np.ndarray]:
@@ -468,12 +473,22 @@ class ModernReader(ND2Reader):
             arr = np.frombuffer(data, dtype=dtype).reshape(shape)
             return idx, arr.copy()  # Copy to release buffer
 
-        # Execute in parallel
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {executor.submit(read_one, info): info[0] for info in frame_info}
-            for future in as_completed(futures):
-                idx, arr = future.result()
-                results[idx] = arr
+        try:
+            # Execute in parallel
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(read_one, info): info[0] for info in frame_info
+                }
+                for future in as_completed(futures):
+                    idx, arr = future.result()
+                    results[idx] = arr
+        finally:
+            # Close all thread-local file handles
+            for fh in open_handles:
+                try:
+                    fh.close()
+                except Exception:
+                    pass
 
         # Return in original order
         return [results[idx] for idx in indices]

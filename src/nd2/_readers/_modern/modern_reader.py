@@ -485,10 +485,8 @@ class ModernReader(ND2Reader):
         finally:
             # Close all thread-local file handles
             for fh in open_handles:
-                try:
+                with suppress(Exception):
                     fh.close()
-                except Exception:
-                    pass
 
         # Return in original order
         return [results[idx] for idx in indices]

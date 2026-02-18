@@ -331,18 +331,21 @@ class ModernReader(ND2Reader):
         if self.attributes().compressionType == "lossless":
             return self._read_compressed_frame(index)
 
-        try:
-            return np.ndarray(
-                shape=self._actual_frame_shape(),
-                dtype=self._dtype(),
-                buffer=self._mmap,
-                offset=offset,
-                strides=self._strides,
-            )
-        except TypeError:
-            # If the chunkmap is wrong, and the mmap isn't long enough
-            # for the requested offset & size, a TypeError is raised.
-            return self._missing_frame(index)
+        if self._mmap is not None:
+            try:
+                return np.ndarray(
+                    shape=self._actual_frame_shape(),
+                    dtype=self._dtype(),
+                    buffer=self._mmap,
+                    offset=offset,
+                    strides=self._strides,
+                )
+            except TypeError:
+                # If the chunkmap is wrong, and the mmap isn't long enough
+                # for the requested offset & size, a TypeError is raised.
+                return self._missing_frame(index)
+
+        return self._read_frame_bytes(offset)
 
     def _read_compressed_frame(self, index: int) -> np.ndarray:
         ch = self._load_chunk(f"ImageDataSeq|{index}!".encode())
@@ -352,6 +355,15 @@ class ModernReader(ND2Reader):
             buffer=zlib.decompress(ch[8:]),
             strides=self._strides,
         )
+
+    def _read_frame_bytes(self, offset: int) -> np.ndarray:
+        """Read a frame via seek/read (fallback when mmap is unavailable)."""
+        shape = self._actual_frame_shape()
+        dtype = self._dtype()
+        nbytes = int(np.prod(shape)) * dtype.itemsize
+        self._fh.seek(offset)
+        data = self._fh.read(nbytes)
+        return np.frombuffer(data, dtype=dtype).reshape(shape)
 
     def _missing_frame(self, index: int = 0) -> np.ndarray:
         # TODO: add other modes for filling missing data

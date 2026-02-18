@@ -93,7 +93,7 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
 
     with ctx as fh:
         fh.seek(0)
-        fname = str(fh.name)
+        fname = str(getattr(fh, "name", ""))
         chunk = START_FILE_CHUNK.unpack(fh.read(START_FILE_CHUNK.size))
 
     magic, name_length, data_length, name, data = cast("StartFileChunk", chunk)

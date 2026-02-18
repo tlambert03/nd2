@@ -67,7 +67,7 @@ class ND2Reader(abc.ABC):
             ctx = open(path, "rb")
 
         with ctx as fh:
-            fname = fh.name
+            fname = getattr(fh, "name", "")
             fh.seek(0)
             magic_num = fh.read(4)
 
@@ -85,8 +85,14 @@ class ND2Reader(abc.ABC):
         if hasattr(path, "read"):
             self._fh: BinaryIO | None = cast("BinaryIO", path)
             self._was_open = not self._fh.closed
-            self._path: Path = Path(self._fh.name)
-            self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
+            name = getattr(self._fh, "name", None)
+            self._path: Path | None = Path(name) if isinstance(name, str) else None
+            try:
+                self._mmap = mmap.mmap(
+                    self._fh.fileno(), 0, access=mmap.ACCESS_READ
+                )
+            except Exception:
+                pass  # remote/non-fileno file-likes: mmap not available
         else:
             self._was_open = False
             self._path = Path(path)
@@ -101,6 +107,10 @@ class ND2Reader(abc.ABC):
     def open(self) -> None:
         """Open the file handle."""
         if self._fh is None or self._fh.closed:
+            if self._path is None:
+                raise RuntimeError(
+                    "Cannot reopen a remote/file-like ND2 source after closing"
+                )
             self._fh = open(self._path, "rb")
             self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -19,6 +20,16 @@ def s3_endpoint() -> Iterable[str]:
         from moto.server import ThreadedMotoServer
     else:
         ThreadedMotoServer = pytest.importorskip("moto.server").ThreadedMotoServer
+
+    # ThreadedMotoServer is a real HTTP server and does not patch boto3's
+    # credential chain.  Provide dummy credentials so boto3 and s3fs don't
+    # raise NoCredentialsError in environments without ~/.aws/credentials.
+    os.environ.setdefault("AWS_ACCESS_KEY_ID", "testing")
+    os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "testing")
+    os.environ.setdefault("AWS_SECURITY_TOKEN", "testing")
+    os.environ.setdefault("AWS_SESSION_TOKEN", "testing")
+    os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
+
     server = ThreadedMotoServer(port=0)
     server.start()
     _, port = server.get_host_and_port()

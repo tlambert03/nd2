@@ -250,10 +250,8 @@ class ND2File:
         _was_closed = d.pop("_closed", False)
         self.__dict__ = d
         self._lock = threading.RLock()
-        if self._path is None:  # pragma: no cover (unreachable with current public API)
-            raise TypeError("Cannot restore ND2File without a file path or URL")
         self._rdr = ND2Reader.create(
-            self._path,
+            self._path,  # type: ignore
             self._error_radius,
             cast("dict | None", self.__dict__.get("_storage_options")),
         )

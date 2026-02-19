@@ -159,6 +159,7 @@ filterwarnings = [
     "ignore:::xarray",
     "ignore:Accessing the 'model_fields' attribute::",
     "ignore:Failing to pass a value:DeprecationWarning",     # xsdata
+    "ignore:Boto3 will no longer support Python 3.9"
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html

@@ -59,6 +59,7 @@ class ND2Reader(abc.ABC):
         from nd2._readers import LegacyReader, ModernReader
 
         is_url = is_fsspec_url(path)
+        opened_here = False
         ctx: AbstractContextManager
         if is_file_handle := is_read_seek_binary(path):
             mode = getattr(path, "mode", "b")
@@ -69,6 +70,7 @@ class ND2Reader(abc.ABC):
             ctx = nullcontext(path)
         elif is_url:
             fh = open_fsspec_url(str(path), storage_options=storage_options)
+            opened_here = True
             ctx = nullcontext(fh)
         else:
             path = Path(cast("str | Path", path)).expanduser().absolute()
@@ -84,7 +86,14 @@ class ND2Reader(abc.ABC):
                 # For URL/file-like cases pass the open handle; for local paths
                 # pass the Path so the reader can reopen it as needed.
                 effective_path = fh if (is_url or is_file_handle) else path
-                return subcls(effective_path, error_radius=error_radius)
+                try:
+                    return subcls(effective_path, error_radius=error_radius)
+                except Exception:
+                    if opened_here:
+                        fh.close()
+                    raise
+        if opened_here:
+            fh.close()
         raise OSError(
             f"file {fname!r} not recognized as ND2.  First 4 bytes: {magic_num!r}"
         )

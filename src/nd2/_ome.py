@@ -224,6 +224,7 @@ def nd2_ome_metadata(
 
     if include_unstructured:
         all_meta = m.MapAnnotation(
+            id="Annotation:0",
             description="ND2 unstructured metadata, encoded as a JSON string. "
             "Each key in this MapAnnotation is the name of a metadata chunk found in "
             "the ND2 file, and the value is the JSON-encoded data for that chunk.",

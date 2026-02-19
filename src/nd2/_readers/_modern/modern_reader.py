@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import warnings
 import zlib
 from contextlib import suppress
@@ -180,9 +179,6 @@ class ModernReader(ND2Reader):
                 exp_loops=self.experiment(),
                 text_info=self.text_info(),
             )
-            if self._global_metadata["time"]["absoluteJulianDayNumber"] < 1:
-                julian_day = os.stat(self._path).st_ctime / 86400.0 + 2440587.5
-                self._global_metadata["time"]["absoluteJulianDayNumber"] = julian_day
 
         return self._global_metadata
 
@@ -358,11 +354,25 @@ class ModernReader(ND2Reader):
 
     def _read_frame_bytes(self, offset: int) -> np.ndarray:
         """Read a frame via seek/read (fallback when mmap is unavailable)."""
+        if self._fh is None:  # pragma: no cover
+            raise ValueError("Attempt to read from closed nd2 file")
+
         shape = self._actual_frame_shape()
         dtype = self._dtype()
-        nbytes = int(np.prod(shape)) * dtype.itemsize
+        if self._strides is not None:
+            nbytes = shape[0] * (self.attributes().widthBytes or 0)
+        else:
+            nbytes = int(np.prod(shape)) * dtype.itemsize
         self._fh.seek(offset)
         data = self._fh.read(nbytes)
+        if self._strides is not None:
+            arr = np.ndarray(
+                shape=shape,
+                dtype=dtype,
+                buffer=data,
+                strides=self._strides,
+            )
+            return arr.copy()
         return np.frombuffer(data, dtype=dtype).reshape(shape)
 
     def _missing_frame(self, index: int = 0) -> np.ndarray:

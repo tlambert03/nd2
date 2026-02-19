@@ -45,9 +45,9 @@ def _open_fsspec_url(
 ) -> BinaryIO:
     """Open a remote nd2 URL with a pre-warmed metadata cache.
 
-    Pre-fetches the first 512 KB and last 5 MB with cat_ranges(), then opens
-    with cache_type='parts' so all nd2 metadata reads hit the in-memory cache.
-    Frame data reads fall through to the normal fetcher (strict=False).
+    For smaller files, pre-fetches the full object and opens with
+    cache_type='parts'. For larger files, opens directly via filesystem
+    defaults to avoid non-contiguous cache composition artifacts.
     """
     try:
         import fsspec
@@ -66,26 +66,17 @@ def _open_fsspec_url(
     if size <= START_BYTES + END_BYTES:
         raw = fs.cat_file(fpath)
         known: dict[tuple[int, int], bytes] = {(0, size): raw}
-    else:
-        start_raw, end_raw = fs.cat_ranges(
-            [fpath, fpath],
-            starts=[0, size - END_BYTES],
-            ends=[START_BYTES, size],
+        return cast(
+            "BinaryIO",
+            fs.open(
+                fpath,
+                "rb",
+                cache_type="parts",
+                cache_options={"data": known, "strict": False},
+            ),
         )
-        known = {
-            (0, START_BYTES): start_raw,
-            (size - END_BYTES, size): end_raw,
-        }
 
-    return cast(
-        "BinaryIO",
-        fs.open(
-            fpath,
-            "rb",
-            cache_type="parts",
-            cache_options={"data": known, "strict": False},
-        ),
-    )
+    return cast("BinaryIO", fs.open(fpath, "rb"))
 
 
 def is_supported_file(

@@ -47,7 +47,7 @@ ome-zarr-tensorstore = [
     "pydantic>=2.11.0",
     "yaozarrs[write-tensorstore]>=0.2.0; python_version >= '3.10'",
 ]
-remote = ["fsspec", "s3fs"]
+remote = ["fsspec>=2024.2.0", "s3fs>=2024.2.0"]
 
 [dependency-groups]
 test = [

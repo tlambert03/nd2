@@ -14,7 +14,7 @@ import numpy as np
 from nd2 import _util
 
 from ._readers.protocol import ND2Reader
-from ._util import AXIS, is_supported_file
+from ._util import AXIS, is_fsspec_url, is_supported_file
 
 try:
     from functools import cached_property
@@ -117,6 +117,10 @@ class ND2File:
         self._storage_options = storage_options
         self._rdr = ND2Reader.create(path, self._error_radius, storage_options)
         self._path: str | Path | None = self._rdr._path
+        # For URL inputs the reader may not extract the full URL from the handle;
+        # preserve the original URL string so pickling round-trips correctly.
+        if is_fsspec_url(path):
+            self._path = path
         self._lock = threading.RLock()
 
     @staticmethod

@@ -14,7 +14,7 @@ import numpy as np
 from nd2 import _util
 
 from ._readers.protocol import ND2Reader
-from ._util import AXIS, _is_fsspec_url, is_supported_file
+from ._util import AXIS, is_fsspec_url, is_supported_file
 
 try:
     from functools import cached_property
@@ -83,8 +83,14 @@ class ND2File:
 
     Parameters
     ----------
-    path : Path | str
-        Filename of an nd2 file.
+    path : Path | str | ReadSeekBinary
+        Filename, Path, or URL of an nd2 file.  May also be any file-like object that
+        supports binary read and seek, including those returned by `fsspec` filesystems:
+
+        - `closed(self) -> bool: ...`
+        - `read(self, size: int | None = ..., /) -> bytes: ...`
+        - `seek(self, offset: int, whence: int = ..., /) -> int: ...`
+        - `close(self) -> None: ...`
     validate_frames : bool
         Whether to verify (and attempt to fix) frames whose positions have been
         shifted relative to the predicted offset (i.e. in a corrupted file).
@@ -93,6 +99,8 @@ class ND2File:
     search_window : int
         When validate_frames is true, this is the search window (in KB) that will
         be used to try to find the actual chunk position. by default 100 KB
+    storage_options : dict, optional
+        Extra kwargs passed to [`fsspec.core.url_to_fs`][] when opening remote URLs.
     """
 
     def __init__(
@@ -106,12 +114,12 @@ class ND2File:
         self._error_radius: int | None = (
             search_window * 1000 if validate_frames else None
         )
-        self._storage_options = storage_options
+        self._storage_options: dict | None = storage_options
         self._rdr = ND2Reader.create(path, self._error_radius, storage_options)
-        self._path = self._rdr._path
+        self._path: str | Path | None = self._rdr._path
         # For URL inputs the reader may not extract the full URL from the handle;
         # preserve the original URL string so pickling round-trips correctly.
-        if isinstance(path, str) and _is_fsspec_url(path):
+        if is_fsspec_url(path):
             self._path = path
         self._lock = threading.RLock()
 
@@ -148,7 +156,7 @@ class ND2File:
     @property
     def path(self) -> str:
         """Path of the image."""
-        return str(self._path)
+        return "" if self._path is None else str(self._path)
 
     @property
     def is_legacy(self) -> bool:
@@ -202,7 +210,9 @@ class ND2File:
     def __del__(self) -> None:
         """Delete file handle on garbage collection."""
         # if it came in as an open file handle, it's ok to remain open after deletion
-        if not getattr(self, "closed", True) and not self._rdr._was_open:
+        if not hasattr(self, "_rdr"):
+            return
+        if not self.closed and not self._rdr._was_open:
             # this stack inspection is a hack to avoid an unnecessary warning/closure.
             # when using the to_dask() method, calling dask map_blocks will greedily
             # pickle/unpickle the object.
@@ -224,6 +234,10 @@ class ND2File:
 
     def __getstate__(self) -> dict[str, Any]:
         """Return state for pickling."""
+        if self._path is None:
+            raise TypeError(
+                "Cannot pickle ND2File created from an unnamed file-like object"
+            )
         state = self.__dict__.copy()
         del state["_rdr"]
         del state["_lock"]
@@ -236,10 +250,12 @@ class ND2File:
         _was_closed = d.pop("_closed", False)
         self.__dict__ = d
         self._lock = threading.RLock()
+        if self._path is None:
+            raise TypeError("Cannot restore ND2File without a file path or URL")
         self._rdr = ND2Reader.create(
             self._path,
             self._error_radius,
-            getattr(self, "_storage_options", None),
+            cast("dict | None", self.__dict__.get("_storage_options")),
         )
         if _was_closed:
             self._rdr.close()

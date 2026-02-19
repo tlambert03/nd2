@@ -64,6 +64,7 @@ plugins:
             - https://docs.xarray.dev/en/stable/objects.inv
             - https://docs.dask.org/en/stable/objects.inv
             - https://ome-types.readthedocs.io/en/latest/objects.inv
+            - https://filesystem-spec.readthedocs.io/en/latest/objects.inv
           options:
 
             docstring_section_style: list # or "table"

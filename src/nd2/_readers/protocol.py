@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, BinaryIO, cast
 
 from nd2._parse._chunk_decode import get_version
+from nd2._util import _is_fsspec_url, _open_fsspec_url
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -41,6 +42,7 @@ class ND2Reader(abc.ABC):
         cls,
         path: FileOrBinaryIO,
         error_radius: int | None = None,
+        storage_options: dict | None = None,
     ) -> ND2Reader:
         """Create an ND2Reader for the given path, using the appropriate subclass.
 
@@ -52,6 +54,8 @@ class ND2Reader(abc.ABC):
             If b"ND2 FILEMAP SIGNATURE NAME 0001!" is not found at expected location and
             `error_radius` is not None, then an area of +/- `error_radius` bytes will be
             searched for the signature.
+        storage_options : dict, optional
+            Extra kwargs passed to fsspec when opening remote URLs.
         """
         from nd2._readers import LegacyReader, ModernReader
 
@@ -62,6 +66,8 @@ class ND2Reader(abc.ABC):
                     "File handles passed to ND2File must be in binary mode"
                 )
             ctx: AbstractContextManager[BinaryIO] = nullcontext(path)
+        elif _is_fsspec_url(path):
+            ctx = nullcontext(_open_fsspec_url(str(path), storage_options))
         else:
             path = Path(path).expanduser().absolute()
             ctx = open(path, "rb")
@@ -73,24 +79,30 @@ class ND2Reader(abc.ABC):
 
         for subcls in (ModernReader, LegacyReader):
             if magic_num == subcls.HEADER_MAGIC:
-                return subcls(path, error_radius=error_radius)
+                # For URL/file-like cases pass the open handle; for local paths
+                # pass the Path so the reader can reopen it as needed.
+                effective_path = (
+                    fh if _is_fsspec_url(path) or hasattr(path, "read") else path
+                )
+                return subcls(effective_path, error_radius=error_radius)
         raise OSError(
-            f"file {fname} not recognized as ND2.  First 4 bytes: {magic_num!r}"
+            f"file {fname!r} not recognized as ND2.  First 4 bytes: {magic_num!r}"
         )
 
     def __init__(self, path: FileOrBinaryIO, error_radius: int | None = None) -> None:
         self._chunkmap: dict | None = None
+        self._version: tuple[int, int] | None = None
 
         self._mmap: mmap.mmap | None = None
         if hasattr(path, "read"):
             self._fh: BinaryIO | None = cast("BinaryIO", path)
             self._was_open = not self._fh.closed
-            name = getattr(self._fh, "name", None)
-            self._path: Path | None = Path(name) if isinstance(name, str) else None
+            name = getattr(self._fh, "full_name", None) or getattr(
+                self._fh, "name", None
+            )
+            self._path: str | Path | None = name if isinstance(name, str) else None
             try:
-                self._mmap = mmap.mmap(
-                    self._fh.fileno(), 0, access=mmap.ACCESS_READ
-                )
+                self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
             except Exception:
                 pass  # remote/non-fileno file-likes: mmap not available
         else:
@@ -107,7 +119,7 @@ class ND2Reader(abc.ABC):
     def open(self) -> None:
         """Open the file handle."""
         if self._fh is None or self._fh.closed:
-            if self._path is None:
+            if not isinstance(self._path, Path):
                 raise RuntimeError(
                     "Cannot reopen a remote/file-like ND2 source after closing"
                 )
@@ -138,7 +150,9 @@ class ND2Reader(abc.ABC):
 
     def version(self) -> tuple[int, int]:
         """Return the file format version as a tuple of ints."""
-        return get_version(self._fh or self._path)
+        if self._version is None:
+            self._version = get_version(self._fh or self._path)
+        return self._version
 
     def rois(self) -> list[ROI]:
         """Return ROIs in the file."""

@@ -5,6 +5,7 @@ import math
 import threading
 import warnings
 from itertools import product
+from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Callable, cast, overload
 
@@ -13,7 +14,7 @@ import numpy as np
 from nd2 import _util
 
 from ._readers.protocol import ND2Reader
-from ._util import AXIS, is_supported_file
+from ._util import AXIS, _is_fsspec_url, is_supported_file
 
 try:
     from functools import cached_property
@@ -24,7 +25,6 @@ except ImportError:
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence, Sized
     from os import PathLike
-    from pathlib import Path
     from typing import Any, Literal, SupportsInt
 
     import dask.array
@@ -101,12 +101,18 @@ class ND2File:
         *,
         validate_frames: bool = False,
         search_window: int = 100,
+        storage_options: dict | None = None,
     ) -> None:
         self._error_radius: int | None = (
             search_window * 1000 if validate_frames else None
         )
-        self._rdr = ND2Reader.create(path, self._error_radius)
+        self._storage_options = storage_options
+        self._rdr = ND2Reader.create(path, self._error_radius, storage_options)
         self._path = self._rdr._path
+        # For URL inputs the reader may not extract the full URL from the handle;
+        # preserve the original URL string so pickling round-trips correctly.
+        if isinstance(path, str) and _is_fsspec_url(path):
+            self._path = path
         self._lock = threading.RLock()
 
     @staticmethod
@@ -230,7 +236,11 @@ class ND2File:
         _was_closed = d.pop("_closed", False)
         self.__dict__ = d
         self._lock = threading.RLock()
-        self._rdr = ND2Reader.create(self._path, self._error_radius)
+        self._rdr = ND2Reader.create(
+            self._path,
+            self._error_radius,
+            getattr(self, "_storage_options", None),
+        )
         if _was_closed:
             self._rdr.close()
 
@@ -1349,7 +1359,8 @@ class ND2File:
         """Return a string representation of the ND2File."""
         try:
             details = " (closed)" if self.closed else f" {self.dtype}: {self.sizes!r}"
-            extra = f": {self._path.name!r}{details}"
+            path_name = self._path.name if isinstance(self._path, Path) else self._path
+            extra = f": {path_name!r}{details}"
         except Exception:
             extra = ""
         return f"<ND2File at {hex(id(self))}{extra}>"
@@ -1450,6 +1461,7 @@ def imread(
     dask: Literal[False] = ...,
     xarray: Literal[False] = ...,
     validate_frames: bool = ...,
+    storage_options: dict | None = ...,
 ) -> np.ndarray: ...
 
 
@@ -1460,6 +1472,7 @@ def imread(
     dask: bool = ...,
     xarray: Literal[True],
     validate_frames: bool = ...,
+    storage_options: dict | None = ...,
 ) -> xr.DataArray: ...
 
 
@@ -1470,6 +1483,7 @@ def imread(
     dask: Literal[True],
     xarray: Literal[False] = ...,
     validate_frames: bool = ...,
+    storage_options: dict | None = ...,
 ) -> dask.array.core.Array: ...
 
 
@@ -1479,13 +1493,15 @@ def imread(
     dask: bool = False,
     xarray: bool = False,
     validate_frames: bool = False,
+    storage_options: dict | None = None,
 ) -> np.ndarray | xr.DataArray | dask.array.core.Array:
     """Open `file`, return requested array type, and close `file`.
 
     Parameters
     ----------
     file : Path | str
-        Filepath (`str`) or `Path` object to ND2 file.
+        Filepath (`str`) or `Path` object to ND2 file. May also be a remote
+        URL string (e.g. ``"s3://bucket/key.nd2"``) when fsspec is installed.
     dask : bool
         If `True`, returns a (delayed) `dask.array.Array`. This will avoid reading
         any data from disk until specifically requested by using `.compute()` or
@@ -1501,13 +1517,18 @@ def imread(
         shifted relative to the predicted offset (i.e. in a corrupted file).
         This comes at a slight performance penalty at file open, but may "rescue"
         some corrupt files. by default False.
+    storage_options : dict, optional
+        Extra kwargs forwarded to fsspec when opening a remote URL, e.g.
+        ``{"anon": True}`` for public S3 buckets.
 
     Returns
     -------
     Union[np.ndarray, dask.array.Array, xarray.DataArray]
         Array subclass, depending on arguments used.
     """
-    with ND2File(file, validate_frames=validate_frames) as nd2:
+    with ND2File(
+        file, validate_frames=validate_frames, storage_options=storage_options
+    ) as nd2:
         if xarray:
             return nd2.to_xarray(delayed=dask)
         elif dask:

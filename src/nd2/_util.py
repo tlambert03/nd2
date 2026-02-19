@@ -30,6 +30,64 @@ def _open_binary(path: StrOrPath) -> BinaryIO:
     return open(path, "rb")
 
 
+def _is_fsspec_url(path: object) -> bool:
+    """True if `path` is a string with a remote URL scheme (e.g. 's3://')."""
+    if not isinstance(path, str):
+        return False
+    idx = path.find("://")
+    # idx > 1 excludes Windows drive letters like C:/
+    return idx > 1
+
+
+def _open_fsspec_url(
+    url: str,
+    storage_options: dict | None = None,
+) -> BinaryIO:
+    """Open a remote nd2 URL with a pre-warmed metadata cache.
+
+    Pre-fetches the first 512 KB and last 5 MB with cat_ranges(), then opens
+    with cache_type='parts' so all nd2 metadata reads hit the in-memory cache.
+    Frame data reads fall through to the normal fetcher (strict=False).
+    """
+    try:
+        import fsspec
+    except ImportError as e:
+        raise ImportError(
+            "fsspec is required to open remote URLs. Install with: pip install fsspec"
+        ) from e
+
+    sopts = storage_options or {}
+    fs, fpath = fsspec.url_to_fs(url, **sopts)
+    size: int = fs.info(fpath)["size"]
+
+    START_BYTES = 512 * 1024  # 512 KB — covers magic + ImageMetadataSeqLV|0!
+    END_BYTES = 5 * 1024 * 1024  # 5 MB — covers chunkmap + all end metadata
+
+    if size <= START_BYTES + END_BYTES:
+        raw = fs.cat_file(fpath)
+        known: dict[tuple[int, int], bytes] = {(0, size): raw}
+    else:
+        start_raw, end_raw = fs.cat_ranges(
+            [fpath, fpath],
+            starts=[0, size - END_BYTES],
+            ends=[START_BYTES, size],
+        )
+        known = {
+            (0, START_BYTES): start_raw,
+            (size - END_BYTES, size): end_raw,
+        }
+
+    return cast(
+        "BinaryIO",
+        fs.open(
+            fpath,
+            "rb",
+            cache_type="parts",
+            cache_options={"data": known, "strict": False},
+        ),
+    )
+
+
 def is_supported_file(
     path: FileOrBinaryIO,
     open_: Callable[[StrOrPath], BinaryIO] = _open_binary,

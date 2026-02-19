@@ -14,7 +14,7 @@ import numpy as np
 from nd2 import _util
 
 from ._readers.protocol import ND2Reader
-from ._util import AXIS, is_fsspec_url, is_supported_file
+from ._util import AXIS, is_supported_file
 
 try:
     from functools import cached_property
@@ -109,18 +109,14 @@ class ND2File:
         *,
         validate_frames: bool = False,
         search_window: int = 100,
-        storage_options: dict | None = None,
+        storage_options: dict[str, Any] | None = None,
     ) -> None:
         self._error_radius: int | None = (
             search_window * 1000 if validate_frames else None
         )
-        self._storage_options: dict | None = storage_options
+        self._storage_options = storage_options
         self._rdr = ND2Reader.create(path, self._error_radius, storage_options)
         self._path: str | Path | None = self._rdr._path
-        # For URL inputs the reader may not extract the full URL from the handle;
-        # preserve the original URL string so pickling round-trips correctly.
-        if is_fsspec_url(path):
-            self._path = path
         self._lock = threading.RLock()
 
     @staticmethod
@@ -250,7 +246,7 @@ class ND2File:
         _was_closed = d.pop("_closed", False)
         self.__dict__ = d
         self._lock = threading.RLock()
-        if self._path is None:
+        if self._path is None:  # pragma: no cover (unreachable with current public API)
             raise TypeError("Cannot restore ND2File without a file path or URL")
         self._rdr = ND2Reader.create(
             self._path,

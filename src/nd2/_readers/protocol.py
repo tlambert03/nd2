@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import mmap
 import warnings
-from contextlib import nullcontext, suppress
+from contextlib import AbstractContextManager, nullcontext, suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -59,18 +59,20 @@ class ND2Reader(abc.ABC):
         from nd2._readers import LegacyReader, ModernReader
 
         is_url = is_fsspec_url(path)
+        ctx: AbstractContextManager
         if is_file_handle := is_read_seek_binary(path):
             mode = getattr(path, "mode", "b")
             if isinstance(mode, str) and "b" not in mode:
                 raise ValueError(
                     "File handles passed to ND2File must be in binary mode"
                 )
-            ctx = cast("Any", nullcontext(path))
+            ctx = nullcontext(path)
         elif is_url:
-            ctx = cast("Any", nullcontext(open_fsspec_url(str(path), storage_options)))
+            fh = open_fsspec_url(str(path), storage_options=storage_options)
+            ctx = nullcontext(fh)
         else:
             path = Path(cast("str | Path", path)).expanduser().absolute()
-            ctx = cast("Any", open(path, "rb"))
+            ctx = open(path, "rb")
 
         with ctx as fh:
             fname = getattr(fh, "name", "")

@@ -27,3 +27,18 @@ def test_jobs_returns_dict_for_jobs_files(path: Path) -> None:
             assert jobs["Job"]
         else:
             assert jobs["Job"] is None
+
+
+def test_jobs_nested_bytearrays_decoded() -> None:
+    """JOBS task Data fields contain nested CLX Lite that must be parsed as dicts."""
+    path = DATA / "wellplate96_4_wells_with_jobs.nd2"
+    with nd2.ND2File(path) as f:
+        jobs = f.jobs()
+        assert jobs is not None
+        job = jobs["Job"]
+        assert isinstance(job, dict)
+        tasks = job["Tasks"]
+        for task in tasks.values():
+            data = task.get("Data")
+            # Data fields should be recursively decoded dicts, not raw list[int]
+            assert isinstance(data, dict), f"Task {task['Name']!r} Data not decoded"

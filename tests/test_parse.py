@@ -136,7 +136,7 @@ def test_large_bytearray_stays_as_list():
     )
 
     def _clx_bytearray_field(name: str, data: bytes) -> bytes:
-        """Build a CLX Lite BYTEARRAY record: type(1) + namelen(1) + name + size(8) + data."""
+        """Build a CLX Lite BYTEARRAY record."""
         name_utf16 = (name + "\x00").encode("utf-16-le")
         name_len = len(name_utf16) // 2
         return (
@@ -146,7 +146,17 @@ def test_large_bytearray_stays_as_list():
             + data
         )
 
-    # Simulate pItemValid with 500 positions (well over any threshold)
+    def _clx_int32_field(name: str, val: int) -> bytes:
+        """Build a CLX Lite INT32 record."""
+        name_utf16 = (name + "\x00").encode("utf-16-le")
+        name_len = len(name_utf16) // 2
+        return (
+            struct.pack("BB", ELxLiteVariantType.INT32, name_len)
+            + name_utf16
+            + struct.pack("<i", val)
+        )
+
+    # --- plain byte arrays (pItemValid) must stay as list[int] ---
     flags = bytes([1, 0] * 250)  # 500 bytes, alternating valid/invalid
     chunk = _clx_bytearray_field("pItemValid", flags)
 
@@ -155,3 +165,12 @@ def test_large_bytearray_stays_as_list():
     assert isinstance(item_valid, list)
     assert len(item_valid) == 500
     assert item_valid == list(flags)
+
+    # --- bytearrays containing nested CLX Lite must be recursively decoded ---
+    # This is how JOBS task Data/SlotConnections fields are stored.
+    nested_clx = _clx_int32_field("Answer", 42)
+    chunk2 = _clx_bytearray_field("Data", nested_clx)
+
+    result2 = json_from_clx_lite_variant(chunk2, strip_prefix=False)
+    assert isinstance(result2["Data"], dict)
+    assert result2["Data"]["Answer"] == 42

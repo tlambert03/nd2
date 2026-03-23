@@ -4,6 +4,7 @@ import io
 import re
 import struct
 import zlib
+from contextlib import suppress
 from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
 if TYPE_CHECKING:
@@ -103,8 +104,32 @@ _PARSERS: dict[int, Callable[[io.BytesIO], Any]] = {
     ELxLiteVariantType.DOUBLE: _unpack_double,  # 6
     ELxLiteVariantType.VOIDPOINTER: _unpack_void_pointer,  # 7
     ELxLiteVariantType.STRING: _unpack_string,  # 8
-    ELxLiteVariantType.BYTEARRAY: _unpack_bytearray,  # 9
+    # BYTEARRAY (9) is handled inline in json_from_clx_lite_variant because
+    # some chunks (e.g. JOBS definitions) embed CLX Lite structures inside
+    # BYTEARRAY fields that need recursive decoding.
 }
+
+
+def _starts_with_clx_header(data: bytes) -> bool:
+    """Quick check whether data begins with a plausible CLX Lite record header.
+
+    This is used as a guard before attempting recursive decoding of BYTEARRAY
+    payloads.  False positives are acceptable (the actual parse is wrapped in
+    ``suppress(Exception)``); false negatives just mean we skip the attempt
+    and return the raw bytes.
+
+    CLX Lite records start with ``[type_byte, name_length, ...name_utf16...]``.
+    We require *name_length >= 2* so that plain boolean-flag arrays like
+    ``pItemValid = [1, 1, 0, 0, ...]`` are never mistaken for CLX data
+    (byte 1 would be name_length=1, which is just the null-terminator).
+    See: https://github.com/tlambert03/nd2/issues/288
+    """
+    if len(data) < 4:
+        return False
+    data_type, name_length = data[0], data[1]
+    if data_type == 76:  # COMPRESS
+        return True
+    return (1 <= data_type <= 11) and name_length >= 2
 
 
 def _chunk_name_and_dtype(
@@ -182,6 +207,28 @@ def json_from_clx_lite_variant(
                     value = {f"i{n:010}": x for n, x in enumerate(value)}
             else:
                 value = val
+
+        elif data_type == ELxLiteVariantType.BYTEARRAY:
+            size = _unpack_uint64(stream)
+            raw_bytes = stream.read(size)
+            # Try to recursively decode as nested CLX Lite (used by JOBS
+            # task Data/SlotConnections/etc. fields). If the bytes don't
+            # start with a valid CLX Lite header, or decoding fails,
+            # fall back to a plain list[int] (used by pItemValid, camera
+            # matrices, etc.).  The key constraint is that the fallback
+            # must always be list[int], never a string — downstream
+            # consumers iterate over the values directly.
+            # See: https://github.com/tlambert03/nd2/issues/293
+            value = None
+            if _starts_with_clx_header(raw_bytes):
+                with suppress(Exception):
+                    value = json_from_clx_lite_variant(
+                        raw_bytes,
+                        strip_prefix,
+                        lists_to_indexed_dicts=lists_to_indexed_dicts,
+                    )
+            if not value:
+                value = list(raw_bytes)
 
         elif data_type in _PARSERS:
             value = _PARSERS[data_type](stream)

@@ -121,34 +121,37 @@ def test_load_events():
     assert isinstance(events[0], structures.ExperimentEvent)
 
 
-def test_looks_like_clx_lite_rejects_false_positives():
-    """Test _looks_like_clx_lite rejects byte patterns that aren't CLX Lite.
+def test_large_bytearray_stays_as_list():
+    """Large BYTEARRAY fields must decode as list[int], not base64 strings.
 
-    Regression test for https://github.com/tlambert03/nd2/issues/288
-    Byte arrays like pItemValid=[1, 1, 0, 0, ...] could be falsely detected as
-    CLX Lite because byte 0=1 looks like BOOL type, byte 1=1 looks like
-    name_length=1, and bytes 2-3=\\x00\\x00 look like a null-terminated empty name.
+    Regression test for https://github.com/tlambert03/nd2/issues/293
+    Files with many XY positions have pItemValid bytearrays > 256 bytes.
+    These must remain as list[int] so _parse_xy_pos_loop can filter positions.
     """
-    from nd2._parse._clx_lite import _looks_like_clx_lite
-
-    # Pattern [type, 1, 0, 0, ...] should NOT be detected as CLX Lite
-    # because name_length=1 is just the null terminator (empty name)
-    # and empty-name entries are only valid inside a LEVEL container
-
-    # [1, 1, 0, 0, 1] - byte 0=BOOL, byte 1=name_length=1, bytes 2-3=null term
-    assert not _looks_like_clx_lite(bytes([1, 1, 0, 0, 1]))
-
-    # [2, 1, 0, 0, 0, 0, 0, 0] - byte 0=INT32, byte 1=name_length=1
-    assert not _looks_like_clx_lite(bytes([2, 1, 0, 0, 0, 0, 0, 0]))
-
-    # [3, 1, 0, 0, 0, 0, 0, 0] - byte 0=UINT32, byte 1=name_length=1
-    assert not _looks_like_clx_lite(bytes([3, 1, 0, 0, 0, 0, 0, 0]))
-
-    # Valid CLX Lite with name_length >= 2 should still be detected
-    # type=2 (INT32), name_length=2, name='A\0' in UTF-16, value=42
     import struct
 
-    name = "A\x00".encode("utf-16-le")  # 4 bytes: 'A' + null
-    value = struct.pack("<i", 42)  # 4 bytes
-    valid_data = bytes([2, 2]) + name + value
-    assert _looks_like_clx_lite(valid_data)
+    from nd2._parse._clx_lite import (
+        ELxLiteVariantType,
+        json_from_clx_lite_variant,
+    )
+
+    def _clx_bytearray_field(name: str, data: bytes) -> bytes:
+        """Build a CLX Lite BYTEARRAY record: type(1) + namelen(1) + name + size(8) + data."""
+        name_utf16 = (name + "\x00").encode("utf-16-le")
+        name_len = len(name_utf16) // 2
+        return (
+            struct.pack("BB", ELxLiteVariantType.BYTEARRAY, name_len)
+            + name_utf16
+            + struct.pack("<Q", len(data))
+            + data
+        )
+
+    # Simulate pItemValid with 500 positions (well over any threshold)
+    flags = bytes([1, 0] * 250)  # 500 bytes, alternating valid/invalid
+    chunk = _clx_bytearray_field("pItemValid", flags)
+
+    result = json_from_clx_lite_variant(chunk, strip_prefix=False)
+    item_valid = result["pItemValid"]
+    assert isinstance(item_valid, list)
+    assert len(item_valid) == 500
+    assert item_valid == list(flags)

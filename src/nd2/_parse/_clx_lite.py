@@ -75,10 +75,6 @@ def _unpack_string(data: io.BytesIO) -> str:
         return value.decode("utf8")
 
 
-def _unpack_bytearray(data: io.BytesIO) -> list[int]:
-    return list(data.read(_unpack_uint64(data)))
-
-
 class ELxLiteVariantType:
     UNKNOWN: Final = 0
     BOOL: Final = 1

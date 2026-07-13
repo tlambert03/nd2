@@ -413,14 +413,12 @@ class ModernReader(ND2Reader):
             if k.startswith(b"CustomDataVar|")
         }
 
-
     def custom_metadata(self) -> dict[str, Any] | None:
         """Return user-defined NIS-Elements custom metadata, if present."""
         keys = [
             key
             for key in self.chunkmap
-            if key.startswith(b"CustomData|")
-            and b"CustomDescription" in key
+            if key.startswith(b"CustomData|") and b"CustomDescription" in key
         ]
 
         if not keys:
@@ -434,7 +432,6 @@ class ModernReader(ND2Reader):
             lists_to_indexed_dicts=False,
             preserve_duplicates=True,
         )
-
 
     def jobs(self) -> JobsDict | None:
         """Return JOBS metadata if the file was acquired using JOBS, else None.

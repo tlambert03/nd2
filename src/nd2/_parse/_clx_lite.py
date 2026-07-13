@@ -157,7 +157,7 @@ def json_from_clx_lite_variant(
     _count: int = 1,
     *,
     lists_to_indexed_dicts: bool = True,
-    preserve_duplicates: bool = False, # FIX: JM 2026-07-13 allows for retrieving duplicates from custom metadata
+    preserve_duplicates: bool = False, # FIX: JM 2026-07-13 
 ) -> dict[str, JsonValueType]:
     output: dict[str, JsonValueType] = {}
     if not data:
@@ -177,7 +177,7 @@ def json_from_clx_lite_variant(
                 deflated,
                 strip_prefix,
                 lists_to_indexed_dicts=lists_to_indexed_dicts,
-                preserve_duplicates=preserve_duplicates, # JM: 2026-07-13 fix to accomodate dupes
+                preserve_duplicates=preserve_duplicates, # JM: 2026-07-13 fix
             )
 
         if data_type == -1:
@@ -193,7 +193,7 @@ def json_from_clx_lite_variant(
                 strip_prefix,
                 item_count,
                 lists_to_indexed_dicts=lists_to_indexed_dicts,
-                preserve_duplicates=preserve_duplicates, # JM: 2026-07-13 fix to accomodate dupes
+                preserve_duplicates=preserve_duplicates, # JM: 2026-07-13 fix
             )
             stream.seek(item_count * 8, 1)
             # In the binary format, list items have empty ("") names.
@@ -225,7 +225,7 @@ def json_from_clx_lite_variant(
                         raw_bytes,
                         strip_prefix,
                         lists_to_indexed_dicts=lists_to_indexed_dicts,
-                        preserve_duplicates=preserve_duplicates, # JM: 2026-07-13 fix to accomodate dupes
+                        preserve_duplicates=preserve_duplicates, # JM: 2026-07-13 fix
                     )
             if not value:
                 value = list(raw_bytes)

@@ -157,6 +157,7 @@ def json_from_clx_lite_variant(
     _count: int = 1,
     *,
     lists_to_indexed_dicts: bool = True,
+    preserve_duplicates: bool = False, # FIX: JM 2026-07-13 allows for retrieving duplicates from custom metadata
 ) -> dict[str, JsonValueType]:
     output: dict[str, JsonValueType] = {}
     if not data:
@@ -231,7 +232,9 @@ def json_from_clx_lite_variant(
         else:
             # also never seen this
             value = None  # pragma: no cover
-        if name == "" and name in output:
+        # FIX: JM 2026-07-13, append whether or not name is empty
+        # if name == "" and name in output:
+        if name in output and (name == "" or preserve_duplicates):
             # nd2 uses empty strings as keys for lists
             if not isinstance(output[name], list):
                 output[name] = [output[name]]

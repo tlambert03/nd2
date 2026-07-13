@@ -702,28 +702,8 @@ class ND2File:
     # FIX: JM 2026-07-13 collected data from custom metadata in ND acquisition
     @cached_property
     def custom_metadata(self) -> dict[str, Any] | None:
-        """Return user-defined metadata saved with the NIS-Elements acquisition."""
-        if self.is_legacy:
-            return None
-
-        keys = [
-            key
-            for key in self._rdr.chunkmap
-            if b"CustomDescription" in key
-        ]
-
-        if not keys:
-            return None
-
-        # might be a smarter way to do this...
-        from ._parse._clx_lite import json_from_clx_lite_variant 
-        raw = self._rdr._load_chunk(keys[0])
-        return json_from_clx_lite_variant(
-            raw,
-            strip_prefix=False,
-            preserve_duplicates=True,
-            lists_to_indexed_dicts=False,
-        )
+        """Return user-defined NIS-Elements custom metadata, if present."""
+        return self._rdr.custom_metadata()
 
     def jobs(self) -> JobsDict | None:
         """Return JOBS metadata if the file was acquired using JOBS, else None.

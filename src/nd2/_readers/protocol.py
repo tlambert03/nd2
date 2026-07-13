@@ -190,6 +190,10 @@ class ND2Reader(abc.ABC):
         warnings.warn("CustomData is not relevant for legacy files", stacklevel=2)
         return {}
 
+    def custom_metadata(self) -> dict[str, Any] | None:
+        """Return user-defined NIS-Elements custom metadata, if present."""
+        return None
+
     def jobs(self) -> JobsDict | None:
         """Return JOBS metadata if the file was acquired using JOBS, else None."""
         return None

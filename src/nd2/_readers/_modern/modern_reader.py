@@ -272,7 +272,9 @@ class ModernReader(ND2Reader):
                 warnings.warn(f"Failed to load frame times: {e}", stacklevel=2)
                 self._frame_times = []
 
-        return cast("list[float]", self._frame_times)
+        # JM fix 2026-07-13
+        # return cast("list[float]", self._frame_times)
+        return self._frame_times
 
     def voxel_size(self) -> tuple[float, float, float]:
         meta = self.metadata()
@@ -410,6 +412,26 @@ class ModernReader(ND2Reader):
             for k in self.chunkmap
             if k.startswith(b"CustomDataVar|")
         }
+
+    def custom_metadata(self) -> dict[str, Any] | None:
+        """Return user-defined NIS-Elements custom metadata, if present."""
+        keys = [
+            key
+            for key in self.chunkmap
+            if key.startswith(b"CustomData|") and b"CustomDescription" in key
+        ]
+
+        if not keys:
+            return None
+
+        raw = self._load_chunk(keys[0])
+
+        return json_from_clx_lite_variant(
+            raw,
+            strip_prefix=False,
+            lists_to_indexed_dicts=False,
+            preserve_duplicates=True,
+        )
 
     def jobs(self) -> JobsDict | None:
         """Return JOBS metadata if the file was acquired using JOBS, else None.

@@ -157,6 +157,7 @@ def json_from_clx_lite_variant(
     _count: int = 1,
     *,
     lists_to_indexed_dicts: bool = True,
+    preserve_duplicates: bool = False,  # FIX: JM 2026-07-13
 ) -> dict[str, JsonValueType]:
     output: dict[str, JsonValueType] = {}
     if not data:
@@ -176,6 +177,7 @@ def json_from_clx_lite_variant(
                 deflated,
                 strip_prefix,
                 lists_to_indexed_dicts=lists_to_indexed_dicts,
+                preserve_duplicates=preserve_duplicates,  # JM: 2026-07-13 fix
             )
 
         if data_type == -1:
@@ -191,6 +193,7 @@ def json_from_clx_lite_variant(
                 strip_prefix,
                 item_count,
                 lists_to_indexed_dicts=lists_to_indexed_dicts,
+                preserve_duplicates=preserve_duplicates,  # JM: 2026-07-13 fix
             )
             stream.seek(item_count * 8, 1)
             # In the binary format, list items have empty ("") names.
@@ -222,6 +225,7 @@ def json_from_clx_lite_variant(
                         raw_bytes,
                         strip_prefix,
                         lists_to_indexed_dicts=lists_to_indexed_dicts,
+                        preserve_duplicates=preserve_duplicates,  # JM: 2026-07-13 fix
                     )
             if not value:
                 value = list(raw_bytes)
@@ -231,7 +235,9 @@ def json_from_clx_lite_variant(
         else:
             # also never seen this
             value = None  # pragma: no cover
-        if name == "" and name in output:
+        # FIX: JM 2026-07-13, append whether or not name is empty
+        # if name == "" and name in output:
+        if name in output and (name == "" or preserve_duplicates):
             # nd2 uses empty strings as keys for lists
             if not isinstance(output[name], list):
                 output[name] = [output[name]]

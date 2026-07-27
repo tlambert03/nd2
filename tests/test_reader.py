@@ -14,10 +14,13 @@ from resource_backed_dask_array import ResourceBackedDaskArray
 DATA = Path(__file__).parent / "data"
 
 
+@pytest.mark.filterwarnings(
+    "error:Setting the shape on a NumPy array has been deprecated:DeprecationWarning"
+)
 def test_read_safety(new_nd2: Path):
     with ND2File(new_nd2) as nd:
         for i in range(nd._frame_count):
-            nd._rdr.read_frame(i)
+            nd.read_frame(i)
 
 
 def test_position(new_nd2: Path):

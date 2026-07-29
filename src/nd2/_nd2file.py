@@ -1252,7 +1252,10 @@ class ND2File:
         !!! Tip "new in version 0.8.0"
         """
         frame = self._rdr.read_frame(int(frame_index))
-        frame.shape = self._raw_frame_shape
+        # NOTE: use reshape rather than in-place `frame.shape = ...`,
+        # which numpy deprecated in v2.5.  The reader always returns something
+        # that can be reshaped without a copy.
+        frame = frame.reshape(self._raw_frame_shape)
         return frame.transpose((2, 0, 1, 3)).squeeze()
 
     @cached_property

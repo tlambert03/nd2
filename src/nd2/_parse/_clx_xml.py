@@ -33,7 +33,7 @@ def _float_or_nan(x: str) -> float:
 
 
 # functions to cast CLxvariants to python types
-_XMLCAST: dict[str | None | bytes, Callable[[Any], Scalar]] = {
+_XMLCAST: dict[str | bytes | None, Callable[[Any], Scalar]] = {
     "bool": lambda x: x.lower() in {"true", "1"},
     "CLxByteArray": lambda x: bytearray(x, "utf8"),
     "CLxStringW": str,

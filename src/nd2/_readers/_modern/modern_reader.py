@@ -272,7 +272,7 @@ class ModernReader(ND2Reader):
                 warnings.warn(f"Failed to load frame times: {e}", stacklevel=2)
                 self._frame_times = []
 
-        return cast("list[float]", self._frame_times)
+        return self._frame_times
 
     def voxel_size(self) -> tuple[float, float, float]:
         meta = self.metadata()

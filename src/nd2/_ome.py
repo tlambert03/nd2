@@ -69,12 +69,16 @@ def nd2_ome_metadata(
         (x for x in DimensionOrder if x.value.startswith(dims)), DimensionOrder.XYCZT
     )
 
+    # Exposure time and detectors come from raw metadata
+    raw_meta = rdr._cached_raw_metadata()
+    sample_settings = raw_meta.get("sPicturePlanes", {}).get("sSampleSetting", {})
+
     # if sizes.get(AXIS.CHANNEL, 1) > 1 and sizes.get(AXIS.RGB, 1) > 1:
     #     warn("multi-channel RGB images are not well supported in nd2 OME metadata.")
 
     instrument = m.Instrument(
         id="Instrument:0",
-        detectors=ome_detectors(rdr._cached_raw_metadata()),
+        detectors=ome_detectors(raw_meta),
         # TODO:
         # dichroics: List[Dichroic]
         # filter_sets: List[FilterSet]
@@ -84,6 +88,13 @@ def nd2_ome_metadata(
     )
 
     ch0 = next(iter(meta.channels or ()), None)
+    objective_settings = (
+        None
+        if ch0 is None
+        else m.ObjectiveSettings(
+            id="Objective:0", refractive_index=ch0.microscope.immersionRefractiveIndex
+        )
+    )
     channels = []
     for c_idx, ch in enumerate(meta.channels or ()):
         channel = m.Channel(
@@ -143,13 +154,24 @@ def nd2_ome_metadata(
                 # TODO: i think RGB might actually need to be 3 planes with 1 spp
                 z_idx = loop_idx.get(AXIS.Z, 0)
                 t_idx = loop_idx.get(AXIS.TIME, 0)
+
+                # sSampleSetting has one entry per acquisition (not per channel)
+                # Laser-scanning confocals use a single entry governing all channels
+                # Entry count is always either 1 or SizeC
+                ch_setting = sample_settings.get(f"a{c_idx}")
+                if ch_setting is None and len(sample_settings) == 1:
+                    ch_setting = next(iter(sample_settings.values()))
+
+                # 0.0 is a placeholder value so set that as None
+                exposure_time = (ch_setting or {}).get("dExposureTime") or None
+
                 planes.append(
                     m.Plane(
                         the_z=z_idx,
                         the_t=t_idx,
                         the_c=c_idx,
-                        # exposure_time=...,
-                        # exposure_time_unit=...,
+                        exposure_time=exposure_time,
+                        exposure_time_unit=UnitsTime.MILLISECOND,
                         delta_t=round(fm_ch.time.relativeTimeMs, 6),
                         delta_t_unit=UnitsTime.MILLISECOND,  # default is "s"
                         position_x=round(fm_ch.position.stagePositionUm.x, 6),
@@ -200,7 +222,7 @@ def nd2_ome_metadata(
         images.append(
             m.Image(
                 instrument_ref=m.InstrumentRef(id=instrument.id),
-                # objective_settings=...
+                objective_settings=objective_settings,
                 id=f"Image:{p}",
                 name=name,
                 pixels=pixels,
@@ -215,7 +237,7 @@ def nd2_ome_metadata(
                 id="Objective:0",
                 nominal_magnification=scope.objectiveMagnification,
                 lens_na=scope.objectiveNumericalAperture,
-                # model=... # something like "Plan Fluor 10x Ph1 DLL"
+                model=scope.objectiveName,
                 # immersion=scope.ome_objective_immersion(),
             )
         )

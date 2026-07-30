@@ -413,7 +413,7 @@ class ModernReader(ND2Reader):
             if k.startswith(b"CustomDataVar|")
         }
 
-    def custom_metadata(self) -> dict[str, Any] | None:
+    def custom_metadata(self, strip_prefix=False) -> dict[str, Any] | None:
         """Return user-defined NIS-Elements custom metadata, if present."""
         keys = [
             key
@@ -428,7 +428,7 @@ class ModernReader(ND2Reader):
 
         return json_from_clx_lite_variant(
             raw,
-            strip_prefix=False,
+            strip_prefix=strip_prefix,
             lists_to_indexed_dicts=False,
             preserve_duplicates=True,
         )

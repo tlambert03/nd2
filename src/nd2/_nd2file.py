@@ -700,10 +700,10 @@ class ND2File:
         return self._rdr.custom_data()
 
     # FIX: JM 2026-07-13 collected data from custom metadata in ND acquisition
-    @cached_property
-    def custom_metadata(self) -> dict[str, Any] | None:
+    # @cached_property
+    def custom_metadata(self, strip_prefix=False) -> dict[str, Any] | None:
         """Return user-defined NIS-Elements custom metadata, if present."""
-        return self._rdr.custom_metadata()
+        return self._rdr.custom_metadata(strip_prefix=strip_prefix)
 
     def jobs(self) -> JobsDict | None:
         """Return JOBS metadata if the file was acquired using JOBS, else None.

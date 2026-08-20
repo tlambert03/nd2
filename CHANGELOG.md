@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.11.3](https://github.com/tlambert03/nd2/tree/v0.11.3) (2026-03-27)
+
+[Full Changelog](https://github.com/tlambert03/nd2/compare/v0.11.2...v0.11.3)
+
+**Fixed bugs:**
+
+- fix: always decode BYTEARRAY fields as list\[int\], removing base64 encoding path [\#295](https://github.com/tlambert03/nd2/pull/295) ([tlambert03](https://github.com/tlambert03))
+
+**Merged pull requests:**
+
+- ci\(pre-commit.ci\): autoupdate [\#291](https://github.com/tlambert03/nd2/pull/291) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+- ci\(pre-commit.ci\): autoupdate [\#287](https://github.com/tlambert03/nd2/pull/287) ([pre-commit-ci[bot]](https://github.com/apps/pre-commit-ci))
+
 ## [v0.11.2](https://github.com/tlambert03/nd2/tree/v0.11.2) (2026-01-07)
 
 [Full Changelog](https://github.com/tlambert03/nd2/compare/v0.11.1...v0.11.2)

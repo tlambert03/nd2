@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import base64
 import io
 import re
 import struct
 import zlib
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Callable, Literal, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
 if TYPE_CHECKING:
     from typing import Final
@@ -101,78 +100,32 @@ _PARSERS: dict[int, Callable[[io.BytesIO], Any]] = {
     ELxLiteVariantType.DOUBLE: _unpack_double,  # 6
     ELxLiteVariantType.VOIDPOINTER: _unpack_void_pointer,  # 7
     ELxLiteVariantType.STRING: _unpack_string,  # 8
-    # BYTEARRAY (9) is handled specially in json_from_clx_lite_variant
-    # to allow recursive decoding of nested CLX Lite data
-}
-
-DTYPE_SIZES = {
-    ELxLiteVariantType.BOOL: 1,
-    ELxLiteVariantType.INT32: 4,
-    ELxLiteVariantType.UINT32: 4,
-    ELxLiteVariantType.INT64: 8,
-    ELxLiteVariantType.UINT64: 8,
-    ELxLiteVariantType.DOUBLE: 8,
-    ELxLiteVariantType.VOIDPOINTER: 8,
-    ELxLiteVariantType.STRING: 2,
-    ELxLiteVariantType.BYTEARRAY: 8,
-    ELxLiteVariantType.DEPRECATED: 0,
-    ELxLiteVariantType.LEVEL: 12,  # item_count (4) + length (8)
+    # BYTEARRAY (9) is handled inline in json_from_clx_lite_variant because
+    # some chunks (e.g. JOBS definitions) embed CLX Lite structures inside
+    # BYTEARRAY fields that need recursive decoding.
 }
 
 
-def _looks_like_clx_lite(data: bytes) -> bool:
-    """Check if data looks like valid CLX Lite encoded data.
+def _starts_with_clx_header(data: bytes) -> bool:
+    """Quick check whether data begins with a plausible CLX Lite record header.
 
-    CLX Lite format starts with:
-    - byte 0: data type (1-11 for normal types, 76 for compressed)
-    - byte 1: name length (in UTF-16 chars, so name is name_length * 2 bytes)
-    - bytes 2 to 2+name_length*2: UTF-16 encoded name (null-terminated)
+    This is used as a guard before attempting recursive decoding of BYTEARRAY
+    payloads.  False positives are acceptable (the actual parse is wrapped in
+    ``suppress(Exception)``); false negatives just mean we skip the attempt
+    and return the raw bytes.
 
-    We detect invalid data by checking size requirements and UTF-16 patterns.
+    CLX Lite records start with ``[type_byte, name_length, ...name_utf16...]``.
+    We require *name_length >= 2* so that plain boolean-flag arrays like
+    ``pItemValid = [1, 1, 0, 0, ...]`` are never mistaken for CLX data
+    (byte 1 would be name_length=1, which is just the null-terminator).
+    See: https://github.com/tlambert03/nd2/issues/288
     """
-    if not data or len(data) < 2:
+    if len(data) < 4:
         return False
-
-    data_type = data[0]
-    name_length = data[1]
-
-    # Valid data types: 1-11 (normal) or 76 (compressed 'L')
+    data_type, name_length = data[0], data[1]
     if data_type == 76:  # COMPRESS
         return True
-    if not (1 <= data_type <= 11):
-        return False
-
-    # Require names with at least 2 UTF-16 chars for standalone CLX Lite detection.
-    # Empty-name entries (name_length <= 1) are only valid inside a LEVEL container
-    # that explicitly specifies item_count.
-    # - name_length=0: truly empty, no name bytes
-    # - name_length=1: just the null terminator (\x00\x00), effectively empty
-    # Without this check, byte arrays like pItemValid=[1,1,0,0,...] would be
-    # incorrectly detected as CLX Lite (byte 0=1 looks like BOOL type, byte 1=1
-    # looks like name_length=1, bytes 2-3 look like null terminator).
-    # See: https://github.com/tlambert03/nd2/issues/288
-    if name_length <= 1:
-        return False
-
-    # Calculate minimum size based on type
-    # header (2) + name (name_length * 2) + value data
-    name_bytes = name_length * 2
-    header_and_name = 2 + name_bytes
-
-    # Each type has minimum value size requirements
-    value_size = DTYPE_SIZES.get(data_type, 0)
-    min_size = header_and_name + value_size
-    if len(data) < min_size:
-        return False
-
-    # Verify UTF-16 structure: names should end with null char
-    # UTF-16 null terminator is \x00\x00, and it's included in name_length
-    name_end = 2 + name_bytes
-    # Last 2 bytes of name should be null terminator
-    if data[name_end - 2 : name_end] != b"\x00\x00":
-        return False
-
-    return True
+    return (1 <= data_type <= 11) and name_length >= 2
 
 
 def _chunk_name_and_dtype(
@@ -197,32 +150,12 @@ def _chunk_name_and_dtype(
     return (name, data_type)
 
 
-UnparsableBytesRepr = Literal["base64", "list"]
-
-# Default threshold for base64 encoding. Byte arrays smaller than this are kept as
-# list[int] even in base64 mode, preserving small binary data (like matrices, flags)
-# that downstream code may need to reinterpret.
-DEFAULT_BASE64_THRESHOLD = 256
-
-
-def _format_unparsable_bytes(
-    raw: bytes, fmt: UnparsableBytesRepr, threshold: int
-) -> str | list[int]:
-    """Format unparsable bytes according to the specified representation."""
-    if fmt == "base64" and len(raw) >= threshold:
-        b64 = base64.b64encode(raw).decode("ascii")
-        return f"data:application/octet-stream;base64,{b64}"
-    return list(raw)
-
-
 # lite variant
 def json_from_clx_lite_variant(
     data: bytes | io.BytesIO,
     strip_prefix: bool = True,
     _count: int = 1,
     *,
-    unparsable_bytes: UnparsableBytesRepr = "base64",
-    base64_threshold: int = DEFAULT_BASE64_THRESHOLD,
     lists_to_indexed_dicts: bool = True,
 ) -> dict[str, JsonValueType]:
     output: dict[str, JsonValueType] = {}
@@ -242,8 +175,6 @@ def json_from_clx_lite_variant(
             return json_from_clx_lite_variant(
                 deflated,
                 strip_prefix,
-                unparsable_bytes=unparsable_bytes,
-                base64_threshold=base64_threshold,
                 lists_to_indexed_dicts=lists_to_indexed_dicts,
             )
 
@@ -259,8 +190,6 @@ def json_from_clx_lite_variant(
                 next_data_length,
                 strip_prefix,
                 item_count,
-                unparsable_bytes=unparsable_bytes,
-                base64_threshold=base64_threshold,
                 lists_to_indexed_dicts=lists_to_indexed_dicts,
             )
             stream.seek(item_count * 8, 1)
@@ -276,23 +205,26 @@ def json_from_clx_lite_variant(
                 value = val
 
         elif data_type == ELxLiteVariantType.BYTEARRAY:
-            # Read size, then check if it looks like nested CLX Lite data
             size = _unpack_uint64(stream)
             raw_bytes = stream.read(size)
+            # Try to recursively decode as nested CLX Lite (used by JOBS
+            # task Data/SlotConnections/etc. fields). If the bytes don't
+            # start with a valid CLX Lite header, or decoding fails,
+            # fall back to a plain list[int] (used by pItemValid, camera
+            # matrices, etc.).  The key constraint is that the fallback
+            # must always be list[int], never a string — downstream
+            # consumers iterate over the values directly.
+            # See: https://github.com/tlambert03/nd2/issues/293
             value = None
-            if _looks_like_clx_lite(raw_bytes):
+            if _starts_with_clx_header(raw_bytes):
                 with suppress(Exception):
                     value = json_from_clx_lite_variant(
                         raw_bytes,
                         strip_prefix,
-                        unparsable_bytes=unparsable_bytes,
-                        base64_threshold=base64_threshold,
                         lists_to_indexed_dicts=lists_to_indexed_dicts,
                     )
             if not value:
-                value = _format_unparsable_bytes(
-                    raw_bytes, unparsable_bytes, base64_threshold
-                )
+                value = list(raw_bytes)
 
         elif data_type in _PARSERS:
             value = _PARSERS[data_type](stream)

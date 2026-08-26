@@ -63,7 +63,8 @@ test = [
     "pytest-pretty>=1.0.0",
     "pytest>=7.0.0",
     "tifffile>=2023.4.12",
-    "xarray>=2023.1.0",
+    # 2023.9.0 is the first release that works with numpy 2 (np.unicode_ removal)
+    "xarray>=2023.9.0",
 ]
 dev = [
     { include-group = "test" },

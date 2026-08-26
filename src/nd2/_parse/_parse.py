@@ -124,18 +124,24 @@ def _calc_zstack_home_index(
     step_um: float,
     tol: float = 0.05,
 ) -> int:
+    if count <= 1:
+        return 0
+
     home_range_f = abs(low_um - home_um)
     home_range_i = abs(high_um - home_um)
 
     if type_ in {2, 3}:
-        hrange = (inverted and home_range_i) or home_range_f
+        hrange = home_range_i if inverted else home_range_f
     elif type_ in {6, 7}:
-        hrange = (inverted and home_range_f) or home_range_i
+        hrange = home_range_f if inverted else home_range_i
     else:
         return (count - 1) // 2
 
     if step_um <= 0:
-        return min(int((count - 1) * hrange / abs(high_um - low_um)), count - 1)
+        z_range = abs(high_um - low_um)
+        if not z_range:  # degenerate loop: every plane at the same z
+            return 0
+        return min(int((count - 1) * hrange / z_range), count - 1)
     else:
         return min(int(abs(ceil((hrange - tol * step_um) / step_um))), count - 1)
 

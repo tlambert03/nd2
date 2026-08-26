@@ -174,3 +174,65 @@ def test_large_bytearray_stays_as_list():
     result2 = json_from_clx_lite_variant(chunk2, strip_prefix=False)
     assert isinstance(result2["Data"], dict)
     assert result2["Data"]["Answer"] == 42
+
+
+def test_degenerate_zstack_loop():
+    """A 1-plane ZStackLoop with dZStep=0 and dZLow == dZHigh must not divide by zero.
+
+    Regression test for https://github.com/tlambert03/nd2/issues/305
+    NIS-Elements writes such a loop for single-plane acquisitions on systems with
+    a piezo Z device configured.
+    """
+    loop = _parse._parse_z_stack_loop(
+        {
+            "uiCount": 1,
+            "iType": 3,
+            "bZInverted": True,
+            "dZHome": 100.0,
+            "dZLow": 100.0,
+            "dZStep": 0.0,
+            "dZHigh": 100.0,
+            "wsZDevice": "NIDAQ Piezo Z (name: Piezo Z)",
+        }
+    )
+    assert loop.count == 1
+    assert loop.parameters.homeIndex == 0
+    assert loop.parameters.stepUm == 0.0
+
+
+def test_zstack_home_index_zero_range():
+    """A multi-plane loop with dZLow == dZHigh has no meaningful home index."""
+    assert (
+        _parse._calc_zstack_home_index(
+            False, 3, 3, home_um=100.0, low_um=100.0, high_um=100.0, step_um=0.0
+        )
+        == 0
+    )
+
+
+@pytest.mark.parametrize("type_", [2, 3])
+def test_zstack_home_index_inverted_at_high(type_: int):
+    """For types 2/3 an inverted loop uses the distance from dZHigh...
+
+    ...even when that distance is exactly zero.
+    """
+    assert (
+        _parse._calc_zstack_home_index(
+            True, 5, type_, home_um=4.0, low_um=0.0, high_um=4.0, step_um=1.0
+        )
+        == 0
+    )
+
+
+@pytest.mark.parametrize("type_", [6, 7])
+def test_zstack_home_index_inverted_at_low(type_: int):
+    """For types 6/7 an inverted loop uses the distance from dZLow...
+
+    ...even when that distance is exactly zero.
+    """
+    assert (
+        _parse._calc_zstack_home_index(
+            True, 5, type_, home_um=0.0, low_um=0.0, high_um=4.0, step_um=1.0
+        )
+        == 0
+    )

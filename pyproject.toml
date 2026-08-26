@@ -47,16 +47,18 @@ ome-zarr-tensorstore = [
     "pydantic>=2.11.0",
     "yaozarrs[write-tensorstore]>=0.2.0; python_version >= '3.10'",
 ]
+remote = ["fsspec>=2024.2.0", "s3fs>=2024.2.0"]
 
 [dependency-groups]
 test = [
-    "nd2[tiff]",
+    "nd2[tiff,remote]",
     "dask[array]>=2023.5.0",
     "imagecodecs>=2023.1.23",
     # older versions no longer ship wheels for these pythons
     "imagecodecs>=2024.6.1; python_version >= '3.12'",
     "imagecodecs>=2024.12.30; python_version >= '3.13'",
     "lxml>=5.3.0",
+    "moto[s3,server]>=5.1.0",
     "psutil>=5.9.8",
     "pytest-codspeed>=4.1.1",
     "pytest-cov>=4.0.0",
@@ -69,6 +71,7 @@ test = [
 dev = [
     { include-group = "test" },
     { include-group = "docs" },
+    "boto3-stubs[s3]>=1.42.52",
     "ipython>=8.0.0",
     "mypy>=1.18.2",
     "pdbpp>=0.11.7; sys_platform != 'win32'",
@@ -76,6 +79,7 @@ dev = [
     "pytest-xdist>=3.8.0",
     "rich>=14.2.0",
     "ruff>=0.14.0",
+    "s3fs>=2025.10.0",
     "types-lxml>=2025.8.25",
 ]
 docs = [
@@ -159,6 +163,7 @@ filterwarnings = [
     "ignore:::xarray",
     "ignore:Accessing the 'model_fields' attribute::",
     "ignore:Failing to pass a value:DeprecationWarning",     # xsdata
+    "ignore:Boto3 will no longer support Python 3.9"
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html

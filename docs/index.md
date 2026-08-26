@@ -44,6 +44,16 @@ install with support for these files use the `legacy` extra:
 pip install nd2[legacy]
 ```
 
+### With remote nd2 file support
+
+If you would like to be able to read nd2 files from remote sources (e.g. S3, HTTP),
+then fsspec and/or s3fs are required.
+To install with support for remote files use the `remote` extra:
+
+```sh
+pip install nd2[remote]
+```
+
 ### Faster XML parsing
 
 Much of the metadata in the file stored as XML.  If found in the environment,

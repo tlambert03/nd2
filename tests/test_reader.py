@@ -1,3 +1,4 @@
+import io
 import json
 import pickle
 import sys
@@ -8,6 +9,7 @@ import numpy as np
 import pytest
 from nd2 import ND2File, imread
 from nd2._parse._chunk_decode import get_version
+from nd2._readers import protocol
 from nd2._util import AXIS, is_supported_file
 from resource_backed_dask_array import ResourceBackedDaskArray
 
@@ -287,3 +289,18 @@ def test_file_handles(single_nd2: Path) -> None:
         assert isinstance(f.asarray(), np.ndarray)
     assert fh.closed
     assert f.closed
+
+
+def test_url_handle_closed_on_reader_create_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Handle(io.BytesIO):
+        pass
+
+    handle = Handle(b"NOT!")
+    monkeypatch.setattr(protocol, "open_fsspec_url", lambda *args, **kwargs: handle)
+
+    with pytest.raises(OSError, match="not recognized as ND2"):
+        protocol.ND2Reader.create("s3://bucket/not-nd2")
+
+    assert handle.closed

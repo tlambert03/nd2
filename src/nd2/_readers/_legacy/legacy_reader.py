@@ -23,9 +23,9 @@ except ImportError:
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-    from typing import Any, BinaryIO, TypedDict
+    from typing import Any, TypedDict
 
-    from nd2._util import FileOrBinaryIO
+    from nd2._util import FileOrBinaryIO, ReadSeekBinary
 
     class RawExperimentLoop(TypedDict, total=False):
         Type: int
@@ -365,9 +365,10 @@ class LegacyReader(ND2Reader):
         try:
             from imagecodecs import jpeg2k_decode
         except ModuleNotFoundError as e:  # pragma: no cover
+            file_name = getattr(self._fh, "name", "<unknown>")
             raise ModuleNotFoundError(
                 f"{e}\n"
-                f"Reading legacy format nd2 {self._fh.name!r} requires imagecodecs.\n"
+                f"Reading legacy format nd2 {file_name!r} requires imagecodecs.\n"
                 "Please install with `pip install imagecodecs`."
             ) from e
 
@@ -415,7 +416,7 @@ class LegacyReader(ND2Reader):
             pos = self.chunkmap[b"jp2h"][0]
         except (KeyError, IndexError) as e:  # pragma: no cover
             raise KeyError("No valid jp2h header found in file") from e
-        fh = cast("BinaryIO", self._fh)
+        fh = cast("ReadSeekBinary", self._fh)
         fh.seek(pos + I4s.size + 4)  # 4 bytes for "label"
         if fh.read(4) != b"ihdr":
             raise KeyError("No valid ihdr header found in jp2h header")
@@ -438,7 +439,7 @@ class LegacyReader(ND2Reader):
         return [] if orient == "records" else {}
 
 
-def legacy_nd2_chunkmap(fh: BinaryIO) -> dict[bytes, list[int]]:
+def legacy_nd2_chunkmap(fh: ReadSeekBinary) -> dict[bytes, list[int]]:
     fh.seek(-40, 2)
     sig, map_start = struct.unpack("<32sQ", fh.read())
     if sig != b"LABORATORY IMAGING ND BOX MAP 00":  # pragma: no cover

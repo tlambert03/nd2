@@ -40,6 +40,12 @@ or from conda:
 conda install -c conda-forge nd2
 ```
 
+> **Note:** Using `pip install nd2` will install the default nd2 reader from PyPI. To install this fork with fsspec/remote reader support:
+>
+> ```sh
+> uv pip install git+https://github.com/derekthirstrup/nd2.git@main
+> ```
+
 ### Legacy nd2 file support
 
 Legacy nd2 (JPEG2000) files are also supported, but require `imagecodecs`. To
@@ -589,6 +595,45 @@ pytest
 ```
 
 (and feel free to open an issue if that doesn't work!)
+
+## Remote File Access (fsspec)
+
+`ND2File` supports reading from remote URLs (HTTP, S3, GCS, Azure) via [fsspec](https://filesystem-spec.readthedocs.io/):
+
+```python
+import nd2
+
+# HTTP/HTTPS
+with nd2.ND2File("https://example.com/data/file.nd2") as f:
+    data = f.asarray()
+
+# S3 (requires s3fs)
+with nd2.ND2File("s3://bucket/path/file.nd2") as f:
+    frames = f.read_frames([0, 1, 2], max_workers=64)
+
+# Check if file is remote
+print(f.is_remote)  # True
+```
+
+### Installation
+
+```bash
+pip install nd2 fsspec aiohttp
+
+# For S3: pip install s3fs
+# For GCS: pip install gcsfs
+# For Azure: pip install adlfs
+```
+
+### Parallel I/O for High-Bandwidth Networks
+
+For remote files, `read_frames()` uses parallel requests to saturate high-bandwidth connections:
+
+```python
+with nd2.ND2File("s3://bucket/large_file.nd2") as f:
+    # Read multiple frames in parallel (default: 64 workers for remote)
+    frames = f.read_frames(list(range(100)), max_workers=64)
+```
 
 ## alternatives
 

@@ -67,16 +67,16 @@ use `nd2.imread()`:
 import nd2
 
 # read to numpy array
-my_array = nd2.imread('some_file.nd2')
+my_array = nd2.imread("some_file.nd2")
 
 # read to dask array
-my_array = nd2.imread('some_file.nd2', dask=True)
+my_array = nd2.imread("some_file.nd2", dask=True)
 
 # read to xarray
-my_array = nd2.imread('some_file.nd2', xarray=True)
+my_array = nd2.imread("some_file.nd2", xarray=True)
 
 # read file to dask-xarray
-my_array = nd2.imread('some_file.nd2', xarray=True, dask=True)
+my_array = nd2.imread("some_file.nd2", xarray=True, dask=True)
 ```
 
 ### Extracting metadata
@@ -84,7 +84,7 @@ my_array = nd2.imread('some_file.nd2', xarray=True, dask=True)
 If you want to get metadata, then use the [`nd2.ND2File`][] class directly:
 
 ```python
-myfile = nd2.ND2File('some_file.nd2')
+myfile = nd2.ND2File("some_file.nd2")
 ```
 
 !!! tip
@@ -92,7 +92,7 @@ myfile = nd2.ND2File('some_file.nd2')
     automatically when you're done with it.
 
     ```python
-    with nd2.ND2File('some_file.nd2') as myfile:
+    with nd2.ND2File("some_file.nd2") as myfile:
         print(myfile.metadata)
         ...
     ```
@@ -153,12 +153,12 @@ the convenience function `nd2.nd2_to_tiff`:
 import nd2
 
 
-nd2.nd2_to_tiff('some_file.nd2', 'new_file.ome.tiff', progress=True)
+nd2.nd2_to_tiff("some_file.nd2", "new_file.ome.tiff", progress=True)
 
 # or with an ND2File object
 
-with nd2.ND2File('some_file.nd2') as myfile:
-    myfile.write_tiff('my_file.ome.tiff', progress=True)
+with nd2.ND2File("some_file.nd2") as myfile:
+    myfile.write_tiff("my_file.ome.tiff", progress=True)
 ```
 
 Note that if you simply want the OME metadata, you can use the
@@ -166,7 +166,7 @@ Note that if you simply want the OME metadata, you can use the
 [`ome_types.OME`][]:
 
 ```python
-with nd2.ND2File('some_file.nd2') as myfile:
+with nd2.ND2File("some_file.nd2") as myfile:
     ome_metadata = myfile.ome_metadata()
 ```
 
@@ -185,8 +185,8 @@ To convert an nd2 file to an OME-Zarr store, use [`nd2.ND2File.write_ome_zarr`][
 ```python
 import nd2
 
-with nd2.ND2File('some_file.nd2') as myfile:
-    myfile.write_ome_zarr('path/to/ome_zarr_store.ome.zarr')
+with nd2.ND2File("some_file.nd2") as myfile:
+    myfile.write_ome_zarr("path/to/ome_zarr_store.ome.zarr")
 ```
 
 See [API documentation][nd2.ND2File.write_ome_zarr] for complete details on options for chunking, etc.

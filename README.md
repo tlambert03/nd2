@@ -70,57 +70,57 @@ Quick summary below:
 import nd2
 import numpy as np
 
-my_array = nd2.imread('some_file.nd2')                          # read to numpy array
-my_array = nd2.imread('some_file.nd2', dask=True)               # read to dask array
-my_array = nd2.imread('some_file.nd2', xarray=True)             # read to xarray
-my_array = nd2.imread('some_file.nd2', xarray=True, dask=True)  # read to dask-xarray
+my_array = nd2.imread("some_file.nd2")  # read to numpy array
+my_array = nd2.imread("some_file.nd2", dask=True)  # read to dask array
+my_array = nd2.imread("some_file.nd2", xarray=True)  # read to xarray
+my_array = nd2.imread("some_file.nd2", xarray=True, dask=True)  # read to dask-xarray
 
 # or open a file with nd2.ND2File
-f = nd2.ND2File('some_file.nd2')
+f = nd2.ND2File("some_file.nd2")
 
 # (you can also use nd2.ND2File() as a context manager)
-with nd2.ND2File('some_file.nd2') as ndfile:
+with nd2.ND2File("some_file.nd2") as ndfile:
     print(ndfile.metadata)
     ...
 
 
 # ATTRIBUTES:   # example output
-f.path          # 'some_file.nd2'
-f.shape         # (10, 2, 256, 256)
-f.ndim          # 4
-f.dtype         # np.dtype('uint16')
-f.size          # 1310720  (total voxel elements)
-f.sizes         # {'T': 10, 'C': 2, 'Y': 256, 'X': 256}
-f.is_rgb        # False (whether the file is rgb)
-                # if the file is RGB, `f.sizes` will have
-                # an additional {'S': 3} component
+f.path  # 'some_file.nd2'
+f.shape  # (10, 2, 256, 256)
+f.ndim  # 4
+f.dtype  # np.dtype('uint16')
+f.size  # 1310720  (total voxel elements)
+f.sizes  # {'T': 10, 'C': 2, 'Y': 256, 'X': 256}
+f.is_rgb  # False (whether the file is rgb)
+# if the file is RGB, `f.sizes` will have
+# an additional {'S': 3} component
 
 # ARRAY OUTPUTS
-f.asarray()         # in-memory np.ndarray - or use np.asarray(f)
-f.to_dask()         # delayed dask.array.Array
-f.to_xarray()       # in-memory xarray.DataArray, with labeled axes/coords
-f.to_xarray(delayed=True)   # delayed xarray.DataArray
+f.asarray()  # in-memory np.ndarray - or use np.asarray(f)
+f.to_dask()  # delayed dask.array.Array
+f.to_xarray()  # in-memory xarray.DataArray, with labeled axes/coords
+f.to_xarray(delayed=True)  # delayed xarray.DataArray
 
 # OME-TIFF OUTPUT (new in v0.10.0)
-f.write_tiff('output.ome.tif')  # write to ome-tiff file
+f.write_tiff("output.ome.tif")  # write to ome-tiff file
 
-                    # see below for examples of these structures
+# see below for examples of these structures
 # METADATA          # returns instance of ...
-f.attributes        # nd2.structures.Attributes
-f.metadata          # nd2.structures.Metadata
-f.frame_metadata(0) # nd2.structures.FrameMetadata (frame-specific meta)
-f.experiment        # List[nd2.structures.ExpLoop]
-f.text_info         # dict of misc info
-f.voxel_size()      # VoxelSize(x=0.65, y=0.65, z=1.0)
+f.attributes  # nd2.structures.Attributes
+f.metadata  # nd2.structures.Metadata
+f.frame_metadata(0)  # nd2.structures.FrameMetadata (frame-specific meta)
+f.experiment  # List[nd2.structures.ExpLoop]
+f.text_info  # dict of misc info
+f.voxel_size()  # VoxelSize(x=0.65, y=0.65, z=1.0)
 
-f.rois              # Dict[int, nd2.structures.ROI]
-f.binary_data       # any binary masks stored in the file.  See below.
-f.events()          # returns tabular "Recorded Data" view from in NIS Elements/Viewer
-                    # with info for each frame in the experiment.
-                    # output is passabled to pandas.DataFrame
+f.rois  # Dict[int, nd2.structures.ROI]
+f.binary_data  # any binary masks stored in the file.  See below.
+f.events()  # returns tabular "Recorded Data" view from in NIS Elements/Viewer
+# with info for each frame in the experiment.
+# output is passabled to pandas.DataFrame
 
-f.ome_metadata()    # returns metadata as an ome_types.OME object
-                    # (requires ome-types package)
+f.ome_metadata()  # returns metadata as an ome_types.OME object
+# (requires ome-types package)
 
 # allll the metadata we can find...
 # no attempt made to standardize or parse it
@@ -128,8 +128,8 @@ f.ome_metadata()    # returns metadata as an ome_types.OME object
 # but try not to rely on it, as it's not guaranteed to be stable
 f.unstructured_metadata()
 
-f.close()           # don't forget to close when not using a context manager!
-f.closed            # boolean, whether the file is closed
+f.close()  # don't forget to close when not using a context manager!
+f.closed  # boolean, whether the file is closed
 ```
 
 ## Metadata structures
@@ -147,7 +147,7 @@ Attributes(
     bitsPerComponentSignificant=16,
     componentCount=2,
     heightPx=32,
-    pixelDataType='unsigned',
+    pixelDataType="unsigned",
     sequenceCount=60,
     widthBytes=128,
     widthPx=32,
@@ -155,7 +155,7 @@ Attributes(
     compressionType=None,
     tileHeightPx=None,
     tileWidthPx=None,
-    channelCount=2
+    channelCount=2,
 )
 ```
 
@@ -266,9 +266,11 @@ Metadata(
             startMs=0.0,
             periodMs=1.0,
             durationMs=0.0,
-            periodDiff=PeriodDiff(avg=16278.339965820312, max=16411.849853515625, min=16144.830078125)
+            periodDiff=PeriodDiff(
+                avg=16278.339965820312, max=16411.849853515625, min=16144.830078125
+            ),
         ),
-        type='TimeLoop'
+        type="TimeLoop",
     ),
     XYPosLoop(
         count=4,
@@ -276,15 +278,36 @@ Metadata(
         parameters=XYPosLoopParams(
             isSettingZ=True,
             points=[
-                Position(stagePositionUm=[26950.2, -1801.6000000000001, 498.46000000000004], pfsOffset=None, name=None),
-                Position(stagePositionUm=[31452.2, -1801.6000000000001, 670.7], pfsOffset=None, name=None),
-                Position(stagePositionUm=[35234.3, 2116.4, 664.08], pfsOffset=None, name=None),
-                Position(stagePositionUm=[40642.9, -3585.1000000000004, 555.12], pfsOffset=None, name=None)
-            ]
+                Position(
+                    stagePositionUm=[26950.2, -1801.6000000000001, 498.46000000000004],
+                    pfsOffset=None,
+                    name=None,
+                ),
+                Position(
+                    stagePositionUm=[31452.2, -1801.6000000000001, 670.7],
+                    pfsOffset=None,
+                    name=None,
+                ),
+                Position(
+                    stagePositionUm=[35234.3, 2116.4, 664.08], pfsOffset=None, name=None
+                ),
+                Position(
+                    stagePositionUm=[40642.9, -3585.1000000000004, 555.12],
+                    pfsOffset=None,
+                    name=None,
+                ),
+            ],
         ),
-        type='XYPosLoop'
+        type="XYPosLoop",
     ),
-    ZStackLoop(count=5, nestingLevel=2, parameters=ZStackLoopParams(homeIndex=2, stepUm=1.0, bottomToTop=True, deviceName='Ti2 ZDrive'), type='ZStackLoop')
+    ZStackLoop(
+        count=5,
+        nestingLevel=2,
+        parameters=ZStackLoopParams(
+            homeIndex=2, stepUm=1.0, bottomToTop=True, deviceName="Ti2 ZDrive"
+        ),
+        type="ZStackLoop",
+    ),
 ]
 ```
 
@@ -350,10 +373,10 @@ ROIs found in the metadata are available at `ND2File.rois`, which is a
 
 ```python
 {
-    'capturing': 'Flash4.0, SN:101412\r\nSample 1:\r\n  Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast\r\nSample 2:\r\n  Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast',
-    'date': '9/28/2021  9:41:27 AM',
-    'description': 'Metadata:\r\nDimensions: T(3) x XY(4) x λ(2) x Z(5)\r\nCamera Name: Flash4.0, SN:101412\r\nNumerical Aperture: 0.3\r\nRefractive Index: 1\r\nNumber of Picture Planes: 2\r\nPlane #1:\r\n Name: Widefield Green\r\n Component Count: 1\r\n Modality: Widefield Fluorescence\r\n Camera Settings:   Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast\r\n Microscope Settings:   Nikon Ti2, FilterChanger(Turret-Lo): 3 (FITC)\r\n  Nikon Ti2, Shutter(FL-Lo): Open\r\n  Nikon Ti2, Shutter(DIA LED): Closed\r\n  Nikon Ti2, Illuminator(DIA): Off\r\n  Nikon Ti2, Illuminator(DIA) Iris intensity: 3.0\r\n  Analyzer Slider: Extracted\r\n  Analyzer Cube: Extracted\r\n  Condenser: 1 (Shutter)\r\n  PFS, state: On\r\n  PFS, offset: 7959\r\n  PFS, mirror: Inserted\r\n  PFS, Dish Type: Glass\r\n  Zoom: 1.00x\r\n  Sola, Shutter(Sola): Active\r\n  Sola, Illuminator(Sola) Voltage: 100.0\r\nPlane #2:\r\n Name: Widefield Red\r\n Component Count: 1\r\n Modality: Widefield Fluorescence\r\n Camera Settings:   Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast\r\n Microscope Settings:   Nikon Ti2, FilterChanger(Turret-Lo): 4 (TRITC)\r\n  Nikon Ti2, Shutter(FL-Lo): Open\r\n  Nikon Ti2, Shutter(DIA LED): Closed\r\n  Nikon Ti2, Illuminator(DIA): Off\r\n  Nikon Ti2, Illuminator(DIA) Iris intensity: 1.5\r\n  Analyzer Slider: Extracted\r\n  Analyzer Cube: Extracted\r\n  Condenser: 1 (Shutter)\r\n  PFS, state: On\r\n  PFS, offset: 7959\r\n  PFS, mirror: Inserted\r\n  PFS, Dish Type: Glass\r\n  Zoom: 1.00x\r\n  Sola, Shutter(Sola): Active\r\n  Sola, Illuminator(Sola) Voltage: 100.0\r\nTime Loop: 3\r\n- Equidistant (Period 1 ms)\r\nZ Stack Loop: 5\r\n- Step: 1 µm\r\n- Device: Ti2 ZDrive',
-    'optics': 'Plan Fluor 10x Ph1 DLL'
+    "capturing": "Flash4.0, SN:101412\r\nSample 1:\r\n  Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast\r\nSample 2:\r\n  Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast",
+    "date": "9/28/2021  9:41:27 AM",
+    "description": "Metadata:\r\nDimensions: T(3) x XY(4) x λ(2) x Z(5)\r\nCamera Name: Flash4.0, SN:101412\r\nNumerical Aperture: 0.3\r\nRefractive Index: 1\r\nNumber of Picture Planes: 2\r\nPlane #1:\r\n Name: Widefield Green\r\n Component Count: 1\r\n Modality: Widefield Fluorescence\r\n Camera Settings:   Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast\r\n Microscope Settings:   Nikon Ti2, FilterChanger(Turret-Lo): 3 (FITC)\r\n  Nikon Ti2, Shutter(FL-Lo): Open\r\n  Nikon Ti2, Shutter(DIA LED): Closed\r\n  Nikon Ti2, Illuminator(DIA): Off\r\n  Nikon Ti2, Illuminator(DIA) Iris intensity: 3.0\r\n  Analyzer Slider: Extracted\r\n  Analyzer Cube: Extracted\r\n  Condenser: 1 (Shutter)\r\n  PFS, state: On\r\n  PFS, offset: 7959\r\n  PFS, mirror: Inserted\r\n  PFS, Dish Type: Glass\r\n  Zoom: 1.00x\r\n  Sola, Shutter(Sola): Active\r\n  Sola, Illuminator(Sola) Voltage: 100.0\r\nPlane #2:\r\n Name: Widefield Red\r\n Component Count: 1\r\n Modality: Widefield Fluorescence\r\n Camera Settings:   Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast\r\n Microscope Settings:   Nikon Ti2, FilterChanger(Turret-Lo): 4 (TRITC)\r\n  Nikon Ti2, Shutter(FL-Lo): Open\r\n  Nikon Ti2, Shutter(DIA LED): Closed\r\n  Nikon Ti2, Illuminator(DIA): Off\r\n  Nikon Ti2, Illuminator(DIA) Iris intensity: 1.5\r\n  Analyzer Slider: Extracted\r\n  Analyzer Cube: Extracted\r\n  Condenser: 1 (Shutter)\r\n  PFS, state: On\r\n  PFS, offset: 7959\r\n  PFS, mirror: Inserted\r\n  PFS, Dish Type: Glass\r\n  Zoom: 1.00x\r\n  Sola, Shutter(Sola): Active\r\n  Sola, Illuminator(Sola) Voltage: 100.0\r\nTime Loop: 3\r\n- Equidistant (Period 1 ms)\r\nZ Stack Loop: 5\r\n- Step: 1 µm\r\n- Device: Ti2 ZDrive",
+    "optics": "Plan Fluor 10x Ph1 DLL",
 }
 ```
 
@@ -420,93 +443,96 @@ Not every column header appears in every event, so when `orient` is either
 length for each column.
 
 ```python
-
 # with `orient='records'` (DEFAULT)
 [
     {
-        'Time [s]': 1.32686654,
-        'Z-Series': -2.0,
-        'Exposure Time [ms]': 100.0,
-        'PFS Offset': 0,
-        'PFS Status': 0,
-        'X Coord [µm]': 31452.2,
-        'Y Coord [µm]': -1801.6,
-        'Z Coord [µm]': 552.74,
-        'Ti2 ZDrive [µm]': 552.74
+        "Time [s]": 1.32686654,
+        "Z-Series": -2.0,
+        "Exposure Time [ms]": 100.0,
+        "PFS Offset": 0,
+        "PFS Status": 0,
+        "X Coord [µm]": 31452.2,
+        "Y Coord [µm]": -1801.6,
+        "Z Coord [µm]": 552.74,
+        "Ti2 ZDrive [µm]": 552.74,
     },
     {
-        'Time [s]': 1.69089657,
-        'Z-Series': -1.0,
-        'Exposure Time [ms]': 100.0,
-        'PFS Offset': 0,
-        'PFS Status': 0,
-        'X Coord [µm]': 31452.2,
-        'Y Coord [µm]': -1801.6,
-        'Z Coord [µm]': 553.74,
-        'Ti2 ZDrive [µm]': 553.74
+        "Time [s]": 1.69089657,
+        "Z-Series": -1.0,
+        "Exposure Time [ms]": 100.0,
+        "PFS Offset": 0,
+        "PFS Status": 0,
+        "X Coord [µm]": 31452.2,
+        "Y Coord [µm]": -1801.6,
+        "Z Coord [µm]": 553.74,
+        "Ti2 ZDrive [µm]": 553.74,
     },
     {
-        'Time [s]': 2.04194662,
-        'Z-Series': 0.0,
-        'Exposure Time [ms]': 100.0,
-        'PFS Offset': 0,
-        'PFS Status': 0,
-        'X Coord [µm]': 31452.2,
-        'Y Coord [µm]': -1801.6,
-        'Z Coord [µm]': 554.74,
-        'Ti2 ZDrive [µm]': 554.74
+        "Time [s]": 2.04194662,
+        "Z-Series": 0.0,
+        "Exposure Time [ms]": 100.0,
+        "PFS Offset": 0,
+        "PFS Status": 0,
+        "X Coord [µm]": 31452.2,
+        "Y Coord [µm]": -1801.6,
+        "Z Coord [µm]": 554.74,
+        "Ti2 ZDrive [µm]": 554.74,
     },
     {
-        'Time [s]': 2.38194662,
-        'Z-Series': 1.0,
-        'Exposure Time [ms]': 100.0,
-        'PFS Offset': 0,
-        'PFS Status': 0,
-        'X Coord [µm]': 31452.2,
-        'Y Coord [µm]': -1801.6,
-        'Z Coord [µm]': 555.74,
-        'Ti2 ZDrive [µm]': 555.74
+        "Time [s]": 2.38194662,
+        "Z-Series": 1.0,
+        "Exposure Time [ms]": 100.0,
+        "PFS Offset": 0,
+        "PFS Status": 0,
+        "X Coord [µm]": 31452.2,
+        "Y Coord [µm]": -1801.6,
+        "Z Coord [µm]": 555.74,
+        "Ti2 ZDrive [µm]": 555.74,
     },
     {
-        'Time [s]': 2.63795663,
-        'Z-Series': 2.0,
-        'Exposure Time [ms]': 100.0,
-        'PFS Offset': 0,
-        'PFS Status': 0,
-        'X Coord [µm]': 31452.2,
-        'Y Coord [µm]': -1801.6,
-        'Z Coord [µm]': 556.74,
-        'Ti2 ZDrive [µm]': 556.74
-    }
+        "Time [s]": 2.63795663,
+        "Z-Series": 2.0,
+        "Exposure Time [ms]": 100.0,
+        "PFS Offset": 0,
+        "PFS Status": 0,
+        "X Coord [µm]": 31452.2,
+        "Y Coord [µm]": -1801.6,
+        "Z Coord [µm]": 556.74,
+        "Ti2 ZDrive [µm]": 556.74,
+    },
 ]
 
 # with `orient='list'`
 {
-    'Time [s]': array([1.32686654, 1.69089657, 2.04194662, 2.38194662, 2.63795663]),
-    'Z-Series': array([-2., -1.,  0.,  1.,  2.]),
-    'Exposure Time [ms]': array([100., 100., 100., 100., 100.]),
-    'PFS Offset': array([0, 0, 0, 0, 0], dtype=int32),
-    'PFS Status': array([0, 0, 0, 0, 0], dtype=int32),
-    'X Coord [µm]': array([31452.2, 31452.2, 31452.2, 31452.2, 31452.2]),
-    'Y Coord [µm]': array([-1801.6, -1801.6, -1801.6, -1801.6, -1801.6]),
-    'Z Coord [µm]': array([552.74, 553.74, 554.74, 555.74, 556.74]),
-    'Ti2 ZDrive [µm]': array([552.74, 553.74, 554.74, 555.74, 556.74])
+    "Time [s]": array([1.32686654, 1.69089657, 2.04194662, 2.38194662, 2.63795663]),
+    "Z-Series": array([-2.0, -1.0, 0.0, 1.0, 2.0]),
+    "Exposure Time [ms]": array([100.0, 100.0, 100.0, 100.0, 100.0]),
+    "PFS Offset": array([0, 0, 0, 0, 0], dtype=int32),
+    "PFS Status": array([0, 0, 0, 0, 0], dtype=int32),
+    "X Coord [µm]": array([31452.2, 31452.2, 31452.2, 31452.2, 31452.2]),
+    "Y Coord [µm]": array([-1801.6, -1801.6, -1801.6, -1801.6, -1801.6]),
+    "Z Coord [µm]": array([552.74, 553.74, 554.74, 555.74, 556.74]),
+    "Ti2 ZDrive [µm]": array([552.74, 553.74, 554.74, 555.74, 556.74]),
 }
 
 # with `orient='dict'`
 {
-    'Time [s]': {0: 1.32686654, 1: 1.69089657, 2: 2.04194662, 3: 2.38194662, 4: 2.63795663},
-    'Z-Series': {0: -2.0, 1: -1.0, 2: 0.0, 3: 1.0, 4: 2.0},
-    'Exposure Time [ms]': {0: 100.0, 1: 100.0, 2: 100.0, 3: 100.0, 4: 100.0},
-    'PFS Offset []': {0: 0, 1: 0, 2: 0, 3: 0, 4: 0},
-    'PFS Status []': {0: 0, 1: 0, 2: 0, 3: 0, 4: 0},
-    'X Coord [µm]': {0: 31452.2, 1: 31452.2, 2: 31452.2, 3: 31452.2, 4: 31452.2},
-    'Y Coord [µm]': {0: -1801.6, 1: -1801.6, 2: -1801.6, 3: -1801.6, 4: -1801.6},
-    'Z Coord [µm]': {0: 552.74, 1: 553.74, 2: 554.74, 3: 555.74, 4: 556.74},
-    'Ti2 ZDrive [µm]': {0: 552.74, 1: 553.74, 2: 554.74, 3: 555.74, 4: 556.74}
+    "Time [s]": {
+        0: 1.32686654,
+        1: 1.69089657,
+        2: 2.04194662,
+        3: 2.38194662,
+        4: 2.63795663,
+    },
+    "Z-Series": {0: -2.0, 1: -1.0, 2: 0.0, 3: 1.0, 4: 2.0},
+    "Exposure Time [ms]": {0: 100.0, 1: 100.0, 2: 100.0, 3: 100.0, 4: 100.0},
+    "PFS Offset []": {0: 0, 1: 0, 2: 0, 3: 0, 4: 0},
+    "PFS Status []": {0: 0, 1: 0, 2: 0, 3: 0, 4: 0},
+    "X Coord [µm]": {0: 31452.2, 1: 31452.2, 2: 31452.2, 3: 31452.2, 4: 31452.2},
+    "Y Coord [µm]": {0: -1801.6, 1: -1801.6, 2: -1801.6, 3: -1801.6, 4: -1801.6},
+    "Z Coord [µm]": {0: 552.74, 1: 553.74, 2: 554.74, 3: 555.74, 4: 556.74},
+    "Ti2 ZDrive [µm]": {0: 552.74, 1: 553.74, 2: 554.74, 3: 555.74, 4: 556.74},
 }
-
-
 ```
 
 You can pass the output of `events()` to `pandas.DataFrame`:

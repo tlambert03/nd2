@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
-from nd2 import ND2File, imread
+from nd2 import ND2File, _util, imread, is_supported_file
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -131,3 +131,58 @@ def test_nd2file_reads_from_fsspec_obj(
             np.testing.assert_array_equal(
                 remote_nd.read_frame(0), local_nd.read_frame(0)
             )
+
+
+def _storage_options(endpoint: str) -> dict:
+    return {
+        "client_kwargs": {"endpoint_url": endpoint},
+        "config_kwargs": {"response_checksum_validation": "when_required"},
+    }
+
+
+@pytest.mark.parametrize("small_file_limit", [0, 32 * 1024 * 1024])
+def test_s3_url_reopen_and_dask(
+    single_s3_nd2_url: tuple[str, str],
+    single_nd2: Path,
+    small_file_limit: int,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """URLs may be reopened after closing (in-memory and buffered-file branches)."""
+    # small_file_limit=0 forces the fsspec buffered-file (large file) branch
+    monkeypatch.setitem(
+        _util.open_fsspec_url.__kwdefaults__, "small_file_limit", small_file_limit
+    )
+    url, endpoint = single_s3_nd2_url
+    storage_options = _storage_options(endpoint)
+    expected = imread(single_nd2)
+
+    # the file is closed by the time the dask array is computed
+    delayed = imread(url, dask=True, storage_options=storage_options)
+    np.testing.assert_array_equal(delayed.compute(), expected)
+
+    nd = ND2File(url, storage_options=storage_options)
+    nd.close()
+    assert nd.closed
+    nd.open()
+    np.testing.assert_array_equal(nd.asarray(), expected)
+    nd.close()
+
+
+def test_fsspec_obj_reopen(
+    single_s3_nd2_url: tuple[str, str], single_nd2: Path
+) -> None:
+    """fsspec file objects can be reopened from their own filesystem."""
+    fsspec = pytest.importorskip("fsspec")
+    url, endpoint = single_s3_nd2_url
+    fs = fsspec.filesystem("s3", **_storage_options(endpoint))
+    with fs.open(url, "rb") as fs_fh, ND2File(fs_fh) as nd:
+        delayed = nd.to_dask()
+    assert nd.closed
+    np.testing.assert_array_equal(delayed.compute(), imread(single_nd2))
+
+
+def test_is_supported_file_s3_url(single_s3_nd2_url: tuple[str, str]) -> None:
+    url, endpoint = single_s3_nd2_url
+    storage_options = _storage_options(endpoint)
+    assert is_supported_file(url, storage_options=storage_options)
+    assert ND2File.is_supported_file(url, storage_options=storage_options)

@@ -23,7 +23,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
-    from typing import Any, TypedDict
+    from typing import Any, Callable, TypedDict
 
     from nd2._util import FileOrBinaryIO, ReadSeekBinary
 
@@ -143,8 +143,13 @@ IHDR = struct.Struct(">iihBB")  # yxc-dtype in jpeg 2000
 class LegacyReader(ND2Reader):
     HEADER_MAGIC = _util.OLD_HEADER_MAGIC
 
-    def __init__(self, path: FileOrBinaryIO, error_radius: int | None = None) -> None:
-        super().__init__(path, error_radius)
+    def __init__(
+        self,
+        path: FileOrBinaryIO,
+        error_radius: int | None = None,
+        reopen: Callable[[], ReadSeekBinary] | None = None,
+    ) -> None:
+        super().__init__(path, error_radius, reopen)
         self._attributes: strct.Attributes | None = None
         # super().__init__ called open()
         length, box_type = I4s.unpack(self._fh.read(I4s.size))  # type: ignore

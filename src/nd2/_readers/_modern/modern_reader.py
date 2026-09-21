@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     import datetime
     from collections.abc import Iterable, Mapping, Sequence
     from os import PathLike
-    from typing import Literal
+    from typing import Callable, Literal
 
     from typing_extensions import TypeAlias
 
@@ -48,7 +48,7 @@ if TYPE_CHECKING:
         RawTagDict,
         RawTextInfoDict,
     )
-    from nd2._util import FileOrBinaryIO
+    from nd2._util import FileOrBinaryIO, ReadSeekBinary
     from nd2.jobs.types import JobsDict
 
     StrOrBytesPath: TypeAlias = str | bytes | PathLike[str] | PathLike[bytes]
@@ -58,8 +58,13 @@ if TYPE_CHECKING:
 class ModernReader(ND2Reader):
     HEADER_MAGIC = _util.NEW_HEADER_MAGIC
 
-    def __init__(self, path: FileOrBinaryIO, error_radius: int | None = None) -> None:
-        super().__init__(path, error_radius)
+    def __init__(
+        self,
+        path: FileOrBinaryIO,
+        error_radius: int | None = None,
+        reopen: Callable[[], ReadSeekBinary] | None = None,
+    ) -> None:
+        super().__init__(path, error_radius, reopen)
 
         self._cached_decoded_chunks: dict[tuple[bytes, bool], Any] = {}
 
@@ -98,7 +103,8 @@ class ModernReader(ND2Reader):
         if not self._chunkmap:
             if self._fh is None:  # pragma: no cover
                 raise OSError("File not open")
-            self._chunkmap = get_chunkmap(self._fh, error_radius=self._error_radius)
+            with self._fh_lock:
+                self._chunkmap = get_chunkmap(self._fh, error_radius=self._error_radius)
         return cast("ChunkMap", self._chunkmap)
 
     def attributes(self) -> structures.Attributes:
@@ -132,11 +138,12 @@ class ModernReader(ND2Reader):
                 f"Chunk key {name!r} not found in chunkmap: {set(self.chunkmap)}"
             ) from e
 
-        if self._error_radius is None:
-            return read_nd2_chunk(self._fh, offset)
-        return _robustly_read_named_chunk(
-            self._fh, offset, expect_name=name, search_radius=self._error_radius
-        )
+        with self._fh_lock:
+            if self._error_radius is None:
+                return read_nd2_chunk(self._fh, offset)
+            return _robustly_read_named_chunk(
+                self._fh, offset, expect_name=name, search_radius=self._error_radius
+            )
 
     def _decode_chunk(self, name: bytes, strip_prefix: bool = True) -> dict | Any:
         """Convert raw chunk bytes to a Python object.
@@ -363,8 +370,9 @@ class ModernReader(ND2Reader):
             nbytes = shape[0] * (self.attributes().widthBytes or 0)
         else:
             nbytes = int(np.prod(shape)) * dtype.itemsize
-        self._fh.seek(offset)
-        data = self._fh.read(nbytes)
+        with self._fh_lock:
+            self._fh.seek(offset)
+            data = self._fh.read(nbytes)
         if self._strides is not None:
             arr = np.ndarray(
                 shape=shape,
@@ -613,7 +621,8 @@ class ModernReader(ND2Reader):
     def _acquisition_datetime(self) -> datetime.datetime | None:
         """Try to extract acquisition date."""
         time = self._cached_global_metadata().get("time", {})
-        if jdn := time.get("absoluteJulianDayNumber"):
+        # files without a valid absolute time store values < 1 (e.g. -1)
+        if (jdn := time.get("absoluteJulianDayNumber")) and jdn >= 1:
             with suppress(ValueError):
                 return _util.jdn_to_datetime(jdn)
         return None

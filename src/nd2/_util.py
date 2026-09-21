@@ -6,12 +6,13 @@ import re
 from contextlib import suppress
 from datetime import datetime, timezone
 from itertools import product
-from typing import TYPE_CHECKING, NamedTuple, cast
+from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
     from os import PathLike
-    from typing import Any, ClassVar, Final, Protocol, TypeAlias, Union
+    from types import ModuleType
+    from typing import Any, Callable, ClassVar, Final, Protocol, TypeAlias, Union
 
     from typing_extensions import TypeGuard
 
@@ -44,6 +45,16 @@ def is_fsspec_url(path: Any) -> TypeGuard[str]:
     return bool(re.match(r"^[a-zA-Z][a-zA-Z0-9+\-.]+://", path))
 
 
+def _import_fsspec() -> ModuleType:
+    try:
+        import fsspec
+    except ImportError as e:
+        raise ImportError(
+            "fsspec is required to open remote URLs. Install with: pip install fsspec"
+        ) from e
+    return fsspec  # type: ignore [no-any-return]
+
+
 def open_fsspec_url(
     url: str,
     *,
@@ -63,15 +74,7 @@ def open_fsspec_url(
     each chunkmap seek fetches 512 KB instead of 5 MB, and scattered metadata
     chunks typically fit within a single block at this size.
     """
-    try:
-        import fsspec
-    except ImportError as e:
-        raise ImportError(
-            "fsspec is required to open remote URLs. Install with: pip install fsspec"
-        ) from e
-
-    sopts = storage_options or {}
-    fs, fpath = fsspec.url_to_fs(url, **sopts)
+    fs, fpath = _import_fsspec().url_to_fs(url, **(storage_options or {}))
     size = fs.info(fpath).get("size")
 
     if size is not None and size <= small_file_limit:
@@ -89,13 +92,27 @@ def is_read_seek_binary(obj: object) -> TypeGuard[ReadSeekBinary]:
     )
 
 
-def is_supported_file(path: FileOrBinaryIO) -> bool:
+def _open_binary(path: StrOrPath) -> BinaryIO:
+    return open(path, "rb")
+
+
+def is_supported_file(
+    path: FileOrBinaryIO,
+    open_: Callable[[StrOrPath], BinaryIO] = _open_binary,
+    *,
+    storage_options: dict | None = None,
+) -> bool:
     """Return `True` if `path` can be opened as an nd2 file.
 
     Parameters
     ----------
     path : Union[str, bytes, PathLike]
-        A path to query
+        A path or remote URL to query, or an open binary file-like object.
+    open_ : Callable[[StrOrBytesPath, str], BinaryIO]
+        Filesystem opener, by default `builtins.open`
+    storage_options : dict, optional
+        Extra kwargs passed to `fsspec.open` when `path` is a remote URL (and no
+        custom `open_` is provided).
 
     Returns
     -------
@@ -105,8 +122,11 @@ def is_supported_file(path: FileOrBinaryIO) -> bool:
     if is_read_seek_binary(path):
         path.seek(0)
         magic = path.read(4)
+    elif open_ is _open_binary and is_fsspec_url(path):
+        with _import_fsspec().open(path, "rb", **(storage_options or {})) as fh:
+            magic = fh.read(4)
     else:
-        with open(cast("StrOrPath", path), "rb") as fh:
+        with open_(cast("StrOrPath", path)) as fh:
             magic = fh.read(4)
     return magic in (NEW_HEADER_MAGIC, OLD_HEADER_MAGIC)
 

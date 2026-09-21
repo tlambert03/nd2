@@ -124,9 +124,11 @@ class ND2File:
         self._lock = threading.RLock()
 
     @staticmethod
-    def is_supported_file(path: StrOrPath) -> bool:
+    def is_supported_file(
+        path: StrOrPath, *, storage_options: dict[str, Any] | None = None
+    ) -> bool:
         """Return `True` if the file is supported by this reader."""
-        return is_supported_file(path)
+        return is_supported_file(path, storage_options=storage_options)
 
     @cached_property
     def version(self) -> tuple[int, ...]:

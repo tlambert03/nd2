@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import abc
 import mmap
+import threading
 import warnings
 from contextlib import AbstractContextManager, nullcontext, suppress
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -12,7 +14,7 @@ from nd2._util import is_fsspec_url, is_read_seek_binary, open_fsspec_url
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
-    from typing import Literal
+    from typing import Callable, Literal
 
     import numpy as np
 
@@ -60,6 +62,7 @@ class ND2Reader(abc.ABC):
 
         is_url = is_fsspec_url(path)
         opened_here = False
+        reopen: Callable[[], ReadSeekBinary] | None = None
         ctx: AbstractContextManager
         if is_file_handle := is_read_seek_binary(path):
             mode = getattr(path, "mode", "b")
@@ -69,7 +72,10 @@ class ND2Reader(abc.ABC):
                 )
             ctx = nullcontext(path)
         elif is_url:
-            fh = open_fsspec_url(str(path), storage_options=storage_options)
+            reopen = partial(
+                open_fsspec_url, str(path), storage_options=storage_options
+            )
+            fh = reopen()
             opened_here = True
             ctx = nullcontext(fh)
         else:
@@ -87,7 +93,9 @@ class ND2Reader(abc.ABC):
                 # pass the Path so the reader can reopen it as needed.
                 effective_path = fh if (is_url or is_file_handle) else path
                 try:
-                    return subcls(effective_path, error_radius=error_radius)
+                    return subcls(
+                        effective_path, error_radius=error_radius, reopen=reopen
+                    )
                 except Exception:
                     if opened_here:
                         fh.close()
@@ -98,8 +106,15 @@ class ND2Reader(abc.ABC):
             f"file {fname!r} not recognized as ND2.  First 4 bytes: {magic_num!r}"
         )
 
-    def __init__(self, obj: FileOrBinaryIO, error_radius: int | None = None) -> None:
+    def __init__(
+        self,
+        obj: FileOrBinaryIO,
+        error_radius: int | None = None,
+        reopen: Callable[[], ReadSeekBinary] | None = None,
+    ) -> None:
         self._chunkmap: dict | None = None
+        # guards seek+read pairs on the shared file handle
+        self._fh_lock = threading.RLock()
         self._version: tuple[int, int] | None = None
 
         self._mmap: mmap.mmap | None = None
@@ -107,17 +122,26 @@ class ND2Reader(abc.ABC):
         self._path: str | Path | None
         if is_read_seek_binary(obj):
             self._fh = obj
-            self._was_open = not obj.closed
-            name = getattr(obj, "full_name", None) or getattr(obj, "name", None)
-            self._path = name if isinstance(name, str) else None
-            with suppress(Exception):
-                # remote/non-fileno file-likes: mmap not available
-                if (fileno := getattr(self._fh, "fileno", None)) and callable(fileno):
-                    self._mmap = mmap.mmap(fileno(), 0, access=mmap.ACCESS_READ)
+            # if `reopen` was provided, we opened the handle and must close it.
+            self._was_open = reopen is None and not obj.closed
+            fs, fs_path = getattr(obj, "fs", None), getattr(obj, "path", None)
+            full_name = getattr(obj, "full_name", None)
+            name = getattr(obj, "name", None)
+            if isinstance(full_name, str) and is_fsspec_url(full_name):
+                # remote fsspec file: can be reopened from its own filesystem
+                self._path = full_name
+                if reopen is None and fs is not None and fs_path is not None:
+                    reopen = partial(fs.open, fs_path, "rb")
+            elif isinstance(name, str):
+                self._path = Path(name)  # local file, may be reopened by name
+            else:
+                self._path = None
+            self._try_mmap()
         else:
             self._was_open = False
             self._path = Path(cast("str | Path", obj))
             self._fh = None
+        self._reopen = reopen
         self._error_radius: int | None = error_radius
         self.open()
 
@@ -128,13 +152,26 @@ class ND2Reader(abc.ABC):
     def open(self) -> None:
         """Open the file handle."""
         if self._fh is None or self._fh.closed:
-            if not isinstance(self._path, Path):
+            if self._reopen is not None:
+                self._fh = self._reopen()
+                self._try_mmap()
+            elif isinstance(self._path, Path):
+                self._fh = open(self._path, "rb")
+                fh = cast("Any", self._fh)
+                self._mmap = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
+            else:
                 raise RuntimeError(
-                    "Cannot reopen a remote/file-like ND2 source after closing"
+                    "Cannot reopen an unnamed file-like object after it has been "
+                    "closed. Keep the file open, or pass a path or URL instead."
                 )
-            self._fh = open(self._path, "rb")
-            fh = cast("Any", self._fh)
-            self._mmap = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
+
+    def _try_mmap(self) -> None:
+        """Memory-map the file handle, if it is backed by a real file."""
+        self._mmap = None
+        with suppress(Exception):
+            # remote/non-fileno file-likes: mmap not available
+            if (fileno := getattr(self._fh, "fileno", None)) and callable(fileno):
+                self._mmap = mmap.mmap(fileno(), 0, access=mmap.ACCESS_READ)
 
     def close(self) -> None:
         """Close the file handle."""

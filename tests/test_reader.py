@@ -2,6 +2,7 @@ import io
 import json
 import pickle
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import dask.array as da
@@ -304,3 +305,49 @@ def test_url_handle_closed_on_reader_create_failure(
         protocol.ND2Reader.create("s3://bucket/not-nd2")
 
     assert handle.closed
+
+
+def test_threaded_read_frame_without_mmap(single_nd2: Path) -> None:
+    # file-likes without fileno() fall back to seek+read, which must be locked
+    with ND2File(single_nd2) as f:
+        expected = [f.read_frame(i).copy() for i in range(f._frame_count)]
+
+    interval = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)
+    try:
+        with ND2File(io.BytesIO(single_nd2.read_bytes())) as f:
+            idxs = list(range(len(expected))) * 1000
+            with ThreadPoolExecutor(8) as ex:
+                for i, frame in zip(idxs, ex.map(f.read_frame, idxs)):
+                    np.testing.assert_array_equal(frame, expected[i])
+    finally:
+        sys.setswitchinterval(interval)
+
+
+def test_file_handle_reopen(single_nd2: Path) -> None:
+    # named local file handles may be reopened by name after closing
+    with open(single_nd2, "rb") as fh, ND2File(fh) as f:
+        assert f.path == str(single_nd2)
+        assert single_nd2.name in repr(f) and str(single_nd2.parent) not in repr(f)
+        delayed = f.to_dask()
+    assert f.closed
+    np.testing.assert_array_equal(delayed.compute(), imread(single_nd2))
+
+
+def test_unnamed_file_like_cannot_reopen(single_nd2: Path) -> None:
+    f = ND2File(io.BytesIO(single_nd2.read_bytes()))
+    assert f.path == ""
+    f.close()
+    with pytest.raises(RuntimeError, match="Cannot reopen an unnamed file-like"):
+        f.open()
+
+
+def test_is_supported_file_custom_opener(single_nd2: Path) -> None:
+    opened: list = []
+
+    def _open(path):
+        opened.append(path)
+        return open(path, "rb")
+
+    assert is_supported_file(single_nd2, open_=_open)
+    assert opened == [single_nd2]

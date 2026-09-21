@@ -202,3 +202,10 @@ def test_cached_decoded_chunks() -> None:
     with ND2File("tests/data/dims_p2z5t3-2c4y32x32.nd2") as f:
         assert f.sizes
         _meta = f.unstructured_metadata()
+
+
+def test_missing_absolute_time_gives_no_acquisition_date() -> None:
+    # jonas_3.nd2 stores dTimeAbsolute == -1
+    with ND2File(DATA / "jonas_3.nd2") as f:
+        assert f._rdr._acquisition_datetime() is None  # type: ignore [attr-defined]
+        assert f.ome_metadata().images[0].acquisition_date is None

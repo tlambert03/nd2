@@ -7,18 +7,18 @@ build-backend = "hatchling.build"
 name = "nd2"
 description = "Yet another nd2 (Nikon NIS Elements) file reader"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "BSD 3-Clause License" }
 authors = [{ email = "talley.lambert@gmail.com", name = "Talley Lambert" }]
 classifiers = [
     "Development Status :: 4 - Beta",
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dynamic = ["version"]
 dependencies = [
@@ -32,8 +32,7 @@ dependencies = [
 
 [project.optional-dependencies]
 legacy = [
-    "imagecodecs>=2021.2.26",
-    "imagecodecs>=2021.8.26; python_version >= '3.10'",
+    "imagecodecs>=2021.8.26",
     "imagecodecs>=2022.7.31; python_version >= '3.11'",
     "imagecodecs>=2024.6.1; python_version >= '3.12'",
     "imagecodecs>=2024.12.30; python_version >= '3.13'",
@@ -45,7 +44,7 @@ ome-zarr = [
 ]
 ome-zarr-tensorstore = [
     "pydantic>=2.11.0",
-    "yaozarrs[write-tensorstore]>=0.2.0; python_version >= '3.10'",
+    "yaozarrs[write-tensorstore]>=0.2.0",
 ]
 remote = ["fsspec>=2024.2.0", "s3fs>=2024.2.0"]
 
@@ -109,7 +108,7 @@ sources = ["src"]
 # https://docs.astral.sh/ruff/rules
 [tool.ruff]
 line-length = 88
-target-version = "py39"
+target-version = "py310"
 src = ["src/nd2", "tests"]
 fix = true
 unsafe-fixes = true
@@ -163,7 +162,6 @@ filterwarnings = [
     "ignore:::xarray",
     "ignore:Accessing the 'model_fields' attribute::",
     "ignore:Failing to pass a value:DeprecationWarning",     # xsdata
-    "ignore:Boto3 will no longer support Python 3.9"
 ]
 
 # https://mypy.readthedocs.io/en/stable/config_file.html

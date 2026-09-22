@@ -130,7 +130,7 @@ jobs:
         uses: CodSpeedHQ/action@v5
         with:
           run: uv run --no-dev --group test pytest -W ignore --codspeed -v --color=yes
-          mode: instrumentation
+          mode: simulation
 
   build-and-inspect-package:
     name: Build & inspect package.

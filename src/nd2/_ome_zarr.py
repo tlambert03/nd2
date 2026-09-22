@@ -465,16 +465,30 @@ def _build_image_model(
     # Create omero metadata for RGB images
     omero = None
     if is_rgb:
+        window = _omero_window(nd2_file.dtype)
         omero = v05.Omero(
             channels=[
-                v05.OmeroChannel(color="FF0000", label="Red", active=True),
-                v05.OmeroChannel(color="00FF00", label="Green", active=True),
-                v05.OmeroChannel(color="0000FF", label="Blue", active=True),
+                v05.OmeroChannel(color=color, label=label, active=True, window=window)
+                for color, label in (
+                    ("FF0000", "Red"),
+                    ("00FF00", "Green"),
+                    ("0000FF", "Blue"),
+                )
             ],
             rdefs=v05.OmeroRenderingDefs(model="color"),
         )
 
     return v05.Image(multiscales=[multiscale], omero=omero)
+
+
+def _omero_window(dtype: np.dtype) -> v05.OmeroWindow:
+    """Full-range display window for `dtype`."""
+    if np.issubdtype(dtype, np.integer):
+        info = np.iinfo(dtype)
+        lo, hi = float(info.min), float(info.max)
+    else:
+        lo, hi = 0.0, 1.0
+    return v05.OmeroWindow(start=lo, end=hi, min=lo, max=hi)
 
 
 def _create_axes(

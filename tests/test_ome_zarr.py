@@ -303,6 +303,9 @@ def test_to_ome_zarr_rgb_file(tmp_path: Path) -> None:
     assert ome["omero"]["channels"][0]["color"] == "FF0000"  # Red
     assert ome["omero"]["channels"][1]["color"] == "00FF00"  # Green
     assert ome["omero"]["channels"][2]["color"] == "0000FF"  # Blue
+    # window is mandatory in the NGFF spec; dims_rgb.nd2 is uint8
+    for ch in ome["omero"]["channels"]:
+        assert ch["window"] == {"start": 0, "end": 255, "min": 0, "max": 255}
 
     # Check rdefs for color model
     assert ome["omero"]["rdefs"] == {"model": "color"}

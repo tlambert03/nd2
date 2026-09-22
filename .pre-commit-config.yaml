@@ -32,3 +32,5 @@ repos:
           # - types-lxml
           - ome-types
           - pydantic
+          - fsspec
+

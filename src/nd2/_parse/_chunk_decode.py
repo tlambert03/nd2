@@ -4,19 +4,20 @@ from __future__ import annotations
 
 import mmap
 import struct
-from contextlib import contextmanager, nullcontext
-from pathlib import Path
-from typing import TYPE_CHECKING, BinaryIO, cast
+from contextlib import AbstractContextManager, contextmanager, nullcontext
+from os import PathLike as OSPathLike
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-    from contextlib import AbstractContextManager
     from os import PathLike
     from typing import Final
 
     from numpy.typing import DTypeLike
+
+    from nd2._util import ReadSeekBinary
 
     StrOrBytesPath = str | bytes | PathLike[str] | PathLike[bytes]
 
@@ -68,12 +69,12 @@ SIG_CHUNKMAP_LOC = struct.Struct("32sQ")
 # uint64_t offset
 
 
-def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
+def get_version(fh: ReadSeekBinary | StrOrBytesPath) -> tuple[int, int]:
     """Get the version of the ND2 file or raise an exception.
 
     Parameters
     ----------
-    fh : BinaryIO | str | bytes | Path
+    fh : ReadSeekBinary | str | bytes | Path
         The file handle or path to the ND2 file.
 
     Returns
@@ -87,14 +88,14 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
         If the file is not a valid ND2 file or the header chunk is corrupt.
     """
     if hasattr(fh, "read"):
-        ctx: AbstractContextManager[BinaryIO] = nullcontext(cast("BinaryIO", fh))
+        ctx: AbstractContextManager = nullcontext(cast("ReadSeekBinary", fh))
     else:
         ctx = open(fh, "rb")
 
-    with ctx as fh:
-        fh.seek(0)
-        fname = str(fh.name)
-        chunk = START_FILE_CHUNK.unpack(fh.read(START_FILE_CHUNK.size))
+    with ctx as handle:
+        handle.seek(0)
+        fname = str(getattr(handle, "name", ""))
+        chunk = START_FILE_CHUNK.unpack(handle.read(START_FILE_CHUNK.size))
 
     magic, name_length, data_length, name, data = cast("StartFileChunk", chunk)
 
@@ -112,7 +113,7 @@ def get_version(fh: BinaryIO | StrOrBytesPath) -> tuple[int, int]:
     return (int(chr(data[3])), int(chr(data[5])))
 
 
-def get_chunkmap(fh: BinaryIO, error_radius: int | None = None) -> ChunkMap:
+def get_chunkmap(fh: ReadSeekBinary, error_radius: int | None = None) -> ChunkMap:
     """Read the map of the chunks at the end of an ND2 file.
 
     A Chunkmap is mapping of chunk names (bytes) to (offset, size) pairs.
@@ -128,7 +129,7 @@ def get_chunkmap(fh: BinaryIO, error_radius: int | None = None) -> ChunkMap:
 
     Parameters
     ----------
-    fh : BinaryIO
+    fh : ReadSeekBinary
         An open nd2 file.  File is assumed to be a valid ND2 file.  (use `get_version`)
     error_radius : int, optional
         If b"ND2 FILEMAP SIGNATURE NAME 0001!" is not found at expected location and
@@ -149,7 +150,10 @@ def get_chunkmap(fh: BinaryIO, error_radius: int | None = None) -> ChunkMap:
     fh.seek(-40, 2)
     sig, location = SIG_CHUNKMAP_LOC.unpack(fh.read(SIG_CHUNKMAP_LOC.size))
     if sig != ND2_CHUNKMAP_SIGNATURE:  # pragma: no cover
-        raise ValueError(f"Invalid ChunkMap signature {sig!r} in file {fh.name!r}")
+        raise ValueError(
+            f"Invalid ChunkMap signature {sig!r} in file "
+            f"{getattr(fh, 'name', '<unknown>')!r}"
+        )
 
     # get all of the data in the chunkmap
     chunkmap_data = _robustly_read_named_chunk(
@@ -182,7 +186,7 @@ def get_chunkmap(fh: BinaryIO, error_radius: int | None = None) -> ChunkMap:
 
 
 def read_nd2_chunk(
-    fh: BinaryIO, start_position: int, expect_name: bytes | None = None
+    fh: ReadSeekBinary, start_position: int, expect_name: bytes | None = None
 ) -> bytes:
     """Read a single chunk in an ND2 file at `start_position`.
 
@@ -197,7 +201,7 @@ def read_nd2_chunk(
 
     Parameters
     ----------
-    fh : BinaryIO
+    fh : ReadSeekBinary
         An open nd2 file.  File is assumed to be a valid ND2 file.  (use `get_version`)
     start_position : int
         The position in the file to start reading the chunk.
@@ -235,7 +239,7 @@ def read_nd2_chunk(
 
 
 def _robustly_read_named_chunk(
-    fh: BinaryIO,
+    fh: ReadSeekBinary,
     start_position: int,
     expect_name: bytes = ND2_FILEMAP_SIGNATURE,
     search_radius: int | None = None,
@@ -248,7 +252,7 @@ def _robustly_read_named_chunk(
 
     Parameters
     ----------
-    fh : BinaryIO
+    fh : ReadSeekBinary
         An open nd2 file.  File is assumed to be a valid ND2 file.
     start_position : int
         The position in the file to start reading the chunk.
@@ -261,8 +265,9 @@ def _robustly_read_named_chunk(
     try:
         return read_nd2_chunk(fh, start_position, expect_name=expect_name)
     except ValueError as e:
+        file_name = getattr(fh, "name", "<unknown>")
         err_msg = (
-            f"File {fh.name!r} appears to be corrupt. Expected "
+            f"File {file_name!r} appears to be corrupt. Expected "
             f"{expect_name!r} at position "
             f"{start_position} but did not find it."
         )
@@ -282,7 +287,7 @@ def _robustly_read_named_chunk(
         raise ValueError(err_msg) from e
 
 
-def iter_chunks(handle: BinaryIO) -> Iterator[tuple[str, int, int]]:
+def iter_chunks(handle: ReadSeekBinary) -> Iterator[tuple[str, int, int]]:
     file_size = handle.seek(0, 2)
     handle.seek(0)
     pos = 0
@@ -304,7 +309,7 @@ _default_chunk_start = ND2_CHUNK_MAGIC.to_bytes(4, "little")
 
 
 def rescue_nd2(
-    handle: BinaryIO | str,
+    handle: ReadSeekBinary | StrOrBytesPath,
     frame_shape: tuple[int, ...] = (),
     dtype: DTypeLike = "uint16",
     max_iters: int | None = None,
@@ -321,7 +326,7 @@ def rescue_nd2(
 
     Parameters
     ----------
-    handle : BinaryIO | str
+    handle : ReadSeekBinary | str | bytes | PathLike
         Filepath string, or binary file handle (For example
         `handle = open('some.nd2', 'rb')`)
     frame_shape : Tuple[int, ...], optional
@@ -356,7 +361,10 @@ def rescue_nd2(
     """
     dtype = np.dtype(dtype)
     with ensure_handle(handle) as _fh:
-        mm = mmap.mmap(_fh.fileno(), 0, access=mmap.ACCESS_READ)
+        fileno = getattr(_fh, "fileno", None)
+        if not callable(fileno):
+            raise TypeError("rescue_nd2 requires a file handle with fileno()")
+        mm = mmap.mmap(fileno(), 0, access=mmap.ACCESS_READ)
 
         offset = 0
         iters = 0
@@ -407,11 +415,15 @@ def rescue_nd2(
 
 
 @contextmanager
-def ensure_handle(obj: str | BinaryIO) -> Iterator[BinaryIO]:
-    fh = open(obj, "rb") if isinstance(obj, (str, bytes, Path)) else obj
+def ensure_handle(obj: StrOrBytesPath | ReadSeekBinary) -> Iterator[ReadSeekBinary]:
+    if isinstance(obj, (str, bytes, OSPathLike)):
+        opened_here = True
+        fh = cast("ReadSeekBinary", open(obj, "rb"))
+    else:
+        opened_here = False
+        fh = obj
     try:
         yield fh
     finally:
-        # close it if we were the one to open it
-        if not hasattr(obj, "fileno"):
+        if opened_here:
             fh.close()

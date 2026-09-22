@@ -1,3 +1,4 @@
+import gzip
 import io
 import json
 import pickle
@@ -351,3 +352,22 @@ def test_is_supported_file_custom_opener(single_nd2: Path) -> None:
 
     assert is_supported_file(single_nd2, open_=_open)
     assert opened == [single_nd2]
+
+
+def test_wrapped_file_handle_not_mmapped(single_nd2: Path, tmp_path: Path) -> None:
+    # GzipFile.fileno() proxies the *compressed* file, so mmap must not be used
+    gz = tmp_path / "file.nd2.gz"
+    with gzip.open(gz, "wb") as out:
+        out.write(single_nd2.read_bytes())
+    with gzip.open(gz, "rb") as fh, ND2File(fh) as f:
+        assert f._rdr._mmap is None
+        np.testing.assert_array_equal(f.asarray(), imread(single_nd2))
+
+
+def test_truncated_file_without_mmap(single_nd2: Path) -> None:
+    # a chunkmap pointing past EOF gives a blank frame, as with the mmap path
+    with ND2File(io.BytesIO(single_nd2.read_bytes())) as f:
+        assert f._rdr._mmap is None
+        last = f._frame_count - 1
+        f._rdr._frame_offsets[last] = single_nd2.stat().st_size + 1
+        assert not f.read_frame(last).any()

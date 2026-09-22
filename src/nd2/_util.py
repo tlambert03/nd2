@@ -41,7 +41,8 @@ def is_fsspec_url(path: Any) -> TypeGuard[str]:
     """True if `path` is a string with a remote URL scheme (e.g. 's3://')."""
     if not isinstance(path, str):
         return False
-    # RFC 3986 scheme syntax
+    # RFC 3986 scheme syntax, but require at least two characters so that
+    # windows drive paths like "C://data/file.nd2" are not treated as URLs.
     return bool(re.match(r"^[a-zA-Z][a-zA-Z0-9+\-.]+://", path))
 
 

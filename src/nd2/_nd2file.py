@@ -101,6 +101,21 @@ class ND2File:
         be used to try to find the actual chunk position. by default 100 KB
     storage_options : dict, optional
         Extra kwargs passed to [`fsspec.core.url_to_fs`][] when opening remote URLs.
+        These are also used to reopen the file after `close()` or unpickling. If
+        `path` is an fsspec file object, this defaults to its filesystem's
+        `storage_options`.
+
+    Notes
+    -----
+    For remote URLs, `path` returns the URL string. For file-like objects without
+    a name (e.g. `io.BytesIO`), `path` is an empty string, and the file cannot be
+    reopened once closed (so it cannot be pickled, and delayed arrays must be
+    computed while the file is open).
+
+    Reopening a remote file (e.g. computing a dask array after the file has been
+    closed) re-fetches the file, and delayed arrays may reopen the file once per
+    chunk. When working with remote data, keep the `ND2File` open (e.g. in a
+    `with` block) while computing.
     """
 
     def __init__(
@@ -114,6 +129,10 @@ class ND2File:
         self._error_radius: int | None = (
             search_window * 1000 if validate_frames else None
         )
+        if storage_options is None:
+            # fsspec file objects know how their filesystem was constructed
+            fs = getattr(path, "fs", None)
+            storage_options = getattr(fs, "storage_options", None)
         self._storage_options = storage_options
         self._rdr = ND2Reader.create(path, self._error_radius, storage_options)
         self._path: str | Path | None = self._rdr._path

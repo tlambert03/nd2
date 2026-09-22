@@ -373,6 +373,9 @@ class ModernReader(ND2Reader):
         with self._fh_lock:
             self._fh.seek(offset)
             data = self._fh.read(nbytes)
+        if len(data) < nbytes:
+            # chunkmap points past EOF (truncated file): match the mmap path
+            return self._missing_frame()
         if self._strides is not None:
             arr = np.ndarray(
                 shape=shape,

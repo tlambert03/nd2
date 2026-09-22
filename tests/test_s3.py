@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import pickle
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -186,3 +187,18 @@ def test_is_supported_file_s3_url(single_s3_nd2_url: tuple[str, str]) -> None:
     storage_options = _storage_options(endpoint)
     assert is_supported_file(url, storage_options=storage_options)
     assert ND2File.is_supported_file(url, storage_options=storage_options)
+
+
+def test_fsspec_obj_storage_options_survive_pickle(
+    single_s3_nd2_url: tuple[str, str], single_nd2: Path
+) -> None:
+    """storage_options are taken from the fsspec file's filesystem if not given."""
+    fsspec = pytest.importorskip("fsspec")
+    url, endpoint = single_s3_nd2_url
+    storage_options = _storage_options(endpoint)
+    fs = fsspec.filesystem("s3", **storage_options)
+    with fs.open(url, "rb") as fs_fh, ND2File(fs_fh) as nd:
+        assert nd._storage_options == storage_options
+        nd2 = pickle.loads(pickle.dumps(nd))
+    with nd2:
+        np.testing.assert_array_equal(nd2.asarray(), imread(single_nd2))

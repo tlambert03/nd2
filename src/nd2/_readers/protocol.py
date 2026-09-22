@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import io
 import mmap
 import threading
 import warnings
@@ -166,12 +167,16 @@ class ND2Reader(abc.ABC):
                 )
 
     def _try_mmap(self) -> None:
-        """Memory-map the file handle, if it is backed by a real file."""
+        """Memory-map the file handle, if it is a plain local file object.
+
+        Wrappers such as `gzip.GzipFile` proxy `fileno()` to the *underlying* file,
+        so mmap would expose the wrong bytes.  Anything that isn't a real file
+        object falls back to seek/read.
+        """
         self._mmap = None
-        with suppress(Exception):
-            # remote/non-fileno file-likes: mmap not available
-            if (fileno := getattr(self._fh, "fileno", None)) and callable(fileno):
-                self._mmap = mmap.mmap(fileno(), 0, access=mmap.ACCESS_READ)
+        if isinstance(self._fh, (io.FileIO, io.BufferedReader)):
+            with suppress(Exception):
+                self._mmap = mmap.mmap(self._fh.fileno(), 0, access=mmap.ACCESS_READ)
 
     def close(self) -> None:
         """Close the file handle."""
@@ -197,16 +202,17 @@ class ND2Reader(abc.ABC):
 
     def version(self) -> tuple[int, int]:
         """Return the file format version as a tuple of ints."""
-        if self._version is None:
-            if self._fh is not None:
-                self._version = get_version(self._fh)
-            elif self._path is not None:
-                self._version = get_version(self._path)
-            else:
-                raise RuntimeError(
-                    "Cannot determine version without an open file handle"
-                )
-        return self._version
+        with self._fh_lock:
+            if self._version is None:
+                if self._fh is not None:
+                    self._version = get_version(self._fh)
+                elif self._path is not None:
+                    self._version = get_version(self._path)
+                else:
+                    raise RuntimeError(
+                        "Cannot determine version without an open file handle"
+                    )
+            return self._version
 
     def rois(self) -> list[ROI]:
         """Return ROIs in the file."""

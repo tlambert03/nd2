@@ -66,6 +66,7 @@ Full API documentation is available at
 
 Quick summary below:
 
+<!-- fmt: off -->
 ```python
 import nd2
 import numpy as np
@@ -131,6 +132,7 @@ f.unstructured_metadata()
 f.close()           # don't forget to close when not using a context manager!
 f.closed            # boolean, whether the file is closed
 ```
+<!-- fmt: on -->
 
 ## Metadata structures
 
@@ -141,6 +143,7 @@ Here are some example outputs
 
 <summary><code>attributes</code></summary>
 
+<!-- fmt: off -->
 ```python
 Attributes(
     bitsPerComponentInMemory=16,
@@ -158,6 +161,7 @@ Attributes(
     channelCount=2
 )
 ```
+<!-- fmt: on -->
 
 </details>
 
@@ -257,6 +261,7 @@ Metadata(
 
 <summary><code>experiment</code></summary>
 
+<!-- fmt: off -->
 ```python
 [
     TimeLoop(
@@ -287,6 +292,7 @@ Metadata(
     ZStackLoop(count=5, nestingLevel=2, parameters=ZStackLoopParams(homeIndex=2, stepUm=1.0, bottomToTop=True, deviceName='Ti2 ZDrive'), type='ZStackLoop')
 ]
 ```
+<!-- fmt: on -->
 
 </details>
 
@@ -348,6 +354,7 @@ ROIs found in the metadata are available at `ND2File.rois`, which is a
 
 <summary><code>text_info</code></summary>
 
+<!-- fmt: off -->
 ```python
 {
     'capturing': 'Flash4.0, SN:101412\r\nSample 1:\r\n  Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast\r\nSample 2:\r\n  Exposure: 100 ms\r\n  Binning: 1x1\r\n  Scan Mode: Fast',
@@ -356,6 +363,7 @@ ROIs found in the metadata are available at `ND2File.rois`, which is a
     'optics': 'Plan Fluor 10x Ph1 DLL'
 }
 ```
+<!-- fmt: on -->
 
 </details>
 
@@ -419,6 +427,7 @@ Not every column header appears in every event, so when `orient` is either
 `'dict'` or `'list'`, `float('nan')` will be inserted to maintain a consistent
 length for each column.
 
+<!-- fmt: off -->
 ```python
 
 # with `orient='records'` (DEFAULT)
@@ -508,6 +517,7 @@ length for each column.
 
 
 ```
+<!-- fmt: on -->
 
 You can pass the output of `events()` to `pandas.DataFrame`:
 

@@ -11,13 +11,13 @@ for fname, val in d.items():
     nd2r = val["nd2reader"]
 
     nd2shape = (
-        dict(zip(nd2["axes"], nd2["shape"]))
+        dict(zip(nd2["axes"], nd2["shape"], strict=False))
         if "axes" in nd2 and "shape" in nd2
         else None
     )
     new[fname] = {
         "shape": {
-            "bioformats": dict(zip("TCZYX", bf["shape"][:-1])),
+            "bioformats": dict(zip("TCZYX", bf["shape"][:-1], strict=False)),
             "nd2": nd2shape,
             "nd2reader": nd2r.get("sizes"),
             "pims_nd2": pim.get("sizes"),

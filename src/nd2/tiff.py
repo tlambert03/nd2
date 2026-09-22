@@ -6,7 +6,7 @@ import warnings
 from collections import defaultdict
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from nd2._nd2file import ND2File
 from nd2._ome import nd2_ome_metadata
@@ -49,7 +49,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
     import numpy as np
     import ome_types
@@ -122,7 +122,7 @@ def nd2_to_tiff(
         n_positions = sizes.pop(AXIS.POSITION, 1)
 
         # join axis names as a string, and get shape of the data without positions
-        axes, shape = zip(*sizes.items())
+        axes, shape = zip(*sizes.items(), strict=False)
         # U (Unknown) -> Q : other (OME)
         metadata = {"axes": "".join(axes).upper().replace(AXIS.UNKNOWN, "Q")}
 

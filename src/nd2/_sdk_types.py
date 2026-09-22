@@ -6,9 +6,9 @@ from enum import IntEnum, auto
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Literal, TypedDict, Union
+    from typing import Literal, TypeAlias, TypedDict
 
-    from typing_extensions import NotRequired, TypeAlias
+    from typing_extensions import NotRequired
 
     class RawAttributesDict(TypedDict, total=False):
         uiWidth: int
@@ -178,9 +178,9 @@ if TYPE_CHECKING:
         # this is a dict of keys 'i0000000000', 'i0000000001', etc.
         pSubLoops: NotRequired[dict[str, SubLoopDict]]
 
-    LoopParsDict: TypeAlias = Union[
-        TimeLoopPars, XYPosLoopPars, ZStackLoopPars, SpectLoopPars, NETimeLoopPars
-    ]
+    LoopParsDict: TypeAlias = (
+        TimeLoopPars | XYPosLoopPars | ZStackLoopPars | SpectLoopPars | NETimeLoopPars
+    )
 
     class PointDict(TypedDict):
         dPFSOffset: float

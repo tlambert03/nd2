@@ -10,9 +10,9 @@ for type hinting, not at runtime.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 
-from typing_extensions import NotRequired, Required, TypeAlias, TypedDict
+from typing_extensions import NotRequired, Required, TypedDict
 
 if TYPE_CHECKING:
 

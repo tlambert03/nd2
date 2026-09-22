@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import re
 import warnings
-from typing import TYPE_CHECKING, Any, Callable, Union
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     import xml.etree.ElementTree
+    from collections.abc import Callable
+    from typing import TypeAlias
 
     import lxml.etree
 
-    Element = Union[xml.etree.ElementTree.Element, lxml.etree._Element]
+    Element: TypeAlias = xml.etree.ElementTree.Element | lxml.etree._Element
     Parser = Callable[[bytes | str], Element]
-    Scalar = Union[float, str, int, bytearray, bool]
-    JsonValue = Union[Scalar, dict[str, "JsonValue"]]
+    Scalar: TypeAlias = float | str | int | bytearray | bool
+    JsonValue: TypeAlias = Scalar | dict[str, "JsonValue"]
     XML: Parser
     ParseError: Exception
 

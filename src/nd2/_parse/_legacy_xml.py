@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import re
 from functools import partial
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 try:
     from lxml import etree

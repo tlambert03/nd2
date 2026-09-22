@@ -319,7 +319,7 @@ def test_threaded_read_frame_without_mmap(single_nd2: Path) -> None:
         with ND2File(io.BytesIO(single_nd2.read_bytes())) as f:
             idxs = list(range(len(expected))) * 1000
             with ThreadPoolExecutor(8) as ex:
-                for i, frame in zip(idxs, ex.map(f.read_frame, idxs)):
+                for i, frame in zip(idxs, ex.map(f.read_frame, idxs), strict=False):
                     np.testing.assert_array_equal(frame, expected[i])
     finally:
         sys.setswitchinterval(interval)

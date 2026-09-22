@@ -14,8 +14,8 @@ from nd2._parse._chunk_decode import get_version
 from nd2._util import is_fsspec_url, is_read_seek_binary, open_fsspec_url
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
-    from typing import Callable, Literal
+    from collections.abc import Callable, Mapping, Sequence
+    from typing import Literal
 
     import numpy as np
 

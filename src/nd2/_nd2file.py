@@ -7,7 +7,7 @@ import warnings
 from itertools import product
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Callable, cast, overload
+from typing import TYPE_CHECKING, cast, overload
 
 import numpy as np
 
@@ -23,7 +23,7 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence, Sized
+    from collections.abc import Callable, Mapping, Sequence, Sized
     from os import PathLike
     from typing import Any, Literal, SupportsInt
 
@@ -924,7 +924,7 @@ class ND2File:
 
                 ranges: list[range | tuple] = [range(x) for x in self._coord_shape]
                 ranges[pidx] = (position,)
-                coords = list(zip(*product(*ranges)))
+                coords = list(zip(*product(*ranges), strict=False))
                 seqs = self._seq_index_from_coords(coords)  # type: ignore
                 final_shape[pidx] = 1
 

@@ -22,8 +22,8 @@ except ImportError:
     cached_property = property  # type: ignore
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-    from typing import Any, Callable, TypedDict
+    from collections.abc import Callable, Mapping
+    from typing import Any, TypedDict
 
     from nd2._util import FileOrBinaryIO, ReadSeekBinary
 

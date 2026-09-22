@@ -19,7 +19,7 @@ jobs:
     name: Check Manifest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - run: pipx run check-manifest
 
   test:
@@ -32,11 +32,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.11", "3.13"]
+        python-version: ["3.10", "3.12", "3.14"]
         platform: [ubuntu-latest, macos-latest, windows-latest]
         resolution: ["highest"]
+        extra: [""]
         include:
-          - python-version: "3.9"
+          - python-version: "3.10"
             resolution: "lowest-direct"
             platform: macos-latest
           - python-version: "3.10"
@@ -45,17 +46,20 @@ jobs:
           - python-version: "3.12"
             resolution: "lowest-direct"
             platform: ubuntu-latest
-          - python-version: "3.13"
+          - python-version: "3.14"
             resolution: "highest"
             platform: ubuntu-latest
             extra: ome-zarr
-          - python-version: "3.13"
+          - python-version: "3.14"
             resolution: "highest"
             platform: ubuntu-latest
             extra: ome-zarr-tensorstore
+          - python-version: "3.15"
+            resolution: "highest"
+            platform: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: 🐍 Set up Python ${{ matrix.python-version }}
         uses: astral-sh/setup-uv@v7
@@ -63,7 +67,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         id: cache
         with:
           path: tests/data
@@ -107,13 +111,13 @@ jobs:
   benchmarks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.11"
           enable-cache: true
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         id: cache
         with:
           path: tests/data
@@ -124,17 +128,17 @@ jobs:
         run: uv run scripts/download_samples.py
 
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@v4
+        uses: CodSpeedHQ/action@v5
         with:
           run: uv run --no-dev --group test pytest -W ignore --codspeed -v --color=yes
-          mode: instrumentation
+          mode: simulation
 
   build-and-inspect-package:
     name: Build & inspect package.
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: hynek/build-and-inspect-python-package@v3.0.1
@@ -156,7 +160,7 @@ jobs:
           path: dist
       - name: 🚢 Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           files: "./dist/*"

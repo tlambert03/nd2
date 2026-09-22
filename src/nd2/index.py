@@ -120,7 +120,7 @@ def index_file(path: Path) -> Record:
 
         stat = path.stat()
         exp = [(x.type, x.count) for x in nd.experiment]
-        axes, shape = zip(*nd.sizes.items())
+        axes, shape = zip(*nd.sizes.items(), strict=False)
         if isinstance(acquired, datetime):
             acq_str = acquired.strftime(TIME_FORMAT)
         else:

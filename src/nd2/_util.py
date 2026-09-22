@@ -9,12 +9,10 @@ from itertools import product
 from typing import TYPE_CHECKING, BinaryIO, NamedTuple, cast
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Callable, Mapping, Sequence
     from os import PathLike
     from types import ModuleType
-    from typing import Any, Callable, ClassVar, Final, Protocol, TypeAlias, Union
-
-    from typing_extensions import TypeGuard
+    from typing import Any, ClassVar, Final, Protocol, TypeAlias, TypeGuard
 
     from nd2.structures import ExpLoop
 
@@ -25,8 +23,8 @@ if TYPE_CHECKING:
         def seek(self, offset: int, whence: int = 0, /) -> int: ...
         def close(self) -> None: ...
 
-    StrOrPath: TypeAlias = Union[str, PathLike]
-    FileOrBinaryIO: TypeAlias = Union[StrOrPath, ReadSeekBinary]
+    StrOrPath: TypeAlias = str | PathLike
+    FileOrBinaryIO: TypeAlias = StrOrPath | ReadSeekBinary
 
     ListOfDicts: TypeAlias = list[dict[str, Any]]
     DictOfLists: TypeAlias = Mapping[str, Sequence[Any]]
@@ -283,10 +281,10 @@ def convert_dict_of_lists_to_records(
     return [
         {
             col_name: value
-            for col_name, value in zip(columns, row_data)
+            for col_name, value in zip(columns, row_data, strict=False)
             if not strip_nan or not math.isnan(value)
         }
-        for row_data in zip(*columns.values())
+        for row_data in zip(*columns.values(), strict=False)
     ]
 
 
@@ -306,4 +304,4 @@ def loop_indices(experiment: list[ExpLoop]) -> tuple[dict[str, int], ...]:
     """
     axes = [AXIS._MAP[x.type] for x in experiment]
     indices = product(*(range(x.count) for x in experiment))
-    return tuple(dict(zip(axes, x)) for x in indices)
+    return tuple(dict(zip(axes, x, strict=False)) for x in indices)

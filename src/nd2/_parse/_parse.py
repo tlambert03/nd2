@@ -15,8 +15,7 @@ from nd2._sdk_types import ELxModalityMask, EventMeaning, StimulationType
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
-
-    from typing_extensions import TypeGuard
+    from typing import TypeGuard
 
     from nd2._sdk_types import (
         AxisInterpretation,
@@ -87,7 +86,9 @@ def _parse_xy_pos_loop(
     if valid:
         if isinstance(valid, dict):
             valid = [v for k, v in sorted(valid.items())]
-        out_points = [p for p, is_valid in zip(out_points, valid) if is_valid]
+        out_points = [
+            p for p, is_valid in zip(out_points, valid, strict=False) if is_valid
+        ]
 
     params = strct.XYPosLoopParams(isSettingZ=useZ, points=out_points)
     return strct.XYPosLoop(count=len(out_points), nestingLevel=0, parameters=params)
@@ -173,7 +174,7 @@ def _parse_ne_time_loop(item: NETimeLoopPars) -> strct.NETimeLoop:
 
     count = 0
     out_periods: list[strct.Period] = []
-    for it, is_valid in zip(item["pPeriod"].values(), period_valid):
+    for it, is_valid in zip(item["pPeriod"].values(), period_valid, strict=False):
         if not is_valid:
             continue
 

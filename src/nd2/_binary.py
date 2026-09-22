@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import io
 import struct
-import sys
 import warnings
 import zlib
 from collections.abc import Iterator, Sequence
@@ -21,12 +20,8 @@ I7 = struct.Struct("<" + "I" * 7)
 I9 = struct.Struct("<" + "I" * 9)
 I2 = struct.Struct("<" + "I" * 2)
 
-SLOTS = {}
-if sys.version_info >= (3, 10):
-    SLOTS["slots"] = True
 
-
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class BinaryLayer:
     """Wrapper for data from a single binary layer in an [`nd2.ND2File`][].
 

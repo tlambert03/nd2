@@ -35,8 +35,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from os import PathLike
-
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
 
     from nd2 import ND2File
     from nd2._binary import BinaryLayer, BinaryLayers

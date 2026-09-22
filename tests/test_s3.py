@@ -91,9 +91,11 @@ def test_nd2file_reads_from_s3_url(
         np.testing.assert_array_equal(remote_nd.read_frame(0), local_nd.read_frame(0))
         if local_nd.binary_data is not None:
             assert remote_nd.binary_data is not None
-            for rb, lb in zip(remote_nd.binary_data, local_nd.binary_data):
+            for rb, lb in zip(
+                remote_nd.binary_data, local_nd.binary_data, strict=False
+            ):
                 np.testing.assert_array_equal(rb.asarray(), lb.asarray())
-        for rr, lr in zip(remote_nd.rois.items(), local_nd.rois.items()):
+        for rr, lr in zip(remote_nd.rois.items(), local_nd.rois.items(), strict=False):
             assert rr == lr
 
     full_local_read = imread(small_nd2s)

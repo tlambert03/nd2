@@ -5,12 +5,15 @@ import re
 import struct
 import zlib
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, Callable, Union, cast
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
-    from typing import Final
+    from collections.abc import Callable
+    from typing import Final, TypeAlias
 
-    JsonValueType = Union[dict[str, "JsonValueType"], int, str, float, None, bool, list]
+    JsonValueType: TypeAlias = (
+        dict[str, "JsonValueType"] | int | str | float | bool | list | None
+    )
 
 
 strctBB = struct.Struct("BB")  # 2x uint8_t

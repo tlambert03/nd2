@@ -6,7 +6,7 @@ import builtins
 import warnings
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import TYPE_CHECKING, Literal, NamedTuple, TypedDict, Union
+from typing import TYPE_CHECKING, Literal, NamedTuple, TypedDict
 
 from ._sdk_types import EventMeaning, StimulationType
 
@@ -252,13 +252,13 @@ class ZStackLoopParams:
 
 ###
 
-ExpLoop = Union[TimeLoop, NETimeLoop, XYPosLoop, ZStackLoop, CustomLoop]
+ExpLoop = TimeLoop | NETimeLoop | XYPosLoop | ZStackLoop | CustomLoop
 """Union of loop types in an experiment.
 
 [`ND2File.experiment`][nd2.ND2File.experiment] returns a list of these.
 """
 
-LoopParams = Union[TimeLoopParams, NETimeLoopParams, XYPosLoopParams, ZStackLoopParams]
+LoopParams = TimeLoopParams | NETimeLoopParams | XYPosLoopParams | ZStackLoopParams
 """Type of parameters associated with a loop in an experiment."""
 
 # metadata #################

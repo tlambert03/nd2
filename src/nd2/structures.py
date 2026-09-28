@@ -50,6 +50,49 @@ class LoopType(IntEnum):
     ZStackLoopAccurate = 10
 
 
+class PFSStatus(IntEnum):
+    """Per-frame status of the Nikon Perfect Focus System (PFS).
+
+    These are the values stored in the `CustomData|PFS_STATUS!` chunk of an ND2
+    file, exposed as [`FrameChannel.pfs_status`][nd2.structures.FrameChannel]
+    (via `ND2File.frame_metadata()`) and as the "PFS Status" column of
+    `ND2File.events()`.  Both return plain integers; use `PFSStatus(value)` to
+    interpret them.
+
+    The meanings below are taken verbatim from the NIS-Elements macro
+    documentation for `Stg_GetPFSStatus`, which describes them as
+    microscope-model-independent values (NIS-Elements internally converts the
+    raw hardware codes to these values):
+    <https://www.nisoftware.net/NikonSaleApplication/Help/Docs-D/eng_d/p4c8s23.html>
+
+    The mapping was cross-checked against the "PFS, state: On/Off" line in the
+    text description of the files in the nd2 test suite, which agrees with this
+    table and not with the raw Nikon Ti hardware codes.
+
+    Note that the value `2` is not documented, and files in the wild have been
+    reported containing `8` (see <https://github.com/tlambert03/nd2/issues/308>),
+    which is also not documented, so `PFSStatus(value)` may raise `ValueError`.
+    """
+
+    ERROR = -1
+    """PFS Error, e.g. PFS is not connected."""
+    IN_RANGE = 0
+    """In range, detects the focused signal, PFS is OFF."""
+    FOCUSED = 1
+    """Focused, focused position was found, keep the position, PFS is ON."""
+    OUT_OF_RANGE = 3
+    """Out of range, Cannot detect the focused signal, PFS is OFF."""
+    OUT_OF_RANGE_OPTICS = 4
+    """Out of range, PFS Optics is not set correctly (Dichroic Mirror is out),
+    PFS is OFF."""
+    SEARCHING = 5
+    """Searching, PFS is ON."""
+    SEARCH_FAILED = 6
+    """Searching stopped, Cannot find the focused position, PFS is ON."""
+    DISABLED = 7
+    """Disabled, Objective Lens not supported, PFS is OFF."""
+
+
 # tuples
 
 
@@ -464,6 +507,9 @@ class FrameChannel(Channel):
 
     position: Position
     time: TimeStamp
+    pfs_status: int | None = None
+    """Perfect Focus System status recorded for this frame, or `None` if the file
+    does not record it. See [`PFSStatus`][nd2.structures.PFSStatus] for meanings."""
 
     def __post_init__(self) -> None:
         super().__post_init__()

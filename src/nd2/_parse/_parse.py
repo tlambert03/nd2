@@ -674,6 +674,7 @@ def load_frame_metadata(
     exp_loops: list[ExpLoop],
     frame_time: float,
     loop_indices: dict[str, int],
+    pfs_status: int | None = None,
 ) -> strct.FrameMetadata:
     xy_loop_idx = global_meta["loops"].get("XYPosLoop", -1)
     z_loop_idx = global_meta["loops"].get("ZStackLoop", -1)
@@ -710,6 +711,7 @@ def load_frame_metadata(
             **asdict(channel),
             time=time,
             position=strct.Position(name=name, stagePositionUm=P),
+            pfs_status=pfs_status,
         )
         for channel in meta.channels or ()
     ]

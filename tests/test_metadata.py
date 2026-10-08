@@ -204,6 +204,20 @@ def test_cached_decoded_chunks() -> None:
         _meta = f.unstructured_metadata()
 
 
+def test_zstack_frame_position_varies() -> None:
+    # test fix to https://github.com/tlambert03/nd2/issues/311
+    # z position was constant across a ZStackLoop instead of stepping per-plane
+    with ND2File(DATA / "dims_p1z5t3c2y32x32.nd2") as f:
+        z = [
+            f.frame_metadata(i).channels[0].position.stagePositionUm[2]
+            for i in range(5)
+        ]
+        step = f.experiment[2].parameters.stepUm  # type: ignore[union-attr]
+
+    assert z == pytest.approx([z[0] + n * step for n in range(5)])
+    assert len(set(z)) == 5  # z must not be constant across the stack
+
+
 def test_missing_absolute_time_gives_no_acquisition_date() -> None:
     # jonas_3.nd2 stores dTimeAbsolute == -1
     with ND2File(DATA / "jonas_3.nd2") as f:

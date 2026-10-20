@@ -24,6 +24,9 @@ if TYPE_CHECKING:
     from ._sdk_types import RawMetaDict
     from .structures import ModalityFlags
 
+# OME's PixelType names floating point types differently than numpy
+_OME_PIXEL_TYPES = {"float32": "float", "float64": "double"}
+
 # TODO: add support for splitting positions into separate files, and pyramids
 # https://docs.openmicroscopy.org/ome-model/6.3.1/ome-tiff/specification.html#embedded-ome-xml-metadata
 # https://docs.openmicroscopy.org/ome-model/6.3.1/ome-tiff/specification.html#supported-resolutions
@@ -203,7 +206,7 @@ def nd2_ome_metadata(
             tiff_data_blocks=tiff_blocks,
             metadata_only=md_only,
             dimension_order=dim_order,
-            type=str(f.dtype),
+            type=_OME_PIXEL_TYPES.get(str(f.dtype), str(f.dtype)),
             significant_bits=f.attributes.bitsPerComponentSignificant,
             size_x=f.sizes.get(AXIS.X, 1),
             size_y=f.sizes.get(AXIS.Y, 1),

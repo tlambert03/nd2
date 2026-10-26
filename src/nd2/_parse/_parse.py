@@ -703,7 +703,7 @@ def load_frame_metadata(
         zparams = cast("strct.ZStackLoop", exp_loops[z_loop_idx])
         home = zparams.parameters.homeIndex or 0
         step = zparams.parameters.stepUm or 1
-        z -= home * step
+        z -= (home - loop_indices.get("Z", 0)) * step
 
     P = strct.StagePosition(x, y, z)
     frame_channels = [

@@ -204,6 +204,49 @@ def test_cached_decoded_chunks() -> None:
         _meta = f.unstructured_metadata()
 
 
+def test_zstack_frame_position_varies() -> None:
+    # test fix to https://github.com/tlambert03/nd2/issues/311
+    # z position was constant across a ZStackLoop instead of stepping per-plane
+    with ND2File(DATA / "dims_p1z5t3c2y32x32.nd2") as f:
+        z = [
+            f.frame_metadata(i).channels[0].position.stagePositionUm[2]
+            for i in range(5)
+        ]
+        step = f.experiment[2].parameters.stepUm  # type: ignore[union-attr]
+
+    assert z == pytest.approx([z[0] + n * step for n in range(5)])
+    assert len(set(z)) == 5  # z must not be constant across the stack
+
+
+@pytest.mark.parametrize(
+    "name,expected_bottom_to_top",
+    [("bottom_to_top.nd2", True), ("top_to_bottom.nd2", False)],
+)
+def test_zstack_frame_position_direction(
+    name: str, expected_bottom_to_top: bool
+) -> None:
+    """Per-plane z must step correctly for either ZStackLoop scan direction.
+
+    Regression test for https://github.com/tlambert03/nd2/issues/311 --
+    verified against `nd2info metadata` for both bottomToTop values.
+    """
+    path = DATA / name
+    if not path.exists():
+        pytest.skip(f"{name} not present in sample data")
+
+    with ND2File(path) as f:
+        zloop = next(lp for lp in f.experiment if isinstance(lp, structures.ZStackLoop))
+        assert zloop.parameters.bottomToTop is expected_bottom_to_top
+        step = zloop.parameters.stepUm
+        z = [
+            f.frame_metadata(i).channels[0].position.stagePositionUm[2]
+            for i in range(zloop.count)
+        ]
+
+    assert z == pytest.approx([z[0] + n * step for n in range(zloop.count)])
+    assert len(set(z)) == zloop.count  # z must not be constant across the stack
+
+
 def test_missing_absolute_time_gives_no_acquisition_date() -> None:
     # jonas_3.nd2 stores dTimeAbsolute == -1
     with ND2File(DATA / "jonas_3.nd2") as f:

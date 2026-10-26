@@ -48,3 +48,21 @@ def test_ome_exposure_vals(name: str, expected: list[float | None]) -> None:
 
     by_channel = {p.the_c: p.exposure_time for p in meta.images[0].pixels.planes}
     assert [by_channel[channel] for channel in range(len(expected))] == expected
+
+
+@pytest.mark.parametrize(
+    "dtype, expected", [("float32", "float"), ("float64", "double")]
+)
+def test_ome_float_pixel_type(
+    monkeypatch: pytest.MonkeyPatch, dtype: str, expected: str
+) -> None:
+    pytest.importorskip("ome_types")
+    import numpy as np
+
+    # ND2 files can store float32 pixels (pixelDataType 'float'), but the
+    # numpy dtype name is not a valid OME PixelType.
+    monkeypatch.setattr(nd2.ND2File, "dtype", property(lambda self: np.dtype(dtype)))
+    with nd2.ND2File(DATA / "dims_t3c2y32x32.nd2") as f:
+        meta = f.ome_metadata(include_unstructured=False)
+
+    assert meta.images[0].pixels.type.value == expected

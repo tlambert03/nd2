@@ -429,6 +429,11 @@ class ND2File:
         data.  Not all cells will be populated, and empty cells will be filled
         with `null_value` (default `float('nan')`).
 
+        If present, the "PFS Status" column holds the per-frame Perfect Focus
+        System status as a raw integer; see
+        [`nd2.structures.PFSStatus`][nd2.structures.PFSStatus] for the meaning of
+        the values.
+
         Legacy ND2 files are not supported.
 
         Parameters
@@ -714,10 +719,17 @@ class ND2File:
                             absoluteJulianDayNumber=2459486.0682717753,
                             relativeTimeMs=580.3582921028137,
                         ),
+                        pfs_status=0,
                     ),
                 ],
             )
             ```
+
+        The `pfs_status` field on each channel holds the Perfect Focus System
+        status recorded for this frame (`None` if the file does not record it).
+        See
+        [`nd2.structures.PFSStatus`][nd2.structures.PFSStatus] for the meaning of
+        the values and the source of that information.
 
         Parameters
         ----------

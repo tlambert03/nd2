@@ -78,6 +78,7 @@ class ModernReader(ND2Reader):
         self._dtype_: np.dtype | None = None
         self._strides_: tuple[int, ...] | None = None
         self._frame_times: list[float] | None = None
+        self._pfs_status: np.ndarray | None = None
         # these caches could be removed... they aren't really used
         self._raw_attributes: RawAttributesDict | None = None
         self._raw_experiment: RawExperimentDict | None = None
@@ -199,9 +200,24 @@ class ModernReader(ND2Reader):
         frame_time = self._cached_frame_times()[seq_index]
         global_meta = self._cached_global_metadata()
         loop_indices = self.loop_indices()[seq_index]
+        pfs = self._cached_pfs_status()
+        pfs_status = int(pfs[seq_index]) if pfs is not None else None
         return load_frame_metadata(
-            global_meta, self.metadata(), self.experiment(), frame_time, loop_indices
+            global_meta,
+            self.metadata(),
+            self.experiment(),
+            frame_time,
+            loop_indices,
+            pfs_status=pfs_status,
         )
+
+    def _cached_pfs_status(self) -> np.ndarray | None:
+        """Per-frame PFS status codes from `CustomData|PFS_STATUS!`, if present."""
+        key = b"CustomData|PFS_STATUS!"
+        if self._pfs_status is None and key in self.chunkmap:
+            # same dtype as used for Type==2 tags in `_custom_tags`
+            self._pfs_status = np.frombuffer(self._load_chunk(key), dtype=np.int32)
+        return self._pfs_status
 
     def text_info(self) -> structures.TextInfo:
         if self._text_info is None:

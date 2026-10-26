@@ -588,7 +588,6 @@ pip install -e .[dev]
 To download sample data:
 
 ```
-pip install requests
 python scripts/download_samples.py
 ```
 

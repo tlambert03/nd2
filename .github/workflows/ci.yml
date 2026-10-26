@@ -71,7 +71,7 @@ jobs:
         id: cache
         with:
           path: tests/data
-          key: ${{ hashFiles('scripts/download_samples.py') }}
+          key: test-data-${{ hashFiles('scripts/samples.sha256') }}
 
       - name: Download Samples
         if: steps.cache.outputs.cache-hit != 'true'
@@ -121,7 +121,7 @@ jobs:
         id: cache
         with:
           path: tests/data
-          key: ${{ hashFiles('scripts/download_samples.py') }}
+          key: test-data-${{ hashFiles('scripts/samples.sha256') }}
 
       - name: Download Samples
         if: steps.cache.outputs.cache-hit != 'true'
